@@ -48,13 +48,16 @@ Abra `http://localhost:3000`.
 
 ## Escopo atual
 
-Esta primeira etapa é uma base visual mockada. Não há banco, autenticação real nem integrações externas ainda.
+Esta etapa já possui a base da Fase 1 para Supabase Auth, schema multi-tenant,
+CRUD de leads por API e campos de origem preparados para Meta Lead Ads. Sem as
+variáveis do Supabase configuradas, o dashboard continua usando dados mockados
+para não bloquear a interface.
 
 ## Páginas implementadas
 
 - `/`: landing page da LeadHealth com proposta de CRM + IA, preview do dashboard, formulário seguro para Meta Lead Ads e CTA para dashboard/planos.
-- `/dashboard`: dashboard mockado com métricas, CRM de leads, tabela, funil Kanban visual, campanha sugerida por IA, checklist de compliance, mensagem de WhatsApp e pedido criativo.
-- `/login`: tela visual de login, ainda sem autenticação real.
+- `/dashboard`: dashboard com métricas, CRM de leads, tabela, funil Kanban visual, campanha sugerida por IA, checklist de compliance, mensagem de WhatsApp e pedido criativo. Usa Supabase quando configurado e mock como fallback.
+- `/login`: autenticação real com Supabase Auth quando as variáveis de ambiente estão configuradas.
 - `/pricing`: página visual de planos com valores placeholder.
 
 ## Componentes e dados
@@ -63,10 +66,40 @@ Esta primeira etapa é uma base visual mockada. Não há banco, autenticação r
 - `src/components/mock-dashboard-preview.tsx`: preview visual da operação na landing.
 - `src/data/mock.ts`: leads, colunas do Kanban, campanha sugerida, navegação e agenda mockados.
 
-## Próximos passos técnicos
+## Supabase Fase 1
 
-1. Conectar Supabase Auth.
-2. Criar schema multi-tenant com `organizations`, `profiles`, `leads`, `campaign_plans` e `creative_orders`.
-3. Trocar dados mockados por consultas reais.
-4. Implementar serviços de IA para campanhas, compliance e WhatsApp.
-5. Criar importação CSV e fluxo manual de Meta Lead Ads.
+Já implementado no código:
+
+- Cliente Supabase para server/browser.
+- Middleware para refresh de sessão.
+- Login e cadastro por Supabase Auth.
+- Schema multi-tenant em `supabase/migrations/202604280001_phase_1_core.sql`.
+- API de CRUD de leads.
+- Tela `/dashboard/leads` lendo Supabase quando houver sessão e usando mock quando não houver configuração.
+
+O cadastro cria automaticamente uma organização e um perfil `owner`. A rota
+`/dashboard/leads` consulta os leads reais quando existe sessão ativa.
+
+## API de leads
+
+- `GET /api/leads`: lista leads da organização logada.
+- `POST /api/leads`: cria lead manual, CSV, API ou origem Meta.
+- `PATCH /api/leads/:id`: atualiza lead da organização logada.
+- `DELETE /api/leads/:id`: remove lead da organização logada.
+
+Campos preparados para Meta:
+
+```txt
+source
+source_campaign
+source_adset
+source_ad
+meta_lead_id
+meta_form_id
+meta_page_id
+meta_campaign_id
+meta_adset_id
+meta_ad_id
+received_at
+raw_payload
+```
