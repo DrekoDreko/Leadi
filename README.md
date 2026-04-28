@@ -1,6 +1,25 @@
 # LeadHealth
 
-SaaS para corretores e vendedores de plano de saúde empresarial organizarem leads, planejarem campanhas com IA e acompanharem oportunidades em CRM.
+CRM e SaaS com IA para corretores de planos de saúde organizarem leads, planejarem campanhas e acompanharem oportunidades em um fluxo único.
+
+## Badges
+
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.4-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Status](https://img.shields.io/badge/Status-Em%20desenvolvimento-f59e0b?style=for-the-badge)](#escopo-atual)
+
+## Visão geral
+
+LeadHealth é uma base visual para um produto de CRM focado em planos de saúde empresariais.
+
+O projeto cobre:
+
+- captura e organização de leads
+- visão de funil e oportunidades
+- campanhas sugeridas com IA
+- checklist de compliance
+- integrações futuras com Meta, Supabase e OpenAI
 
 ## Stack atual
 
@@ -12,6 +31,12 @@ SaaS para corretores e vendedores de plano de saúde empresarial organizarem lea
 - Supabase futuramente para autenticação, banco e storage
 - OpenAI API futuramente para geração de campanhas, compliance e WhatsApp
 
+## Site e configuração
+
+- Website: não configurado ainda
+- Repositório: `leadhealth`
+- Variáveis de ambiente: copie `.env.example` para `.env.local` quando for conectar Supabase, OpenAI, pagamentos e integrações Meta
+
 ## Rodando localmente
 
 ```bash
@@ -20,10 +45,6 @@ npm run dev
 ```
 
 Abra `http://localhost:3000`.
-
-## Ambiente
-
-Copie `.env.example` para `.env.local` quando formos conectar Supabase, OpenAI, pagamentos e integrações Meta.
 
 ## Escopo atual
 
@@ -45,9 +66,7 @@ Esta primeira etapa é uma base visual mockada. Não há banco, autenticação r
 ## Próximos passos técnicos
 
 1. Conectar Supabase Auth.
-2. Criar schema multi-tenant com organizations, profiles, leads, campaign_plans e creative_orders.
+2. Criar schema multi-tenant com `organizations`, `profiles`, `leads`, `campaign_plans` e `creative_orders`.
 3. Trocar dados mockados por consultas reais.
 4. Implementar serviços de IA para campanhas, compliance e WhatsApp.
 5. Criar importação CSV e fluxo manual de Meta Lead Ads.
-
-# app-meta-crm
