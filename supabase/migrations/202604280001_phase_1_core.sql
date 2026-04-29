@@ -35,7 +35,7 @@ create table public.profiles (
   organization_id uuid not null references public.organizations(id) on delete cascade,
   full_name text,
   email citext not null,
-  role text not null default 'owner' check (role in ('owner', 'admin', 'seller')),
+  role text not null default 'owner' check (role in ('owner', 'admin', 'seller', 'supervisor')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -223,7 +223,7 @@ with check (
   )
 );
 
-create policy "Owners and admins can delete organization leads"
+create policy "Supervisors can delete organization leads"
 on public.leads
 for delete
 using (
@@ -231,6 +231,6 @@ using (
     select organization_id
     from public.profiles
     where auth_user_id = auth.uid()
-      and role in ('owner', 'admin')
+      and role = 'supervisor'
   )
 );

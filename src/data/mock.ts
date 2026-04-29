@@ -30,6 +30,7 @@ export type Lead = {
   source: string;
   phone: string;
   email: string;
+  city?: string | null;
   createdAt: string;
   budget: string;
   interest: string;
@@ -42,6 +43,7 @@ export type Lead = {
   metaFormId?: string | null;
   metaPageId?: string | null;
   receivedAt?: string | null;
+  nextContactAt?: string | null;
 };
 
 export const leads: Lead[] = [
@@ -55,6 +57,7 @@ export const leads: Lead[] = [
     source: "Meta Lead Form",
     phone: "(19) 98842-1042",
     email: "marina@azevedoclinica.com.br",
+    city: "Campinas",
     createdAt: "27 abr 2026",
     budget: "R$ 18k/mês",
     interest: "Plano empresarial com coparticipação",
@@ -71,6 +74,7 @@ export const leads: Lead[] = [
     source: "CSV importado",
     phone: "(11) 97620-1039",
     email: "renato@rcengenharia.com.br",
+    city: "Sao Paulo",
     createdAt: "26 abr 2026",
     budget: "R$ 6k/mês",
     interest: "Redução de custo do plano atual",
@@ -87,6 +91,7 @@ export const leads: Lead[] = [
     source: "Cadastro manual",
     phone: "(13) 99110-1031",
     email: "paula@mendesstudio.com.br",
+    city: "Santos",
     createdAt: "24 abr 2026",
     budget: "R$ 2.8k/mês",
     interest: "Primeiro plano empresarial para equipe pequena",
@@ -103,6 +108,7 @@ export const leads: Lead[] = [
     source: "Meta Lead Form",
     phone: "(15) 98132-1028",
     email: "fabio@linslogistica.com.br",
+    city: "Sorocaba",
     createdAt: "23 abr 2026",
     budget: "R$ 42k/mês",
     interest: "Migração de contrato com maior rede hospitalar",

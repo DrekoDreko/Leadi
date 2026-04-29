@@ -20,6 +20,7 @@ export type LeadDataMode = "supabase" | "mock" | "not-configured" | "unauthentic
 export type LeadDataState = {
   leads: Lead[];
   mode: LeadDataMode;
+  canDeleteLeads: boolean;
   message?: string;
 };
 
@@ -85,6 +86,7 @@ export async function getLeadsForCurrentUser(): Promise<LeadDataState> {
     return {
       leads: mockLeads,
       mode: "not-configured",
+      canDeleteLeads: true,
       message: "Supabase ainda nao configurado. Exibindo dados mockados."
     };
   }
@@ -97,9 +99,10 @@ export async function getLeadsForCurrentUser(): Promise<LeadDataState> {
 
   if (userError || !user) {
     return {
-      leads: mockLeads,
+      leads: [],
       mode: "unauthenticated",
-      message: "Usuario nao autenticado. Exibindo dados mockados."
+      canDeleteLeads: false,
+      message: "Usuario nao autenticado."
     };
   }
 
@@ -111,9 +114,10 @@ export async function getLeadsForCurrentUser(): Promise<LeadDataState> {
 
   if (profileError || !profile) {
     return {
-      leads: mockLeads,
+      leads: [],
       mode: "error",
-      message: profileError?.message ?? "Perfil nao encontrado."
+      canDeleteLeads: false,
+      message: "Nao foi possivel carregar os leads."
     };
   }
 
@@ -125,21 +129,23 @@ export async function getLeadsForCurrentUser(): Promise<LeadDataState> {
 
   if (error) {
     return {
-      leads: mockLeads,
+      leads: [],
       mode: "error",
-      message: error.message
+      canDeleteLeads: false,
+      message: "Nao foi possivel carregar os leads."
     };
   }
 
   return {
     leads: data.map((lead) => mapLeadRowToLead(lead, profile)),
-    mode: "supabase"
+    mode: "supabase",
+    canDeleteLeads: canDeleteOrganizationLeads(profile)
   };
 }
 
 export async function createLeadForCurrentUser(input: LeadCreateInput) {
   if (!isSupabaseConfigured()) {
-    throw new Error("Supabase nao configurado.");
+    return createMockLead(input);
   }
 
   const supabase = await createSupabaseServerClient();
@@ -194,7 +200,7 @@ export async function createLeadForCurrentUser(input: LeadCreateInput) {
 
 export async function updateLeadForCurrentUser(id: string, input: LeadCreateInput) {
   if (!isSupabaseConfigured()) {
-    throw new Error("Supabase nao configurado.");
+    return updateMockLead(id, input);
   }
 
   const profile = await getCurrentProfile();
@@ -218,19 +224,30 @@ export async function updateLeadForCurrentUser(id: string, input: LeadCreateInpu
 
 export async function deleteLeadForCurrentUser(id: string) {
   if (!isSupabaseConfigured()) {
-    throw new Error("Supabase nao configurado.");
+    return;
   }
 
   const profile = await getCurrentProfile();
+
+  if (profile.role !== "supervisor") {
+    throw new Error("Apenas supervisores podem excluir leads.");
+  }
+
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("leads")
     .delete()
     .eq("id", id)
-    .eq("organization_id", profile.organization_id);
+    .eq("organization_id", profile.organization_id)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Lead nao encontrado.");
   }
 }
 
@@ -302,13 +319,12 @@ async function getCurrentProfile() {
   return profile;
 }
 
+function canDeleteOrganizationLeads(profile: ProfileRow) {
+  return profile.role === "supervisor";
+}
+
 function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInsert {
-  const name = stringOrNull(input.name);
-
-  if (!name) {
-    throw new Error("Nome do lead e obrigatorio.");
-  }
-
+  const name = getRequiredLeadName(input.name);
   const phone = normalizePhone(input.phone);
   const rawPayload = toJson(input.raw_payload);
 
@@ -343,14 +359,146 @@ function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInser
   };
 }
 
+function createMockLead(input: LeadCreateInput): Lead {
+  const name = getRequiredLeadName(input.name);
+  const phone = normalizePhone(input.phone);
+  const email = normalizeEmail(input.email);
+  const stage = normalizeLeadStage(input.stage);
+  const source = normalizeLeadSource(input.source);
+  const nextContactAt = stringOrNull(input.next_contact_at);
+  const now = new Date();
+
+  return {
+    id: `mock-${now.getTime()}`,
+    name,
+    owner: "Demo",
+    stage: stageLabels[stage],
+    nextContact: formatNextContact(nextContactAt),
+    nextContactAt,
+    score: normalizeScore(input.score),
+    source: sourceLabels[source],
+    phone: phone.display ?? "Sem telefone",
+    email: email ?? "Sem email",
+    city: stringOrNull(input.city),
+    createdAt: dateFormatter.format(now),
+    budget: stringOrNull(input.budget) ?? "A qualificar",
+    interest: stringOrNull(input.interest) ?? "Interesse ainda nao qualificado",
+    lastInteraction:
+      stringOrNull(input.last_interaction) ?? "Lead cadastrado manualmente no modo demonstracao.",
+    notes: stringOrNull(input.notes) ?? "Sem observacoes registradas.",
+    sourceCampaign: stringOrNull(input.source_campaign),
+    sourceAdset: stringOrNull(input.source_adset),
+    sourceAd: stringOrNull(input.source_ad),
+    metaLeadId: stringOrNull(input.meta_lead_id),
+    metaFormId: stringOrNull(input.meta_form_id),
+    metaPageId: stringOrNull(input.meta_page_id),
+    receivedAt: now.toISOString()
+  };
+}
+
+function updateMockLead(id: string, input: LeadCreateInput): Lead {
+  const existingLead = mockLeads.find((lead) => lead.id === id);
+  const phone = input.phone === undefined ? null : normalizePhone(input.phone);
+  const email = input.email === undefined ? undefined : normalizeEmail(input.email);
+  const nextContactAt =
+    input.next_contact_at === undefined ? existingLead?.nextContactAt : stringOrNull(input.next_contact_at);
+  const stage = input.stage === undefined ? undefined : normalizeLeadStage(input.stage);
+  const source = input.source === undefined ? undefined : normalizeLeadSource(input.source);
+  const now = new Date();
+
+  return {
+    id,
+    name:
+      input.name === undefined
+        ? existingLead?.name ?? "Lead sem nome"
+        : getRequiredLeadName(input.name),
+    owner: existingLead?.owner ?? "Demo",
+    stage: stage ? stageLabels[stage] : existingLead?.stage ?? "Novo lead",
+    nextContact:
+      input.next_contact_at === undefined
+        ? existingLead?.nextContact ?? "A definir"
+        : formatNextContact(input.next_contact_at),
+    nextContactAt,
+    score: input.score === undefined ? existingLead?.score ?? 50 : normalizeScore(input.score),
+    source: source ? sourceLabels[source] : existingLead?.source ?? "Cadastro manual",
+    phone:
+      input.phone === undefined
+        ? existingLead?.phone ?? "Sem telefone"
+        : phone?.display ?? "Sem telefone",
+    email: input.email === undefined ? existingLead?.email ?? "Sem email" : email ?? "Sem email",
+    city: input.city === undefined ? existingLead?.city ?? null : stringOrNull(input.city),
+    createdAt: existingLead?.createdAt ?? dateFormatter.format(now),
+    budget:
+      input.budget === undefined
+        ? existingLead?.budget ?? "A qualificar"
+        : stringOrNull(input.budget) ?? "A qualificar",
+    interest:
+      input.interest === undefined
+        ? existingLead?.interest ?? "Interesse ainda nao qualificado"
+        : stringOrNull(input.interest) ?? "Interesse ainda nao qualificado",
+    lastInteraction:
+      input.last_interaction === undefined
+        ? existingLead?.lastInteraction ?? "Lead atualizado no modo demonstracao."
+        : stringOrNull(input.last_interaction) ?? "Lead atualizado no modo demonstracao.",
+    notes:
+      input.notes === undefined
+        ? existingLead?.notes ?? "Sem observacoes registradas."
+        : stringOrNull(input.notes) ?? "Sem observacoes registradas.",
+    sourceCampaign:
+      input.source_campaign === undefined
+        ? existingLead?.sourceCampaign ?? null
+        : stringOrNull(input.source_campaign),
+    sourceAdset:
+      input.source_adset === undefined
+        ? existingLead?.sourceAdset ?? null
+        : stringOrNull(input.source_adset),
+    sourceAd:
+      input.source_ad === undefined ? existingLead?.sourceAd ?? null : stringOrNull(input.source_ad),
+    metaLeadId:
+      input.meta_lead_id === undefined
+        ? existingLead?.metaLeadId ?? null
+        : stringOrNull(input.meta_lead_id),
+    metaFormId:
+      input.meta_form_id === undefined
+        ? existingLead?.metaFormId ?? null
+        : stringOrNull(input.meta_form_id),
+    metaPageId:
+      input.meta_page_id === undefined
+        ? existingLead?.metaPageId ?? null
+        : stringOrNull(input.meta_page_id),
+    receivedAt: existingLead?.receivedAt ?? now.toISOString()
+  };
+}
+
+function getRequiredLeadName(value: unknown) {
+  const name = stringOrNull(value);
+
+  if (!name) {
+    throw new Error("Nome do lead e obrigatorio.");
+  }
+
+  return name;
+}
+
+function formatNextContact(value: unknown) {
+  const nextContact = stringOrNull(value);
+
+  if (!nextContact) {
+    return "A definir";
+  }
+
+  const date = new Date(nextContact);
+  return Number.isNaN(date.getTime()) ? nextContact : contactFormatter.format(date);
+}
+
 function buildLeadUpdate(input: LeadCreateInput): Database["public"]["Tables"]["leads"]["Update"] {
   const phone = normalizePhone(input.phone);
   const rawPayload = toJson(input.raw_payload);
 
   return removeUndefinedValues({
     name: stringOrNull(input.name) ?? undefined,
-    phone: phone.display ?? undefined,
-    phone_e164: phone.e164 ?? undefined,
+    phone: input.phone === undefined ? undefined : phone.display,
+    phone_e164: input.phone === undefined ? undefined : phone.e164,
     email: input.email === undefined ? undefined : normalizeEmail(input.email),
     city: input.city === undefined ? undefined : stringOrNull(input.city),
     company_name: input.company_name === undefined ? undefined : stringOrNull(input.company_name),
@@ -387,10 +535,12 @@ function mapLeadRowToLead(row: LeadRow, profile?: ProfileRow): Lead {
     owner: profile?.full_name ?? "Equipe",
     stage: stageLabels[row.stage],
     nextContact: row.next_contact_at ? contactFormatter.format(new Date(row.next_contact_at)) : "A definir",
+    nextContactAt: row.next_contact_at,
     score: row.score,
     source: sourceLabels[row.source],
     phone: row.phone ?? "Sem telefone",
     email: row.email ?? "Sem email",
+    city: row.city,
     createdAt: dateFormatter.format(new Date(row.created_at)),
     budget: row.budget ?? "A qualificar",
     interest: row.interest ?? "Interesse ainda nao qualificado",

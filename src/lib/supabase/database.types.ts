@@ -2,6 +2,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type LeadSource = "manual" | "csv_import" | "meta_lead_ads" | "make_zapier" | "api";
 export type LeadStage = "new" | "qualification" | "proposal" | "negotiation" | "won" | "lost";
+export type ProfileRole = "owner" | "admin" | "seller" | "supervisor";
 
 export type Database = {
   public: {
@@ -37,7 +38,7 @@ export type Database = {
           organization_id: string;
           full_name: string | null;
           email: string;
-          role: "owner" | "admin" | "seller";
+          role: ProfileRole;
           created_at: string;
           updated_at: string;
         };
@@ -47,7 +48,7 @@ export type Database = {
           organization_id: string;
           full_name?: string | null;
           email: string;
-          role?: "owner" | "admin" | "seller";
+          role?: ProfileRole;
           created_at?: string;
           updated_at?: string;
         };
@@ -57,7 +58,7 @@ export type Database = {
           organization_id?: string;
           full_name?: string | null;
           email?: string;
-          role?: "owner" | "admin" | "seller";
+          role?: ProfileRole;
           created_at?: string;
           updated_at?: string;
         };

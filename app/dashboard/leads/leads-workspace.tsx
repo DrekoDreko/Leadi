@@ -1,33 +1,81 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   CheckCircle2,
   ChevronRight,
   Clock3,
   Filter,
-  Mail,
   MessageCircle,
   PhoneCall,
   Plus,
   Sparkles,
-  Upload,
-  UserRound,
-  X
+  Upload
 } from "lucide-react";
 import type { Lead } from "@/data/mock";
+import { LeadDetailsPopup } from "@/components/dashboard/lead-details-popup";
 import { Metric, PageHeading } from "@/components/dashboard/widgets";
-import type { LeadDataState } from "@/lib/leads/repository";
+import type { LeadDataMode, LeadDataState } from "@/lib/leads/repository";
+import { LeadCreateModal } from "./lead-create-modal";
 
 export function LeadsWorkspace({ leadState }: { leadState: LeadDataState }) {
+  const router = useRouter();
+  const [leads, setLeads] = useState(leadState.leads);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const leads = leadState.leads;
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createFeedback, setCreateFeedback] = useState<string | null>(null);
   const kanbanColumns = buildKanbanColumns(leads);
   const newLeads = leads.filter((lead) => lead.stage === "Novo lead").length;
   const qualifiedLeads = leads.filter((lead) => lead.stage === "Qualificação").length;
   const proposalLeads = leads.filter((lead) => lead.stage === "Proposta").length;
   const staleLeads = leads.filter((lead) => lead.nextContact === "A definir").length;
+
+  useEffect(() => {
+    setLeads(leadState.leads);
+  }, [leadState.leads]);
+
+  function handleLeadCreated(lead: Lead, mode?: LeadDataMode) {
+    setLeads((currentLeads) => [
+      lead,
+      ...currentLeads.filter((currentLead) => currentLead.id !== lead.id)
+    ]);
+    setCreateFeedback(
+      mode === "not-configured"
+        ? "Lead criado no modo demonstracao. Configure o Supabase para persistir novos cadastros."
+        : "Lead criado e salvo no CRM."
+    );
+
+    if (mode === "supabase" || mode === undefined) {
+      router.refresh();
+    }
+  }
+
+  function handleLeadUpdated(lead: Lead, mode?: LeadDataMode) {
+    setLeads((currentLeads) =>
+      currentLeads.map((currentLead) => (currentLead.id === lead.id ? lead : currentLead))
+    );
+    setSelectedLead(lead);
+
+    if (mode === "supabase" || mode === undefined) {
+      router.refresh();
+    }
+  }
+
+  function handleLeadDeleted(leadId: string, mode?: LeadDataMode) {
+    setLeads((currentLeads) => currentLeads.filter((currentLead) => currentLead.id !== leadId));
+    setSelectedLead(null);
+    setCreateFeedback(
+      mode === "not-configured"
+        ? "Lead removido no modo demonstracao. Configure o Supabase para persistir exclusoes reais."
+        : "Lead removido do CRM."
+    );
+
+    if (mode === "supabase" || mode === undefined) {
+      router.refresh();
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -36,13 +84,23 @@ export function LeadsWorkspace({ leadState }: { leadState: LeadDataState }) {
         title="Leads"
         description="Lista dedicada para qualificar contatos, acompanhar responsáveis e priorizar próximos passos."
       >
-        <button className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white">
+        <button
+          className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white"
+          onClick={() => setIsCreateOpen(true)}
+          type="button"
+        >
           <Plus size={18} aria-hidden="true" />
           Novo lead
         </button>
       </PageHeading>
 
       <LeadDataNotice leadState={leadState} />
+      {createFeedback && (
+        <p className="flex items-center gap-2 rounded-[24px] bg-lagoon/16 px-5 py-3 text-sm font-medium text-ink">
+          <CheckCircle2 className="shrink-0 text-lagoon" size={18} aria-hidden="true" />
+          {createFeedback}
+        </p>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric label="Novos leads" value={String(newLeads)} note={`${leads.length} no CRM`} tone="blue" />
@@ -53,14 +111,28 @@ export function LeadsWorkspace({ leadState }: { leadState: LeadDataState }) {
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-stretch">
         <div className="min-w-0 flex h-full flex-col gap-4">
-          <LeadTablePanel leads={leads} onLeadOpen={setSelectedLead} />
+          <LeadTablePanel
+            leads={leads}
+            onCreateOpen={() => setIsCreateOpen(true)}
+            onLeadOpen={setSelectedLead}
+          />
           <LeadKanbanPanel columns={kanbanColumns} onLeadOpen={setSelectedLead} />
         </div>
 
         <LeadContactQueue leads={leads} onLeadOpen={setSelectedLead} />
       </section>
 
-      <LeadDetailsPopup lead={selectedLead} onClose={() => setSelectedLead(null)} />
+      <LeadCreateModal
+        onClose={() => setIsCreateOpen(false)}
+        onCreated={handleLeadCreated}
+        open={isCreateOpen}
+      />
+      <LeadDetailsPopup
+        lead={selectedLead}
+        onClose={() => setSelectedLead(null)}
+        onDeleted={leadState.canDeleteLeads ? handleLeadDeleted : undefined}
+        onUpdated={handleLeadUpdated}
+      />
     </div>
   );
 }
@@ -83,9 +155,11 @@ function LeadDataNotice({ leadState }: { leadState: LeadDataState }) {
 
 function LeadTablePanel({
   leads,
+  onCreateOpen,
   onLeadOpen
 }: {
   leads: Lead[];
+  onCreateOpen: () => void;
   onLeadOpen: (lead: Lead) => void;
 }) {
   return (
@@ -102,7 +176,11 @@ function LeadTablePanel({
           <button className="icon-button" type="button" title="Importar CSV">
             <Upload size={18} aria-hidden="true" />
           </button>
-          <button className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white">
+          <button
+            className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white"
+            onClick={onCreateOpen}
+            type="button"
+          >
             <Plus size={18} aria-hidden="true" />
             Novo lead
           </button>
@@ -119,7 +197,7 @@ function LeadTablePanel({
         </div>
         {leads.length === 0 && (
           <div className="px-5 py-8 text-sm leading-6 text-ink/62">
-            Nenhum lead cadastrado ainda. O primeiro lead real pode entrar via API, CSV ou Meta na proxima fase.
+            Nenhum lead cadastrado ainda. Crie o primeiro lead manualmente ou integre novas origens.
           </div>
         )}
         {leads.map((lead) => (
@@ -267,161 +345,4 @@ function buildKanbanColumns(leads: Lead[]) {
       cards: leads.filter((lead) => lead.stage === "Negociação")
     }
   ];
-}
-
-function LeadDetailsPopup({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
-  useEffect(() => {
-    if (!lead) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
-    };
-  }, [lead, onClose]);
-
-  if (!lead) {
-    return null;
-  }
-
-  const profileItems = [
-    { icon: UserRound, label: "Nome", value: lead.name },
-    { icon: PhoneCall, label: "Telefone", value: lead.phone },
-    { icon: Mail, label: "Email", value: lead.email }
-  ];
-
-  return (
-    <div
-      aria-labelledby="lead-popup-title"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end bg-ink/42 px-3 py-4 backdrop-blur-md sm:items-center sm:px-5"
-      onClick={onClose}
-      role="dialog"
-    >
-      <section
-        className="mx-auto max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[32px] border border-white/70 bg-cloud/95 p-4 shadow-glass sm:p-6"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex flex-col gap-4 border-b border-ink/10 pb-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
-                {lead.id}
-              </span>
-              <span className="rounded-full bg-white/64 px-3 py-1.5 text-xs font-semibold">
-                {lead.stage}
-              </span>
-              <span className="rounded-full bg-cobalt px-3 py-1.5 text-xs font-semibold text-white">
-                {lead.score}% fit
-              </span>
-            </div>
-            <h2 className="text-2xl font-semibold sm:text-3xl" id="lead-popup-title">
-              {lead.name}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-ink/62 sm:text-base">
-              {lead.interest}
-            </p>
-          </div>
-
-          <div className="flex shrink-0 gap-2">
-            <button className="icon-button" type="button" title="Enviar e-mail">
-              <Mail size={18} aria-hidden="true" />
-            </button>
-            <Link
-              className="icon-button"
-              href={`/dashboard/whatsapp?lead=${lead.id}`}
-              title={`Abrir sugestões de mensagem para ${lead.name}`}
-            >
-              <MessageCircle size={18} aria-hidden="true" />
-            </Link>
-            <button className="icon-button" type="button" title="Ligar">
-              <PhoneCall size={18} aria-hidden="true" />
-            </button>
-            <button className="icon-button" onClick={onClose} type="button" title="Fechar">
-              <X size={18} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-4 pt-5 lg:grid-cols-[minmax(0,1fr)_310px]">
-          <div className="min-w-0 space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {profileItems.map((item) => (
-                <div className="rounded-[24px] bg-white/44 p-4" key={item.label}>
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/68">
-                    <item.icon size={18} aria-hidden="true" />
-                  </div>
-                  <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
-                    {item.label}
-                  </p>
-                  <p className="mt-1 font-semibold">{item.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <section className="rounded-[28px] bg-white/42 p-5">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lagoon text-white">
-                  <CheckCircle2 size={18} aria-hidden="true" />
-                </span>
-                <div>
-                  <p className="text-sm text-ink/54">Última interação</p>
-                  <h3 className="font-semibold">Resumo comercial</h3>
-                </div>
-              </div>
-              <p className="text-sm leading-6 text-ink/68">{lead.lastInteraction}</p>
-              <p className="mt-4 rounded-[20px] bg-white/52 p-4 text-sm leading-6 text-ink/68">
-                {lead.notes}
-              </p>
-            </section>
-          </div>
-
-          <aside className="space-y-4">
-            <section className="rounded-[28px] bg-ink p-5 text-white">
-              <p className="text-sm text-white/62">Próximo contato</p>
-              <h3 className="mt-2 text-2xl font-semibold">{lead.nextContact}</h3>
-              <div className="mt-5 space-y-3 text-sm">
-                <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-3">
-                  <span>WhatsApp</span>
-                  <span className="font-semibold">{lead.phone}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-3">
-                  <span>Email</span>
-                  <span className="max-w-[180px] truncate font-semibold">{lead.email}</span>
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-[28px] bg-white/44 p-5">
-              <h3 className="font-semibold">Contato</h3>
-              <dl className="mt-4 space-y-3 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-ink/54">Nome</dt>
-                  <dd className="max-w-[170px] truncate font-semibold">{lead.name}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-ink/54">Telefone</dt>
-                  <dd className="font-semibold">{lead.phone}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-ink/54">Email</dt>
-                  <dd className="max-w-[170px] truncate font-semibold">{lead.email}</dd>
-                </div>
-              </dl>
-            </section>
-          </aside>
-        </div>
-      </section>
-    </div>
-  );
 }
