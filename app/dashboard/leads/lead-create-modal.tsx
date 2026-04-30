@@ -4,8 +4,10 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { CheckCircle2, Loader2, Plus, X } from "lucide-react";
 import type { Lead } from "@/data/mock";
 import type { LeadDataMode } from "@/lib/leads/repository";
+import { leadStageOptions } from "@/lib/leads/stages";
 
 type LeadCreateModalProps = {
+  canCreateMetaAdsLeads: boolean;
   open: boolean;
   onClose: () => void;
   onCreated: (lead: Lead, mode?: LeadDataMode) => void;
@@ -16,6 +18,8 @@ type LeadFormValues = {
   email: string;
   phone: string;
   city: string;
+  company_name: string;
+  lives_count: string;
   interest: string;
   budget: string;
   stage: string;
@@ -32,15 +36,6 @@ type LeadCreateResponse = {
   mode?: LeadDataMode;
 };
 
-const stageOptions = [
-  { value: "new", label: "Novo lead" },
-  { value: "qualification", label: "Qualificação" },
-  { value: "proposal", label: "Proposta" },
-  { value: "negotiation", label: "Negociação" },
-  { value: "won", label: "Venda" },
-  { value: "lost", label: "Perdido" }
-];
-
 const sourceOptions = [
   { value: "manual", label: "Cadastro manual" },
   { value: "csv_import", label: "CSV importado" },
@@ -49,7 +44,12 @@ const sourceOptions = [
   { value: "api", label: "API" }
 ];
 
-export function LeadCreateModal({ open, onClose, onCreated }: LeadCreateModalProps) {
+export function LeadCreateModal({
+  canCreateMetaAdsLeads,
+  open,
+  onClose,
+  onCreated
+}: LeadCreateModalProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [errors, setErrors] = useState<LeadFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,6 +90,10 @@ export function LeadCreateModal({ open, onClose, onCreated }: LeadCreateModalPro
   if (!open) {
     return null;
   }
+
+  const visibleSourceOptions = canCreateMetaAdsLeads
+    ? sourceOptions
+    : sourceOptions.filter((option) => option.value !== "meta_lead_ads");
 
   const closeModal = () => {
     if (!isSubmitting) {
@@ -243,6 +247,31 @@ export function LeadCreateModal({ open, onClose, onCreated }: LeadCreateModalPro
               />
             </LeadField>
 
+            <LeadField error={errors.company_name} label="Empresa">
+              <input
+                aria-invalid={Boolean(errors.company_name)}
+                autoComplete="organization"
+                className={fieldClass(Boolean(errors.company_name))}
+                disabled={isSubmitting}
+                name="company_name"
+                placeholder="Nome da empresa"
+                type="text"
+              />
+            </LeadField>
+
+            <LeadField error={errors.lives_count} label="Número de vidas">
+              <input
+                aria-invalid={Boolean(errors.lives_count)}
+                className={fieldClass(Boolean(errors.lives_count))}
+                disabled={isSubmitting}
+                inputMode="numeric"
+                min={0}
+                name="lives_count"
+                placeholder="24"
+                type="number"
+              />
+            </LeadField>
+
             <LeadField error={errors.interest} label="Interesse">
               <input
                 aria-invalid={Boolean(errors.interest)}
@@ -273,7 +302,7 @@ export function LeadCreateModal({ open, onClose, onCreated }: LeadCreateModalPro
                 disabled={isSubmitting}
                 name="stage"
               >
-                {stageOptions.map((option) => (
+                {leadStageOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -289,7 +318,7 @@ export function LeadCreateModal({ open, onClose, onCreated }: LeadCreateModalPro
                 disabled={isSubmitting}
                 name="source"
               >
-                {sourceOptions.map((option) => (
+                {visibleSourceOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -372,6 +401,8 @@ function getLeadFormValues(formData: FormData): LeadFormValues {
     email: formString(formData, "email"),
     phone: formString(formData, "phone"),
     city: formString(formData, "city"),
+    company_name: formString(formData, "company_name"),
+    lives_count: formString(formData, "lives_count"),
     interest: formString(formData, "interest"),
     budget: formString(formData, "budget"),
     stage: formString(formData, "stage"),
@@ -400,6 +431,14 @@ function validateLeadForm(values: LeadFormValues): LeadFormErrors {
     nextErrors.phone = "Informe um telefone com DDD.";
   }
 
+  if (values.lives_count) {
+    const livesCount = Number(values.lives_count);
+
+    if (!Number.isInteger(livesCount) || livesCount < 0) {
+      nextErrors.lives_count = "Informe um número inteiro valido.";
+    }
+  }
+
   if (values.next_contact_at) {
     const date = new Date(values.next_contact_at);
 
@@ -417,6 +456,8 @@ function buildLeadPayload(values: LeadFormValues) {
     phone: values.phone || undefined,
     email: values.email || undefined,
     city: values.city || undefined,
+    company_name: values.company_name || undefined,
+    lives_count: values.lives_count ? Number(values.lives_count) : undefined,
     interest: values.interest || undefined,
     budget: values.budget || undefined,
     stage: values.stage,

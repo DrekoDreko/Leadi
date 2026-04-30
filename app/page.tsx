@@ -44,7 +44,7 @@ export default function Home() {
             <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/pricing">
               Planos
             </Link>
-            <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/dashboard">
+            <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/preview">
               Preview
             </Link>
           </div>
@@ -73,7 +73,7 @@ export default function Home() {
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-6 py-4 font-semibold text-white shadow-soft transition hover:-translate-y-0.5"
-                href="/dashboard"
+                href="/preview"
               >
                 Ver CRM mockado
                 <ArrowRight size={18} aria-hidden="true" />
@@ -162,7 +162,7 @@ export default function Home() {
           </div>
           <Link
             className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-4 font-semibold text-white"
-            href="/dashboard"
+            href="/preview"
           >
             Abrir dashboard
             <ArrowRight size={18} aria-hidden="true" />

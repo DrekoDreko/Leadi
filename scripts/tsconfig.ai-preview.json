@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": "../.tmp/ai-preview",
+    "rootDir": "..",
+    "incremental": false,
+    "jsx": "preserve"
+  },
+  "include": [
+    "../scripts/ai-prompt-preview.ts",
+    "../src/lib/openai/**/*.ts",
+    "../src/lib/whatsapp/**/*.ts"
+  ]
+}

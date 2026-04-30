@@ -4,26 +4,56 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Plus, Search } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
-import { navItems } from "@/data/mock";
+import { getDashboardNavItems } from "@/lib/navigation";
+import type { DashboardNavVariant } from "@/lib/workspaces/context";
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({
+  children,
+  displayName = "Usuario",
+  navVariant = "supervisor-team",
+  preview = false,
+  workspaceName = "LeadHealth"
+}: {
+  children: React.ReactNode;
+  displayName?: string;
+  navVariant?: DashboardNavVariant;
+  preview?: boolean;
+  workspaceName?: string;
+}) {
   const pathname = usePathname();
-  const primaryNavItems = navItems.slice(0, 7);
+  const primaryNavItems = getDashboardNavItems(navVariant);
   const currentPath = pathname ?? "";
+  const isFunnelPage = currentPath === "/dashboard/funil";
+  const creationHref = "/dashboard/criacoes";
+  const profileHref = "/dashboard/perfil";
 
-  const isActive = (href: string) =>
-    href === "/dashboard" ? currentPath === href : currentPath === href || currentPath.startsWith(`${href}/`);
+  const getHref = (href: string) => (preview ? "/preview" : href);
+  const isActive = (href: string) => {
+    if (preview) {
+      return href === "/dashboard";
+    }
+
+    return href === "/dashboard"
+      ? currentPath === href
+      : currentPath === href || currentPath.startsWith(`${href}/`);
+  };
+  const creationActive = isActive(creationHref);
 
   return (
     <main className="min-h-screen px-4 py-4 lg:px-6">
-      <div className="mx-auto grid max-w-[1500px] gap-4 lg:grid-cols-[88px_1fr]">
+      <div
+        className={`mx-auto grid gap-4 lg:grid-cols-[88px_1fr] ${
+          isFunnelPage ? "max-w-[1720px]" : "max-w-[1500px]"
+        }`}
+      >
         <aside className="glass-dark sticky top-4 hidden h-[calc(100vh-32px)] rounded-[38px] px-4 py-5 text-white lg:flex lg:flex-col lg:items-center lg:justify-between">
           <Link
-            href="/"
+            href={preview ? "/login" : profileHref}
             className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-ink"
-            aria-label="LeadHealth"
+            aria-label={`Perfil de ${displayName}`}
+            title={`${displayName} - ${workspaceName}`}
           >
-            LH
+            {preview ? "LH" : getInitials(displayName)}
           </Link>
           <nav className="flex flex-col gap-3" aria-label="Menu principal do dashboard">
             {primaryNavItems.map((item) => {
@@ -33,12 +63,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <Link
                   aria-current={active ? "page" : undefined}
                   aria-label={item.label}
-                  className={`flex h-12 w-12 items-center justify-center rounded-full transition ${
+                  className={`group relative flex h-12 w-12 items-center justify-center rounded-full transition ${
                     active
                       ? "bg-white text-ink shadow-soft"
                       : "bg-white/8 text-white/72 hover:bg-white/16 hover:text-white"
                   }`}
-                  href={item.href}
+                  href={getHref(item.href)}
                   key={item.label}
                   title={item.label}
                 >
@@ -48,12 +78,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
           <Link
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-signal text-ink"
-            href="/pricing"
-            title="Planos"
-            aria-label="Planos"
+            aria-current={creationActive ? "page" : undefined}
+            aria-label="Novas criações"
+            className={`group relative flex h-12 w-12 items-center justify-center rounded-full transition ${
+              creationActive
+                ? "bg-signal text-ink shadow-soft"
+                : "bg-signal text-ink hover:bg-signal/90"
+            }`}
+            href={getHref(creationHref)}
+            title="Novas criações"
           >
-            <Plus size={20} aria-hidden="true" />
+            <Plus size={21} aria-hidden="true" />
           </Link>
         </aside>
 
@@ -78,15 +113,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </button>
               <Link
                 className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
-                href="/login"
+                href={preview ? "/login" : profileHref}
               >
-                Lucas
+                {preview ? "Entrar" : displayName}
               </Link>
             </div>
           </header>
 
           <nav
-            className="glass flex gap-2 overflow-x-auto rounded-[26px] p-2 lg:hidden"
+            className="glass flex gap-2 overflow-x-auto overflow-y-visible rounded-[26px] p-2 lg:hidden"
             aria-label="Menu principal do dashboard"
           >
             {primaryNavItems.map((item) => {
@@ -96,12 +131,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <Link
                   aria-current={active ? "page" : undefined}
                   aria-label={item.label}
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition ${
+                  className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition ${
                     active
                       ? "bg-ink text-white"
                       : "bg-white/42 text-ink/62 hover:bg-white/70 hover:text-ink"
                   }`}
-                  href={item.href}
+                  href={getHref(item.href)}
                   key={item.label}
                   title={item.label}
                 >
@@ -109,11 +144,35 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
+            <Link
+              aria-current={creationActive ? "page" : undefined}
+              aria-label="Novas criações"
+              className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition ${
+                creationActive
+                  ? "bg-ink text-white"
+                  : "bg-white/42 text-ink/62 hover:bg-white/70 hover:text-ink"
+              }`}
+              href={getHref(creationHref)}
+              title="Novas criações"
+            >
+              <Plus size={19} aria-hidden="true" />
+            </Link>
           </nav>
 
           {children}
         </div>
       </div>
     </main>
+  );
+}
+
+function getInitials(name: string) {
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "LH"
   );
 }

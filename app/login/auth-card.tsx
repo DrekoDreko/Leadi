@@ -49,8 +49,8 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
               Acesse seu painel LeadHealth
             </h1>
             <p className="mt-5 max-w-md leading-8 text-white/64">
-              Autenticação conectada ao Supabase Auth, com criação automática
-              da organização do vendedor no primeiro cadastro.
+              Autenticação conectada ao Supabase Auth, com configuração guiada
+              de perfil, workspace e permissões da equipe.
             </p>
           </div>
         </section>

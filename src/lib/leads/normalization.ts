@@ -8,6 +8,24 @@ const allowedSources = new Set<LeadSource>([
   "api"
 ]);
 
+const sourceAliases = new Map<string, LeadSource>([
+  ["cadastro manual", "manual"],
+  ["manual", "manual"],
+  ["lead manual", "manual"],
+  ["csv importado", "csv_import"],
+  ["csv", "csv_import"],
+  ["csv import", "csv_import"],
+  ["importacao csv", "csv_import"],
+  ["importacao de csv", "csv_import"],
+  ["meta lead form", "meta_lead_ads"],
+  ["meta lead ads", "meta_lead_ads"],
+  ["meta", "meta_lead_ads"],
+  ["make zapier", "make_zapier"],
+  ["make", "make_zapier"],
+  ["zapier", "make_zapier"],
+  ["api", "api"]
+]);
+
 const allowedStages = new Set<LeadStage>([
   "new",
   "qualification",
@@ -50,9 +68,20 @@ export function normalizePhone(value: unknown) {
 }
 
 export function normalizeLeadSource(value: unknown): LeadSource {
-  return typeof value === "string" && allowedSources.has(value as LeadSource)
-    ? (value as LeadSource)
-    : "manual";
+  return normalizeLeadSourceOrNull(value) ?? "manual";
+}
+
+export function normalizeLeadSourceOrNull(value: unknown): LeadSource | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  if (allowedSources.has(value as LeadSource)) {
+    return value as LeadSource;
+  }
+
+  const normalizedValue = normalizeSourceValue(value);
+  return sourceAliases.get(normalizedValue) ?? null;
 }
 
 export function normalizeLeadStage(value: unknown): LeadStage {
@@ -73,4 +102,15 @@ export function normalizeScore(value: unknown) {
 
 export function stringOrNull(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeSourceValue(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

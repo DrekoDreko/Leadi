@@ -32,7 +32,7 @@ export async function signInAction(formData: FormData) {
 }
 
 export async function signUpAction(formData: FormData) {
-  const next = getSafeRedirectPath(formData.get("next"));
+  const next = getPostSignupRedirectPath(formData.get("next"));
 
   if (!isSupabaseConfigured()) {
     redirect(buildLoginErrorUrl("supabase-not-configured", next, "signup"));
@@ -67,8 +67,10 @@ export async function signUpAction(formData: FormData) {
 }
 
 export async function signInWithGoogleAction(formData: FormData) {
-  const next = getSafeRedirectPath(formData.get("next"));
   const mode = getAuthMode(formData.get("mode"));
+  const next = mode === "signup"
+    ? getPostSignupRedirectPath(formData.get("next"))
+    : getSafeRedirectPath(formData.get("next"));
 
   if (!isSupabaseConfigured()) {
     redirect(buildLoginErrorUrl("supabase-not-configured", next, mode));
@@ -114,6 +116,12 @@ function getSafeRedirectPath(value: FormDataEntryValue | null) {
 
 function getAuthMode(value: FormDataEntryValue | null) {
   return value === "signup" ? "signup" : "login";
+}
+
+function getPostSignupRedirectPath(value: FormDataEntryValue | null) {
+  const next = getSafeRedirectPath(value);
+
+  return next === "/dashboard" ? "/onboarding/profile-setup" : next;
 }
 
 async function getRequestOrigin() {

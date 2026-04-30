@@ -31,6 +31,8 @@ type LeadEditValues = {
   email: string;
   phone: string;
   city: string;
+  company_name: string;
+  lives_count: string;
   stage: string;
   interest: string;
   budget: string;
@@ -289,6 +291,7 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
 
   const profileItems = [
     { icon: UserRound, label: "Nome", value: lead.name },
+    { icon: UserRound, label: "Empresa", value: lead.companyName ?? "Empresa nao informada" },
     { icon: PhoneCall, label: "Telefone", value: lead.phone },
     { icon: Mail, label: "Email", value: lead.email },
     { icon: CheckCircle2, label: "Cidade", value: lead.city ?? "Cidade nao informada" }
@@ -472,6 +475,31 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
                 />
               </LeadField>
 
+              <LeadField error={errors.company_name} label="Empresa">
+                <input
+                  aria-invalid={Boolean(errors.company_name)}
+                  autoComplete="organization"
+                  className={fieldClass(Boolean(errors.company_name))}
+                  disabled={isSubmitting}
+                  onChange={(event) => updateField("company_name", event.target.value)}
+                  type="text"
+                  value={formValues.company_name}
+                />
+              </LeadField>
+
+              <LeadField error={errors.lives_count} label="Número de vidas">
+                <input
+                  aria-invalid={Boolean(errors.lives_count)}
+                  className={fieldClass(Boolean(errors.lives_count))}
+                  disabled={isSubmitting}
+                  inputMode="numeric"
+                  min={0}
+                  onChange={(event) => updateField("lives_count", event.target.value)}
+                  type="number"
+                  value={formValues.lives_count}
+                />
+              </LeadField>
+
               <LeadField error={errors.stage} label="Etapa">
                 <select
                   aria-invalid={Boolean(errors.stage)}
@@ -623,6 +651,18 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
                     <dd className="max-w-[170px] truncate font-semibold">{lead.stage}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
+                    <dt className="text-ink/54">Empresa</dt>
+                    <dd className="max-w-[170px] truncate font-semibold">
+                      {lead.companyName ?? "Nao informada"}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-ink/54">Vidas</dt>
+                    <dd className="max-w-[170px] truncate font-semibold">
+                      {formatLivesCount(lead.livesCount)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
                     <dt className="text-ink/54">Orçamento</dt>
                     <dd className="max-w-[170px] truncate font-semibold">{lead.budget}</dd>
                   </div>
@@ -732,6 +772,9 @@ function getLeadEditValues(lead: Lead): LeadEditValues {
     email: editableValue(lead.email),
     phone: editableValue(lead.phone),
     city: editableValue(lead.city ?? ""),
+    company_name: editableValue(lead.companyName ?? ""),
+    lives_count:
+      lead.livesCount === undefined || lead.livesCount === null ? "" : String(lead.livesCount),
     stage: stageToValue(lead.stage),
     interest: editableValue(lead.interest),
     budget: editableValue(lead.budget),
@@ -760,6 +803,14 @@ function validateLeadEdit(values: LeadEditValues): LeadEditErrors {
     nextErrors.phone = "Informe um telefone com DDD.";
   }
 
+  if (values.lives_count) {
+    const livesCount = Number(values.lives_count);
+
+    if (!Number.isInteger(livesCount) || livesCount < 0) {
+      nextErrors.lives_count = "Informe um número inteiro valido.";
+    }
+  }
+
   if (values.next_contact_at) {
     const date = new Date(values.next_contact_at);
 
@@ -777,6 +828,8 @@ function buildLeadUpdatePayload(values: LeadEditValues, lead: Lead) {
     phone: values.phone,
     email: values.email,
     city: values.city,
+    company_name: values.company_name,
+    lives_count: values.lives_count ? Number(values.lives_count) : null,
     stage: values.stage,
     interest: values.interest,
     budget: values.budget,
@@ -857,6 +910,14 @@ function editableValue(value: string) {
 function normalizeDateTimeLocal(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toISOString();
+}
+
+function formatLivesCount(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return "Nao informado";
+  }
+
+  return `${value} vidas`;
 }
 
 function toDateTimeLocal(value?: string | null) {

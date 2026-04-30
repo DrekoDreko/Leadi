@@ -1,6 +1,6 @@
 import {
   BarChart3,
-  FilePlus2,
+  Kanban,
   LayoutDashboard,
   MessageCircle,
   ShieldCheck,
@@ -12,10 +12,10 @@ import {
 export const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Leads", href: "/dashboard/leads", icon: UsersRound },
+  { label: "Funil", href: "/dashboard/funil", icon: Kanban },
   { label: "Campanhas", href: "/dashboard/campanhas", icon: Sparkles },
   { label: "Compliance", href: "/dashboard/compliance", icon: ShieldCheck },
   { label: "WhatsApp", href: "/dashboard/whatsapp", icon: MessageCircle },
-  { label: "Pedidos", href: "/dashboard/pedidos", icon: FilePlus2 },
   { label: "Relatórios", href: "/dashboard/relatorios", icon: BarChart3 },
   { label: "Planos", href: "/pricing", icon: WalletCards }
 ];
@@ -24,6 +24,8 @@ export type Lead = {
   id: string;
   name: string;
   owner: string;
+  canEdit?: boolean;
+  canDelete?: boolean;
   stage: string;
   nextContact: string;
   score: number;
@@ -31,6 +33,8 @@ export type Lead = {
   phone: string;
   email: string;
   city?: string | null;
+  companyName?: string | null;
+  livesCount?: number | null;
   createdAt: string;
   budget: string;
   interest: string;
@@ -58,7 +62,10 @@ export const leads: Lead[] = [
     phone: "(19) 98842-1042",
     email: "marina@azevedoclinica.com.br",
     city: "Campinas",
+    companyName: "Azevedo Clinica",
+    livesCount: 48,
     createdAt: "27 abr 2026",
+    receivedAt: "2026-04-27T15:30:00-03:00",
     budget: "R$ 18k/mês",
     interest: "Plano empresarial com coparticipação",
     lastInteraction: "Solicitou comparação entre duas operadoras e pediu retorno no fim da tarde.",
@@ -75,7 +82,10 @@ export const leads: Lead[] = [
     phone: "(11) 97620-1039",
     email: "renato@rcengenharia.com.br",
     city: "Sao Paulo",
+    companyName: "RC Engenharia",
+    livesCount: 32,
     createdAt: "26 abr 2026",
+    receivedAt: "2026-04-26T10:00:00-03:00",
     budget: "R$ 6k/mês",
     interest: "Redução de custo do plano atual",
     lastInteraction: "Respondeu ao WhatsApp com faixa de vidas e pediu simulação sem odontológico.",
@@ -92,7 +102,10 @@ export const leads: Lead[] = [
     phone: "(13) 99110-1031",
     email: "paula@mendesstudio.com.br",
     city: "Santos",
+    companyName: "Mendes Studio",
+    livesCount: 11,
     createdAt: "24 abr 2026",
+    receivedAt: "2026-04-24T09:15:00-03:00",
     budget: "R$ 2.8k/mês",
     interest: "Primeiro plano empresarial para equipe pequena",
     lastInteraction: "Recebeu a proposta inicial e quer entender carência para novas vidas.",
@@ -109,7 +122,10 @@ export const leads: Lead[] = [
     phone: "(15) 98132-1028",
     email: "fabio@linslogistica.com.br",
     city: "Sorocaba",
+    companyName: "Lins Logistica",
+    livesCount: 126,
     createdAt: "23 abr 2026",
+    receivedAt: "2026-04-23T16:00:00-03:00",
     budget: "R$ 42k/mês",
     interest: "Migração de contrato com maior rede hospitalar",
     lastInteraction: "Comparou proposta final com contrato atual e pediu ajuste para diretoria.",

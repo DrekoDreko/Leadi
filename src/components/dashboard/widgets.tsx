@@ -72,8 +72,10 @@ export function Metric({
 }
 
 export function LeadTable({
+  leads: tableLeads = leads,
   onLeadOpen
 }: {
+  leads?: Lead[];
   onLeadOpen: (lead: Lead) => void;
 }) {
   return (
@@ -105,7 +107,12 @@ export function LeadTable({
           <span>Status</span>
           <span aria-hidden="true" />
         </div>
-        {leads.map((lead) => (
+        {tableLeads.length === 0 && (
+          <div className="px-5 py-8 text-sm font-medium text-ink/56">
+            Nenhum lead cadastrado ainda.
+          </div>
+        )}
+        {tableLeads.map((lead) => (
           <div
             className="grid gap-3 border-b border-ink/8 px-5 py-4 last:border-0 md:grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px_44px] md:items-center"
             key={lead.id}
@@ -162,10 +169,16 @@ export function LeadTable({
 }
 
 export function KanbanBoard({
+  leads: boardLeads = leads,
+  href = "/dashboard/funil",
   onLeadOpen
 }: {
+  leads?: Lead[];
+  href?: string;
   onLeadOpen: (lead: Lead) => void;
 }) {
+  const columns = buildKanbanColumns(boardLeads);
+
   return (
     <section className="glass rounded-[34px] p-5">
       <div className="mb-5 flex items-center justify-between gap-3">
@@ -173,13 +186,24 @@ export function KanbanBoard({
           <p className="text-sm text-ink/54">Kanban</p>
           <h2 className="text-2xl font-semibold">Funil de vendas</h2>
         </div>
-        <button className="icon-button" type="button" title="Expandir">
+        <Link className="icon-button" href={href} title="Abrir página do funil" aria-label="Abrir página do funil">
           <ArrowUpRight size={18} aria-hidden="true" />
-        </button>
+        </Link>
       </div>
       <div className="grid gap-3 xl:grid-cols-4">
-        {kanbanColumns.map((column) => (
+        {columns.map((column) => (
           <div className="rounded-[28px] bg-white/34 p-3" key={column.title}>
+            <div className="mb-3 flex items-center justify-between gap-2 px-1">
+              <span className="text-sm font-semibold text-ink/62">{column.title}</span>
+              <span className="rounded-full bg-white/56 px-2 py-1 text-xs font-semibold text-ink/54">
+                {column.cards.length}
+              </span>
+            </div>
+            {column.cards.length === 0 && (
+              <div className="rounded-[24px] bg-white/36 p-4 text-sm font-medium text-ink/48">
+                Sem leads nesta etapa.
+              </div>
+            )}
             {column.cards.map((lead) => (
               <button
                 className={`${column.color} flex w-full flex-col justify-between rounded-[24px] p-4 text-left shadow-soft transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50`}
@@ -200,7 +224,7 @@ export function KanbanBoard({
   );
 }
 
-export function SuggestedCampaignPanel() {
+export function SuggestedCampaignPanel({ href = "/dashboard/campanhas" }: { href?: string }) {
   return (
     <section className="glass-strong rounded-[34px] p-5 md:p-6">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -220,7 +244,7 @@ export function SuggestedCampaignPanel() {
         <Link
           aria-label="Abrir campanha sugerida"
           className="group relative isolate flex w-full max-w-[380px] items-center gap-4 overflow-hidden rounded-[28px] border border-white/24 bg-[linear-gradient(135deg,#2246e0_0%,#3462EE_58%,#4A91A8_100%)] px-5 py-4 text-left text-white shadow-[0_22px_60px_rgba(52,98,238,0.34)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_30px_72px_rgba(52,98,238,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/40"
-          href="/dashboard/campanhas"
+          href={href}
         >
           <span
             aria-hidden="true"
@@ -249,6 +273,13 @@ export function SuggestedCampaignPanel() {
       </div>
     </section>
   );
+}
+
+function buildKanbanColumns(boardLeads: Lead[]) {
+  return kanbanColumns.map((column) => ({
+    ...column,
+    cards: boardLeads.filter((lead) => lead.stage === column.title)
+  }));
 }
 
 export function ComplianceChecklist() {

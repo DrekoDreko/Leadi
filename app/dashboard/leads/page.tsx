@@ -1,8 +1,19 @@
 import { LeadsWorkspace } from "./leads-workspace";
-import { getLeadsForCurrentUser } from "@/lib/leads/repository";
+import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
+import { parseLeadPaginationParams } from "@/lib/leads/repository";
+import { parseLeadUrlFilters } from "@/lib/leads/filters";
 
-export default async function LeadsPage() {
-  const leadState = await getLeadsForCurrentUser();
+type LeadsPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
 
-  return <LeadsWorkspace leadState={leadState} />;
+export default async function LeadsPage({ searchParams }: LeadsPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const leadFilters = parseLeadUrlFilters(resolvedSearchParams);
+  const leadState = await getLeadsForCurrentUser(
+    leadFilters,
+    parseLeadPaginationParams(resolvedSearchParams)
+  );
+
+  return <LeadsWorkspace leadFilters={leadFilters} leadState={leadState} />;
 }

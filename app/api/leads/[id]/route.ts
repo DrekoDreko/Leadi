@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { deleteLeadForCurrentUser, updateLeadForCurrentUser } from "@/lib/leads/repository";
+import {
+  deleteLeadForCurrentUser,
+  updateLeadForCurrentUser
+} from "@/lib/leads/repository.server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 type RouteContext = {
@@ -62,6 +65,14 @@ function getUpdateLeadErrorMessage(error: unknown) {
     return "Nao encontramos seu perfil no CRM. Recarregue a pagina ou fale com o administrador.";
   }
 
+  if (message.includes("Apenas supervisores")) {
+    return "Apenas usuarios supervisores podem editar leads gerados pelo Meta Ads.";
+  }
+
+  if (message.includes("Sem permissao")) {
+    return "Voce so pode editar leads adicionados por voce.";
+  }
+
   if (message.includes("Supabase nao configurado")) {
     return "Supabase ainda nao configurado. A edicao sera mantida apenas nesta visualizacao.";
   }
@@ -85,7 +96,11 @@ function getDeleteLeadErrorMessage(error: unknown) {
   }
 
   if (message.includes("Apenas supervisores")) {
-    return "Apenas usuarios supervisores podem excluir leads.";
+    return "Apenas usuarios supervisores podem excluir leads gerados pelo Meta Ads.";
+  }
+
+  if (message.includes("Sem permissao")) {
+    return "Voce so pode excluir leads adicionados por voce.";
   }
 
   if (message.includes("Supabase nao configurado")) {
@@ -102,7 +117,7 @@ function getLeadMutationErrorStatus(error: unknown) {
     return 401;
   }
 
-  if (message.includes("Apenas supervisores")) {
+  if (message.includes("Apenas supervisores") || message.includes("Sem permissao")) {
     return 403;
   }
 

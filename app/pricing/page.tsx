@@ -7,12 +7,14 @@ const plans = [
     name: "Solo",
     price: "R$ 97",
     description: "Para vendedor individual validar campanhas e organizar leads.",
+    credits: "120 créditos inclusos",
     features: ["CRM básico", "Importação CSV", "Gerador de campanhas", "Mensagens WhatsApp"]
   },
   {
     name: "Equipe",
     price: "R$ 247",
     description: "Para gestores distribuírem leads e acompanharem vendedores.",
+    credits: "400 créditos inclusos",
     features: ["Tudo do Solo", "Gestão de equipe", "Distribuição de leads", "Relatórios por vendedor"],
     featured: true
   },
@@ -20,6 +22,7 @@ const plans = [
     name: "Operação",
     price: "Sob consulta",
     description: "Para corretoras que querem campanha, design e operação assistida.",
+    credits: "Pacote maior sob demanda",
     features: ["Pedidos de criativo", "Revisão consultiva", "Setup manual Meta", "Suporte prioritário"]
   }
 ];
@@ -47,8 +50,8 @@ export default function PricingPage() {
             Planos para vender plano empresarial com mais controle
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-ink/64">
-            Os valores são placeholders para validação visual. A cobrança real entra
-            depois com Mercado Pago ou Stripe.
+            Cada plano já foi pensado para liberar créditos de uso da IA. A cobrança
+            real entra com Mercado Pago no checkout do app.
           </p>
         </section>
 
@@ -65,6 +68,9 @@ export default function PricingPage() {
                   <h2 className="text-2xl font-semibold">{plan.name}</h2>
                   <p className={`mt-3 leading-7 ${plan.featured ? "text-white/68" : "text-ink/62"}`}>
                     {plan.description}
+                  </p>
+                  <p className={`mt-3 text-sm font-semibold ${plan.featured ? "text-white/78" : "text-cobalt"}`}>
+                    {plan.credits}
                   </p>
                 </div>
                 {plan.featured && <Sparkles className="text-signal" size={24} aria-hidden="true" />}
@@ -91,13 +97,13 @@ export default function PricingPage() {
                   </div>
                 ))}
               </div>
-              <Link
+                <Link
                 className={`mt-8 inline-flex w-full justify-center rounded-full px-5 py-4 font-semibold ${
                   plan.featured ? "bg-signal text-ink" : "bg-ink text-white"
                 }`}
-                href="/login"
+                href="/login?next=/dashboard/creditos"
               >
-                Selecionar plano
+                Comprar com Mercado Pago
               </Link>
             </article>
           ))}

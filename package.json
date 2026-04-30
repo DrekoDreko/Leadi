@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "ai:preview": "tsc -p scripts/tsconfig.ai-preview.json && node .tmp/ai-preview/scripts/ai-prompt-preview.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

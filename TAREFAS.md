@@ -51,7 +51,7 @@ Depois de implementar:
 - [x] **Eu:** copiar `.env.example` para `.env.local`.
 - [x] **Eu:** preencher `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` no `.env.local`.
 - [x] **Eu:** aplicar a migration `supabase/migrations/202604280001_phase_1_core.sql` no SQL Editor do Supabase.
-- [ ] **Eu:** criar a primeira conta em `/login` e confirmar se a organização/perfil foram criados.
+- [x] **Eu:** criar a primeira conta em `/login` e confirmar se a organização/perfil foram criados.
 
 ### P0.1 - Criar formulario de novo lead
 
@@ -86,7 +86,7 @@ Criterios de aceite:
 
 ### P0.2 - Criar edicao de lead
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente a edicao de leads no CRM da LeadHealth.
@@ -115,7 +115,7 @@ Criterios de aceite:
 
 ### P0.3 - Criar exclusao de lead com confirmacao
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente exclusao de leads no CRM da LeadHealth.
@@ -144,7 +144,7 @@ Criterios de aceite:
 
 ### P0.4 - Testar fluxo real de leads
 
-- [ ] **Codex + Eu**
+- [x] **Codex + Eu**
 
 ```txt
 Prepare e execute uma validacao tecnica do fluxo real de login e CRUD de leads.
@@ -190,7 +190,7 @@ Criterios de aceite:
 
 ### F1.1 - Melhorar estados de carregamento, erro e vazio
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Melhore os estados de carregamento, erro e vazio no workspace de leads da LeadHealth.
@@ -218,7 +218,7 @@ Criterios de aceite:
 
 ### F1.2 - Adicionar filtros reais de leads
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente filtros reais para leads no dashboard.
@@ -247,7 +247,7 @@ Criterios de aceite:
 
 ### F1.3 - Atualizar etapa do lead pelo Kanban
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Permita atualizar a etapa do lead pelo Kanban ou por uma acao rapida.
@@ -275,7 +275,7 @@ Criterios de aceite:
 
 ### F1.4 - Criar busca server-side para leads reais
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente busca server-side para leads reais.
@@ -303,7 +303,7 @@ Criterios de aceite:
 
 ### F1.5 - Adicionar paginacao ou carregamento incremental
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Adicione paginacao ou carregamento incremental para a lista de leads.
@@ -331,7 +331,7 @@ Criterios de aceite:
 
 ### F1.6 - Revisar tipos gerados de banco
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Revise e atualize os tipos de banco usados pelo Supabase.
@@ -357,7 +357,7 @@ Criterios de aceite:
 
 ### F1.7 - Validar campos comerciais do lead
 
-- [ ] **Codex + Eu**
+- [x] **Codex + Eu**
 
 ```txt
 Prepare uma revisao dos campos do lead para validar se eles cobrem o processo comercial real.
@@ -390,7 +390,7 @@ Criterios de aceite:
 
 ### F2.1 - Criar cadastro manual de lead
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie ou finalize o cadastro manual de leads na LeadHealth.
@@ -418,7 +418,7 @@ Criterios de aceite:
 
 ### F2.2 - Criar importacao CSV com upload, preview e mapeamento
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente importacao CSV de leads.
@@ -448,7 +448,7 @@ Criterios de aceite:
 
 ### F2.3 - Aceitar CSV exportado do Meta Lead Ads
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Adapte a importacao CSV para reconhecer exportacoes do Meta Lead Ads.
@@ -474,7 +474,7 @@ Criterios de aceite:
 
 ### F2.4 - Criar relatorio de importacao CSV
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie relatorio de resultado para importacoes CSV.
@@ -499,7 +499,7 @@ Criterios de aceite:
 
 ### F2.5 - Registrar origem csv_import
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Garanta que leads importados por CSV sejam salvos com source = csv_import.
@@ -524,7 +524,7 @@ Criterios de aceite:
 
 ### F2.6 - Criar desfazer importacao recente
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Avalie e implemente uma opcao simples para desfazer importacao CSV recente, se viavel.
@@ -549,11 +549,11 @@ Criterios de aceite:
 - npm run lint e npm run build passam.
 ```
 
-- [ ] **Eu:** exportar um CSV real ou de teste do Meta Lead Ads para validar o importador.
+- [x] **Eu:** exportar um CSV real ou de teste do Meta Lead Ads para validar o importador.
 
 ### F2.7 - Testar CSV com colunas reais do Meta
 
-- [ ] **Codex + Eu**
+- [x] **Codex + Eu**
 
 ```txt
 Teste a importacao CSV usando nomes de colunas reais do Meta Lead Ads.
@@ -581,14 +581,14 @@ Criterios de aceite:
 
 ## Fase 3 - IA para campanhas, compliance e WhatsApp
 
-- [ ] **Eu:** criar chave da OpenAI API.
-- [ ] **Eu:** preencher `OPENAI_API_KEY` no `.env.local` e depois no ambiente de producao.
+- [x] **Eu:** criar chave da OpenAI API.
+- [x] **Eu:** preencher `OPENAI_API_KEY` no `.env.local` e depois no ambiente de producao.
 - [x] **Codex:** criar tela de revisao de campanha em `/dashboard/campanhas`.
 - [x] **Codex:** criar geracao de mensagem de WhatsApp por lead.
 
 ### F3.1 - Criar camada de servico para OpenAI
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie a camada de servico para uso da OpenAI API na LeadHealth.
@@ -616,7 +616,7 @@ Criterios de aceite:
 
 ### F3.2 - Criar gerador de campanha segura
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente gerador de campanha segura para plano de saude empresarial.
@@ -644,7 +644,7 @@ Criterios de aceite:
 
 ### F3.3 - Gerar perguntas seguras para formulario Meta
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Adicione geracao de perguntas seguras para formulario Meta Lead Ads.
@@ -670,7 +670,7 @@ Criterios de aceite:
 
 ### F3.4 - Criar validador de compliance
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie validador de compliance para textos de campanhas de plano de saude.
@@ -697,7 +697,7 @@ Criterios de aceite:
 
 ### F3.5 - Salvar campanhas geradas no banco
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente persistencia de campanhas geradas no Supabase.
@@ -724,7 +724,7 @@ Criterios de aceite:
 
 ### F3.6 - Salvar historico de mensagens geradas
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Salve o historico de mensagens de WhatsApp geradas por lead.
@@ -751,7 +751,7 @@ Criterios de aceite:
 
 ### F3.7 - Criar botao copiar mensagem
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Adicione botao para copiar mensagens de WhatsApp geradas.
@@ -776,7 +776,7 @@ Criterios de aceite:
 
 ### F3.8 - Criar variacoes de mensagem por etapa do funil
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente variacoes de mensagens de WhatsApp por etapa do funil.
@@ -803,7 +803,7 @@ Criterios de aceite:
 
 ### F3.9 - Revisar prompts com exemplos reais
 
-- [ ] **Codex + Eu**
+- [x] **Codex + Eu**
 
 ```txt
 Revise os prompts de IA da LeadHealth com exemplos reais do mercado de plano de saude empresarial.
@@ -861,7 +861,7 @@ Criterios de aceite:
 
 ### F4.1 - Criar tabela de pedidos de criativo
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie a estrutura de banco para pedidos de criativo.
