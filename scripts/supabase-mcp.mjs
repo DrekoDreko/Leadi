@@ -17,6 +17,7 @@ const ALLOWED_TABLES = [
   "whatsapp_messages",
   "organizations",
   "lead_webhook_integrations",
+  "lead_webhook_events",
   "profiles",
   "workspace_members",
   "invites",

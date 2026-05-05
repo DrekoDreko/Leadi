@@ -12,6 +12,7 @@ export type CreativeRequestStatus =
   | "cancelled";
 export type CreativeRequestPriority = "low" | "medium" | "high" | "urgent";
 export type LeadSource = "manual" | "csv_import" | "meta_lead_ads" | "make_zapier" | "api";
+export type LeadWebhookEventStatus = "processed" | "failed";
 export type LeadStage = "new" | "qualification" | "proposal" | "negotiation" | "won" | "lost";
 export type WhatsAppStage = LeadStage;
 export type ProfileRole = "owner" | "admin" | "seller" | "supervisor";
@@ -311,6 +312,48 @@ export type Database = {
           revoked_at?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      lead_webhook_events: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          integration_id: string | null;
+          lead_id: string | null;
+          status: LeadWebhookEventStatus;
+          http_status: number;
+          raw_payload: Json;
+          safe_headers: Json;
+          error_message: string | null;
+          received_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          integration_id?: string | null;
+          lead_id?: string | null;
+          status: LeadWebhookEventStatus;
+          http_status: number;
+          raw_payload?: Json;
+          safe_headers?: Json;
+          error_message?: string | null;
+          received_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string | null;
+          integration_id?: string | null;
+          lead_id?: string | null;
+          status?: LeadWebhookEventStatus;
+          http_status?: number;
+          raw_payload?: Json;
+          safe_headers?: Json;
+          error_message?: string | null;
+          received_at?: string;
+          created_at?: string;
         };
         Relationships: [];
       };

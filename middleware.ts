@@ -12,38 +12,22 @@ export async function middleware(request: NextRequest) {
   const isInviteRoute = pathname === "/invite" || pathname.startsWith("/invite/");
   const isApiRoute = pathname === "/api" || pathname.startsWith("/api/");
   const isLeadWebhookRoute = pathname === "/api/webhooks/leads";
+  const isMetaWebhookRoute = pathname === "/api/meta/webhook";
   const isImportRoute = pathname === "/dashboard/importar" || pathname.startsWith("/dashboard/importar/");
   const isCreateTeamRoute =
     pathname === "/dashboard/criar-equipe" || pathname.startsWith("/dashboard/criar-equipe/");
-  const isLeadFallbackRoute =
-    pathname === "/dashboard/leads" ||
-    pathname.startsWith("/dashboard/leads/") ||
-    pathname === "/api/leads" ||
-    pathname.startsWith("/api/leads/");
   const isProtectedRoute =
     isDashboardRoute ||
     isOnboardingRoute ||
     isTeamRoute ||
     isInviteRoute ||
-    (isApiRoute && !isLeadWebhookRoute);
+    (isApiRoute && !isLeadWebhookRoute && !isMetaWebhookRoute);
 
-  if (isLeadWebhookRoute) {
+  if (isLeadWebhookRoute || isMetaWebhookRoute) {
     return NextResponse.next({ request });
   }
 
   if (!isSupabaseConfigured()) {
-    if (isLeadFallbackRoute) {
-      return NextResponse.next({ request });
-    }
-
-    if (isApiRoute) {
-      return NextResponse.json({ error: "Supabase nao configurado." }, { status: 503 });
-    }
-
-    if (isDashboardRoute) {
-      return NextResponse.redirect(new URL("/login?error=supabase-not-configured", request.url));
-    }
-
     return NextResponse.next({ request });
   }
 

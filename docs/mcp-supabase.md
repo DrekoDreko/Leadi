@@ -42,4 +42,4 @@ Exemplo de configuração:
 - `supabase_update`: atualiza linhas, sempre exigindo ao menos um filtro.
 - `supabase_delete`: remove linhas, sempre exigindo filtro e `confirm: "DELETE"`.
 
-Tabelas liberadas: `campaigns`, `creative_requests`, `creative_request_comments`, `whatsapp_messages`, `organizations`, `lead_webhook_integrations`, `profiles`, `workspace_members`, `invites`, `leads`.
+Tabelas liberadas: `campaigns`, `creative_requests`, `creative_request_comments`, `whatsapp_messages`, `organizations`, `lead_webhook_integrations`, `lead_webhook_events`, `profiles`, `workspace_members`, `invites`, `leads`.

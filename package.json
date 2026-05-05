@@ -6,6 +6,7 @@
     "ai:preview": "tsc -p scripts/tsconfig.ai-preview.json && node .tmp/ai-preview/scripts/ai-prompt-preview.js",
     "compliance:battery": "tsc -p scripts/tsconfig.compliance-battery.json && node .tmp/compliance-battery/scripts/compliance-validator-battery.js",
     "mcp:supabase": "node scripts/supabase-mcp.mjs",
+    "webhook:test": "node scripts/test-lead-webhook.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

@@ -41,7 +41,7 @@ type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
-const mockCreativeRequests: CreativeRequestItem[] = [
+const mockCreativeRequestSeed: CreativeRequestItem[] = [
   {
     id: "mock-request-1",
     type: "design",
@@ -137,6 +137,20 @@ const mockCreativeRequests: CreativeRequestItem[] = [
     updatedAt: "2026-04-30T09:10:00.000Z"
   }
 ];
+
+const mockCreativeRequests = getMockCreativeRequestsStore();
+
+function getMockCreativeRequestsStore() {
+  const globalScope = globalThis as typeof globalThis & {
+    __leadHealthCreativeRequestsMock?: CreativeRequestItem[];
+  };
+
+  if (!globalScope.__leadHealthCreativeRequestsMock) {
+    globalScope.__leadHealthCreativeRequestsMock = structuredClone(mockCreativeRequestSeed);
+  }
+
+  return globalScope.__leadHealthCreativeRequestsMock;
+}
 
 export async function getCreativeRequestsForCurrentUser(
   limit = 12
@@ -673,8 +687,7 @@ function mapCreativeRequestCommentRowToItem(row: CreativeRequestCommentRow): Cre
 function createMockCreativeRequest(input: CreativeRequestCreateInput): CreativeRequestItem {
   const now = new Date();
   const dueAt = normalizeDueAt(input.due_at);
-
-  return {
+  const request: CreativeRequestItem = {
     id: `mock-request-${now.getTime()}`,
     type: normalizeCreativeRequestType(input.type),
     title: normalizeRequiredText(input.title, "Titulo do pedido"),
@@ -689,6 +702,9 @@ function createMockCreativeRequest(input: CreativeRequestCreateInput): CreativeR
     createdAt: now.toISOString(),
     updatedAt: now.toISOString()
   };
+
+  mockCreativeRequests.unshift(request);
+  return request;
 }
 
 function buildMockAdminCreativeRequests(): CreativeRequestAdminItem[] {

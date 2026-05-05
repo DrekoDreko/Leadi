@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   AlertCircle,
@@ -57,7 +58,12 @@ type ImportRunSummary = {
 
 const previewFields: LeadImportFieldKey[] = ["name", "email", "phone", "city", "source", "interest", "notes"];
 
-export function CsvImportWorkspace() {
+export function CsvImportWorkspace({
+  canCreateMetaAdsLeads
+}: {
+  canCreateMetaAdsLeads: boolean;
+}) {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [parsedFile, setParsedFile] = useState<ParsedCsvFile | null>(null);
@@ -128,9 +134,17 @@ export function CsvImportWorkspace() {
         throw new Error("O CSV nao tem linhas de dados para importar.");
       }
 
+      const suggestedMapping = buildSuggestedLeadImportMapping(parsed.headers);
+
       setFileName(file.name);
       setParsedFile(parsed);
-      setMapping(buildSuggestedLeadImportMapping(parsed.headers));
+      setMapping({
+        ...suggestedMapping,
+        source:
+          !canCreateMetaAdsLeads && suggestedMapping.source === FIXED_META_SOURCE_VALUE
+            ? FIXED_CSV_SOURCE_VALUE
+            : suggestedMapping.source
+      });
     } catch (error) {
       setParsedFile(null);
       setFileName(file.name);
@@ -232,6 +246,11 @@ export function CsvImportWorkspace() {
         batchId: importBatchId,
         undone: false
       });
+
+      if (created > 0 && errors.length === 0 && detectedMode === "supabase") {
+        router.push("/dashboard/leads");
+        router.refresh();
+      }
     } finally {
       setIsImporting(false);
       setImportProgress(null);
@@ -477,9 +496,11 @@ export function CsvImportWorkspace() {
                           <option key="fixed-csv" value={FIXED_CSV_SOURCE_VALUE}>
                             Fixo: CSV importado
                           </option>,
-                          <option key="fixed-meta" value={FIXED_META_SOURCE_VALUE}>
-                            Fixo: Meta Lead Ads
-                          </option>
+                          canCreateMetaAdsLeads ? (
+                            <option key="fixed-meta" value={FIXED_META_SOURCE_VALUE}>
+                              Fixo: Meta Lead Ads
+                            </option>
+                          ) : null
                         ]
                       : null}
                     {parsedFile.headers.map((header) => (
@@ -512,11 +533,26 @@ export function CsvImportWorkspace() {
                 </span>
                 {isMetaLeadAdsImport ? (
                   <span className="rounded-full bg-cobalt/12 px-3 py-1 text-xs font-semibold text-cobalt">
-                    Origem sugerida: Meta Lead Ads
+                    Origem sugerida: {canCreateMetaAdsLeads ? "Meta Lead Ads" : "CSV importado"}
                   </span>
                 ) : null}
               </div>
             </div>
+
+            {isMetaLeadAdsImport && !canCreateMetaAdsLeads ? (
+              <div className="mt-5 rounded-[28px] border border-cobalt/18 bg-cobalt/8 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="mt-0.5 shrink-0 text-cobalt" size={18} aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold text-ink">CSV do Meta detectado</p>
+                    <p className="mt-1 text-sm leading-6 text-ink/64">
+                      Como seu perfil nao e supervisor, a importacao vai salvar esses registros com
+                      origem <strong>CSV importado</strong> para concluir sem bloqueio.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             <div className="mt-5 overflow-hidden rounded-[28px] border border-white/52 bg-white/28">
               <div className="grid grid-cols-[56px_minmax(180px,1.25fr)_180px_150px_130px_150px_minmax(180px,1.4fr)_1.1fr] gap-3 border-b border-ink/8 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/42">
@@ -728,7 +764,7 @@ export function CsvImportWorkspace() {
               <p className="text-sm leading-6 text-ink/58">
                 Leads importados entram com etapa <strong>Novo lead</strong> e origem
                 <strong> CSV importado</strong>. Exportações do Meta usam
-                <strong> Meta Lead Ads</strong> quando o arquivo é detectado como tal.
+                <strong> Meta Lead Ads</strong> somente para perfis com permissão.
               </p>
 
               <div className="flex flex-wrap gap-2">

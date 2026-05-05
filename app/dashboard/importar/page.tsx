@@ -12,7 +12,7 @@ export default async function ImportarLeadsPage() {
     <div className="space-y-4">
       <PageHeading eyebrow="Importacao" title="Importar leads" description={description} />
 
-      <CsvImportWorkspace />
+      <CsvImportWorkspace canCreateMetaAdsLeads={context.isSupervisor} />
     </div>
   );
 }

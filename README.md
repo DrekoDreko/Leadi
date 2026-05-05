@@ -1,41 +1,123 @@
 # LeadHealth
 
-CRM e SaaS com IA para corretores de planos de saúde organizarem leads, planejarem campanhas e acompanharem oportunidades em um fluxo único.
+SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O produto centraliza captacao de leads, operacao comercial, geracao de campanhas, revisao de compliance, mensagens de WhatsApp, pedidos criativos e gestao de creditos.
 
-## Badges
+## Stack
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.4-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Status](https://img.shields.io/badge/Status-Em%20desenvolvimento-f59e0b?style=for-the-badge)](#escopo-atual)
-
-## Visão geral
-
-LeadHealth é uma base visual para um produto de CRM focado em planos de saúde empresariais.
-
-O projeto cobre:
-
-- captura e organização de leads
-- visão de funil e oportunidades
-- campanhas sugeridas com IA
-- checklist de compliance
-- integrações futuras com Meta, Supabase e OpenAI
-
-## Stack atual
-
-- Next.js App Router
+- Next.js 15 com App Router
+- React 19
 - TypeScript
 - Tailwind CSS
-- Lucide React para ícones
-- Dados mockados em `src/data/mock.ts`
-- Supabase futuramente para autenticação, banco e storage
-- OpenAI API futuramente para geração de campanhas, compliance e WhatsApp
+- Supabase para auth, banco, storage e contexto multi-tenant
+- OpenAI para geracao de campanhas, mensagens e revisao assistida
+- Mercado Pago para checkout de planos e pacotes de creditos
 
-## Site e configuração
+## O que ja esta implementado
 
-- Website: não configurado ainda
-- Repositório: `leadhealth`
-- Variáveis de ambiente: copie `.env.example` para `.env.local` quando for conectar Supabase, OpenAI, pagamentos e integrações Meta
+- autenticacao com Supabase Auth
+- onboarding de perfil e setup inicial da equipe
+- modelo multi-tenant com workspaces, convites, perfis e papeis
+- dashboard autenticado com modulos por area
+- CRM de leads com listagem, filtros, detalhes, atualizacao e exclusao
+- importacao de leads por CSV
+- ingestao de leads por webhook autenticado
+- funil comercial por etapa
+- geracao de campanhas com IA e historico salvo
+- validador de compliance com regras locais e analise via OpenAI quando configurada
+- geracao de mensagens de WhatsApp com historico salvo
+- pedidos criativos com comentarios e anexos
+- creditos, catalogo de produtos, checkout Mercado Pago e webhook de billing
+- area de perfil com nome comercial, token de webhook e logs de eventos recebidos
+- fluxo de equipe com membros e convites
+
+## Principais rotas
+
+### Publicas
+
+- `/`: landing page do produto
+- `/preview`: preview visual
+- `/pricing`: planos e entrada para compra
+- `/login`: login e cadastro
+- `/invite/[token]`: aceite de convite
+
+### Onboarding e equipe
+
+- `/onboarding/profile-setup`: conclusao de perfil
+- `/team/setup`: configuracao da equipe, membros e convites
+
+### Dashboard
+
+- `/dashboard`: visao geral com indicadores e saldo
+- `/dashboard/leads`: CRM de leads
+- `/dashboard/funil`: acompanhamento por etapas
+- `/dashboard/importar`: importacao CSV
+- `/dashboard/campanhas`: gerador e historico de campanhas
+- `/dashboard/compliance`: revisao de texto e risco
+- `/dashboard/whatsapp`: gerador de mensagens para leads
+- `/dashboard/pedidos`: pedidos criativos
+- `/dashboard/criacoes`: atalhos para novas demandas
+- `/dashboard/creditos`: saldo, extrato e compras
+- `/dashboard/perfil`: dados da conta, webhook e logs
+- `/dashboard/configuracoes`: area reservada de configuracoes
+- `/dashboard/relatorios`: area reservada para relatorios
+
+## APIs disponiveis
+
+### Leads
+
+- `GET /api/leads`: lista leads do workspace autenticado
+- `POST /api/leads`: cria lead manualmente
+- `PATCH /api/leads/[id]`: atualiza lead
+- `DELETE /api/leads/[id]`: remove lead
+- `POST /api/leads/import-batches/[batchId]`: acompanha lote importado
+- `POST /api/webhooks/leads`: recebe leads externos com token
+
+### IA e operacao
+
+- `POST /api/campaigns/generate`: gera campanha com consumo de creditos
+- `GET /api/campaigns`: lista historico de campanhas
+- `POST /api/campaigns/questions`: apoio ao fluxo de perguntas da campanha
+- `POST /api/compliance/validate`: analisa risco de compliance
+- `POST /api/whatsapp/generate`: gera mensagem para WhatsApp
+
+### Pedidos criativos
+
+- `GET /api/creative-requests`: lista pedidos
+- `POST /api/creative-requests`: cria pedido
+- `GET/PATCH /api/creative-requests/[id]`: consulta ou atualiza pedido
+- `POST /api/creative-requests/[id]/comments`: adiciona comentario
+- `POST /api/creative-requests/[id]/attachments`: envia anexo
+
+### Billing
+
+- `POST /api/billing/mercadopago/checkout`: cria checkout
+- `POST /api/billing/webhooks/mercadopago`: confirma pagamentos
+
+## Variaveis de ambiente
+
+Base:
+
+```bash
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
+MERCADO_PAGO_ACCESS_TOKEN=
+MERCADO_PAGO_WEBHOOK_SECRET=
+META_APP_ID=
+META_APP_SECRET=
+META_VERIFY_TOKEN=
+META_REDIRECT_URI=
+META_GRAPH_API_VERSION=v22.0
+DATABASE_URL=
+```
+
+Observacoes:
+
+- sem Supabase configurado, partes do produto podem operar em modo de demonstracao ou ficar indisponiveis conforme o modulo
+- sem `OPENAI_API_KEY`, o validador de compliance continua com regras locais, mas as geracoes de campanha e WhatsApp nao funcionam
+- sem billing configurado, a compra de creditos e as geracoes que dependem de cobranca retornam indisponibilidade
 
 ## Rodando localmente
 
@@ -44,62 +126,41 @@ npm install
 npm run dev
 ```
 
-Abra `http://localhost:3000`.
+Abra [http://localhost:3000](http://localhost:3000).
 
-## Escopo atual
+## Scripts uteis
 
-Esta etapa já possui a base da Fase 1 para Supabase Auth, schema multi-tenant,
-CRUD de leads por API e campos de origem preparados para Meta Lead Ads. Sem as
-variáveis do Supabase configuradas, o dashboard continua usando dados mockados
-para não bloquear a interface.
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+npm run ai:preview
+npm run compliance:battery
+npm run mcp:supabase
+npm run webhook:test
+```
 
-## Páginas implementadas
+## Banco e migrations
 
-- `/`: landing page da LeadHealth com proposta de CRM + IA, preview do dashboard, formulário seguro para Meta Lead Ads e CTA para dashboard/planos.
-- `/dashboard`: dashboard com métricas, CRM de leads, tabela, funil Kanban visual, campanha sugerida por IA, checklist de compliance, mensagem de WhatsApp e pedido criativo. Usa Supabase quando configurado e mock como fallback.
-- `/login`: autenticação real com Supabase Auth quando as variáveis de ambiente estão configuradas.
-- `/pricing`: página visual de planos com valores placeholder.
+As migrations ficam em `supabase/migrations/` e cobrem, entre outros pontos:
 
-## Componentes e dados
+- core multi-tenant
+- onboarding, convites e workspace
+- historico de campanhas
+- billing e creditos
+- importacao CSV
+- pedidos criativos e storage
+- historico de mensagens WhatsApp
+- eventos e logs de webhook de leads
 
-- `src/components/brand-mark.tsx`: marca reutilizável.
-- `src/components/mock-dashboard-preview.tsx`: preview visual da operação na landing.
-- `src/data/mock.ts`: leads, colunas do Kanban, campanha sugerida, navegação e agenda mockados.
-
-## Supabase Fase 1
-
-Já implementado no código:
-
-- Cliente Supabase para server/browser.
-- Middleware para refresh de sessão.
-- Login e cadastro por Supabase Auth.
-- Schema multi-tenant em `supabase/migrations/202604280001_phase_1_core.sql`.
-- API de CRUD de leads.
-- Tela `/dashboard/leads` lendo Supabase quando houver sessão e usando mock quando não houver configuração.
-
-O cadastro cria automaticamente uma organização e um perfil `owner`. A rota
-`/dashboard/leads` consulta os leads reais quando existe sessão ativa.
-
-## API de leads
-
-- `GET /api/leads`: lista leads da organização logada.
-- `POST /api/leads`: cria lead manual, CSV, API ou origem Meta.
-- `PATCH /api/leads/:id`: atualiza lead da organização logada.
-- `DELETE /api/leads/:id`: remove lead da organização logada.
-- `POST /api/webhooks/leads`: recebe leads externos autenticados por token da organização.
+Arquivos manuais de apoio ficam em `supabase/manual_*.sql`.
 
 ## Webhook de leads
 
-O webhook `POST /api/webhooks/leads` exige:
+O endpoint `POST /api/webhooks/leads` aceita `Authorization: Bearer <token>` ou `x-leadhealth-token: <token>`.
 
-- `Content-Type: application/json`
-- `Authorization: Bearer <token>` ou header `x-leadhealth-token: <token>`
-- `SUPABASE_SERVICE_ROLE_KEY` configurada no ambiente
-
-O token define a organização do lead. O payload pode informar `owner_profile_id`
-ou `owner_email`, mas não precisa mais enviar `organization_id`.
-
-Formato recomendado para Make/Zapier:
+Payload recomendado:
 
 ```json
 {
@@ -116,37 +177,31 @@ Formato recomendado para Make/Zapier:
 }
 ```
 
-Tambem sao aceitos aliases comuns em PT/EN, como `nome`/`name`,
-`telefone`/`phone`, `cidade`/`city`, `origem`/`source` e
-`interesse`/`interest`. O webhook aceita o lead na raiz do JSON ou dentro de
-`lead`, `data`, `payload`, `contact` ou `prospect`. Campos extras nao quebram a
-importacao e ficam preservados em `raw_payload`.
+O backend tambem aceita aliases comuns em PT/EN e preserva o payload bruto para auditoria. Os logs de processamento podem ser acompanhados em `/dashboard/perfil`.
 
-Para gerar um token por organização no Supabase SQL Editor:
+Para teste manual rapido sem Make/Zapier:
 
-```sql
-select *
-from public.create_lead_webhook_integration(
-  'ORGANIZATION_ID_AQUI',
-  'Make principal'
-);
+```bash
+export LEAD_WEBHOOK_URL=http://localhost:3000/api/webhooks/leads
+export LEAD_WEBHOOK_TOKEN=cole_o_token_gerado_no_dashboard
+npm run webhook:test
 ```
 
-O retorno inclui o token em texto puro uma única vez. O banco salva apenas o hash.
+Se quiser mandar um payload proprio:
 
-Campos preparados para Meta:
-
-```txt
-source
-source_campaign
-source_adset
-source_ad
-meta_lead_id
-meta_form_id
-meta_page_id
-meta_campaign_id
-meta_adset_id
-meta_ad_id
-received_at
-raw_payload
+```bash
+export LEAD_WEBHOOK_PAYLOAD_FILE=./meu-payload.json
+npm run webhook:test
 ```
+
+No app, a area de logs em `/dashboard/perfil` oferece filtros de sucesso/erro, refresh manual e autoatualizacao a cada 15 segundos para acompanhar o recebimento quase em tempo real.
+
+## Estrutura do projeto
+
+- `app/`: paginas, layouts e rotas de API
+- `src/lib/`: regras de negocio, integracoes e repositorios
+- `src/components/`: componentes de interface
+- `src/data/`: mocks e dados auxiliares
+- `supabase/`: migrations e SQL de apoio
+- `docs/`: documentacao tecnica complementar
+- `scripts/`: scripts de suporte e validacao

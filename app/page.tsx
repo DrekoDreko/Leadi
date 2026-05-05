@@ -47,6 +47,9 @@ export default function Home() {
             <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/preview">
               Preview
             </Link>
+            <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/privacy">
+              Privacidade
+            </Link>
           </div>
           <Link
             className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5"
@@ -171,8 +174,18 @@ export default function Home() {
       </section>
 
       <footer className="px-4 pb-4">
-        <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-2 px-4 py-3 text-xs text-ink/78 md:flex-row md:items-center md:justify-between md:text-sm">
-          <p>© 2025 Codeellow. Todos os direitos reservados.</p>
+        <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-3 px-4 py-3 text-xs text-ink/78 md:flex-row md:items-center md:justify-between md:text-sm">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+            <p>© 2025 Codeellow. Todos os direitos reservados.</p>
+            <div className="flex items-center gap-3">
+              <Link className="font-semibold transition-colors hover:text-cobalt" href="/privacy">
+                Privacidade
+              </Link>
+              <Link className="font-semibold transition-colors hover:text-cobalt" href="/terms">
+                Termos
+              </Link>
+            </div>
+          </div>
           <p>
             Desenvolvido pela{" "}
             <a

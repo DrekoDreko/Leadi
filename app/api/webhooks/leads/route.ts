@@ -1,21 +1,37 @@
 import { NextResponse } from "next/server";
 import { createLeadFromWebhook } from "@/lib/leads/repository.server";
 import { normalizeLeadSourceOrNull } from "@/lib/leads/normalization";
-import { authenticateLeadWebhookRequest } from "@/lib/leads/webhook-auth";
+import { recordLeadWebhookEvent } from "@/lib/leads/webhook-events.server";
+import {
+  authenticateLeadWebhookRequest,
+  type LeadWebhookAuthContext
+} from "@/lib/leads/webhook-auth";
 import { hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import type { LeadSource } from "@/lib/supabase/database.types";
 
 const safeWebhookLeadSources = new Set<LeadSource>(["make_zapier", "api"]);
 
 export async function POST(request: Request) {
+  let body: unknown;
+  let webhookAuth: LeadWebhookAuthContext | undefined;
+
   try {
     assertJsonRequest(request);
-    const webhookAuth = await authenticateLeadWebhookRequest(request);
-
-    const body = await request.json();
+    body = await request.json();
+    webhookAuth = await authenticateLeadWebhookRequest(request);
     const result = await createLeadFromWebhook(
       normalizeWebhookLeadPayload(body, webhookAuth.organizationId)
     );
+
+    await recordLeadWebhookEvent({
+      organizationId: webhookAuth.organizationId,
+      integrationId: webhookAuth.integrationId,
+      leadId: result.lead.id,
+      status: "processed",
+      httpStatus: 201,
+      rawPayload: body,
+      safeHeaders: getSafeWebhookHeaders(request)
+    });
 
     return NextResponse.json(
       {
@@ -29,11 +45,20 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error(error);
+    const status = getWebhookLeadErrorStatus(error);
+    const errorMessage = getWebhookLeadErrorMessage(error);
 
-    return NextResponse.json(
-      { error: getWebhookLeadErrorMessage(error) },
-      { status: getWebhookLeadErrorStatus(error) }
-    );
+    await recordLeadWebhookEvent({
+      organizationId: webhookAuth?.organizationId,
+      integrationId: webhookAuth?.integrationId,
+      status: "failed",
+      httpStatus: status,
+      rawPayload: body,
+      safeHeaders: getSafeWebhookHeaders(request),
+      errorMessage
+    });
+
+    return NextResponse.json({ error: errorMessage }, { status });
   }
 }
 
@@ -246,6 +271,24 @@ function getWebhookLeadErrorStatus(error: unknown) {
   }
 
   return 400;
+}
+
+function getSafeWebhookHeaders(request: Request) {
+  const safeHeaderNames = [
+    "accept",
+    "content-type",
+    "user-agent",
+    "x-forwarded-for",
+    "x-real-ip",
+    "cf-connecting-ip"
+  ];
+
+  return Object.fromEntries(
+    safeHeaderNames.flatMap((headerName) => {
+      const value = request.headers.get(headerName);
+      return value ? [[headerName, value]] : [];
+    })
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

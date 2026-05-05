@@ -1,7 +1,14 @@
+import { headers } from "next/headers";
 import { BriefcaseBusiness, Settings } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
+import {
+  listLeadWebhookLogsByOrganization,
+  type WebhookLogFilter
+} from "@/lib/leads/webhook-events.repository";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { updateBrokerageNameAction } from "./actions";
+import { WebhookLogsCard } from "./webhook-logs-card";
+import { WebhookSetupCard } from "./webhook-setup-card";
 
 const brokerageFeedbackMessages: Record<string, string> = {
   failed: "Nao foi possivel salvar o nome da corretora agora.",
@@ -15,7 +22,7 @@ const brokerageFeedbackMessages: Record<string, string> = {
 export default async function PerfilPage({
   searchParams
 }: {
-  searchParams?: Promise<{ brokerage?: string }>;
+  searchParams?: Promise<{ brokerage?: string; webhookStatus?: string }>;
 }) {
   const context = await requireCompletedProfile();
   const params = await searchParams;
@@ -23,6 +30,16 @@ export default async function PerfilPage({
     ? brokerageFeedbackMessages[params.brokerage] ?? null
     : null;
   const canEditBrokerageName = context.isSupervisor || context.isSoloSeller;
+  const canManageWebhookToken = context.isSupervisor || context.isSoloSeller;
+  const webhookFilter = normalizeWebhookStatusFilter(params?.webhookStatus);
+  const webhookLogs =
+    context.mode === "supabase" && context.workspace
+      ? await listLeadWebhookLogsByOrganization({
+          organizationId: context.workspace.id,
+          filter: webhookFilter
+        })
+      : [];
+  const webhookUrl = await getLeadWebhookUrl();
 
   return (
     <div className="space-y-4">
@@ -102,6 +119,34 @@ export default async function PerfilPage({
           </div>
         )}
       </section>
+
+      <WebhookSetupCard
+        canManageToken={canManageWebhookToken}
+        isSupabaseMode={context.mode === "supabase"}
+        webhookUrl={webhookUrl}
+      />
+
+      <WebhookLogsCard
+        filter={webhookFilter}
+        isSupabaseMode={context.mode === "supabase"}
+        logs={webhookLogs}
+      />
     </div>
   );
+}
+
+async function getLeadWebhookUrl() {
+  const headerStore = await headers();
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
+
+  if (!host) {
+    return "http://localhost:3000/api/webhooks/leads";
+  }
+
+  return `${protocol}://${host}/api/webhooks/leads`;
+}
+
+function normalizeWebhookStatusFilter(value?: string): WebhookLogFilter {
+  return value === "processed" || value === "failed" ? value : "all";
 }
