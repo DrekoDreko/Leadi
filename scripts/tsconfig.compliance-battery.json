@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": "../.tmp/compliance-battery",
+    "rootDir": "..",
+    "incremental": false,
+    "jsx": "preserve"
+  },
+  "include": [
+    "../scripts/compliance-validator-battery.ts",
+    "../src/lib/openai/compliance-battery.ts",
+    "../src/lib/openai/compliance-guardrails.ts"
+  ]
+}

@@ -24,15 +24,18 @@ Stack atual:
 - Tailwind CSS
 - Supabase SSR
 - Rotas API dentro de app/api
+- MCP Supabase local `leadhealth-supabase` conectado via Role Key, implementado em `scripts/supabase-mcp.mjs` e documentado em `docs/mcp-supabase.md`
 
 Antes de implementar:
 - leia README.md, TAREFAS.md e package.json;
+- se a tarefa envolver Supabase, leia também docs/mcp-supabase.md;
 - inspecione os arquivos relacionados à tarefa;
 - preserve o estilo visual e os padrões existentes;
 - não reverta alterações do usuário;
 - mantenha o escopo pequeno.
 
 Depois de implementar:
+- quando a tarefa envolver dados Supabase, valide consultas/alterações pelo MCP `leadhealth-supabase` usando as ferramentas permitidas;
 - rode npm run lint;
 - rode npm run build se a mudança tocar rotas, páginas, tipos ou banco;
 - atualize TAREFAS.md marcando a tarefa como concluída somente se tudo estiver validado;
@@ -45,12 +48,25 @@ Depois de implementar:
 - **Codex:** tarefa que pode ser implementada direto no repositório.
 - **Codex + Eu:** tarefa que precisa de implementação e também de acesso, revisão, decisão comercial ou teste manual.
 
+## Regra para Supabase via MCP
+
+O MCP Supabase ja esta conectado via Role Key. Para tarefas novas ou pendentes que envolvam leitura, validação ou alteração de dados no Supabase, o Codex deve usar o MCP local `leadhealth-supabase` como caminho operacional principal, conforme `docs/mcp-supabase.md`.
+
+- O app continua usando Supabase SSR/client no runtime, mas validações e intervenções de dados feitas pelo Codex devem passar pelo MCP.
+- Antes de mexer em dados reais, rodar `supabase_status` e confirmar variáveis/allowlist.
+- Para inspecionar dados reais, usar `supabase_select` nas tabelas liberadas.
+- Para criar, atualizar ou excluir dados reais, usar `supabase_insert`, `supabase_update` ou `supabase_delete` com filtros explícitos e registrar o que foi alterado.
+- Como a Role Key ignora RLS, usar operações de escrita apenas com filtros explícitos, escopo mínimo e sem expor dados sensíveis no output.
+- Migrations e mudanças de schema continuam versionadas em `supabase/migrations`; depois de aplicar ou orientar aplicação, validar tabelas/dados via MCP nas tabelas liberadas.
+- Se uma tarefa criar ou renomear tabela que precise ser consultada pelo Codex, atualizar `ALLOWED_TABLES` em `scripts/supabase-mcp.mjs` e a lista de tabelas em `docs/mcp-supabase.md`.
+- O painel do Supabase fica apenas para ações externas inevitáveis, como configuração de Auth, Storage, URLs, secrets e execução manual de DDL quando o MCP não cobrir schema.
+
 ## Prioridade imediata
 
 - [x] **Eu:** criar ou confirmar o projeto Supabase da LeadHealth.
 - [x] **Eu:** copiar `.env.example` para `.env.local`.
 - [x] **Eu:** preencher `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` no `.env.local`.
-- [x] **Eu:** aplicar a migration `supabase/migrations/202604280001_phase_1_core.sql` no SQL Editor do Supabase.
+- [x] **Eu:** aplicar a migration `supabase/migrations/202604280001_phase_1_core.sql`; **Codex:** validar o banco pelo MCP Supabase.
 - [x] **Eu:** criar a primeira conta em `/login` e confirmar se a organização/perfil foram criados.
 
 ### P0.1 - Criar formulario de novo lead
@@ -165,7 +181,7 @@ Requisitos para Codex:
 
 Parte manual:
 - Eu devo criar/usar uma conta real no Supabase.
-- Eu devo confirmar visualmente se os dados aparecem no painel do Supabase.
+- Eu devo confirmar visualmente no app; o Codex deve validar os dados pelo MCP Supabase.
 
 Criterios de aceite:
 - Fluxo real funciona sem quebrar fallback local.
@@ -831,7 +847,7 @@ Criterios de aceite:
 
 ### F3.10 - Testar risco de reprovacao Meta
 
-- [ ] **Codex + Eu**
+- [x] **Codex + Eu**
 
 ```txt
 Monte uma bateria de testes para risco de reprovacao Meta em textos de campanha.
@@ -887,7 +903,7 @@ Criterios de aceite:
 
 ### F4.2 - Criar formulario de pedido
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente formulario de pedido de design, video ou campanha completa.
@@ -913,7 +929,7 @@ Criterios de aceite:
 
 ### F4.3 - Permitir anexos com Supabase Storage
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Adicione anexos aos pedidos usando Supabase Storage.
@@ -939,7 +955,7 @@ Criterios de aceite:
 
 ### F4.4 - Criar status do pedido
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente fluxo de status para pedidos de criativo.
@@ -964,7 +980,7 @@ Criterios de aceite:
 
 ### F4.5 - Criar area do vendedor para acompanhar pedidos
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie a experiencia do vendedor para acompanhar pedidos.
@@ -989,7 +1005,7 @@ Criterios de aceite:
 
 ### F4.6 - Criar area admin inicial para pedidos
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie uma area admin inicial para visualizar pedidos de todas as organizacoes.
@@ -1016,7 +1032,7 @@ Criterios de aceite:
 
 ### F4.7 - Criar comentarios internos no pedido
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente comentarios internos em pedidos de criativo.
@@ -1058,6 +1074,7 @@ Objetivo:
 
 Requisitos para Codex:
 - Testar criacao, listagem, detalhe, comentarios, anexos e mudanca de status.
+- Validar no MCP Supabase os registros criados/alterados em `creative_requests` e tabelas relacionadas liberadas.
 - Corrigir bugs pequenos encontrados.
 - Registrar lacunas que dependem de decisao de negocio.
 
@@ -1069,11 +1086,17 @@ Criterios de aceite:
 - Vendedor consegue entender o andamento.
 ```
 
+Nota Codex 2026-05-05:
+- Validacao tecnica parcial executada: `npm run lint` e `npm run build` passaram.
+- MCP/Supabase operacional para `creative_requests` e `creative_request_comments` via service role.
+- Bloqueio de configuracao resolvido: `.env.local` agora tem `NEXT_PUBLIC_SUPABASE_ANON_KEY` e o app reconhece Supabase como configurado.
+- Continua pendente: validar login real no navegador, testar pedido real com uma sessao autenticada e confirmar tipos de pacote, prazos e entrega manual.
+
 ## Fase 5 - Integracao Make/Zapier antes da Meta direta
 
 ### F5.1 - Criar endpoint de webhook para automacoes
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie endpoint de webhook para receber leads de Make/Zapier.
@@ -1099,7 +1122,7 @@ Criterios de aceite:
 
 ### F5.2 - Exigir token secreto por organizacao ou integracao
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Proteja webhooks com token secreto por organizacao ou integracao.
@@ -1125,7 +1148,7 @@ Criterios de aceite:
 
 ### F5.3 - Mapear payload recebido para leads
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Implemente mapeamento flexivel de payload de webhook para o modelo de leads.
@@ -1141,6 +1164,7 @@ Requisitos:
 - Normalizar telefone.
 - Validar duplicidade usando regras existentes.
 - Salvar campos extras em raw_payload, se o schema permitir.
+- Validar pelo MCP Supabase que leads de teste gravam campos normalizados e payload bruto conforme esperado.
 - Documentar formato recomendado.
 
 Criterios de aceite:
@@ -1167,6 +1191,7 @@ Requisitos:
 - Definir source padrao do webhook como make_zapier.
 - Permitir sobrescrever somente se for uma origem aceita e segura.
 - Garantir que filtros por origem reconhecam make_zapier.
+- Conferir pelo MCP Supabase que leads criados pelo webhook ficam com `source = make_zapier`.
 
 Criterios de aceite:
 - Todo lead do webhook possui source = make_zapier por padrao.
@@ -1189,8 +1214,10 @@ Objetivo:
 Requisitos:
 - Verificar se leads ja possui raw_payload.
 - Se necessario, criar tabela de webhook_events.
+- Se criar `webhook_events`, liberar a tabela no MCP Supabase e documentar em `docs/mcp-supabase.md`.
 - Salvar payload, headers seguros, status do processamento e erro.
 - Evitar salvar segredos/tokens.
+- Validar registros salvos via MCP Supabase sem expor headers sensiveis.
 
 Criterios de aceite:
 - Cada webhook recebido possui registro auditavel.
@@ -1217,6 +1244,7 @@ Requisitos:
 - Permitir gerar/copiar token de integracao.
 - Mostrar exemplo curto de payload JSON.
 - Adicionar botao copiar para URL e token.
+- Validar pelo MCP Supabase que o token/integracao foi criado para a organizacao correta, sem revelar token puro quando houver hash.
 
 Criterios de aceite:
 - Usuario consegue configurar Make/Zapier com as informacoes da tela.
@@ -1239,9 +1267,11 @@ Objetivo:
 
 Requisitos:
 - Criar tabela/API se ainda nao existir.
+- Se criar tabela de logs, liberar a tabela no MCP Supabase e documentar em `docs/mcp-supabase.md`.
 - Exibir data, origem, status, lead criado e mensagem de erro.
 - Permitir filtrar por sucesso/erro.
 - Respeitar organizacao.
+- Conferir pelo MCP Supabase que eventos de teste aparecem na tabela de logs e apontam para o lead correto.
 
 Criterios de aceite:
 - Logs aparecem apos chamadas reais ao webhook.
@@ -1268,6 +1298,7 @@ Objetivo:
 Requisitos para Codex:
 - Validar URL, token e payload esperado.
 - Acompanhar logs do app.
+- Conferir pelo MCP Supabase o evento recebido, o lead criado e `source = make_zapier`.
 - Corrigir problemas de mapeamento ou autenticacao.
 - Documentar passos finais de configuracao.
 
@@ -1360,6 +1391,7 @@ Requisitos:
 - Registrar evento em tabela/log, se ja existir.
 - Retornar 200 rapidamente para eventos validos.
 - Tratar payload invalido com 400.
+- Validar pelo MCP Supabase que eventos de teste ficam registrados sem expor segredos.
 
 Criterios de aceite:
 - Endpoint aceita payload de teste da Meta.
@@ -1437,7 +1469,9 @@ Requisitos:
 - Campos minimos: organizacao, page_id, page_name, form_id, form_name, token criptografado ou referencia segura, status e timestamps.
 - Criar RLS por organizacao.
 - Atualizar tipos.
+- Liberar as novas tabelas no MCP Supabase e documentar em `docs/mcp-supabase.md`.
 - Nao implementar OAuth completo se nao for necessario nesta tarefa.
+- Validar pelo MCP Supabase a existencia dos registros de integracao e o isolamento por organizacao com dados controlados.
 
 Criterios de aceite:
 - Schema suporta paginas e formularios conectados.
@@ -1464,6 +1498,7 @@ Requisitos:
 - Salvar source = meta_lead_ads.
 - Preservar raw_payload/evento.
 - Respeitar duplicidade por meta_lead_id.
+- Conferir pelo MCP Supabase o lead criado, `meta_lead_id`, `source` e payload/evento relacionado.
 
 Criterios de aceite:
 - Evento Meta cria lead real.
@@ -1490,6 +1525,7 @@ Requisitos:
 - Ajustar repositorio/API para upsert ou erro controlado.
 - Garantir que reenviar evento nao duplica lead.
 - Registrar no log quando evento for duplicado.
+- Validar idempotencia pelo MCP Supabase comparando contagem de leads por `meta_lead_id`.
 
 Criterios de aceite:
 - Mesmo meta_lead_id processado duas vezes gera apenas um lead.
@@ -1566,7 +1602,7 @@ Objetivo:
 Requisitos para Codex:
 - Monitorar webhook/logs.
 - Verificar busca por leadgen_id.
-- Confirmar criacao no Supabase.
+- Confirmar criacao no Supabase pelo app e por `supabase_select` via MCP `leadhealth-supabase`.
 - Corrigir problemas de mapeamento, token ou duplicidade.
 
 Parte manual:
@@ -1602,6 +1638,8 @@ Requisitos:
 - Incluir status, periodo, gateway, external_id e timestamps.
 - Criar RLS por organizacao.
 - Atualizar tipos.
+- Liberar `plans`, `subscriptions` e `payment_events` no MCP Supabase e documentar em `docs/mcp-supabase.md`.
+- Validar pelo MCP Supabase a existencia/retorno das tabelas liberadas e registros controlados de plano/assinatura.
 
 Criterios de aceite:
 - Schema suporta Mercado Pago, Asaas ou Stripe.
@@ -1611,7 +1649,7 @@ Criterios de aceite:
 
 ### F7.2 - Integrar checkout externo
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Integre checkout externo do gateway escolhido.
@@ -1638,7 +1676,7 @@ Criterios de aceite:
 
 ### F7.3 - Criar webhook de pagamento
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie webhook para eventos de pagamento aprovado, recusado e cancelado.
@@ -1681,6 +1719,7 @@ Requisitos:
 - Aplicar bloqueio em recursos principais com mensagens claras.
 - Evitar bloquear login e tela de billing.
 - Manter fallback local amigavel quando billing nao estiver configurado.
+- Conferir pelo MCP Supabase os cenarios de organizacao sem assinatura, assinatura ativa e assinatura inativa.
 
 Criterios de aceite:
 - Organizacao sem assinatura ve orientacao para escolher plano.
@@ -1690,7 +1729,7 @@ Criterios de aceite:
 
 ### F7.5 - Criar tela de billing
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie tela de billing/assinatura no dashboard.
@@ -1730,6 +1769,7 @@ Requisitos para Codex:
 - Rodar app local ou ambiente de teste.
 - Validar criacao de checkout.
 - Acompanhar webhook.
+- Confirmar `subscriptions` e `payment_events` via MCP Supabase.
 - Corrigir problemas de assinatura, idempotencia ou status.
 
 Parte manual:
@@ -1755,6 +1795,7 @@ Revise NEXT_PUBLIC_APP_URL, redirects e callback de autenticacao para producao.
 Contexto:
 - O app usa Supabase Auth e rota app/auth/callback.
 - Em producao, URLs precisam bater com Vercel/dominio.
+- Para validar dados reais de perfil, organizacao e sessao persistida, usar o MCP Supabase.
 
 Objetivo:
 - Evitar erro de login ou redirect em deploy.
@@ -1763,6 +1804,7 @@ Requisitos:
 - Inspecionar uso de NEXT_PUBLIC_APP_URL.
 - Validar callback /auth/callback.
 - Garantir que redirects funcionem em localhost e producao.
+- Rodar `supabase_status` via MCP e consultar perfis/organizacoes quando a validacao envolver cadastro, sessao ou redirect.
 - Atualizar README/.env.example se faltar variavel.
 
 Criterios de aceite:
@@ -1780,6 +1822,7 @@ Adicione verificacao de ambiente para producao.
 
 Contexto:
 - O app depende de Supabase, OpenAI, Meta e pagamentos conforme recursos.
+- O MCP Supabase ja existe e deve ser considerado na verificacao operacional de dados.
 
 Objetivo:
 - Detectar variaveis obrigatorias ausentes antes de quebrar em runtime.
@@ -1787,6 +1830,7 @@ Objetivo:
 Requisitos:
 - Criar helper de validacao de ambiente server-side.
 - Separar variaveis obrigatorias do core e variaveis opcionais por integracao.
+- Documentar variaveis necessarias para o MCP Supabase (`NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`) somente para uso server/local.
 - Mostrar erro amigavel em recursos opcionais sem chave.
 - Documentar variaveis no README ou .env.example.
 
@@ -1830,7 +1874,8 @@ Prepare scripts ou instrucoes claras para aplicar migrations Supabase.
 
 Contexto:
 - Migrations estao em supabase/migrations.
-- O usuario pode aplicar pelo SQL Editor ou CLI.
+- O MCP Supabase local ja existe para consultar/alterar dados permitidos e validar o estado do banco.
+- Mudancas de schema ainda devem ser versionadas em migrations; SQL Editor ou CLI ficam como fallback quando o MCP nao cobrir DDL.
 
 Objetivo:
 - Reduzir erro manual ao configurar banco em producao.
@@ -1838,13 +1883,16 @@ Objetivo:
 Requisitos:
 - Atualizar README ou criar docs de deploy/migrations.
 - Listar ordem das migrations.
-- Explicar como aplicar via Supabase SQL Editor.
-- Se houver CLI configurada, documentar comandos.
+- Explicar o fluxo recomendado: criar/versionar migration, aplicar pelo caminho disponivel e validar dados/tabelas pelo MCP Supabase.
+- Documentar comandos do MCP (`supabase_status`, `supabase_select` e, quando necessario, insert/update/delete nas tabelas liberadas).
+- Se houver CLI configurada, documentar comandos como alternativa.
+- Explicar como aplicar via Supabase SQL Editor apenas como fallback/manual.
 - Avisar sobre backup antes de rodar em producao.
 
 Criterios de aceite:
 - Uma pessoa consegue aplicar o banco seguindo o documento.
 - Ordem das migrations esta clara.
+- Existe passo de validacao via MCP depois da aplicacao.
 ```
 
 ### F8.5 - Testar cadastro, login, leads e dashboard no dominio real
@@ -1856,6 +1904,7 @@ Teste cadastro, login, leads e dashboard no dominio real.
 
 Contexto:
 - Eu vou configurar Vercel, dominio e variaveis de ambiente.
+- Codex deve usar MCP Supabase para verificar dados reais de perfil/organizacao/leads.
 
 Objetivo:
 - Confirmar que o app em producao funciona para o fluxo principal.
@@ -1864,10 +1913,11 @@ Requisitos para Codex:
 - Conferir variaveis esperadas.
 - Verificar build/deploy se houver acesso.
 - Testar rotas publicas e protegidas.
+- Conferir pelo MCP se cadastro/login criaram ou atualizaram registros esperados nas tabelas liberadas.
 - Corrigir bugs de URL, cookie, callback ou fetch.
 
 Parte manual:
-- Eu devo fornecer/confirmar dominio, Supabase e ambiente Vercel.
+- Eu devo fornecer/confirmar dominio e ambiente Vercel; o MCP Supabase ja esta conectado via Role Key.
 
 Criterios de aceite:
 - Usuario consegue entrar e usar leads no dominio real.
@@ -1936,7 +1986,7 @@ Adicione testes para APIs de CRUD de leads.
 
 Contexto:
 - Rotas estao em app/api/leads.
-- Supabase real pode nao estar disponivel em testes.
+- Testes automatizados devem usar mocks; validacoes manuais/operacionais devem consultar dados reais pelo MCP Supabase.
 
 Objetivo:
 - Cobrir comportamento basico de GET, POST, PATCH e DELETE.
@@ -1944,6 +1994,7 @@ Objetivo:
 Requisitos:
 - Usar mocks para Supabase/repositorio quando necessario.
 - Testar sucesso, validacao e erro de duplicidade.
+- Separar claramente testes automatizados com mock de validacao manual via MCP Supabase.
 - Manter testes rapidos e confiaveis.
 - Documentar como rodar.
 
@@ -1984,6 +2035,7 @@ Revise as policies RLS para garantir isolamento por organizacao.
 
 Contexto:
 - Migrations Supabase definem organizacoes, perfis, leads e outras tabelas futuras.
+- O MCP Supabase deve ser usado para verificar tabelas/dados liberados, lembrando que a Role Key ignora RLS.
 
 Objetivo:
 - Evitar acesso cruzado entre organizacoes.
@@ -1991,6 +2043,7 @@ Objetivo:
 Requisitos:
 - Inspecionar todas as migrations.
 - Conferir policies de SELECT, INSERT, UPDATE e DELETE.
+- Usar `supabase_status` e consultas via MCP nas tabelas liberadas para montar fixtures controladas e conferir dados por organizacao.
 - Identificar tabelas sem RLS ou policy incompleta.
 - Corrigir com migration nova, nao editando migration antiga ja aplicada, se apropriado.
 - Documentar riscos restantes.
@@ -2019,6 +2072,7 @@ Requisitos:
 - Registrar contexto seguro: rota, operacao, status e mensagem.
 - Nao logar tokens, chaves, payload completo de dados pessoais ou cookies.
 - Aplicar nas APIs principais de leads/webhooks se existirem.
+- Validar pelo MCP Supabase que logs persistidos nao contem tokens, cookies ou payload pessoal completo.
 
 Criterios de aceite:
 - Erros importantes ficam rastreaveis.
@@ -2110,13 +2164,14 @@ Crie orientacao de backup para Supabase.
 
 Contexto:
 - Backup pode depender do plano Supabase e de operacao manual.
+- O MCP Supabase permite consultar/exportar dados permitidos e deve entrar no fluxo operacional de verificacao.
 
 Objetivo:
 - Documentar como proteger dados de producao.
 
 Requisitos:
 - Criar documento curto em docs ou README.
-- Explicar opcoes: backups Supabase, exportacao SQL, CSV de leads e cuidados antes de migrations.
+- Explicar opcoes: backups Supabase, exportacao SQL, CSV de leads, consultas/exportacoes via MCP para tabelas liberadas e cuidados antes de migrations.
 - Incluir checklist antes de aplicar migration em producao.
 - Nao prometer automacao que nao existe.
 
@@ -2141,6 +2196,7 @@ Objetivo:
 
 Requisitos para Codex:
 - Criar checklist de teste: cadastrar leads, filtrar, gerar mensagem, criar campanha, registrar proximo contato.
+- Validar pelo MCP Supabase os registros gerados no teste do dia, sem expor dados pessoais no resumo.
 - Corrigir bugs pequenos encontrados.
 - Organizar feedback em tarefas objetivas no TAREFAS.md.
 
@@ -2177,6 +2233,8 @@ Requisitos:
 - Marcar passos automaticamente quando houver dados, se simples.
 - Permitir ocultar ou concluir manualmente.
 - Persistir estado se houver tabela adequada; caso contrario, manter derivado dos dados.
+- Se criar tabela de onboarding/checklist, liberar no MCP Supabase e documentar em `docs/mcp-supabase.md`.
+- Validar pelo MCP Supabase os sinais usados para marcar passos como concluidos.
 
 Criterios de aceite:
 - Usuario novo ve proximos passos claros.
@@ -2199,10 +2257,12 @@ Objetivo:
 
 Requisitos:
 - Criar dados/templates em src/data ou banco, conforme padrao atual.
+- Se escolher banco, liberar a tabela de templates no MCP Supabase e documentar em `docs/mcp-supabase.md`.
 - Incluir campanhas para MEI, pequenas empresas e reducao de custo empresarial.
 - Incluir mensagens de WhatsApp por etapa do funil.
 - Evitar linguagem sensivel de saude.
 - Exibir templates nas telas de campanhas/WhatsApp.
+- Se os exemplos forem salvos no banco, validar criacao/listagem pelo MCP Supabase.
 
 Criterios de aceite:
 - Usuario consegue copiar ou usar um exemplo.
@@ -2228,6 +2288,7 @@ Requisitos:
 - Criar helper/API para calcular status de ativacao.
 - Exibir indicadores no dashboard ou onboarding.
 - Evitar tracking externo nesta tarefa.
+- Conferir pelo MCP Supabase que os indicadores batem com leads, campanhas, mensagens e pedidos reais da organizacao.
 
 Criterios de aceite:
 - Dashboard mostra progresso de ativacao.
@@ -2282,6 +2343,7 @@ Requisitos:
 - Nao ativar campanha automaticamente.
 - Salvar request/response e status.
 - Tratar ausencia de permissoes com erro claro.
+- Validar pelo MCP Supabase qualquer registro local de request/status sem salvar token ou payload sensivel.
 
 Criterios de aceite:
 - Campanha pode ser enviada como rascunho/pausada em ambiente permitido.
@@ -2306,6 +2368,7 @@ Requisitos:
 - Validar tamanho, formato e permissao.
 - Associar imagem a pedido/campanha.
 - Registrar retorno da Meta.
+- Validar pelo MCP Supabase a associacao entre imagem, pedido/campanha e status local.
 
 Criterios de aceite:
 - Upload funciona quando token/permissao existe.
@@ -2330,6 +2393,7 @@ Requisitos:
 - Implementar convite por email ou link, conforme infraestrutura disponivel.
 - Criar papeis: owner, admin, vendedor.
 - Aplicar permissoes em rotas e APIs.
+- Validar pelo MCP Supabase membros, convites e organizacao vinculada, usando dados controlados.
 
 Criterios de aceite:
 - Owner convida usuario.
@@ -2355,6 +2419,7 @@ Requisitos:
 - Persistir etapa e, se houver, ordem dentro da etapa.
 - Suportar teclado ou alternativa acessivel.
 - Tratar erro revertendo movimento.
+- Conferir pelo MCP Supabase etapa/ordem persistidas apos movimentacao.
 
 Criterios de aceite:
 - Drag and drop funciona em desktop.
@@ -2379,6 +2444,7 @@ Requisitos:
 - Nao enviar mensagens sem opt-in/configuracao explicita.
 - Salvar historico e status de envio.
 - Tratar erros e limites do provedor.
+- Validar pelo MCP Supabase historico/status de envio sem expor conteudo sensivel alem do necessario.
 
 Criterios de aceite:
 - Arquitetura suporta trocar provedor.
@@ -2403,6 +2469,7 @@ Requisitos:
 - Atualizar score ao criar/editar lead.
 - Mostrar score na UI e permitir filtro.
 - Evitar depender de IA para a primeira versao.
+- Conferir pelo MCP Supabase score persistido/atualizado em leads de teste.
 
 Criterios de aceite:
 - Score e calculado de forma previsivel.
@@ -2427,6 +2494,7 @@ Requisitos:
 - Criar tela de relatorios ou ampliar /dashboard/relatorios.
 - Filtrar por periodo, origem e vendedor.
 - Mostrar limitacoes quando custo/receita nao existir.
+- Validar pelo MCP Supabase que os numeros exibidos batem com dados agregados reais.
 
 Criterios de aceite:
 - Relatorio usa dados reais.
@@ -2451,6 +2519,7 @@ Requisitos:
 - Respeitar organizacao e filtros.
 - Incluir campos principais do lead.
 - Evitar exportar dados de outra organizacao.
+- Conferir pelo MCP Supabase que a consulta de exportacao respeita os mesmos filtros e organizacao.
 
 Criterios de aceite:
 - CSV baixa corretamente.

@@ -1,4 +1,5 @@
 import { leads as mockLeads, type Lead } from "@/data/mock";
+import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/database.types";
@@ -30,7 +31,10 @@ import {
 
 type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
 type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
+type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
 type LeadCreationResult = {
   lead: Lead;
@@ -65,6 +69,13 @@ type LeadCreateInput = {
   raw_payload?: unknown;
 };
 
+type LeadWebhookCreateInput = LeadCreateInput & {
+  organization_id?: unknown;
+  organization_slug?: unknown;
+  owner_profile_id?: unknown;
+  owner_email?: unknown;
+};
+
 const stageLabels: Record<LeadRow["stage"], string> = {
   new: "Novo lead",
   qualification: "Qualificação",
@@ -81,6 +92,8 @@ const sourceLabels: Record<LeadRow["source"], string> = {
   make_zapier: "Make/Zapier",
   api: "API"
 };
+
+const safeWebhookLeadSources = new Set<LeadRow["source"]>(["make_zapier", "api"]);
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
@@ -272,7 +285,7 @@ export async function createLeadForCurrentUser(input: LeadCreateInput): Promise<
   const payload = buildLeadInsert(profile, input);
   assertCanCreateLead(profile, payload);
 
-  const duplicate = await findDuplicateLead(profile.organization_id, payload);
+  const duplicate = await findDuplicateLead(supabase, profile.organization_id, payload);
 
   if (duplicate) {
     assertCanManageLead(profile, duplicate, "editar");
@@ -297,7 +310,54 @@ export async function createLeadForCurrentUser(input: LeadCreateInput): Promise<
     return { lead: mapLeadRowToLead(data, profile), status: "duplicate" };
   }
 
-  const { data, error } = await supabase.from("leads").insert(payload).select("*").single();
+  const { data, error } = await insertLeadWithSchemaFallback(supabase, payload);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { lead: mapLeadRowToLead(data, profile), status: "created" };
+}
+
+export async function createLeadFromWebhook(
+  input: LeadWebhookCreateInput
+): Promise<LeadCreationResult> {
+  if (!hasSupabaseServiceRole()) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY nao configurada.");
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const profile = await resolveWebhookLeadProfile(supabase, input);
+  const payload = buildLeadInsert(profile, {
+    ...input,
+    source: normalizeWebhookLeadSource(input.source),
+    raw_payload: input.raw_payload ?? input
+  });
+  const duplicate = await findDuplicateLead(supabase, profile.organization_id, payload);
+
+  if (duplicate) {
+    const updatePayload = { ...payload };
+    delete updatePayload.import_batch_id;
+
+    const { data, error } = await supabase
+      .from("leads")
+      .update({
+        ...updatePayload,
+        organization_id: profile.organization_id,
+        owner_profile_id: duplicate.owner_profile_id ?? profile.id
+      })
+      .eq("id", duplicate.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { lead: mapLeadRowToLead(data, profile), status: "duplicate" };
+  }
+
+  const { data, error } = await insertLeadWithSchemaFallback(supabase, payload);
 
   if (error) {
     throw new Error(error.message);
@@ -362,9 +422,11 @@ export async function deleteLeadForCurrentUser(id: string) {
   }
 }
 
-async function findDuplicateLead(organizationId: string, payload: LeadInsert) {
-  const supabase = await createSupabaseServerClient();
-
+async function findDuplicateLead(
+  supabase: ServerClient | AdminClient,
+  organizationId: string,
+  payload: LeadInsert
+) {
   if (payload.meta_lead_id) {
     const { data } = await supabase
       .from("leads")
@@ -450,6 +512,139 @@ async function getCurrentProfile() {
   return profile;
 }
 
+async function resolveWebhookLeadProfile(
+  supabase: AdminClient,
+  input: LeadWebhookCreateInput
+) {
+  const organization = await getWebhookOrganization(supabase, input);
+  const ownerProfileId = stringOrNull(input.owner_profile_id);
+  const ownerEmail = normalizeEmail(input.owner_email);
+
+  if (ownerProfileId) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("organization_id", organization.id)
+      .eq("id", ownerProfileId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      throw new Error("Perfil informado nao pertence a organizacao.");
+    }
+
+    return data;
+  }
+
+  if (ownerEmail) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("organization_id", organization.id)
+      .eq("email", ownerEmail)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      throw new Error("Nao encontramos o owner_email informado na organizacao.");
+    }
+
+    return data;
+  }
+
+  if (organization.owner_profile_id) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("organization_id", organization.id)
+      .eq("id", organization.owner_profile_id)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (data) {
+      return data;
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("organization_id", organization.id)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const fallbackProfile = [...(data ?? [])].sort(
+    (left, right) => getProfileWebhookPriority(left.role) - getProfileWebhookPriority(right.role)
+  )[0];
+
+  if (!fallbackProfile) {
+    throw new Error("Organizacao sem perfis disponiveis para receber leads.");
+  }
+
+  return fallbackProfile;
+}
+
+async function getWebhookOrganization(supabase: AdminClient, input: LeadWebhookCreateInput) {
+  const organizationId = stringOrNull(input.organization_id);
+  const organizationSlug = stringOrNull(input.organization_slug);
+
+  if (!organizationId && !organizationSlug) {
+    throw new Error("Informe organization_id ou organization_slug no webhook.");
+  }
+
+  const query = supabase.from("organizations").select("*");
+  const { data, error } = organizationId
+    ? await query.eq("id", organizationId).maybeSingle()
+    : await query.eq("slug", organizationSlug ?? "").maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Organizacao nao encontrada.");
+  }
+
+  return data as OrganizationRow;
+}
+
+async function insertLeadWithSchemaFallback(
+  supabase: ServerClient | AdminClient,
+  payload: LeadInsert
+) {
+  let result = await supabase.from("leads").insert(payload).select("*").single();
+
+  if (!result.error || !isMissingImportBatchIdColumnError(result.error.message)) {
+    return result;
+  }
+
+  const payloadWithoutImportBatchId = { ...payload };
+  delete payloadWithoutImportBatchId.import_batch_id;
+  result = await supabase
+    .from("leads")
+    .insert(payloadWithoutImportBatchId)
+    .select("*")
+    .single();
+
+  return result;
+}
+
+function isMissingImportBatchIdColumnError(message: string) {
+  return message.includes("Could not find the 'import_batch_id' column of 'leads'");
+}
+
 function canDeleteOrganizationLeads(profile: ProfileRow) {
   return profile.role === "supervisor";
 }
@@ -498,6 +693,11 @@ function assertCanManageLead(profile: ProfileRow, lead: LeadRow, action: "editar
   }
 
   throw new Error(`Sem permissao para ${action} este lead.`);
+}
+
+function normalizeWebhookLeadSource(value: unknown): LeadRow["source"] {
+  const source = normalizeLeadSource(value);
+  return safeWebhookLeadSources.has(source) ? source : "make_zapier";
 }
 
 function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInsert {
@@ -800,6 +1000,19 @@ function normalizeInteger(value: unknown) {
   const numberValue = typeof value === "number" ? value : Number(value);
 
   return Number.isFinite(numberValue) ? Math.max(0, Math.round(numberValue)) : null;
+}
+
+function getProfileWebhookPriority(role: ProfileRow["role"]) {
+  switch (role) {
+    case "owner":
+      return 0;
+    case "admin":
+      return 1;
+    case "supervisor":
+      return 2;
+    default:
+      return 3;
+  }
 }
 
 function toJson(value: unknown): Json | null {

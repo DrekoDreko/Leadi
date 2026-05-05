@@ -1,6 +1,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type CampaignStatus = "generated" | "archived";
+export type CreativeRequestCommentVisibility = "workspace" | "ops_only";
 export type CreativeRequestType = "design" | "video" | "campaign";
 export type CreativeRequestStatus =
   | "requested"
@@ -104,7 +105,9 @@ export type Database = {
           requester_profile_id: string;
           type: CreativeRequestType;
           title: string;
+          objective: string;
           briefing: string;
+          notes: string | null;
           status: CreativeRequestStatus;
           priority: CreativeRequestPriority;
           due_at: string | null;
@@ -118,7 +121,9 @@ export type Database = {
           requester_profile_id: string;
           type: CreativeRequestType;
           title: string;
+          objective: string;
           briefing: string;
+          notes?: string | null;
           status?: CreativeRequestStatus;
           priority?: CreativeRequestPriority;
           due_at?: string | null;
@@ -132,11 +137,52 @@ export type Database = {
           requester_profile_id?: string;
           type?: CreativeRequestType;
           title?: string;
+          objective?: string;
           briefing?: string;
+          notes?: string | null;
           status?: CreativeRequestStatus;
           priority?: CreativeRequestPriority;
           due_at?: string | null;
           files?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      creative_request_comments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          creative_request_id: string;
+          author_profile_id: string;
+          author_name: string;
+          author_email: string;
+          body: string;
+          visibility: CreativeRequestCommentVisibility;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          creative_request_id: string;
+          author_profile_id: string;
+          author_name: string;
+          author_email: string;
+          body: string;
+          visibility?: CreativeRequestCommentVisibility;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          creative_request_id?: string;
+          author_profile_id?: string;
+          author_name?: string;
+          author_email?: string;
+          body?: string;
+          visibility?: CreativeRequestCommentVisibility;
           created_at?: string;
           updated_at?: string;
         };
@@ -235,6 +281,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      lead_webhook_integrations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          label: string | null;
+          token_hash: string;
+          last_used_at: string | null;
+          revoked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          label?: string | null;
+          token_hash: string;
+          last_used_at?: string | null;
+          revoked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          label?: string | null;
+          token_hash?: string;
+          last_used_at?: string | null;
+          revoked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -243,6 +322,7 @@ export type Database = {
           full_name: string | null;
           email: string;
           role: ProfileRole;
+          is_platform_admin: boolean;
           profile_setup_completed: boolean;
           created_at: string;
           updated_at: string;
@@ -254,6 +334,7 @@ export type Database = {
           full_name?: string | null;
           email: string;
           role?: ProfileRole;
+          is_platform_admin?: boolean;
           profile_setup_completed?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -265,6 +346,7 @@ export type Database = {
           full_name?: string | null;
           email?: string;
           role?: ProfileRole;
+          is_platform_admin?: boolean;
           profile_setup_completed?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -466,6 +548,16 @@ export type Database = {
           token: string;
           invite_url_path: string;
           expires_at: string;
+        }[];
+      };
+      create_lead_webhook_integration: {
+        Args: { target_organization_id: string; integration_label?: string | null };
+        Returns: {
+          id: string;
+          organization_id: string;
+          label: string | null;
+          token: string;
+          created_at: string;
         }[];
       };
       current_profile_id: {

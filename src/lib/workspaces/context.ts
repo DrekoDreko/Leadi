@@ -13,6 +13,7 @@ export type WorkspaceContext = {
   profile: ProfileRow | null;
   workspace: WorkspaceRow | null;
   role: Extract<ProfileRole, "seller" | "supervisor">;
+  isPlatformAdmin: boolean;
   workspaceType: WorkspaceType;
   displayName: string;
   workspaceName: string;
@@ -29,6 +30,7 @@ const demoWorkspaceContext: WorkspaceContext = {
   profile: null,
   workspace: null,
   role: "supervisor",
+  isPlatformAdmin: true,
   workspaceType: "team",
   displayName: "Demo",
   workspaceName: "Corretora Demo",
@@ -85,6 +87,7 @@ export async function getCurrentWorkspaceContext(): Promise<WorkspaceContext> {
     profile,
     workspace,
     role,
+    isPlatformAdmin: profile.is_platform_admin,
     workspaceType,
     displayName: profile.full_name ?? profile.email.split("@")[0] ?? "Usuario",
     workspaceName: workspace.name,
@@ -131,6 +134,16 @@ export async function requireSoloSeller() {
   const context = await requireCompletedProfile();
 
   if (context.mode === "supabase" && !context.isSoloSeller) {
+    redirect("/dashboard");
+  }
+
+  return context;
+}
+
+export async function requirePlatformAdmin() {
+  const context = await requireCompletedProfile();
+
+  if (context.mode === "supabase" && !context.isPlatformAdmin) {
     redirect("/dashboard");
   }
 

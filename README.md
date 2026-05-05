@@ -86,6 +86,53 @@ O cadastro cria automaticamente uma organização e um perfil `owner`. A rota
 - `POST /api/leads`: cria lead manual, CSV, API ou origem Meta.
 - `PATCH /api/leads/:id`: atualiza lead da organização logada.
 - `DELETE /api/leads/:id`: remove lead da organização logada.
+- `POST /api/webhooks/leads`: recebe leads externos autenticados por token da organização.
+
+## Webhook de leads
+
+O webhook `POST /api/webhooks/leads` exige:
+
+- `Content-Type: application/json`
+- `Authorization: Bearer <token>` ou header `x-leadhealth-token: <token>`
+- `SUPABASE_SERVICE_ROLE_KEY` configurada no ambiente
+
+O token define a organização do lead. O payload pode informar `owner_profile_id`
+ou `owner_email`, mas não precisa mais enviar `organization_id`.
+
+Formato recomendado para Make/Zapier:
+
+```json
+{
+  "lead": {
+    "name": "Maria Souza",
+    "email": "maria@empresa.com",
+    "phone": "(11) 99999-0000",
+    "city": "Sao Paulo",
+    "source": "make_zapier",
+    "interest": "Plano empresarial",
+    "budget": "ate R$ 2.000",
+    "notes": "Veio do formulario principal"
+  }
+}
+```
+
+Tambem sao aceitos aliases comuns em PT/EN, como `nome`/`name`,
+`telefone`/`phone`, `cidade`/`city`, `origem`/`source` e
+`interesse`/`interest`. O webhook aceita o lead na raiz do JSON ou dentro de
+`lead`, `data`, `payload`, `contact` ou `prospect`. Campos extras nao quebram a
+importacao e ficam preservados em `raw_payload`.
+
+Para gerar um token por organização no Supabase SQL Editor:
+
+```sql
+select *
+from public.create_lead_webhook_integration(
+  'ORGANIZATION_ID_AQUI',
+  'Make principal'
+);
+```
+
+O retorno inclui o token em texto puro uma única vez. O banco salva apenas o hash.
 
 Campos preparados para Meta:
 

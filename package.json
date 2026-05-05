@@ -4,18 +4,22 @@
   "private": true,
   "scripts": {
     "ai:preview": "tsc -p scripts/tsconfig.ai-preview.json && node .tmp/ai-preview/scripts/ai-prompt-preview.js",
+    "compliance:battery": "tsc -p scripts/tsconfig.compliance-battery.json && node .tmp/compliance-battery/scripts/compliance-validator-battery.js",
+    "mcp:supabase": "node scripts/supabase-mcp.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint ."
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
     "lucide-react": "^0.468.0",
     "next": "^15.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

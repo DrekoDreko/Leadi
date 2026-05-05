@@ -35,7 +35,7 @@ export const LOCAL_COMPLIANCE_RULES: LocalComplianceRule[] = [
     suggestion:
       "Troque referencias pessoais de saude por criterios comerciais, como empresa, regiao e interesse em cotacao.",
     pattern:
-      /doen[cç]a|diagn[oó]stic|hist[oó]rico m[eé]dico|tratamento|cirurgia|medicamento|diabetes|c[aâ]ncer|gestante|gravidez|depress[aã]o/i
+      /doen[cç]a|diagn[oó]stic|hist[oó]rico m[eé]dico|tratamento|cirurgia|medicamento|diabetes|c[aâ]ncer|gestante|gravidez|depress[aã]o|ansiedade|autismo|tdah|hipertens[aã]o|obesidade/i
   },
   {
     title: "Segmentacao por atributo protegido",
@@ -50,12 +50,12 @@ export const LOCAL_COMPLIANCE_RULES: LocalComplianceRule[] = [
   {
     title: "Promessa forte ou garantia",
     detail:
-      "Promessas de aprovacao, economia, cobertura ou resultado garantido podem criar expectativa indevida.",
+      "Promessas de aprovacao, compliance, economia, cobertura ou resultado garantido podem criar expectativa indevida.",
     severity: "high",
     suggestion:
-      "Use linguagem de analise, comparacao e simulacao, deixando claro que condicoes dependem de operadora e contrato.",
+      "Use linguagem de analise, comparacao e simulacao, sem prometer aprovacao na Meta, compliance absoluto ou resultado garantido.",
     pattern:
-      /garantid[ao]s?|aprova[cç][aã]o garantida|cobertura total|sem car[eê]ncia|economia garantida|resultado garantido|cobertura imediata/i
+      /garantid[ao]s?|aprova[cç][aã]o garantida|aprova[cç][aã]o imediata|100%\s*aprovad[ao]s?|aprovad[ao] pela meta|n[aã]o ser[aá] reprovad[ao]|sem risco de reprova[cç][aã]o|risco zero de reprova[cç][aã]o|reprova[cç][aã]o zero|compliance garantid[ao]|garantia (absoluta|total) de compliance|blindad[ao] contra reprova[cç][aã]o|cobertura total|sem car[eê]ncia|economia garantida|resultado garantido|cobertura imediata/i
   },
   {
     title: "Urgencia agressiva",
@@ -73,7 +73,7 @@ export const LOCAL_COMPLIANCE_RULES: LocalComplianceRule[] = [
     severity: "medium",
     suggestion:
       "No formulario inicial, colete apenas dados comerciais necessarios para contato e qualificacao.",
-    pattern: /cpf|rg|renda pessoal|sal[aá]rio|data de nascimento|estado civil/i
+    pattern: /\bcpf\b|\brg\b|renda pessoal|sal[aá]rio|data de nascimento|estado civil/i
   },
   {
     title: "Superlativo absoluto",
@@ -106,15 +106,14 @@ export function containsSensitiveCompliancePattern(text: string) {
 }
 
 export function reviewTextLocally(text: string): LocalComplianceReview {
-  const reasons = LOCAL_COMPLIANCE_RULES.filter((rule) => rule.pattern.test(text)).map((rule) => ({
+  const matchedRules = LOCAL_COMPLIANCE_RULES.filter((rule) => rule.pattern.test(text));
+  const reasons = matchedRules.map((rule) => ({
     title: rule.title,
     detail: rule.detail,
     severity: rule.severity
   }));
 
-  const suggestions = LOCAL_COMPLIANCE_RULES.filter((rule) => rule.pattern.test(text)).map(
-    (rule) => rule.suggestion
-  );
+  const suggestions = matchedRules.map((rule) => rule.suggestion);
 
   if (reasons.length === 0) {
     return {

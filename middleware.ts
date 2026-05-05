@@ -11,6 +11,7 @@ export async function middleware(request: NextRequest) {
   const isTeamRoute = pathname === "/team" || pathname.startsWith("/team/");
   const isInviteRoute = pathname === "/invite" || pathname.startsWith("/invite/");
   const isApiRoute = pathname === "/api" || pathname.startsWith("/api/");
+  const isLeadWebhookRoute = pathname === "/api/webhooks/leads";
   const isImportRoute = pathname === "/dashboard/importar" || pathname.startsWith("/dashboard/importar/");
   const isCreateTeamRoute =
     pathname === "/dashboard/criar-equipe" || pathname.startsWith("/dashboard/criar-equipe/");
@@ -19,7 +20,16 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/dashboard/leads/") ||
     pathname === "/api/leads" ||
     pathname.startsWith("/api/leads/");
-  const isProtectedRoute = isDashboardRoute || isOnboardingRoute || isTeamRoute || isInviteRoute || isApiRoute;
+  const isProtectedRoute =
+    isDashboardRoute ||
+    isOnboardingRoute ||
+    isTeamRoute ||
+    isInviteRoute ||
+    (isApiRoute && !isLeadWebhookRoute);
+
+  if (isLeadWebhookRoute) {
+    return NextResponse.next({ request });
+  }
 
   if (!isSupabaseConfigured()) {
     if (isLeadFallbackRoute) {
