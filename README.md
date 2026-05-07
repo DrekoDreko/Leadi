@@ -1,6 +1,6 @@
 # LeadHealth
 
-SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O produto centraliza captacao de leads, operacao comercial, geracao de campanhas, revisao de compliance, mensagens de WhatsApp, pedidos criativos e gestao de creditos.
+SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O produto centraliza captacao de leads, operacao comercial, geracao de campanhas, revisao de compliance, mensagens de WhatsApp, pedidos criativos, contas conectadas da empresa e gestao de creditos.
 
 ## Stack
 
@@ -9,7 +9,7 @@ SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O 
 - TypeScript
 - Tailwind CSS
 - Supabase para auth, banco, storage e contexto multi-tenant
-- OpenAI para geracao de campanhas, mensagens e revisao assistida
+- OpenAI para geracao de campanhas, mensagens e revisao assistida, com chave do cliente quando conectada
 - Mercado Pago para checkout de planos e pacotes de creditos
 
 ## O que ja esta implementado
@@ -18,11 +18,13 @@ SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O 
 - onboarding de perfil e setup inicial da equipe
 - modelo multi-tenant com workspaces, convites, perfis e papeis
 - dashboard autenticado com modulos por area
+- area `/dashboard/empresa` para Meta, OpenAI e ativos conectados
 - CRM de leads com listagem, filtros, detalhes, atualizacao e exclusao
 - importacao de leads por CSV
 - ingestao de leads por webhook autenticado
 - funil comercial por etapa
 - geracao de campanhas com IA e historico salvo
+- campanhas preparadas com pagina, conta de anuncio e formulario Meta conectados
 - validador de compliance com regras locais e analise via OpenAI quando configurada
 - geracao de mensagens de WhatsApp com historico salvo
 - pedidos criativos com comentarios e anexos
@@ -39,6 +41,9 @@ SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O 
 - `/pricing`: planos e entrada para compra
 - `/login`: login e cadastro
 - `/invite/[token]`: aceite de convite
+- `/privacy`: politica de privacidade publica
+- `/terms`: termos de uso publicos
+- `/data-deletion`: instrucoes publicas de exclusao de dados
 
 ### Onboarding e equipe
 
@@ -52,6 +57,7 @@ SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O 
 - `/dashboard/funil`: acompanhamento por etapas
 - `/dashboard/importar`: importacao CSV
 - `/dashboard/campanhas`: gerador e historico de campanhas
+- `/dashboard/empresa`: central de contas conectadas da empresa
 - `/dashboard/compliance`: revisao de texto e risco
 - `/dashboard/whatsapp`: gerador de mensagens para leads
 - `/dashboard/pedidos`: pedidos criativos
@@ -79,6 +85,12 @@ SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O 
 - `POST /api/campaigns/questions`: apoio ao fluxo de perguntas da campanha
 - `POST /api/compliance/validate`: analisa risco de compliance
 - `POST /api/whatsapp/generate`: gera mensagem para WhatsApp
+- `GET /api/integrations/meta/connect`: inicia OAuth da Meta
+- `GET /api/integrations/meta/callback`: recebe callback OAuth da Meta
+- `POST /api/integrations/meta/sync`: sincroniza ativos Meta conectados
+- `POST /api/integrations/meta/disconnect`: desconecta a conta Meta
+- `POST /api/integrations/openai/save`: salva a chave OpenAI do cliente
+- `POST /api/integrations/openai/test`: valida a chave OpenAI conectada
 
 ### Pedidos criativos
 
@@ -95,14 +107,24 @@ SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O 
 
 ## Variaveis de ambiente
 
-Base:
+Core obrigatorio em producao:
 
 ```bash
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_NAME=LeadHealth
+LEGAL_CONTACT_EMAIL=
+NEXT_PUBLIC_LEGAL_EMAIL=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+```
+
+Integracoes opcionais:
+
+```bash
 OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
+INTEGRATIONS_SECRET_KEY=
 MERCADO_PAGO_ACCESS_TOKEN=
 MERCADO_PAGO_WEBHOOK_SECRET=
 META_APP_ID=
@@ -115,9 +137,24 @@ DATABASE_URL=
 
 Observacoes:
 
+- o build de producao valida o core e falha cedo se `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` ou `SUPABASE_SERVICE_ROLE_KEY` estiverem ausentes
+- `SUPABASE_SERVICE_ROLE_KEY` e o uso operacional de `NEXT_PUBLIC_SUPABASE_URL` devem ficar apenas no servidor, em automacoes locais e no MCP Supabase. Nunca exponha a service role em componentes client
 - sem Supabase configurado, partes do produto podem operar em modo de demonstracao ou ficar indisponiveis conforme o modulo
-- sem `OPENAI_API_KEY`, o validador de compliance continua com regras locais, mas as geracoes de campanha e WhatsApp nao funcionam
-- sem billing configurado, a compra de creditos e as geracoes que dependem de cobranca retornam indisponibilidade
+- sem `OPENAI_API_KEY` ou uma chave OpenAI conectada, o validador de compliance continua com regras locais, mas as geracoes de campanha e WhatsApp nao funcionam
+- sem billing configurado, checkout e cobranca retornam erro amigavel de configuracao
+- sem `META_APP_SECRET`, `META_VERIFY_TOKEN` ou as credenciais OAuth da Meta, os recursos de webhook/integracao falham com mensagem clara sem expor segredos
+- `INTEGRATIONS_SECRET_KEY` e opcional, mas recomendado para cifrar tokens e chaves conectados na area Empresa
+- para Meta App Review e URLs publicas, publique `NEXT_PUBLIC_APP_URL` com HTTPS e revise `/privacy`, `/terms` e `/data-deletion`
+
+## Auth, callback e URLs
+
+- `NEXT_PUBLIC_APP_URL` deve apontar para a URL canonica publica do app. Em desenvolvimento, use `http://localhost:3000`. Em producao, use o dominio HTTPS final, por exemplo `https://app.seudominio.com`.
+- O login OAuth do Supabase usa `app/auth/callback/route.ts` e monta `redirectTo` com esta regra: localhost continua usando a origem local da requisicao; ambientes publicados usam `NEXT_PUBLIC_APP_URL` quando ela estiver definida.
+- No painel do Supabase Auth, cadastre pelo menos estas Redirect URLs:
+  - `http://localhost:3000/auth/callback`
+  - `https://app.seudominio.com/auth/callback`
+- Se estiver usando Vercel com dominio customizado, configure `NEXT_PUBLIC_APP_URL` no ambiente de Production para o dominio final. O callback nao deve apontar para um preview URL se o login oficial precisa voltar para o dominio principal.
+- O parametro `next` do callback aceita apenas caminhos internos como `/dashboard` e `/onboarding/profile-setup`, evitando open redirect.
 
 ## Rodando localmente
 
@@ -177,7 +214,7 @@ Payload recomendado:
 }
 ```
 
-O backend tambem aceita aliases comuns em PT/EN e preserva o payload bruto para auditoria. Os logs de processamento podem ser acompanhados em `/dashboard/perfil`.
+O backend tambem aceita aliases comuns em PT/EN e preserva o payload bruto para auditoria. Os logs de processamento podem ser acompanhados em `/dashboard/perfil`. A area `/dashboard/empresa` centraliza a conexao Meta que fornece o token usado pelo webhook para buscar os leads reais.
 
 Para teste manual rapido sem Make/Zapier:
 
@@ -185,6 +222,13 @@ Para teste manual rapido sem Make/Zapier:
 export LEAD_WEBHOOK_URL=http://localhost:3000/api/webhooks/leads
 export LEAD_WEBHOOK_TOKEN=cole_o_token_gerado_no_dashboard
 npm run webhook:test
+```
+
+Para validar o ultimo disparo no Supabase sem expor tokens:
+
+```bash
+export LEAD_WEBHOOK_ORG_SLUG=slug-da-organizacao
+npm run webhook:check
 ```
 
 Se quiser mandar um payload proprio:
@@ -196,6 +240,8 @@ npm run webhook:test
 
 No app, a area de logs em `/dashboard/perfil` oferece filtros de sucesso/erro, refresh manual e autoatualizacao a cada 15 segundos para acompanhar o recebimento quase em tempo real.
 
+Roteiro operacional completo: `docs/make-zapier-webhook-validation.md`.
+
 ## Estrutura do projeto
 
 - `app/`: paginas, layouts e rotas de API
@@ -204,4 +250,5 @@ No app, a area de logs em `/dashboard/perfil` oferece filtros de sucesso/erro, r
 - `src/data/`: mocks e dados auxiliares
 - `supabase/`: migrations e SQL de apoio
 - `docs/`: documentacao tecnica complementar
+- `docs/meta-app-review.md`: checklist para dominio, URLs publicas e App Review da Meta
 - `scripts/`: scripts de suporte e validacao

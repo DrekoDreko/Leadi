@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -7,13 +8,17 @@ import {
   ClipboardList,
   Clock3,
   Copy,
+  ArrowUpRight,
   FileText,
   Loader2,
   ShieldCheck,
   Sparkles
 } from "lucide-react";
+import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { campaignDraft } from "@/data/mock";
 import { Metric, PageHeading } from "@/components/dashboard/widgets";
+import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
+import type { ConnectedAccountsState } from "@/lib/integrations/types";
 import type {
   CampaignHistoryItem,
   CampaignListState,
@@ -36,7 +41,11 @@ const initialForm = {
   offer: "Analise consultiva para comparar plano empresarial",
   region: "Campinas e regiao",
   differentiator: "Atendimento rapido com comparativo objetivo entre operadoras",
-  tone: "consultivo, direto e seguro"
+  tone: "consultivo, direto e seguro",
+  metaPageId: "",
+  metaAdAccountId: "",
+  metaLeadFormId: "",
+  publishMode: "manual_review"
 };
 
 const formFields = [
@@ -87,17 +96,23 @@ const campaignHistoryDateFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 type CampaignGeneratorProps = {
+  campaignAccess: ResourceAccessSummary;
+  connectedAccounts: ConnectedAccountsState;
   initialCampaigns: CampaignHistoryItem[];
   historyMode: CampaignListState["mode"];
   historyMessage?: string;
+  questionAccess: ResourceAccessSummary;
 };
 
 export function CampaignGenerator({
+  campaignAccess,
+  connectedAccounts,
   initialCampaigns,
   historyMessage,
-  historyMode
+  historyMode,
+  questionAccess
 }: CampaignGeneratorProps) {
-  const [form, setForm] = useState<FormState>(initialForm);
+  const [form, setForm] = useState<FormState>(() => createInitialForm(connectedAccounts));
   const [campaign, setCampaign] = useState<CampaignTextOutput | null>(null);
   const [campaignHistory, setCampaignHistory] = useState<CampaignHistoryItem[]>(initialCampaigns);
   const [questions, setQuestions] = useState<ComplianceQuestionsOutput | null>(null);
@@ -106,10 +121,32 @@ export function CampaignGenerator({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [copiedKey, setCopiedKey] = useState("");
+  const metaConnection = connectedAccounts.metaConnection;
+  const openAIConnection = connectedAccounts.openAIConnection;
+  const selectedMetaPage = connectedAccounts.metaPages.find(
+    (page) => page.metaPageId === form.metaPageId
+  );
+  const selectedMetaAdAccount = connectedAccounts.metaAdAccounts.find(
+    (account) => account.metaAdAccountId === form.metaAdAccountId
+  );
+  const selectedMetaLeadForm = connectedAccounts.metaLeadForms.find(
+    (leadForm) => leadForm.metaFormId === form.metaLeadFormId
+  );
+  const publicationState = resolvePublicationState({
+    hasMetaConnection: Boolean(metaConnection),
+    form
+  });
 
   const campaignTags = useMemo(
-    () => [form.region, "Meta Ads", "Lead form"].filter(Boolean),
-    [form.region]
+    () =>
+      [
+        form.region,
+        "Meta Ads",
+        publicationState.label,
+        selectedMetaPage?.name,
+        selectedMetaLeadForm?.name
+      ].filter(Boolean),
+    [form.region, publicationState.label, selectedMetaLeadForm?.name, selectedMetaPage?.name]
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -281,7 +318,7 @@ export function CampaignGenerator({
       >
         <button
           className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={isGenerating}
+          disabled={isGenerating || !campaignAccess.allowed}
           form="campaign-generator-form"
           type="submit"
         >
@@ -290,9 +327,15 @@ export function CampaignGenerator({
           ) : (
             <Sparkles size={18} aria-hidden="true" />
           )}
-          {isGenerating ? "Gerando" : "Gerar campanha"}
+          {isGenerating
+            ? "Gerando"
+            : metaConnection
+              ? "Preparar campanha"
+              : "Gerar campanha"}
         </button>
       </PageHeading>
+
+      {!campaignAccess.allowed ? <SubscriptionAccessBanner notice={campaignAccess} /> : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric
@@ -321,7 +364,135 @@ export function CampaignGenerator({
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
         <div className="min-w-0 space-y-4">
           <section className="glass-strong rounded-[34px] p-5 md:p-6">
-            <form className="grid gap-4 md:grid-cols-2" id="campaign-generator-form" onSubmit={handleSubmit}>
+            <form
+              className="grid gap-4 md:grid-cols-2"
+              id="campaign-generator-form"
+              onSubmit={handleSubmit}
+            >
+              <div className="md:col-span-2 rounded-[28px] border border-white/50 bg-white/34 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="max-w-2xl">
+                    <p className="text-sm font-medium text-cobalt">Conexões da campanha</p>
+                    <h3 className="mt-2 text-lg font-semibold">Meta e publicação controlada</h3>
+                    <p className="mt-2 text-sm leading-6 text-ink/64">
+                      O LeadHealth usa a conta Meta conectada da empresa e prepara a campanha
+                      para revisão antes da publicação.
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${
+                      metaConnection ? "bg-lagoon text-white" : "bg-signal text-ink"
+                    }`}
+                  >
+                    {metaConnection ? "Meta conectada" : "Conecte a Meta"}
+                  </span>
+                </div>
+
+                {metaConnection ? (
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <DetailTile
+                      label="Conta Meta"
+                      value={metaConnection.metaUserName ?? "Conta conectada"}
+                    />
+                    <DetailTile
+                      label="OpenAI"
+                      value={openAIConnection?.keyPreview ?? "Cadastre a chave da empresa"}
+                    />
+                    <label className="space-y-2">
+                      <span className="text-sm font-semibold text-ink/62">Pagina Meta</span>
+                      <select
+                        className="liquid-input"
+                        onChange={(event) => updateField("metaPageId", event.target.value)}
+                        value={form.metaPageId}
+                      >
+                        <option value="">Escolha uma pagina conectada</option>
+                        {connectedAccounts.metaPages.map((page) => (
+                          <option key={page.id} value={page.metaPageId}>
+                            {page.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-2">
+                      <span className="text-sm font-semibold text-ink/62">Conta de anuncio</span>
+                      <select
+                        className="liquid-input"
+                        onChange={(event) => updateField("metaAdAccountId", event.target.value)}
+                        value={form.metaAdAccountId}
+                      >
+                        <option value="">Escolha uma conta de anuncio</option>
+                        {connectedAccounts.metaAdAccounts.map((account) => (
+                          <option key={account.id} value={account.metaAdAccountId}>
+                            {account.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-2">
+                      <span className="text-sm font-semibold text-ink/62">Formulario Lead Ads</span>
+                      <select
+                        className="liquid-input"
+                        onChange={(event) => updateField("metaLeadFormId", event.target.value)}
+                        value={form.metaLeadFormId}
+                      >
+                        <option value="">Escolha um formulario</option>
+                        {connectedAccounts.metaLeadForms.map((leadForm) => (
+                          <option key={leadForm.id} value={leadForm.metaFormId}>
+                            {leadForm.name} • {leadForm.pageName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-2 md:col-span-2">
+                      <span className="text-sm font-semibold text-ink/62">
+                        Modo de publicação
+                      </span>
+                      <select
+                        className="liquid-input"
+                        onChange={(event) => updateField("publishMode", event.target.value)}
+                        value={form.publishMode}
+                      >
+                        <option value="manual_review">Revisão manual antes de publicar</option>
+                        <option value="draft">Criar rascunho</option>
+                        <option value="scheduled">Preparar para agendar depois</option>
+                        <option value="paused">Deixar pausada</option>
+                      </select>
+                    </label>
+                    <div className="md:col-span-2 flex flex-wrap gap-2">
+                      <SmallStatusChip label="Status" value={publicationState.label} tone={publicationState.tone} />
+                      <SmallStatusChip
+                        label="Conta"
+                        value={publicationState.connectedAccountLabel}
+                        tone="neutral"
+                      />
+                      <SmallStatusChip
+                        label="Pagina"
+                        value={selectedMetaPage?.name ?? "Escolha uma pagina"}
+                        tone="neutral"
+                      />
+                      <SmallStatusChip
+                        label="Conta de anuncio"
+                        value={selectedMetaAdAccount?.name ?? "Escolha uma conta"}
+                        tone="neutral"
+                      />
+                      <SmallStatusChip
+                        label="Formulario"
+                        value={selectedMetaLeadForm?.name ?? "Opcional"}
+                        tone="neutral"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-[24px] border border-dashed border-cobalt/20 bg-white/50 p-4 text-sm leading-6 text-ink/64">
+                    Conecte sua conta Meta em{" "}
+                    <Link className="font-semibold text-cobalt underline underline-offset-4" href="/dashboard/empresa">
+                      Empresa
+                    </Link>{" "}
+                    para escolher página, conta de anúncio e formulário de Lead Ads antes da revisão.
+                  </div>
+                )}
+              </div>
+
               {formFields.map((field) => (
                 <label className="space-y-2" htmlFor={field.id} key={field.id}>
                   <span className="text-sm font-semibold text-ink/62">{field.label}</span>
@@ -436,7 +607,7 @@ export function CampaignGenerator({
               </div>
               <button
                 className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={isGeneratingQuestions}
+                disabled={isGeneratingQuestions || !questionAccess.allowed}
                 onClick={handleGenerateQuestions}
                 type="button"
               >
@@ -448,6 +619,12 @@ export function CampaignGenerator({
                 {isGeneratingQuestions ? "Gerando" : "Gerar perguntas"}
               </button>
             </div>
+
+            {!questionAccess.allowed ? (
+              <div className="mb-4">
+                <SubscriptionAccessBanner notice={questionAccess} />
+              </div>
+            ) : null}
 
             {questionsError ? (
               <div className="mb-4 flex items-start gap-3 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
@@ -504,6 +681,42 @@ export function CampaignGenerator({
             </div>
           </section>
 
+          <section className="glass-strong rounded-[34px] p-5">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-ink/54">Publicação</p>
+                <h2 className="font-semibold">Fluxo controlado</h2>
+              </div>
+              <ShieldCheck size={20} aria-hidden="true" />
+            </div>
+            <div className="space-y-3 text-sm leading-6 text-ink/68">
+              <p>
+                O LeadHealth prepara a campanha com base nas contas conectadas. Você revisa
+                antes de publicar.
+              </p>
+              <div className="rounded-[24px] bg-white/42 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/44">
+                  Status atual
+                </p>
+                <p className="mt-2 text-sm font-semibold text-ink">{publicationState.label}</p>
+                <p className="mt-2 text-sm text-ink/58">
+                  {selectedMetaPage?.name
+                    ? `Página selecionada: ${selectedMetaPage.name}.`
+                    : "Selecione uma página conectada para preparar a campanha."}
+                </p>
+              </div>
+              {!metaConnection ? (
+                <Link
+                  className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+                  href="/dashboard/empresa"
+                >
+                  Conectar Meta
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </Link>
+              ) : null}
+            </div>
+          </section>
+
           <section className="glass rounded-[34px] p-5">
             <h2 className="font-semibold">Fila criativa</h2>
             <div className="mt-5 space-y-3">
@@ -538,7 +751,7 @@ export function CampaignGenerator({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <span className="rounded-full bg-white/62 px-3 py-1 text-xs font-semibold text-ink/58">
-                          {formatCampaignStatus(item.status)}
+                          {formatCampaignStatus(item.status, item.publicationStatus)}
                         </span>
                         <h3 className="mt-3 text-sm font-semibold leading-6 text-ink/86">
                           {item.campaignName}
@@ -666,8 +879,117 @@ function QuestionBlock({
   );
 }
 
-function formatCampaignStatus(status: CampaignHistoryItem["status"]) {
-  return status === "archived" ? "Arquivada" : "Gerada";
+function DetailTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[24px] bg-white/44 px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/44">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-ink">{value}</p>
+    </div>
+  );
+}
+
+function SmallStatusChip({
+  label,
+  value,
+  tone
+}: {
+  label: string;
+  value: string;
+  tone: "neutral" | "blue" | "yellow" | "teal" | "dark";
+}) {
+  const toneClasses = {
+    neutral: "bg-white/62 text-ink/72",
+    blue: "bg-cobalt text-white",
+    yellow: "bg-signal text-ink",
+    teal: "bg-lagoon text-white",
+    dark: "bg-ink text-white"
+  }[tone];
+
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${toneClasses}`}>
+      <span className="uppercase tracking-[0.14em] text-[10px] opacity-70">{label}</span>
+      <span>{value}</span>
+    </span>
+  );
+}
+
+function createInitialForm(connectedAccounts: ConnectedAccountsState): FormState {
+  return {
+    ...initialForm,
+    metaPageId: connectedAccounts.metaPages[0]?.metaPageId ?? "",
+    metaAdAccountId: connectedAccounts.metaAdAccounts[0]?.metaAdAccountId ?? "",
+    metaLeadFormId: connectedAccounts.metaLeadForms[0]?.metaFormId ?? "",
+    publishMode: connectedAccounts.metaConnection ? "manual_review" : "manual_review"
+  };
+}
+
+function resolvePublicationState({
+  hasMetaConnection,
+  form
+}: {
+  hasMetaConnection: boolean;
+  form: FormState;
+}) {
+  if (!hasMetaConnection) {
+    return {
+      label: "Sem Meta conectada",
+      tone: "yellow" as const,
+      connectedAccountLabel: "Conecte sua conta na Empresa"
+    };
+  }
+
+  if (form.publishMode === "draft") {
+    return {
+      label: "Rascunho preparado",
+      tone: "blue" as const,
+      connectedAccountLabel: "Conta Meta pronta"
+    };
+  }
+
+  if (form.publishMode === "paused") {
+    return {
+      label: "Pausada",
+      tone: "dark" as const,
+      connectedAccountLabel: "Conta Meta pronta"
+    };
+  }
+
+  if (form.publishMode === "scheduled") {
+    return {
+      label: "Pronta para agendar",
+      tone: "teal" as const,
+      connectedAccountLabel: "Conta Meta pronta"
+    };
+  }
+
+  return {
+    label: "Aguardando revisão",
+    tone: "yellow" as const,
+    connectedAccountLabel: "Conta Meta pronta"
+  };
+}
+
+function formatCampaignStatus(
+  status: CampaignHistoryItem["status"],
+  publicationStatus?: CampaignHistoryItem["publicationStatus"]
+) {
+  const baseLabel = status === "archived" ? "Arquivada" : "Gerada";
+
+  if (!publicationStatus) {
+    return baseLabel;
+  }
+
+  const publicationLabel = {
+    not_connected: "Sem Meta",
+    ready_to_prepare: "Pronta para preparar",
+    draft_created: "Rascunho criado",
+    pending_review: "Em revisão",
+    published: "Publicada",
+    paused: "Pausada",
+    failed: "Falhou"
+  }[publicationStatus];
+
+  return `${baseLabel} • ${publicationLabel}`;
 }
 
 function formatCampaignDate(value: string) {

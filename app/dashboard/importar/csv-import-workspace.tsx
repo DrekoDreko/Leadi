@@ -15,6 +15,7 @@ import {
   Sparkles,
   Upload
 } from "lucide-react";
+import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import { normalizeEmail, normalizePhone, stringOrNull } from "@/lib/leads/normalization";
 import { type LeadDataMode } from "@/lib/leads/repository";
 import {
@@ -59,9 +60,11 @@ type ImportRunSummary = {
 const previewFields: LeadImportFieldKey[] = ["name", "email", "phone", "city", "source", "interest", "notes"];
 
 export function CsvImportWorkspace({
-  canCreateMetaAdsLeads
+  canCreateMetaAdsLeads,
+  createLeadAccess
 }: {
   canCreateMetaAdsLeads: boolean;
+  createLeadAccess: ResourceAccessSummary;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,6 +104,7 @@ export function CsvImportWorkspace({
   const canImport =
     !isParsing &&
     !isImporting &&
+    createLeadAccess.allowed &&
     parsedFile !== null &&
     validRows.length > 0 &&
     mapping.name.trim().length > 0;
@@ -169,6 +173,11 @@ export function CsvImportWorkspace({
   }
 
   async function handleImport() {
+    if (!createLeadAccess.allowed) {
+      setReportStatus(createLeadAccess.message);
+      return;
+    }
+
     if (!parsedFile || validRows.length === 0) {
       return;
     }
@@ -546,8 +555,8 @@ export function CsvImportWorkspace({
                   <div>
                     <p className="text-sm font-semibold text-ink">CSV do Meta detectado</p>
                     <p className="mt-1 text-sm leading-6 text-ink/64">
-                      Como seu perfil nao e supervisor, a importacao vai salvar esses registros com
-                      origem <strong>CSV importado</strong> para concluir sem bloqueio.
+                      Como a conta Meta ainda nao esta conectada, a importacao vai salvar esses
+                      registros com origem <strong>CSV importado</strong> para concluir sem bloqueio.
                     </p>
                   </div>
                 </div>
@@ -764,7 +773,7 @@ export function CsvImportWorkspace({
               <p className="text-sm leading-6 text-ink/58">
                 Leads importados entram com etapa <strong>Novo lead</strong> e origem
                 <strong> CSV importado</strong>. Exportações do Meta usam
-                <strong> Meta Lead Ads</strong> somente para perfis com permissão.
+                <strong> Meta Lead Ads</strong> quando a conta Meta estiver conectada.
               </p>
 
               <div className="flex flex-wrap gap-2">
@@ -983,8 +992,8 @@ function getImportErrorMessage(error?: string) {
     return "Configure o Supabase ou use o modo demonstracao do dashboard.";
   }
 
-  if (error.includes("Apenas supervisores")) {
-    return "Apenas supervisores podem importar registros com esta origem.";
+  if (error.includes("Conecte uma conta Meta ativa")) {
+    return "Conecte uma conta Meta ativa para importar registros com esta origem.";
   }
 
   return error;

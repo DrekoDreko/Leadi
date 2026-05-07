@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
+import { getSiteDomainLabel, getSiteLegalEmail } from "@/lib/site/config";
 
 type LegalSection = {
   body: readonly string[];
@@ -22,6 +23,9 @@ export function LegalPage({
   summary,
   title
 }: LegalPageProps) {
+  const legalEmail = getSiteLegalEmail();
+  const domainLabel = getSiteDomainLabel();
+
   return (
     <main className="min-h-screen px-4 pb-8 pt-6">
       <header className="section-shell">
@@ -36,6 +40,9 @@ export function LegalPage({
             </Link>
             <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/terms">
               Termos
+            </Link>
+            <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/data-deletion">
+              Exclusao de dados
             </Link>
           </div>
         </nav>
@@ -70,9 +77,17 @@ export function LegalPage({
                   </div>
                 </div>
                 <p className="mt-4 leading-6">
-                  Este texto ajuda a publicar URLs exigidas por integrações e pode ser revisado
-                  com apoio jurídico antes do uso comercial definitivo.
+                  Esta pagina fica publica em {domainLabel} para atender URLs exigidas por
+                  integracoes, cadastro de app e validacoes externas.
                 </p>
+                {legalEmail ? (
+                  <p className="mt-3 leading-6">
+                    Contato de privacidade e dados:{" "}
+                    <a className="font-semibold text-cobalt" href={`mailto:${legalEmail}`}>
+                      {legalEmail}
+                    </a>
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -94,7 +109,23 @@ export function LegalPage({
 
       <footer className="section-shell pt-6">
         <div className="flex flex-col gap-3 px-2 text-sm text-ink/72 md:flex-row md:items-center md:justify-between">
-          <p>LeadHealth · Documento publico para operacao inicial da plataforma.</p>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+            <p>LeadHealth · Documento publico para operacao inicial da plataforma.</p>
+            <div className="flex items-center gap-3">
+              <Link className="font-semibold transition-colors hover:text-cobalt" href="/privacy">
+                Privacidade
+              </Link>
+              <Link className="font-semibold transition-colors hover:text-cobalt" href="/terms">
+                Termos
+              </Link>
+              <Link
+                className="font-semibold transition-colors hover:text-cobalt"
+                href="/data-deletion"
+              >
+                Exclusao de dados
+              </Link>
+            </div>
+          </div>
           <a
             className="inline-flex items-center gap-2 font-semibold text-ink transition hover:text-cobalt"
             href="https://codeellow.com"

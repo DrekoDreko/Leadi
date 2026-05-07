@@ -9,8 +9,6 @@ import {
   BriefcaseBusiness,
   CalendarClock,
   CheckCircle2,
-  CircleDollarSign,
-  Clock3,
   GripVertical,
   Kanban,
   Loader2,
@@ -21,11 +19,11 @@ import {
   Search,
   Sparkles,
   Target,
-  TrendingUp,
-  UserRound
+  TrendingUp
 } from "lucide-react";
 import type { Lead } from "@/data/mock";
 import { LeadDetailsPopup } from "@/components/dashboard/lead-details-popup";
+import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import {
   getLeadStageLabel,
   getLeadStageValue,
@@ -87,7 +85,13 @@ const stageToneByValue: Record<LeadStageValue, StageTone> = {
   }
 };
 
-export function SalesFunnelWorkspace({ leadState }: { leadState: LeadDataState }) {
+export function SalesFunnelWorkspace({
+  createLeadAccess,
+  leadState
+}: {
+  createLeadAccess: ResourceAccessSummary;
+  leadState: LeadDataState;
+}) {
   const router = useRouter();
   const [leads, setLeads] = useState(leadState.leads);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -318,15 +322,16 @@ export function SalesFunnelWorkspace({ leadState }: { leadState: LeadDataState }
                 Funil de vendas
               </span>
               <span className="inline-flex items-center gap-2 rounded-full bg-white/64 px-3 py-1.5 text-xs font-semibold text-ink/68">
-                Arrasta e solta ativo
+                Quadro drag and drop com popup de lead
               </span>
             </div>
-            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl xl:text-[3.6rem]">
-              Uma tela grande, clara e pronta para tocar o pipeline inteiro.
+            <h1 className="max-w-4xl text-3xl font-semibold tracking-tight md:text-4xl xl:text-[2.8rem]">
+              Um funil mais amplo, legível e pronto para o corretor agir sem sair da tela.
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-ink/64 md:text-base">
-              Arraste leads entre etapas, abra detalhes sem sair da página e acompanhe os pontos
-              que mais pedem atenção comercial.
+              Mantivemos as etapas atuais do CRM, mas com uma leitura mais próxima de quadro
+              comercial: colunas largas, cards clicáveis e acesso rápido a ligação, mensagem e
+              comentários do lead.
             </p>
           </div>
 
@@ -449,11 +454,11 @@ export function SalesFunnelWorkspace({ leadState }: { leadState: LeadDataState }
             <div className="max-w-3xl">
               <p className="text-sm font-medium text-cobalt">Pipeline operacional</p>
               <h2 className="mt-2 text-3xl font-semibold md:text-[2.2rem]">
-                Arraste os cards para mover a negociação
+                Arraste os cards ou abra o lead para agir na conversa
               </h2>
               <p className="mt-3 text-sm leading-6 text-ink/62">
-                Cards bloqueados indicam leads que o usuario atual nao pode alterar. Para editar
-                dados comerciais, abra o card e use o painel lateral.
+                O card inteiro abre o popup do cliente. Os controles rápidos continuam disponíveis
+                para WhatsApp, ligação e mudança de etapa.
               </p>
             </div>
 
@@ -475,7 +480,7 @@ export function SalesFunnelWorkspace({ leadState }: { leadState: LeadDataState }
             />
           ) : (
             <div className="-mx-1 overflow-x-auto pb-2">
-              <div className="grid min-w-max auto-cols-[minmax(330px,1fr)] grid-flow-col gap-4 px-1">
+              <div className="grid min-w-max auto-cols-[minmax(260px,290px)] grid-flow-col gap-4 px-1">
                 {columns.map((column) => {
                   const tone = stageToneByValue[column.value];
                   const isActiveDrop = activeDropStage === column.value;
@@ -483,7 +488,7 @@ export function SalesFunnelWorkspace({ leadState }: { leadState: LeadDataState }
                   return (
                     <section
                       aria-label={`Etapa ${column.label}`}
-                      className={`flex min-h-[72vh] max-h-[72vh] flex-col rounded-[34px] border p-4 transition ${
+                      className={`flex min-h-[74vh] max-h-[74vh] flex-col rounded-[30px] border p-3 transition ${
                         isActiveDrop
                           ? "border-cobalt/70 bg-cobalt/14 shadow-[0_28px_72px_rgba(52,98,238,0.18)]"
                           : `${tone.card} border-white/56`
@@ -493,7 +498,7 @@ export function SalesFunnelWorkspace({ leadState }: { leadState: LeadDataState }
                       onDragOver={(event) => handleDragOver(event, column.value)}
                       onDrop={(event) => handleDrop(event, column.value)}
                     >
-                      <div className="mb-4 rounded-[28px] bg-white/54 p-4">
+                      <div className="mb-3 rounded-[24px] bg-white/54 p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <span className={`mb-3 block h-2.5 w-14 rounded-full ${tone.pulse}`} />
@@ -517,13 +522,12 @@ export function SalesFunnelWorkspace({ leadState }: { leadState: LeadDataState }
                             onDragEnd={handleDragEnd}
                             onDragStart={handleDragStart}
                             onLeadOpen={setSelectedLead}
-                            onLeadStageChange={handleLeadStageChange}
                             pending={updatingLeadId === lead.id}
                           />
                         ))}
 
                         {column.cards.length === 0 && (
-                          <div className="flex flex-1 items-center justify-center rounded-[28px] border border-dashed border-ink/14 bg-white/30 p-6 text-center text-sm font-medium leading-6 text-ink/48">
+                          <div className="flex flex-1 items-center justify-center rounded-[24px] border border-dashed border-ink/14 bg-white/30 p-6 text-center text-sm font-medium leading-6 text-ink/48">
                             Solte um lead aqui para marcar como {column.label.toLowerCase()}.
                           </div>
                         )}
@@ -539,6 +543,7 @@ export function SalesFunnelWorkspace({ leadState }: { leadState: LeadDataState }
 
       <LeadCreateModal
         canCreateMetaAdsLeads={leadState.canCreateMetaAdsLeads}
+        createLeadAccess={createLeadAccess}
         onClose={() => setIsCreateOpen(false)}
         onCreated={handleLeadCreated}
         open={isCreateOpen}
@@ -559,7 +564,6 @@ function FunnelLeadCard({
   onDragEnd,
   onDragStart,
   onLeadOpen,
-  onLeadStageChange,
   pending
 }: {
   active: boolean;
@@ -567,44 +571,43 @@ function FunnelLeadCard({
   onDragEnd: () => void;
   onDragStart: (event: DragEvent<HTMLElement>, lead: Lead) => void;
   onLeadOpen: (lead: Lead) => void;
-  onLeadStageChange: (lead: Lead, nextStage: LeadStageValue) => void;
   pending: boolean;
 }) {
-  const currentStageValue = getLeadStageValue(lead.stage) ?? "new";
   const canEditLead = lead.canEdit ?? true;
+  const phoneHref = buildPhoneHref(lead.phone);
 
   return (
     <article
       aria-busy={pending}
-      className={`rounded-[30px] border border-white/72 bg-white/72 p-5 shadow-soft transition ${
+      className={`rounded-[18px] border border-white/72 bg-white/72 p-3.5 text-ink shadow-soft transition ${
         active
           ? "scale-[0.985] opacity-60"
           : "hover:-translate-y-1 hover:bg-white/84 hover:shadow-[0_24px_44px_rgba(18,23,33,0.12)]"
-      } ${canEditLead ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed opacity-72"}`}
+      } ${canEditLead ? "cursor-grab active:cursor-grabbing" : "cursor-default opacity-72"}`}
       draggable={canEditLead && !pending}
+      onClick={() => onLeadOpen(lead)}
       onDragEnd={onDragEnd}
       onDragStart={(event) => onDragStart(event, lead)}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) {
+          return;
+        }
+
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onLeadOpen(lead);
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
+      <span className="mb-2.5 block h-1.5 w-10 rounded-full bg-lagoon" />
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-cobalt/10 px-3 py-1.5 text-xs font-semibold text-cobalt">
-              {lead.score}% fit
-            </span>
-            <span className="rounded-full bg-white/84 px-3 py-1.5 text-xs font-semibold text-ink/64">
-              {lead.source}
-            </span>
-          </div>
-          <button
-            className="min-w-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50"
-            onClick={() => onLeadOpen(lead)}
-            type="button"
-          >
-            <span className="block text-lg font-semibold leading-tight">{lead.name}</span>
-            <span className="mt-2 block text-sm leading-6 text-ink/54">{lead.interest}</span>
-          </button>
+          <span className="block text-sm font-semibold leading-tight text-ink">{lead.name}</span>
+          <span className="mt-1 block text-xs font-medium text-ink/56">{lead.owner}</span>
         </div>
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-white">
           {pending ? (
             <Loader2 className="animate-spin" size={16} aria-hidden="true" />
           ) : (
@@ -613,52 +616,39 @@ function FunnelLeadCard({
         </span>
       </div>
 
-      <div className="grid gap-2.5 text-sm">
-        <FunnelCardMeta icon={UserRound} label={lead.owner} />
-        <FunnelCardMeta icon={PhoneCall} label={lead.phone} />
-        <FunnelCardMeta icon={CircleDollarSign} label={lead.budget} />
-        <FunnelCardMeta icon={Clock3} label={lead.nextContact} />
-      </div>
-
-      <div className="mt-5 grid gap-2.5">
-        <label className="block">
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">
-            Mover para
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-lagoon/12 px-2.5 py-1 text-[11px] font-semibold text-lagoon">
+            {lead.score}% fit
           </span>
-          <select
-            aria-label={`Mover ${lead.name} para outra etapa`}
-            className="liquid-input bg-white/72 py-2.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={!canEditLead || pending}
-            onChange={(event) => onLeadStageChange(lead, event.target.value as LeadStageValue)}
-            value={currentStageValue}
-          >
-            {leadStageOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <span className="rounded-full bg-ink/6 px-2.5 py-1 text-[11px] font-semibold text-ink/64">
+            {lead.source}
+          </span>
+        </div>
 
         <div className="flex gap-2">
           <Link
-            className="icon-button h-11 w-11 bg-white/68"
+            className="icon-button h-10 w-10 bg-white/68"
             href={`/dashboard/whatsapp?lead=${lead.id}`}
+            onClick={(event) => event.stopPropagation()}
             title={`Abrir WhatsApp para ${lead.name}`}
           >
             <MessageCircle size={16} aria-hidden="true" />
           </Link>
-          <button className="icon-button h-11 w-11 bg-white/68" type="button" title="Ligar">
-            <PhoneCall size={16} aria-hidden="true" />
-          </button>
-          <button
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-ink px-4 py-3 text-xs font-semibold text-white transition hover:bg-ink/90"
-            onClick={() => onLeadOpen(lead)}
-            type="button"
+          <a
+            className="icon-button h-10 w-10 bg-white/68"
+            href={phoneHref ?? "#"}
+            onClick={(event) => {
+              event.stopPropagation();
+
+              if (!phoneHref) {
+                event.preventDefault();
+              }
+            }}
+            title="Ligar"
           >
-            Editar lead
-            <ArrowRight size={15} aria-hidden="true" />
-          </button>
+            <PhoneCall size={16} aria-hidden="true" />
+          </a>
         </div>
       </div>
 
@@ -706,21 +696,6 @@ function FunnelHeroMetric({
         {note}
       </span>
     </article>
-  );
-}
-
-function FunnelCardMeta({
-  icon: Icon,
-  label
-}: {
-  icon: typeof UserRound;
-  label: string;
-}) {
-  return (
-    <span className="flex min-w-0 items-center gap-2 text-ink/62">
-      <Icon className="shrink-0 text-ink/38" size={15} aria-hidden="true" />
-      <span className="truncate">{label}</span>
-    </span>
   );
 }
 
@@ -849,6 +824,11 @@ function matchesFunnelSearch(lead: Lead, searchTerm: string) {
     .join(" ")
     .toLowerCase()
     .includes(searchTerm);
+}
+
+function buildPhoneHref(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return digits ? `tel:${digits}` : undefined;
 }
 
 function countStaleLeads(leads: Lead[]) {

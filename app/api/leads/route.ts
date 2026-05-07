@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { BillingResourceAccessError } from "@/lib/billing/subscription-limits.server";
 import {
   createLeadForCurrentUser,
   getLeadsForCurrentUser
@@ -54,12 +55,8 @@ function getCreateLeadErrorMessage(error: unknown) {
     return "Nao encontramos seu perfil no CRM. Recarregue a pagina ou fale com o administrador.";
   }
 
-  if (message.includes("Apenas supervisores podem editar")) {
-    return "Ja existe um lead do Meta Ads com esse contato. Apenas supervisores podem alterar esse registro.";
-  }
-
-  if (message.includes("Apenas supervisores")) {
-    return "Apenas usuarios supervisores podem cadastrar leads com origem Meta Ads.";
+  if (message.includes("Conecte uma conta Meta ativa")) {
+    return "Ja existe um lead do Meta Ads com esse contato. Conecte uma conta Meta ativa para alterar esse registro.";
   }
 
   if (message.includes("Sem permissao")) {
@@ -76,8 +73,12 @@ function getCreateLeadErrorStatus(error: unknown) {
     return 401;
   }
 
-  if (message.includes("Apenas supervisores") || message.includes("Sem permissao")) {
+  if (message.includes("Conecte uma conta Meta ativa") || message.includes("Sem permissao")) {
     return 403;
+  }
+
+  if (error instanceof BillingResourceAccessError) {
+    return error.status;
   }
 
   return 400;

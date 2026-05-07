@@ -9,6 +9,8 @@ import {
   type ComplianceReviewInput,
   type ComplianceReviewOutput
 } from "@/lib/openai";
+import { getBillingAuthContext } from "@/lib/billing/auth.server";
+import { resolveOpenAIKeyForOrganization } from "@/lib/integrations/repository.server";
 
 type ComplianceRequestBody = {
   text?: unknown;
@@ -40,9 +42,16 @@ export async function POST(request: Request) {
     const body = (await request.json()) as ComplianceRequestBody;
     const input = parseComplianceRequest(body);
     const localReview = reviewTextLocally(input.text);
+    const billingContext = await getBillingAuthContext();
+    const openAIKey = billingContext
+      ? await resolveOpenAIKeyForOrganization(billingContext.organizationId)
+      : null;
 
     try {
-      const aiReview = await reviewComplianceText(input);
+      const aiReview = await reviewComplianceText(
+        input,
+        openAIKey ? { apiKey: openAIKey } : undefined
+      );
       return NextResponse.json({
         review: mergeReviews(localReview, aiReview, "")
       });
@@ -52,8 +61,7 @@ export async function POST(request: Request) {
           review: {
             ...localReview,
             analysisSource: "local",
-            aiWarning:
-              "OPENAI_API_KEY nao configurada. A analise usou somente regras locais."
+            aiWarning: "Nenhuma chave OpenAI foi encontrada. A analise usou somente regras locais."
           } satisfies ComplianceReviewResponse
         });
       }

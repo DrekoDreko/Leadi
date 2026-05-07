@@ -6,6 +6,7 @@
     "ai:preview": "tsc -p scripts/tsconfig.ai-preview.json && node .tmp/ai-preview/scripts/ai-prompt-preview.js",
     "compliance:battery": "tsc -p scripts/tsconfig.compliance-battery.json && node .tmp/compliance-battery/scripts/compliance-validator-battery.js",
     "mcp:supabase": "node scripts/supabase-mcp.mjs",
+    "webhook:check": "node scripts/check-lead-webhook-receipt.mjs",
     "webhook:test": "node scripts/test-lead-webhook.mjs",
     "dev": "next dev",
     "build": "next build",
@@ -20,6 +21,7 @@
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

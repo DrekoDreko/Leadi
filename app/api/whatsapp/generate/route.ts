@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import { EnvValidationError, requireIntegrationEnv } from "@/lib/env/server";
 import {
   generateWhatsAppMessage,
   LeadHealthOpenAIError,
   type WhatsAppMessageInput
 } from "@/lib/openai";
+import { resolveOpenAIKeyForOrganization } from "@/lib/integrations/repository.server";
+import {
+  BillingResourceAccessError,
+  assertOrganizationResourceAccess
+} from "@/lib/billing/subscription-limits.server";
 import { BILLING_FEATURE_COSTS } from "@/lib/billing/catalog";
 import { chargeCreditsForFeature } from "@/lib/billing/usage.server";
 import { isBillingConfigured } from "@/lib/billing/config";
@@ -23,10 +29,7 @@ type ParsedWhatsAppInput = Omit<WhatsAppMessageInput, "brokerageName"> & {
 export async function POST(request: Request) {
   try {
     if (!isBillingConfigured()) {
-      return NextResponse.json(
-        { error: "Configure o billing para liberar a geracao com créditos." },
-        { status: 503 }
-      );
+      requireIntegrationEnv("billing");
     }
 
     const body = (await request.json().catch(() => null)) as WhatsAppRequestBody | null;
@@ -36,6 +39,13 @@ export async function POST(request: Request) {
     if (!billingContext) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
+
+    const openAIKey = await resolveOpenAIKeyForOrganization(billingContext.organizationId);
+
+    await assertOrganizationResourceAccess(
+      billingContext.organizationId,
+      "whatsapp_generation"
+    );
     const usageReferenceId = request.headers.get("x-idempotency-key") ?? randomUUID();
 
     await chargeCreditsForFeature({
@@ -57,7 +67,7 @@ export async function POST(request: Request) {
     const message = await generateWhatsAppMessage({
       ...input,
       brokerageName: billingContext.brokerageName
-    });
+    }, openAIKey ? { apiKey: openAIKey } : undefined);
     const savedForm: WhatsAppGenerationForm = {
       leadId: getOptionalString(body?.leadId),
       leadName: input.leadName,
@@ -124,10 +134,24 @@ function getStage(value: unknown): WhatsAppMessageInput["stage"] {
 }
 
 function getWhatsAppError(error: unknown) {
+  if (error instanceof EnvValidationError) {
+    return {
+      message: error.message,
+      status: 503
+    };
+  }
+
   if (error instanceof LeadHealthOpenAIError) {
     return {
       message: error.message,
       status: error.code === "missing_api_key" ? 400 : 502
+    };
+  }
+
+  if (error instanceof BillingResourceAccessError) {
+    return {
+      message: error.access.message,
+      status: error.status
     };
   }
 

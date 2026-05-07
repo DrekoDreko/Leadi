@@ -184,6 +184,12 @@ export default function Home() {
               <Link className="font-semibold transition-colors hover:text-cobalt" href="/terms">
                 Termos
               </Link>
+              <Link
+                className="font-semibold transition-colors hover:text-cobalt"
+                href="/data-deletion"
+              >
+                Exclusao de dados
+              </Link>
             </div>
           </div>
           <p>

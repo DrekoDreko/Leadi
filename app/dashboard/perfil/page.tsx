@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { headers } from "next/headers";
-import { BriefcaseBusiness, Settings } from "lucide-react";
+import { ArrowUpRight, BriefcaseBusiness, Settings } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
 import {
   listLeadWebhookLogsByOrganization,
@@ -46,12 +47,19 @@ export default async function PerfilPage({
       <PageHeading
         eyebrow="Perfil"
         title="Configuracoes"
-        description="Dados do usuario, workspace ativo e preferencias basicas da conta."
+        description="Dados do usuario, nome comercial e logs do webhook. As conexoes da empresa ficam em Empresa."
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
           <Settings size={18} aria-hidden="true" />
           {context.role === "supervisor" ? "Supervisor" : "Vendedor"}
         </span>
+        <Link
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+          href="/dashboard/empresa"
+        >
+          Abrir Empresa
+          <ArrowUpRight size={18} aria-hidden="true" />
+        </Link>
       </PageHeading>
 
       <section className="grid gap-4 md:grid-cols-2">
@@ -84,6 +92,7 @@ export default async function PerfilPage({
             <p className="mt-3 max-w-3xl text-sm leading-6 text-ink/62">
               Esse nome assina mensagens de WhatsApp, campanhas e novas geracoes via API.
               Se voce atua sozinho e nao tem uma corretora por tras, use seu proprio nome.
+              As contas conectadas da empresa ficam na area Empresa.
             </p>
           </div>
           <BriefcaseBusiness size={22} aria-hidden="true" />

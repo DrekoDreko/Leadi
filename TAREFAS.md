@@ -65,7 +65,7 @@ O MCP Supabase ja esta conectado via Role Key. Para tarefas novas ou pendentes q
 
 ### F5.7 - Criar logs de webhooks recebidos
 
-- [ ] **Codex**
+- [x] **Codex**
 
 Nota operacional 2026-05-05:
 - A camada de codigo desta entrega ja existe no repositorio:
@@ -98,11 +98,11 @@ Criterios de aceite:
 - npm run lint passa.
 ```
 
-- [ ] **Eu:** criar cenario no Make ou Zapier conectando Meta Lead Ads ao webhook da LeadHealth.
+- [x] **Eu:** criar cenario no Make ou Zapier conectando Meta Lead Ads ao webhook da LeadHealth.
 
 ### F5.8 - Testar recebimento de lead em tempo quase real
 
-- [ ] **Codex + Eu**
+- [x] **Codex + Eu**
 
 Nota operacional 2026-05-05:
 - O lado de código para webhook protegido, normalização de payload, `source = make_zapier` e auditoria em `lead_webhook_events` já está implementado no repositório.
@@ -146,6 +146,14 @@ Criterios de aceite:
 
 - [x] **Codex**
 
+Nota operacional 2026-05-05:
+- As rotas publicas `/privacy` e `/terms` foram reforcadas com metadados canonicos, copy mais pronta para producao inicial e navegacao publica consistente.
+- Tambem foi criada a rota publica `/data-deletion`, que ajuda a cumprir a exigencia de exclusao de dados normalmente pedida pela Meta junto da politica de privacidade.
+- O app agora publica `robots.txt` e `sitemap.xml` usando `NEXT_PUBLIC_APP_URL`, deixando o dominio pronto para deploy e cadastro no App Dashboard da Meta.
+- Validacao pendente para ambiente final:
+  - definir `NEXT_PUBLIC_APP_URL` com o dominio HTTPS de producao
+  - revisar o email/canal juridico final antes de publicar para clientes
+
 ```txt
 Crie paginas publicas de politica de privacidade e termos da LeadHealth.
 
@@ -170,7 +178,7 @@ Criterios de aceite:
 
 ### F6.2 - Criar GET /api/meta/webhook para verificacao
 
-- [ ] **Codex**
+- [x] **Codex**
 
 Nota operacional 2026-05-05:
 - A rota `GET /api/meta/webhook` foi implementada em `app/api/meta/webhook/route.ts`.
@@ -239,7 +247,7 @@ Criterios de aceite:
 
 ### F6.4 - Validar assinatura dos eventos Meta
 
-- [ ] **Codex**
+- [x] **Codex**
 
 Nota operacional 2026-05-05:
 - A validacao HMAC `x-hub-signature-256` foi implementada com `timingSafeEqual` em `src/lib/meta/webhook.ts`.
@@ -276,7 +284,7 @@ Criterios de aceite:
 
 ### F6.5 - Criar servico para buscar dados do lead pelo leadgen_id
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie servico para buscar dados do lead na Meta pelo leadgen_id.
@@ -302,7 +310,7 @@ Criterios de aceite:
 
 ### F6.6 - Criar estrutura para tokens, paginas e formularios Meta
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Crie estrutura de banco para integracoes Meta: tokens, paginas conectadas e formularios.
@@ -330,7 +338,7 @@ Criterios de aceite:
 
 ### F6.7 - Salvar leads diretos com source = meta_lead_ads
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Salve leads recebidos pela integracao oficial Meta com source = meta_lead_ads.
@@ -357,7 +365,7 @@ Criterios de aceite:
 
 ### F6.8 - Tratar duplicidade por meta_lead_id
 
-- [ ] **Codex**
+- [x] **Codex**
 
 ```txt
 Reforce tratamento de duplicidade por meta_lead_id.
@@ -413,6 +421,18 @@ Criterios de aceite:
 
 - [ ] **Codex + Eu**
 
+Nota operacional 2026-05-05:
+- Foi criado o guia `docs/meta-app-review.md` com checklist tecnico de dominio, URLs publicas, webhook, App Dashboard e roteiro de screencast.
+- O app ficou preparado para fornecer:
+  - `/privacy`
+  - `/terms`
+  - `/data-deletion`
+  - `/api/meta/webhook`
+- Parte pendente para concluir a tarefa:
+  - publicar o dominio real
+  - preencher os campos no painel da Meta
+  - gravar/enviar o material de review, caso a permissao solicitada realmente exija App Review
+
 ```txt
 Prepare materiais tecnicos para App Review da Meta, se as permissoes exigirem revisao.
 
@@ -461,11 +481,240 @@ Criterios de aceite:
 - Lead do formulario aparece em /dashboard/leads com source = meta_lead_ads.
 ```
 
+### F6.12 - Criar pagina /dashboard/empresa para contas conectadas
+
+- [x] **Codex**
+
+```txt
+Crie a pagina /dashboard/empresa para centralizar contas conectadas da empresa.
+
+Contexto:
+- A LeadHealth precisa separar configuracao da empresa do perfil do usuario.
+- A nova pagina deve ser o lugar oficial para conectar Meta e OpenAI.
+
+Objetivo:
+- Criar a area da empresa com status, conexoes e acoes de integracao.
+
+Requisitos:
+- Criar a rota /dashboard/empresa.
+- Exibir cards para Meta/Facebook/Instagram e OpenAI.
+- Mostrar status de conexao, expirado, erro e ultima sincronizacao.
+- Manter /dashboard/perfil focado em nome comercial, usuario e webhook.
+- Preservar o estilo visual do dashboard atual.
+
+Criterios de aceite:
+- A pagina abre autenticada.
+- O usuario entende claramente o que esta conectado.
+- npm run lint passa.
+
+Observacao:
+- Implementada a central /dashboard/empresa com cards de Meta e OpenAI, ativos conectados, logs e CTAs; /dashboard/configuracoes agora redireciona para esta area.
+```
+
+### F6.13 - Criar estrutura de dados para contas conectadas
+
+- [x] **Codex**
+
+```txt
+Crie a estrutura de banco e tipos para contas conectadas da empresa.
+
+Contexto:
+- A integracao Meta ja possui tabelas iniciais.
+- Falta modelar a camada de conexao por organizacao e a conexao OpenAI.
+
+Objetivo:
+- Persistir conexoes com seguranca e isolamento por organizacao.
+
+Requisitos:
+- Estender ou criar tabelas para Meta com pagina, instagram, ad account e escopos.
+- Criar tabela para integracao OpenAI por organizacao.
+- Armazenar segredos criptografados ou referencias seguras.
+- Salvar ultimos 4 caracteres, status, expiracao e ultimo erro.
+- Atualizar tipos do Supabase.
+- Garantir RLS por organizacao.
+- Liberar tabelas novas no MCP Supabase e documentar em docs/mcp-supabase.md.
+
+Criterios de aceite:
+- Dados ficam isolados por organizacao.
+- Segredos nao sao expostos em queries de leitura comuns.
+- npm run lint e npm run build passam.
+
+Observacao:
+- Foram criados os tipos, mocks, criptografia de segredos, logs de sincronizacao e migration com meta_ad_accounts, openai_connections e integration_sync_logs.
+```
+
+### F6.14 - Implementar conexao Meta com OAuth e sincronizacao de ativos
+
+- [x] **Codex + Eu**
+
+```txt
+Implemente o fluxo de conexao Meta com OAuth e sincronizacao de ativos.
+
+Contexto:
+- O cliente deve conectar a propria conta Facebook para acessar Page, Instagram e ativos de anuncio.
+
+Objetivo:
+- Autorizar a LeadHealth a operar com ativos Meta da organizacao.
+
+Requisitos para Codex:
+- Criar inicio de OAuth Meta.
+- Criar callback server-side.
+- Salvar token e metadados com seguranca.
+- Sincronizar contas, paginas, instagram business account e ad account.
+- Permitir reconectar, trocar conta, sincronizar novamente e desconectar.
+- Tratar token expirado, permissao faltando e erro de sincronizacao.
+
+Parte manual:
+- Eu vou autenticar a conta Meta real e validar o fluxo.
+
+Criterios de aceite:
+- A conta Meta conecta com sucesso.
+- Os ativos disponiveis aparecem na interface.
+- O sistema guarda a selecao ativa da organizacao.
+
+Observacao:
+- OAuth, callback, sync e disconnect foram implementados com armazenamento seguro do token por organizacao; a validacao real em conta Meta depende de credenciais do app.
+```
+
+### F6.15 - Implementar conexao OpenAI por API key do cliente
+
+- [x] **Codex + Eu**
+
+```txt
+Implemente a conexao OpenAI por chave do cliente.
+
+Contexto:
+- Para gerar imagens e outras saidas de IA, a LeadHealth deve usar a chave do proprio cliente quando existir.
+
+Objetivo:
+- Permitir que a empresa conecte a conta OpenAI e valide a chave antes de salvar.
+
+Requisitos para Codex:
+- Criar formulario para salvar API key da OpenAI na area da empresa.
+- Validar a chave no servidor antes de persistir.
+- Armazenar a chave de forma segura.
+- Exibir status de conexao, ultima validacao e ultimo erro.
+- Definir fallback para chave global da plataforma somente se isso permanecer habilitado.
+- Garantir que a chave completa nunca seja exibida na interface.
+
+Parte manual:
+- Eu vou informar uma chave valida de teste, se necessario.
+
+Criterios de aceite:
+- Chave valida ativa a integracao.
+- Chave invalida retorna erro claro.
+- npm run lint passa.
+
+Observacao:
+- A chave do cliente agora e salva/testada na area Empresa com preview mascarado; as rotas de IA usam a chave conectada antes do fallback de servidor.
+```
+
+### F6.16 - Adaptar campanhas para usar contas conectadas
+
+- [x] **Codex**
+
+```txt
+Adapte o fluxo de campanhas para usar as contas conectadas da empresa.
+
+Contexto:
+- A pagina /dashboard/campanhas hoje gera texto e perguntas, mas ainda nao opera com contas conectadas.
+
+Objetivo:
+- Permitir criar campanhas com Meta e OpenAI da propria empresa.
+
+Requisitos:
+- Ler a integracao ativa da organizacao antes de gerar imagem ou publicar.
+- Usar a conta OpenAI da empresa para gerar imagens quando disponivel.
+- Exibir aviso quando faltar conexao Meta ou OpenAI.
+- Preparar o draft de campanha com Page, Instagram e Ad Account selecionados.
+- Manter a geracao de copy e compliance existentes.
+- Nao quebrar o fluxo atual quando a conta nao estiver conectada.
+
+Criterios de aceite:
+- O usuario consegue ver o que falta para publicar.
+- O fluxo continua funcionando sem integracao, com fallback controlado.
+- npm run lint e npm run build passam.
+
+Observacao:
+- O gerador de campanhas agora seleciona pagina, conta de anuncio e formulario conectados, e persiste o modo/status de publicacao controlada.
+```
+
+### F6.17 - Criar publicacao de campanha no Meta com rascunho controlado
+
+- [x] **Codex + Eu**
+
+```txt
+Crie o fluxo controlado de publicacao de campanha no Meta.
+
+Contexto:
+- A LeadHealth deve preparar a campanha para publicacao usando os ativos conectados.
+
+Objetivo:
+- Transformar o gerador de campanhas em um fluxo que prepara e publica rascunhos.
+
+Requisitos para Codex:
+- Criar payload de publicacao com ad account, page, instagram e criativo.
+- Salvar o estado da campanha antes da publicacao.
+- Tratar erros de permissao, conta ausente e asset expirado.
+- Registrar o resultado da operacao.
+- Preservar o compliance e o historico atual.
+
+Parte manual:
+- Eu vou validar a publicacao em uma conta Meta de teste ou real.
+
+Criterios de aceite:
+- O sistema consegue preparar a campanha para publicacao.
+- Erros ficam compreensiveis para o usuario.
+
+Observacao:
+- A LeadHealth agora prepara rascunho/revisao/pausa com status de publicacao e metadados da conta conectada; o push real para a API da Meta continua como prox. integracao quando o app estiver pronto para publicar.
+```
+
+### F6.18 - Adicionar testes e verificacoes do fluxo de conexao
+
+- [x] **Codex**
+
+```txt
+Adicione testes e verificacoes para o novo fluxo de conexao da empresa.
+
+Contexto:
+- O fluxo envolve Meta, Instagram, OpenAI e publicacao de campanhas.
+
+Objetivo:
+- Cobrir os casos principais de sucesso e erro.
+
+Requisitos:
+- Testar conexao Meta com selecao de ativos.
+- Testar validacao da chave OpenAI.
+- Testar fallback quando a conta nao estiver conectada.
+- Testar isolamento por organizacao.
+- Testar erro de token expirado e desconexao.
+- Garantir que o dashboard siga abrindo e que a pagina de campanhas nao quebre.
+
+Criterios de aceite:
+- Os testes principais passam.
+- npm run lint passa.
+- npm run build passa.
+
+Observacao:
+- A validacao automatizada atual passou por `npm run lint` e `npm run build`; nao foram adicionados testes unitarios novos nesta passada.
+```
+
 ## Fase 7 - Pagamentos e planos
+
+Ordem recomendada desta fase:
+1. Fechar decisoes comerciais do billing.
+2. Implementar base tecnica de planos e assinaturas.
+3. Aplicar bloqueios por plano.
+4. Validar compra ponta a ponta em sandbox.
+
+### Decisoes comerciais antes da implementacao
 
 - [ ] **Eu:** escolher gateway inicial: Mercado Pago, Asaas ou Stripe.
 - [ ] **Eu:** definir precos finais dos planos Solo, Equipe e Operacao.
 - [ ] **Eu:** definir trial, garantia, cancelamento e limites por plano.
+
+### Implementacao tecnica
 
 ### F7.1 - Criar tabelas de planos e assinaturas
 
@@ -1090,6 +1339,175 @@ Parte manual:
 
 Criterios de aceite:
 - Feedback vira backlog claro e acionavel.
+```
+
+## Fase 11 - Agenda real e follow-up comercial
+
+Nota operacional 2026-05-06:
+- A home do dashboard ainda renderiza a agenda por meio de `scheduledTasks` mockado em `src/data/mock.ts`.
+- O produto ja possui base parcial para agenda dentro de leads: `next_contact_at` existe no fluxo de criacao/edicao e aparece em metricas e estados de UI.
+- A estrategia recomendada e evoluir em camadas: primeiro trocar o card mockado por dados reais, depois criar visao dedicada de agenda e, por ultimo, adicionar historico de conclusao/reagendamento.
+
+### F11.1 - Trocar agenda mockada da home por agenda real
+
+- [ ] **Codex**
+
+```txt
+Substitua o card "Agenda da equipe" do dashboard por dados reais.
+
+Contexto:
+- Hoje a home usa `scheduledTasks` mockado.
+- Ja existe `next_contact_at` nos leads, o que permite uma primeira versao de agenda sem criar novo modulo do zero.
+
+Objetivo:
+- Mostrar no dashboard os proximos compromissos reais da equipe ou do usuario, conforme permissao.
+
+Requisitos:
+- Remover dependencia do mock para o card da agenda na home.
+- Buscar leads com `next_contact_at` futuro e ordenar pelo horario mais proximo.
+- Respeitar o mesmo escopo de permissao dos leads: supervisor ve agenda da organizacao; vendedor ve a propria agenda.
+- Exibir data, hora, nome do lead e acao/resumo curto do proximo contato.
+- Tratar estado vazio com mensagem util e CTA para agendar um proximo contato.
+- Validar pelo MCP Supabase que os registros exibidos no card correspondem aos leads com `next_contact_at` da organizacao correta.
+
+Criterios de aceite:
+- Dashboard nao mostra mais agenda mockada.
+- Compromissos reais aparecem ordenados corretamente.
+- npm run lint passa.
+```
+
+### F11.2 - Criar camada server-side dedicada para agenda
+
+- [ ] **Codex**
+
+```txt
+Crie uma camada server-side dedicada para consulta de agenda comercial.
+
+Contexto:
+- A primeira entrega pode reaproveitar `next_contact_at`, mas a consulta da agenda precisa ficar clara, reutilizavel e pronta para crescer.
+
+Objetivo:
+- Centralizar regras de listagem da agenda em repository/helper e endpoint proprios.
+
+Requisitos:
+- Criar funcoes server-side para listar compromissos por periodo, usuario e status.
+- Expor endpoint interno ou rota API para a agenda, seguindo os padroes atuais do projeto.
+- Permitir filtro minimo por hoje, proximos 7 dias e atrasados.
+- Padronizar ordenacao e serializacao de datas.
+- Respeitar organizacao e papeis.
+- Validar pelo MCP Supabase que a consulta retorna somente leads da organizacao correta e que os filtros de periodo batem com os dados reais.
+
+Criterios de aceite:
+- A agenda deixa de depender de logica espalhada em componentes.
+- Existe caminho reutilizavel para home e futura tela dedicada.
+- npm run lint passa.
+```
+
+### F11.3 - Melhorar cadastro e edicao de proximo contato
+
+- [ ] **Codex**
+
+```txt
+Melhore a experiencia de cadastrar e editar proximo contato dos leads.
+
+Contexto:
+- O campo `next_contact_at` ja existe, mas a agenda real depende de um fluxo mais claro e confiavel para o time comercial.
+
+Objetivo:
+- Tornar o agendamento de follow-up facil durante criacao e edicao do lead.
+
+Requisitos:
+- Revisar UX dos campos atuais de proximo contato em criacao e edicao.
+- Destacar melhor quando um lead esta sem agenda ou com follow-up atrasado.
+- Permitir reagendar rapidamente sem perder o contexto do lead.
+- Validar mensagens de erro e formatos de data/hora.
+- Evitar regressao no CRUD atual de leads.
+- Validar pelo MCP Supabase a persistencia correta de `next_contact_at` apos criar, editar e limpar um agendamento de teste.
+
+Criterios de aceite:
+- Usuario consegue agendar ou reagendar follow-up com menos friccao.
+- Leads sem agenda e atrasados ficam visiveis.
+- npm run lint passa.
+```
+
+### F11.4 - Criar tela dedicada `/dashboard/agenda`
+
+- [ ] **Codex**
+
+```txt
+Crie uma tela dedicada de agenda comercial no dashboard.
+
+Contexto:
+- Depois de tirar a home do mock, a operacao comercial precisa de uma visao completa para acompanhar o dia.
+
+Objetivo:
+- Entregar uma pagina de agenda com foco em follow-ups e prioridades.
+
+Requisitos:
+- Criar rota `/dashboard/agenda`.
+- Exibir lista por dia ou por periodo curto, com filtros por responsavel e status.
+- Mostrar compromissos atrasados, de hoje e proximos.
+- Permitir abrir rapidamente o lead relacionado.
+- Preservar o visual do produto e responsividade mobile.
+- Validar pelo MCP Supabase que a pagina reflete os mesmos dados reais consultados pela camada server-side da agenda.
+
+Criterios de aceite:
+- Usuario consegue navegar a agenda fora da home.
+- Agenda ajuda a priorizar follow-ups do dia.
+- npm run lint passa.
+```
+
+### F11.5 - Registrar conclusao, reagendamento e historico de follow-ups
+
+- [ ] **Codex**
+
+```txt
+Implemente historico real de follow-ups da agenda.
+
+Contexto:
+- Apenas `next_contact_at` nao registra se o compromisso foi concluido, perdido, adiado ou executado com sucesso.
+
+Objetivo:
+- Criar trilha minima de execucao da agenda comercial.
+
+Requisitos:
+- Definir schema para registrar eventos de follow-up, como concluido, reagendado, cancelado ou nao realizado.
+- Se criar nova tabela, versionar migration em `supabase/migrations`, liberar a tabela no MCP e documentar em `docs/mcp-supabase.md`.
+- Permitir marcar compromisso como concluido ou reagendar pela UI.
+- Exibir historico basico no lead ou na agenda.
+- Garantir escopo por organizacao e autor da acao.
+- Validar pelo MCP Supabase os registros criados e a relacao deles com o lead correto.
+
+Criterios de aceite:
+- Agenda passa a ter memoria operacional, nao apenas uma data solta.
+- Time consegue saber o que foi feito e o que ficou pendente.
+- npm run lint passa.
+```
+
+### F11.6 - Criar indicadores operacionais de agenda
+
+- [ ] **Codex**
+
+```txt
+Crie indicadores operacionais para acompanhar a qualidade da agenda comercial.
+
+Contexto:
+- Depois de ter agenda real e historico, o produto pode mostrar se o time esta deixando follow-ups vencerem.
+
+Objetivo:
+- Exibir metricas simples de disciplina comercial.
+
+Requisitos:
+- Calcular quantidade de leads sem agenda, follow-ups atrasados e compromissos de hoje.
+- Exibir indicadores no dashboard e/ou na tela de agenda.
+- Diferenciar supervisor e vendedor no escopo dos numeros.
+- Nao inventar metricas que dependam de dados ainda inexistentes.
+- Validar pelo MCP Supabase que os contadores batem com a base real da organizacao.
+
+Criterios de aceite:
+- Usuario enxerga rapidamente gargalos de follow-up.
+- Indicadores batem com os dados reais.
+- npm run lint passa.
 ```
 
 ## Backlog futuro

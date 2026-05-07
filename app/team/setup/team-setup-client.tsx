@@ -11,19 +11,23 @@ import {
   UserRoundPlus,
   UsersRound
 } from "lucide-react";
+import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { PageHeading } from "@/components/dashboard/widgets";
+import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import type { TeamInvite, TeamMember } from "@/lib/workspaces/team";
 import { createInviteAction, updateTeamNameAction } from "./actions";
 
 type TeamSetupClientProps = {
   initialWorkspaceName: string;
   initialInvites: TeamInvite[];
+  inviteAccess: ResourceAccessSummary;
   members: TeamMember[];
 };
 
 export function TeamSetupClient({
   initialWorkspaceName,
   initialInvites,
+  inviteAccess,
   members
 }: TeamSetupClientProps) {
   const [invites, setInvites] = useState(initialInvites);
@@ -34,6 +38,11 @@ export function TeamSetupClient({
   const latestInviteUrl = useAbsoluteInviteUrl(latestInvitePath);
 
   function generateInvite() {
+    if (!inviteAccess.allowed) {
+      setFeedback(inviteAccess.message);
+      return;
+    }
+
     startInviteTransition(async () => {
       setFeedback(null);
       const result = await createInviteAction();
@@ -86,7 +95,7 @@ export function TeamSetupClient({
       >
         <button
           className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white transition hover:bg-cobalt/90"
-          disabled={isGenerating}
+          disabled={isGenerating || !inviteAccess.allowed}
           onClick={generateInvite}
           type="button"
         >
@@ -101,6 +110,8 @@ export function TeamSetupClient({
           <ArrowRight size={18} aria-hidden="true" />
         </Link>
       </PageHeading>
+
+      {!inviteAccess.allowed ? <SubscriptionAccessBanner notice={inviteAccess} /> : null}
 
       {feedback && (
         <p className="rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">
@@ -187,8 +198,8 @@ export function TeamSetupClient({
                 Copiar link
               </button>
               <button
-                className="inline-flex items-center gap-2 rounded-full bg-white/62 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white"
-                disabled={isGenerating}
+                className="inline-flex items-center gap-2 rounded-full bg-white/62 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white disabled:opacity-50"
+                disabled={isGenerating || !inviteAccess.allowed}
                 onClick={generateInvite}
                 type="button"
               >

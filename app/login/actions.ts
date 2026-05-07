@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getAuthCallbackOrigin } from "@/lib/site/config";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -77,7 +78,8 @@ export async function signInWithGoogleAction(formData: FormData) {
   }
 
   const supabase = await createSupabaseServerClient();
-  const origin = await getRequestOrigin();
+  const headerStore = await headers();
+  const origin = getAuthCallbackOrigin(headerStore);
   const callbackUrl = new URL("/auth/callback", origin);
   callbackUrl.searchParams.set("next", next);
 
@@ -122,18 +124,6 @@ function getPostSignupRedirectPath(value: FormDataEntryValue | null) {
   const next = getSafeRedirectPath(value);
 
   return next === "/dashboard" ? "/onboarding/profile-setup" : next;
-}
-
-async function getRequestOrigin() {
-  const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
-
-  if (!host) {
-    return "http://localhost:3000";
-  }
-
-  return `${protocol}://${host}`;
 }
 
 function buildLoginErrorUrl(error: string, next: string, mode: "login" | "signup") {

@@ -19,9 +19,11 @@ import {
   Sparkles,
   X
 } from "lucide-react";
+import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import type { Lead } from "@/data/mock";
 import { LeadDetailsPopup } from "@/components/dashboard/lead-details-popup";
 import { Metric, PageHeading } from "@/components/dashboard/widgets";
+import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import {
   defaultLeadUrlFilters,
   hasActiveLeadUrlFilters,
@@ -56,9 +58,11 @@ const filterKeys: Array<keyof LeadUrlFilters> = [
 const paginationQueryKeys = ["limit", "offset"];
 
 export function LeadsWorkspace({
+  createLeadAccess,
   leadFilters,
   leadState
 }: {
+  createLeadAccess: ResourceAccessSummary;
   leadFilters: LeadUrlFilters;
   leadState: LeadDataState;
 }) {
@@ -93,6 +97,7 @@ export function LeadsWorkspace({
   const staleLeads = visibleLeads.filter((lead) => lead.nextContact === "A definir").length;
   const selectedLeadCanEdit = selectedLead?.canEdit ?? true;
   const selectedLeadCanDelete = selectedLead?.canDelete ?? leadState.canDeleteLeads;
+  const canCreateLeads = createLeadAccess.allowed;
 
   const replaceLeadUrlFilters = useCallback((nextFilters: LeadUrlFilters) => {
     const nextSearchParams = new URLSearchParams(searchParams?.toString() ?? "");
@@ -359,14 +364,17 @@ export function LeadsWorkspace({
         description="Lista dedicada para qualificar contatos, acompanhar responsáveis e priorizar próximos passos."
       >
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white"
-          onClick={() => setIsCreateOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={!canCreateLeads}
+          onClick={() => (canCreateLeads ? setIsCreateOpen(true) : undefined)}
           type="button"
         >
           <Plus size={18} aria-hidden="true" />
           Novo lead
         </button>
       </PageHeading>
+
+      {!canCreateLeads ? <SubscriptionAccessBanner notice={createLeadAccess} /> : null}
 
       <LeadDataNotice leadState={leadState} />
 
@@ -421,14 +429,14 @@ export function LeadsWorkspace({
           {isEmptyWithoutFilters ? (
             <LeadWorkspaceEmptyState
               mode="empty"
-              onCreateOpen={() => setIsCreateOpen(true)}
+              onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
               onRetry={handleRefresh}
             />
           ) : isEmptyWithFilters ? (
             <LeadWorkspaceEmptyState
               mode="filtered"
               onClearFilters={clearFilters}
-              onCreateOpen={() => setIsCreateOpen(true)}
+              onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
             />
           ) : (
             <>
@@ -439,7 +447,7 @@ export function LeadsWorkspace({
                     hasActiveFilters={hasActiveFilters}
                     onSearchChange={setSearchTerm}
                     onOpenFilters={openFilterPopup}
-                    onCreateOpen={() => setIsCreateOpen(true)}
+                    onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
                     onLeadOpen={setSelectedLead}
                     onLeadStageChange={handleLeadStageChange}
                     updatingLeadId={updatingLeadId}
@@ -469,6 +477,7 @@ export function LeadsWorkspace({
 
       <LeadCreateModal
         canCreateMetaAdsLeads={leadState.canCreateMetaAdsLeads}
+        createLeadAccess={createLeadAccess}
         onClose={() => setIsCreateOpen(false)}
         onCreated={handleLeadCreated}
         open={isCreateOpen}
@@ -791,7 +800,7 @@ function LeadWorkspaceEmptyState({
 }: {
   mode: "empty" | "filtered";
   onClearFilters?: () => void;
-  onCreateOpen: () => void;
+  onCreateOpen?: () => void;
   onRetry?: () => void;
 }) {
   const isFiltered = mode === "filtered";
@@ -838,7 +847,8 @@ function LeadWorkspaceEmptyState({
           )}
 
           <button
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!onCreateOpen}
             onClick={onCreateOpen}
             type="button"
           >
@@ -867,7 +877,7 @@ function LeadTablePanel({
   onSearchChange: (value: string) => void;
   searchTerm: string;
   onOpenFilters: () => void;
-  onCreateOpen: () => void;
+  onCreateOpen?: () => void;
   onLeadOpen: (lead: Lead) => void;
   onLeadStageChange: (lead: Lead, nextStage: LeadStageValue) => void;
   updatingLeadId: string | null;
@@ -904,7 +914,8 @@ function LeadTablePanel({
             {hasActiveFilters ? "Filtros ativos" : "Filtros"}
           </button>
           <button
-            className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white"
+            className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!onCreateOpen}
             onClick={onCreateOpen}
             type="button"
           >

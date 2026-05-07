@@ -1,4 +1,7 @@
 import { leads as mockLeads, type Lead } from "@/data/mock";
+import { getMetaConnectionForOrganization } from "@/lib/integrations/repository.server";
+import { assertOrganizationResourceAccess } from "@/lib/billing/subscription-limits.server";
+import type { LeadComment } from "@/lib/leads/comments";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -31,14 +34,18 @@ import {
 
 type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
 type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
+type LeadCommentRow = Database["public"]["Tables"]["lead_comments"]["Row"];
+type LeadCommentInsert = Database["public"]["Tables"]["lead_comments"]["Insert"];
 type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
+type LeadDuplicateReason = "meta_lead_id" | "phone_e164" | "email";
 
 type LeadCreationResult = {
   lead: Lead;
   status: "created" | "duplicate";
+  duplicateReason?: LeadDuplicateReason;
 };
 
 type LeadCreateInput = {
@@ -94,6 +101,11 @@ const sourceLabels: Record<LeadRow["source"], string> = {
 };
 
 const safeWebhookLeadSources = new Set<LeadRow["source"]>(["make_zapier", "api"]);
+const safeOfficialWebhookLeadSources = new Set<LeadRow["source"]>([
+  "make_zapier",
+  "api",
+  "meta_lead_ads"
+]);
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
@@ -106,6 +118,21 @@ const contactFormatter = new Intl.DateTimeFormat("pt-BR", {
   month: "short",
   hour: "2-digit",
   minute: "2-digit"
+});
+
+const mockLeadComments: LeadComment[] = mockLeads.slice(0, 3).map((lead, index) => {
+  const createdAt = new Date(Date.now() - (index + 1) * 1000 * 60 * 90).toISOString();
+
+  return {
+    id: `mock-comment-${lead.id.toLowerCase()}`,
+    leadId: lead.id,
+    authorProfileId: "mock-profile",
+    authorName: lead.owner,
+    authorEmail: `${lead.owner.toLowerCase()}@demo.leadhealth.local`,
+    body: lead.lastInteraction,
+    createdAt,
+    updatedAt: createdAt
+  };
 });
 
 export async function getLeadsForCurrentUser(
@@ -166,6 +193,10 @@ export async function getLeadsForCurrentUser(
         message: "Nao foi possivel carregar os leads."
       };
     }
+
+    const hasMetaConnection = Boolean(
+      await getMetaConnectionForOrganization(profile.organization_id)
+    );
 
     let query =
       pagination.limit === null
@@ -230,20 +261,20 @@ export async function getLeadsForCurrentUser(
         leads: [],
         mode: "error",
         canDeleteLeads: false,
-        canCreateMetaAdsLeads: false,
+        canCreateMetaAdsLeads: hasMetaConnection,
         pagination: buildLeadPaginationMeta(pagination, 0, 0),
         message: "Nao foi possivel carregar os leads."
       };
     }
 
-    const leads = (data ?? []).map((lead) => mapLeadRowToLead(lead, profile));
+    const leads = (data ?? []).map((lead) => mapLeadRowToLead(lead, profile, hasMetaConnection));
     const total = pagination.limit === null ? leads.length : count ?? pagination.offset + leads.length;
 
     return {
       leads,
       mode: "supabase",
       canDeleteLeads: canDeleteOrganizationLeads(profile),
-      canCreateMetaAdsLeads: canCreateMetaAdsLeads(profile),
+      canCreateMetaAdsLeads: hasMetaConnection,
       pagination: buildLeadPaginationMeta(pagination, total, leads.length)
     };
   } catch {
@@ -282,13 +313,19 @@ export async function createLeadForCurrentUser(input: LeadCreateInput): Promise<
     throw new Error(profileError?.message ?? "Perfil nao encontrado.");
   }
 
+  const hasMetaConnection = Boolean(
+    await getMetaConnectionForOrganization(profile.organization_id)
+  );
+
+  await assertOrganizationResourceAccess(profile.organization_id, "lead_creation");
+
   const payload = buildLeadInsert(profile, input);
-  assertCanCreateLead(profile, payload);
+  assertCanCreateLead(profile, payload, hasMetaConnection);
 
   const duplicate = await findDuplicateLead(supabase, profile.organization_id, payload);
 
   if (duplicate) {
-    assertCanManageLead(profile, duplicate, "editar");
+    assertCanManageLead(profile, duplicate.lead, "editar", hasMetaConnection);
     const updatePayload = { ...payload };
     delete updatePayload.import_batch_id;
 
@@ -297,9 +334,9 @@ export async function createLeadForCurrentUser(input: LeadCreateInput): Promise<
       .update({
         ...updatePayload,
         organization_id: profile.organization_id,
-        owner_profile_id: duplicate.owner_profile_id ?? profile.id
+        owner_profile_id: duplicate.lead.owner_profile_id ?? profile.id
       })
-      .eq("id", duplicate.id)
+      .eq("id", duplicate.lead.id)
       .select("*")
       .single();
 
@@ -307,7 +344,11 @@ export async function createLeadForCurrentUser(input: LeadCreateInput): Promise<
       throw new Error(error.message);
     }
 
-    return { lead: mapLeadRowToLead(data, profile), status: "duplicate" };
+    return {
+      lead: mapLeadRowToLead(data, profile),
+      status: "duplicate",
+      duplicateReason: duplicate.reason
+    };
   }
 
   const { data, error } = await insertLeadWithSchemaFallback(supabase, payload);
@@ -328,38 +369,47 @@ export async function createLeadFromWebhook(
 
   const supabase = createSupabaseAdminClient();
   const profile = await resolveWebhookLeadProfile(supabase, input);
+  await assertOrganizationResourceAccess(profile.organization_id, "lead_creation");
   const payload = buildLeadInsert(profile, {
     ...input,
-    source: normalizeWebhookLeadSource(input.source),
+    source: normalizeWebhookLeadSource(input.source, { allowOfficialMetaSource: true }),
     raw_payload: input.raw_payload ?? input
   });
   const duplicate = await findDuplicateLead(supabase, profile.organization_id, payload);
 
   if (duplicate) {
-    const updatePayload = { ...payload };
-    delete updatePayload.import_batch_id;
-
-    const { data, error } = await supabase
-      .from("leads")
-      .update({
-        ...updatePayload,
-        organization_id: profile.organization_id,
-        owner_profile_id: duplicate.owner_profile_id ?? profile.id
-      })
-      .eq("id", duplicate.id)
-      .select("*")
-      .single();
-
-    if (error) {
-      throw new Error(error.message);
+    if (shouldTreatMetaReplayAsNoop(payload, duplicate.reason)) {
+      return returnExistingDuplicateLead(profile, duplicate.lead, duplicate.reason);
     }
 
-    return { lead: mapLeadRowToLead(data, profile), status: "duplicate" };
+    return updateDuplicateWebhookLead({
+      supabase,
+      profile,
+      payload,
+      duplicate: duplicate.lead,
+      reason: duplicate.reason
+    });
   }
 
   const { data, error } = await insertLeadWithSchemaFallback(supabase, payload);
 
   if (error) {
+    if (payload.meta_lead_id && isMetaLeadUniqueViolation(error)) {
+      const duplicatedLead = await findLeadByMetaLeadId(
+        supabase,
+        profile.organization_id,
+        payload.meta_lead_id
+      );
+
+      if (duplicatedLead) {
+        console.info(
+          `Lead Meta duplicado detectado e reaproveitado: meta_lead_id=${payload.meta_lead_id}`
+        );
+
+        return returnExistingDuplicateLead(profile, duplicatedLead, "meta_lead_id");
+      }
+    }
+
     throw new Error(error.message);
   }
 
@@ -372,11 +422,14 @@ export async function updateLeadForCurrentUser(id: string, input: LeadCreateInpu
   }
 
   const profile = await getCurrentProfile();
+  const hasMetaConnection = Boolean(
+    await getMetaConnectionForOrganization(profile.organization_id)
+  );
   const payload = buildLeadUpdate(input);
   const existingLead = await getLeadForMutation(id, profile.organization_id);
 
-  assertCanManageLead(profile, existingLead, "editar");
-  assertCanApplyLeadUpdate(profile, payload);
+  assertCanManageLead(profile, existingLead, "editar", hasMetaConnection);
+  assertCanApplyLeadUpdate(profile, payload, hasMetaConnection);
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -400,9 +453,12 @@ export async function deleteLeadForCurrentUser(id: string) {
   }
 
   const profile = await getCurrentProfile();
+  const hasMetaConnection = Boolean(
+    await getMetaConnectionForOrganization(profile.organization_id)
+  );
   const existingLead = await getLeadForMutation(id, profile.organization_id);
 
-  assertCanManageLead(profile, existingLead, "excluir");
+  assertCanManageLead(profile, existingLead, "excluir", hasMetaConnection);
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -422,6 +478,74 @@ export async function deleteLeadForCurrentUser(id: string) {
   }
 }
 
+export async function listLeadCommentsForCurrentUser(id: string): Promise<LeadComment[]> {
+  if (!isSupabaseConfigured()) {
+    return mockLeadComments
+      .filter((comment) => comment.leadId === id)
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  }
+
+  const profile = await getCurrentProfile();
+  const lead = await getLeadForMutation(id, profile.organization_id);
+
+  assertCanAccessLead(profile, lead, "visualizar");
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("lead_comments")
+    .select("*")
+    .eq("organization_id", profile.organization_id)
+    .eq("lead_id", lead.id)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map(mapLeadCommentRowToItem);
+}
+
+export async function createLeadCommentForCurrentUser(
+  id: string,
+  input: { body?: unknown }
+): Promise<LeadComment> {
+  const body = normalizeLeadCommentBody(input.body);
+
+  if (!isSupabaseConfigured()) {
+    const comment: LeadComment = {
+      id: `mock-comment-${Date.now()}`,
+      leadId: id,
+      authorProfileId: "mock-profile",
+      authorName: "Equipe demo",
+      authorEmail: "demo@leadhealth.local",
+      body,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    mockLeadComments.push(comment);
+    return comment;
+  }
+
+  const profile = await getCurrentProfile();
+  const lead = await getLeadForMutation(id, profile.organization_id);
+
+  assertCanAccessLead(profile, lead, "comentar");
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("lead_comments")
+    .insert(buildLeadCommentInsert(lead, profile, body))
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return mapLeadCommentRowToItem(data);
+}
+
 async function findDuplicateLead(
   supabase: ServerClient | AdminClient,
   organizationId: string,
@@ -436,7 +560,7 @@ async function findDuplicateLead(
       .maybeSingle();
 
     if (data) {
-      return data;
+      return { lead: data, reason: "meta_lead_id" as const };
     }
   }
 
@@ -449,7 +573,7 @@ async function findDuplicateLead(
       .maybeSingle();
 
     if (data) {
-      return data;
+      return { lead: data, reason: "phone_e164" as const };
     }
   }
 
@@ -462,11 +586,109 @@ async function findDuplicateLead(
       .maybeSingle();
 
     if (data) {
-      return data;
+      return { lead: data, reason: "email" as const };
     }
   }
 
   return null;
+}
+
+async function findLeadByMetaLeadId(
+  supabase: ServerClient | AdminClient,
+  organizationId: string,
+  metaLeadId: string
+) {
+  const { data, error } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("meta_lead_id", metaLeadId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+async function updateDuplicateWebhookLead(input: {
+  supabase: AdminClient;
+  profile: ProfileRow;
+  payload: LeadInsert;
+  duplicate: LeadRow;
+  reason: LeadDuplicateReason;
+}): Promise<LeadCreationResult> {
+  const updatePayload = { ...input.payload };
+  delete updatePayload.import_batch_id;
+
+  const { data, error } = await input.supabase
+    .from("leads")
+    .update({
+      ...updatePayload,
+      organization_id: input.profile.organization_id,
+      owner_profile_id: input.duplicate.owner_profile_id ?? input.profile.id
+    })
+    .eq("id", input.duplicate.id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return {
+    lead: mapLeadRowToLead(data, input.profile),
+    status: "duplicate",
+    duplicateReason: input.reason
+  };
+}
+
+function returnExistingDuplicateLead(
+  profile: ProfileRow,
+  duplicate: LeadRow,
+  reason: LeadDuplicateReason
+): LeadCreationResult {
+  return {
+    lead: mapLeadRowToLead(duplicate, profile),
+    status: "duplicate",
+    duplicateReason: reason
+  };
+}
+
+function shouldTreatMetaReplayAsNoop(
+  payload: LeadInsert,
+  duplicateReason: LeadDuplicateReason
+) {
+  return payload.source === "meta_lead_ads" && Boolean(payload.meta_lead_id) && duplicateReason === "meta_lead_id";
+}
+
+function buildLeadCommentInsert(
+  lead: LeadRow,
+  profile: ProfileRow,
+  body: string
+): LeadCommentInsert {
+  return {
+    organization_id: lead.organization_id,
+    lead_id: lead.id,
+    author_profile_id: profile.id,
+    author_name: profile.full_name?.trim() || profile.email.split("@")[0] || "Usuario",
+    author_email: profile.email,
+    body
+  };
+}
+
+function mapLeadCommentRowToItem(row: LeadCommentRow): LeadComment {
+  return {
+    id: row.id,
+    leadId: row.lead_id,
+    authorProfileId: row.author_profile_id,
+    authorName: row.author_name,
+    authorEmail: row.author_email,
+    body: row.body,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
 }
 
 async function getLeadForMutation(id: string, organizationId: string) {
@@ -645,28 +867,42 @@ function isMissingImportBatchIdColumnError(message: string) {
   return message.includes("Could not find the 'import_batch_id' column of 'leads'");
 }
 
+function isMetaLeadUniqueViolation(error: { code?: string; message?: string }) {
+  const message = error.message?.toLowerCase() ?? "";
+
+  return (
+    error.code === "23505" &&
+    (message.includes("leads_meta_lead_unique_idx") || message.includes("meta_lead_id"))
+  );
+}
+
 function canDeleteOrganizationLeads(profile: ProfileRow) {
   return profile.role === "supervisor";
 }
 
-function canCreateMetaAdsLeads(profile: ProfileRow) {
-  return profile.role === "supervisor";
-}
-
-function canManageLead(profile: ProfileRow, lead: LeadRow) {
+function canManageLead(
+  profile: ProfileRow,
+  lead: LeadRow,
+  hasMetaConnection = false
+) {
   return (
     profile.role === "supervisor" ||
-    (lead.owner_profile_id === profile.id && lead.source !== "meta_lead_ads")
+    (lead.owner_profile_id === profile.id &&
+      (lead.source !== "meta_lead_ads" || hasMetaConnection))
   );
 }
 
-function assertCanCreateLead(profile: ProfileRow, payload: LeadInsert) {
+function assertCanCreateLead(
+  profile: ProfileRow,
+  payload: LeadInsert,
+  hasMetaConnection: boolean
+) {
   if (profile.role === "supervisor") {
     return;
   }
 
-  if (payload.source === "meta_lead_ads") {
-    throw new Error("Apenas supervisores podem cadastrar leads do Meta Ads.");
+  if (payload.source === "meta_lead_ads" && !hasMetaConnection) {
+    throw new Error("Conecte uma conta Meta ativa para cadastrar leads dessa origem.");
   }
 
   if (payload.owner_profile_id !== profile.id) {
@@ -676,28 +912,67 @@ function assertCanCreateLead(profile: ProfileRow, payload: LeadInsert) {
 
 function assertCanApplyLeadUpdate(
   profile: ProfileRow,
-  payload: Database["public"]["Tables"]["leads"]["Update"]
+  payload: Database["public"]["Tables"]["leads"]["Update"],
+  hasMetaConnection: boolean
 ) {
-  if (profile.role !== "supervisor" && payload.source === "meta_lead_ads") {
-    throw new Error("Apenas supervisores podem usar origem Meta Ads.");
+  if (profile.role !== "supervisor" && payload.source === "meta_lead_ads" && !hasMetaConnection) {
+    throw new Error("Conecte uma conta Meta ativa para usar essa origem.");
   }
 }
 
-function assertCanManageLead(profile: ProfileRow, lead: LeadRow, action: "editar" | "excluir") {
-  if (canManageLead(profile, lead)) {
+function assertCanManageLead(
+  profile: ProfileRow,
+  lead: LeadRow,
+  action: "editar" | "excluir",
+  hasMetaConnection: boolean
+) {
+  if (canManageLead(profile, lead, hasMetaConnection)) {
     return;
   }
 
-  if (lead.source === "meta_lead_ads") {
-    throw new Error(`Apenas supervisores podem ${action} leads do Meta Ads.`);
+  if (lead.source === "meta_lead_ads" && !hasMetaConnection) {
+    throw new Error(`Conecte uma conta Meta ativa para ${action} leads dessa origem.`);
   }
 
   throw new Error(`Sem permissao para ${action} este lead.`);
 }
 
-function normalizeWebhookLeadSource(value: unknown): LeadRow["source"] {
+function assertCanAccessLead(profile: ProfileRow, lead: LeadRow, action: "visualizar" | "comentar") {
+  if (profile.role === "supervisor") {
+    return;
+  }
+
+  if (lead.owner_profile_id === profile.id) {
+    return;
+  }
+
+  throw new Error(`Sem permissao para ${action} este lead.`);
+}
+
+function normalizeWebhookLeadSource(
+  value: unknown,
+  options?: { allowOfficialMetaSource?: boolean }
+): LeadRow["source"] {
   const source = normalizeLeadSource(value);
-  return safeWebhookLeadSources.has(source) ? source : "make_zapier";
+  const allowedSources = options?.allowOfficialMetaSource
+    ? safeOfficialWebhookLeadSources
+    : safeWebhookLeadSources;
+
+  return allowedSources.has(source) ? source : "make_zapier";
+}
+
+function normalizeLeadCommentBody(value: unknown) {
+  const body = stringOrNull(value)?.trim();
+
+  if (!body) {
+    throw new Error("Comentario vazio.");
+  }
+
+  if (body.length > 2000) {
+    throw new Error("Comentario muito longo. Use ate 2000 caracteres.");
+  }
+
+  return body;
 }
 
 function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInsert {
@@ -936,8 +1211,12 @@ function buildLeadUpdate(input: LeadCreateInput): Database["public"]["Tables"]["
   });
 }
 
-function mapLeadRowToLead(row: LeadRow, profile?: ProfileRow): Lead {
-  const canManage = profile ? canManageLead(profile, row) : false;
+function mapLeadRowToLead(
+  row: LeadRow,
+  profile?: ProfileRow,
+  hasMetaConnection = false
+): Lead {
+  const canManage = profile ? canManageLead(profile, row, hasMetaConnection) : false;
 
   return {
     id: row.id,

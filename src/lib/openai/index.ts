@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getServerEnv, requireIntegrationEnv } from "@/lib/env/server";
 import {
   buildCampaignTextPrompt,
   buildComplianceQuestionsPrompt,
@@ -50,6 +51,10 @@ export type CampaignTextInput = {
   channel?: "meta_ads" | "landing_page" | "email" | "other";
   tone?: string;
   constraints?: string[];
+};
+
+export type OpenAIRequestOptions = {
+  apiKey?: string | null;
 };
 
 export type CampaignTextOutput = {
@@ -122,18 +127,21 @@ const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_MODEL = "gpt-4o-mini";
 
 export async function generateCampaignText(
-  input: CampaignTextInput
+  input: CampaignTextInput,
+  options?: OpenAIRequestOptions
 ): Promise<CampaignTextOutput> {
   return generateStructuredOutput<CampaignTextOutput>({
     schemaName: "leadhealth_campaign_text",
     schema: campaignTextSchema,
     maxOutputTokens: 900,
-    userPrompt: buildCampaignTextPrompt(input)
+    userPrompt: buildCampaignTextPrompt(input),
+    apiKey: options?.apiKey
   });
 }
 
 export async function generateComplianceQuestions(
-  input: ComplianceQuestionsInput
+  input: ComplianceQuestionsInput,
+  options?: OpenAIRequestOptions
 ): Promise<ComplianceQuestionsOutput> {
   const maxQuestions = clampInteger(input.maxQuestions ?? 6, 3, 10);
 
@@ -144,12 +152,14 @@ export async function generateComplianceQuestions(
     userPrompt: buildComplianceQuestionsPrompt({
       ...input,
       maxQuestions
-    })
+    }),
+    apiKey: options?.apiKey
   });
 }
 
 export async function generateWhatsAppMessage(
-  input: WhatsAppMessageInput
+  input: WhatsAppMessageInput,
+  options?: OpenAIRequestOptions
 ): Promise<WhatsAppMessageOutput> {
   const stage = input.stage ?? "new";
 
@@ -160,36 +170,42 @@ export async function generateWhatsAppMessage(
     userPrompt: buildWhatsAppMessagePrompt({
       ...input,
       stage
-    })
+    }),
+    apiKey: options?.apiKey
   });
 }
 
 export async function reviewComplianceText(
-  input: ComplianceReviewInput
+  input: ComplianceReviewInput,
+  options?: OpenAIRequestOptions
 ): Promise<ComplianceReviewOutput> {
   return generateStructuredOutput<ComplianceReviewOutput>({
     schemaName: "leadhealth_compliance_review",
     schema: complianceReviewSchema,
     maxOutputTokens: 900,
-    userPrompt: buildComplianceReviewPrompt(input)
+    userPrompt: buildComplianceReviewPrompt(input),
+    apiKey: options?.apiKey
   });
 }
 
 async function generateStructuredOutput<T>({
+  apiKey,
   maxOutputTokens,
   schema,
   schemaName,
   userPrompt
 }: {
+  apiKey?: string | null;
   maxOutputTokens: number;
   schema: JsonSchema;
   schemaName: string;
   userPrompt: string;
 }): Promise<T> {
+  const resolvedApiKey = getOpenAIApiKey(apiKey);
   const response = await fetch(OPENAI_RESPONSES_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${getOpenAIApiKey()}`,
+      Authorization: `Bearer ${resolvedApiKey}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
@@ -240,21 +256,26 @@ async function generateStructuredOutput<T>({
   }
 }
 
-function getOpenAIApiKey() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+function getOpenAIApiKey(override?: string | null) {
+  const normalizedOverride = override?.trim();
 
-  if (!apiKey) {
+  if (normalizedOverride) {
+    return normalizedOverride;
+  }
+
+  try {
+    requireIntegrationEnv("openai");
+    return getServerEnv("OPENAI_API_KEY");
+  } catch {
     throw new LeadHealthOpenAIError(
-      "OPENAI_API_KEY nao configurada. Configure a chave no ambiente do servidor para usar a IA.",
+      "Nenhuma chave OpenAI foi encontrada. Cadastre a chave na area Empresa ou configure OPENAI_API_KEY no servidor.",
       "missing_api_key"
     );
   }
-
-  return apiKey;
 }
 
 function getOpenAIModel() {
-  return process.env.OPENAI_MODEL?.trim() || DEFAULT_MODEL;
+  return getServerEnv("OPENAI_MODEL") || DEFAULT_MODEL;
 }
 
 function extractOutputText(payload: OpenAIResponsePayload | null) {
@@ -289,7 +310,7 @@ function extractOutputText(payload: OpenAIResponsePayload | null) {
 
 function getRequestErrorMessage(status: number, payload: OpenAIResponsePayload | null) {
   if (status === 401) {
-    return "A chave da OpenAI parece invalida ou sem permissao. Verifique OPENAI_API_KEY no servidor.";
+    return "A chave da OpenAI parece invalida ou sem permissao. Verifique a chave conectada na area Empresa ou no servidor.";
   }
 
   if (status === 429) {

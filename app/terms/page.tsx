@@ -1,18 +1,19 @@
-import type { Metadata } from "next";
 import { LegalPage } from "@/components/public/legal-page";
+import { buildLegalMetadata } from "@/lib/site/legal";
 
-export const metadata: Metadata = {
-  title: "Termos de Uso | LeadHealth",
+export const metadata = buildLegalMetadata({
+  title: "Termos de Uso",
+  pathname: "/terms",
   description:
-    "Rascunho publico dos termos de uso da LeadHealth para operacao inicial da plataforma."
-};
+    "Termos publicos de uso da LeadHealth para operacao do CRM, integracoes, IA, captura de leads e recursos comerciais."
+});
 
 const sections = [
   {
     title: "1. Objeto do servico",
     body: [
       "A LeadHealth disponibiliza uma plataforma online para organizacao de leads, gestao comercial, criacao assistida de campanhas, operacao de equipe e integracoes com ferramentas de marketing, IA, automacao e pagamento.",
-      "Os recursos disponiveis podem variar conforme o plano contratado, o ambiente tecnico configurado e a maturidade do produto. Funcionalidades em fase inicial podem sofrer ajustes sem aviso previo para melhoria continua."
+      "Os recursos disponiveis podem variar conforme o plano contratado, o ambiente tecnico configurado e a maturidade do produto. Funcionalidades em fase inicial podem sofrer ajustes para manutencao, seguranca e melhoria continua."
     ]
   },
   {
@@ -46,7 +47,7 @@ const sections = [
   {
     title: "6. Vigencia e atualizacoes",
     body: [
-      "Estes termos podem ser atualizados conforme a evolucao do produto, da operacao comercial e das integracoes suportadas. A versao publicada nesta URL serve como referencia publica inicial para uso da plataforma.",
+      "Estes termos podem ser atualizados conforme a evolucao do produto, da operacao comercial e das integracoes suportadas. A versao publicada nesta URL serve como referencia publica para uso da plataforma.",
       "Antes da contratacao definitiva em escala, recomenda-se consolidar estes termos com apoio juridico e comercial para refletir precificacao, SLA, suporte, cancelamento, privacidade e demais condicoes aplicaveis."
     ]
   }

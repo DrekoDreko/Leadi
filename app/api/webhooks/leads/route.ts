@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { BillingResourceAccessError } from "@/lib/billing/subscription-limits.server";
 import { createLeadFromWebhook } from "@/lib/leads/repository.server";
 import { normalizeLeadSourceOrNull } from "@/lib/leads/normalization";
 import { recordLeadWebhookEvent } from "@/lib/leads/webhook-events.server";
@@ -28,9 +29,17 @@ export async function POST(request: Request) {
       integrationId: webhookAuth.integrationId,
       leadId: result.lead.id,
       status: "processed",
-      httpStatus: 201,
-      rawPayload: body,
-      safeHeaders: getSafeWebhookHeaders(request)
+      httpStatus: result.status === "created" ? 201 : 200,
+      rawPayload: {
+        ...(isRecord(body) ? body : { payload: body }),
+        duplicate: result.status === "duplicate",
+        duplicate_reason: result.duplicateReason ?? null
+      },
+      safeHeaders: getSafeWebhookHeaders(request),
+      errorMessage:
+        result.status === "duplicate"
+          ? `Lead duplicado absorvido pelo webhook (${result.duplicateReason ?? "desconhecido"}).`
+          : undefined
     });
 
     return NextResponse.json(
@@ -41,7 +50,7 @@ export async function POST(request: Request) {
         mode: hasSupabaseServiceRole() ? "supabase" : "not-configured",
         status: result.status
       },
-      { status: 201 }
+      { status: result.status === "created" ? 201 : 200 }
     );
   } catch (error) {
     console.error(error);
@@ -195,6 +204,10 @@ function normalizePayloadKey(value: string) {
 }
 
 function getWebhookLeadErrorMessage(error: unknown) {
+  if (error instanceof BillingResourceAccessError) {
+    return error.access.message;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
@@ -249,6 +262,10 @@ function getWebhookLeadErrorMessage(error: unknown) {
 }
 
 function getWebhookLeadErrorStatus(error: unknown) {
+  if (error instanceof BillingResourceAccessError) {
+    return error.status;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Webhook nao autorizado") || message.includes("Webhook token ausente")) {

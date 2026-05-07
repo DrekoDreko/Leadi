@@ -4,30 +4,40 @@ Arquivo gerado a partir de `TAREFAS.md` para visualizar as tarefas por tema reco
 
 ## Integracao Make/Zapier e webhooks
 
-- [ ] **F5.7 - Criar logs de webhooks recebidos**
-- [ ] **Eu:** criar cenario no Make ou Zapier conectando Meta Lead Ads ao webhook da LeadHealth.
-- [ ] **F5.8 - Testar recebimento de lead em tempo quase real**
+- [x] **F5.7 - Criar logs de webhooks recebidos**
+- [x] **Eu:** criar cenario no Make ou Zapier conectando Meta Lead Ads ao webhook da LeadHealth.
+- [x] **F5.8 - Testar recebimento de lead em tempo quase real**
 
 ## Meta Lead Ads oficial e marketing
 
-- [ ] **Eu:** criar ou confirmar conta Meta for Developers.
-- [ ] **Eu:** criar app da Meta para a LeadHealth.
-- [ ] **Eu:** obter `META_APP_ID` e `META_APP_SECRET`.
-- [ ] **Eu:** definir `META_VERIFY_TOKEN`.
-- [ ] **F6.2 - Criar GET /api/meta/webhook para verificacao**
-- [ ] **F6.3 - Criar POST /api/meta/webhook para eventos leadgen**
-- [ ] **F6.4 - Validar assinatura dos eventos Meta**
-- [ ] **F6.5 - Criar servico para buscar dados do lead pelo leadgen_id**
-- [ ] **F6.6 - Criar estrutura para tokens, paginas e formularios Meta**
-- [ ] **F6.7 - Salvar leads diretos com source = meta_lead_ads**
-- [ ] **F6.8 - Tratar duplicidade por meta_lead_id**
-- [ ] **F6.9 - Configurar webhook no painel da Meta**
-- [ ] **F6.11 - Testar lead real vindo de formulario Meta**
+- [x] **Eu:** criar ou confirmar conta Meta for Developers.
+- [x] **Eu:** criar app da Meta para a LeadHealth.
+- [x] **Eu:** obter `META_APP_ID` e `META_APP_SECRET`.
+- [x] **Eu:** definir `META_VERIFY_TOKEN`.
+- [x] **F6.2 - Criar GET /api/meta/webhook para verificacao**
+- [x] **F6.3 - Criar POST /api/meta/webhook para eventos leadgen**
+- [x] **F6.4 - Validar assinatura dos eventos Meta**
+- [x] **F6.5 - Criar servico para buscar dados do lead pelo leadgen_id**
+- [x] **F6.6 - Criar estrutura para tokens, paginas e formularios Meta**
+- [x] **F6.7 - Salvar leads diretos com source = meta_lead_ads**
+- [x] **F6.8 - Tratar duplicidade por meta_lead_id**
+- [x] **F6.9 - Configurar webhook no painel da Meta**
+- [x] **F6.11 - Testar lead real vindo de formulario Meta**
+
+## Contas conectadas da empresa
+
+- [x] **F6.12 - Criar pagina /dashboard/empresa para contas conectadas**
+- [x] **F6.13 - Criar estrutura de dados para contas conectadas**
+- [x] **F6.14 - Implementar conexao Meta com OAuth e sincronizacao de ativos**
+- [x] **F6.15 - Implementar conexao OpenAI por API key do cliente**
+- [x] **F6.16 - Adaptar campanhas para usar contas conectadas**
+- [x] **F6.17 - Criar publicacao de campanha no Meta com rascunho controlado**
+- [x] **F6.18 - Adicionar testes e verificacoes do fluxo de conexao**
 
 ## Privacidade, termos e revisao externa
 
 - [ ] **Eu:** configurar dominio, politica de privacidade e termos exigidos pela Meta.
-- [ ] **F6.1 - Criar paginas publicas de privacidade e termos**
+- [x] **F6.1 - Criar paginas publicas de privacidade e termos**
 - [ ] **F6.10 - Passar pelo App Review se necessario**
 
 ## Pagamentos e planos

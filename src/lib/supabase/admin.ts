@@ -1,20 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
+import { getServerEnv, isIntegrationConfigured, requireIntegrationEnv } from "@/lib/env/server";
 import type { Database } from "./database.types";
 import { getSupabaseConfig } from "./config";
 
 export function hasSupabaseServiceRole() {
-  const { url } = getSupabaseConfig();
-
-  return Boolean(url && process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+  return isIntegrationConfigured("supabase_admin");
 }
 
 export function createSupabaseAdminClient() {
   const { url } = getSupabaseConfig();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-  if (!url || !serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY nao configurada.");
-  }
+  requireIntegrationEnv("supabase_admin");
+  const serviceRoleKey = getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
 
   return createClient<Database>(url, serviceRoleKey, {
     auth: {

@@ -5,17 +5,20 @@ import Link from "next/link";
 import {
   AlertTriangle,
   CheckCircle2,
+  Clock3,
   Edit3,
   Loader2,
   Mail,
   MessageCircle,
   PhoneCall,
   Save,
+  Send,
   Trash2,
   UserRound,
   X
 } from "lucide-react";
 import type { Lead } from "@/data/mock";
+import type { LeadComment } from "@/lib/leads/comments";
 
 type LeadUpdateMode = "supabase" | "mock" | "not-configured" | "unauthenticated" | "error";
 
@@ -55,6 +58,18 @@ type LeadDeleteResponse = {
   mode?: LeadUpdateMode;
 };
 
+type LeadCommentsResponse = {
+  comments?: LeadComment[];
+  error?: string;
+  mode?: LeadUpdateMode;
+};
+
+type LeadCommentResponse = {
+  comment?: LeadComment;
+  error?: string;
+  mode?: LeadUpdateMode;
+};
+
 const stageOptions = [
   { value: "new", label: "Novo lead" },
   { value: "qualification", label: "Qualificação" },
@@ -82,6 +97,11 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
   const [formValues, setFormValues] = useState<LeadEditValues | null>(null);
   const [errors, setErrors] = useState<LeadEditErrors>({});
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [comments, setComments] = useState<LeadComment[]>([]);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
+  const [commentsStatus, setCommentsStatus] = useState<"idle" | "loading" | "ready">("idle");
+  const [commentDraft, setCommentDraft] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [status, setStatus] = useState<{
     type: "error" | "success";
     message: string;
@@ -106,6 +126,57 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
     setIsConfirmingDelete(false);
     setIsDeleting(false);
     setDeleteError(null);
+    setComments([]);
+    setCommentsError(null);
+    setCommentsStatus("idle");
+    setCommentDraft("");
+    setIsSubmittingComment(false);
+  }, [lead]);
+
+  useEffect(() => {
+    if (!lead) {
+      return;
+    }
+
+    let active = true;
+    setCommentsStatus("loading");
+    setCommentsError(null);
+
+    void fetch(`/api/leads/${encodeURIComponent(lead.id)}/comments`, {
+      method: "GET",
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        const data = await parseLeadCommentsResponse(response);
+
+        if (!response.ok) {
+          throw new Error(getFriendlyLeadCommentError(data.error, "load"));
+        }
+
+        if (!active) {
+          return;
+        }
+
+        setComments(data.comments ?? []);
+        setCommentsStatus("ready");
+      })
+      .catch((error) => {
+        if (!active) {
+          return;
+        }
+
+        setComments([]);
+        setCommentsError(
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel carregar os comentarios deste lead."
+        );
+        setCommentsStatus("ready");
+      });
+
+    return () => {
+      active = false;
+    };
   }, [lead]);
 
   useEffect(() => {
@@ -150,6 +221,8 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
   }
 
   const activeLead = lead;
+  const emailHref = buildEmailHref(lead.email);
+  const phoneHref = buildPhoneHref(lead.phone);
 
   const closePopup = () => {
     if (!isSubmitting && !isDeleting) {
@@ -289,6 +362,52 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
     }
   }
 
+  async function handleCommentSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const body = commentDraft.trim();
+
+    if (!body) {
+      setCommentsError("Escreva um comentario antes de enviar.");
+      return;
+    }
+
+    setCommentsError(null);
+    setIsSubmittingComment(true);
+
+    try {
+      const response = await fetch(`/api/leads/${encodeURIComponent(activeLead.id)}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ body })
+      });
+      const data = await parseLeadCommentResponse(response);
+
+      if (!response.ok || !data.comment) {
+        throw new Error(getFriendlyLeadCommentError(data.error, "create"));
+      }
+
+      setComments((currentComments) => [...currentComments, data.comment!]);
+      setCommentDraft("");
+      setCommentsStatus("ready");
+      setStatus({
+        type: "success",
+        message:
+          data.mode === "not-configured"
+            ? "Comentario adicionado no modo demonstracao."
+            : "Comentario salvo no lead."
+      });
+    } catch (error) {
+      setCommentsError(
+        error instanceof Error ? error.message : "Nao foi possivel salvar o comentario agora."
+      );
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  }
+
   const profileItems = [
     { icon: UserRound, label: "Nome", value: lead.name },
     { icon: UserRound, label: "Empresa", value: lead.companyName ?? "Empresa nao informada" },
@@ -350,9 +469,18 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
             )}
             {!isEditing && (
               <>
-                <button className="icon-button" type="button" title="Enviar e-mail">
+                <a
+                  className="icon-button"
+                  href={emailHref ?? "#"}
+                  onClick={(event) => {
+                    if (!emailHref) {
+                      event.preventDefault();
+                    }
+                  }}
+                  title="Enviar e-mail"
+                >
                   <Mail size={18} aria-hidden="true" />
-                </button>
+                </a>
                 <Link
                   className="icon-button"
                   href={`/dashboard/whatsapp?lead=${lead.id}`}
@@ -360,9 +488,18 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
                 >
                   <MessageCircle size={18} aria-hidden="true" />
                 </Link>
-                <button className="icon-button" type="button" title="Ligar">
+                <a
+                  className="icon-button"
+                  href={phoneHref ?? "#"}
+                  onClick={(event) => {
+                    if (!phoneHref) {
+                      event.preventDefault();
+                    }
+                  }}
+                  title="Ligar"
+                >
                   <PhoneCall size={18} aria-hidden="true" />
-                </button>
+                </a>
               </>
             )}
             <button
@@ -594,7 +731,7 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
             </div>
           </form>
         ) : (
-          <div className="grid gap-4 pt-5 lg:grid-cols-[minmax(0,1fr)_310px]">
+          <div className="grid gap-4 pt-5 lg:grid-cols-[minmax(0,1.1fr)_360px]">
             <div className="min-w-0 space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 {profileItems.map((item) => (
@@ -624,6 +761,89 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
                 <p className="mt-4 rounded-[20px] bg-white/52 p-4 text-sm leading-6 text-ink/68">
                   {lead.notes}
                 </p>
+              </section>
+
+              <section className="rounded-[28px] bg-white/42 p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cobalt text-white">
+                      <MessageCircle size={18} aria-hidden="true" />
+                    </span>
+                    <div>
+                      <p className="text-sm text-ink/54">Historico do lead</p>
+                      <h3 className="font-semibold">Comentarios internos</h3>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-ink/62">
+                    {comments.length}
+                  </span>
+                </div>
+
+                <form className="mb-4 space-y-3" onSubmit={handleCommentSubmit}>
+                  <textarea
+                    className="liquid-input min-h-[120px] resize-y"
+                    disabled={isSubmittingComment}
+                    maxLength={2000}
+                    onChange={(event) => setCommentDraft(event.target.value)}
+                    placeholder="Escreva um comentario para orientar a próxima abordagem."
+                    value={commentDraft}
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-medium text-ink/46">
+                      {commentDraft.trim().length}/2000 caracteres
+                    </span>
+                    <button
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cobalt/90 disabled:cursor-not-allowed disabled:opacity-70"
+                      disabled={isSubmittingComment}
+                      type="submit"
+                    >
+                      {isSubmittingComment ? (
+                        <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+                      ) : (
+                        <Send size={16} aria-hidden="true" />
+                      )}
+                      {isSubmittingComment ? "Enviando..." : "Salvar comentario"}
+                    </button>
+                  </div>
+                </form>
+
+                {commentsError && (
+                  <p className="mb-4 rounded-[20px] bg-signal/26 px-4 py-3 text-sm font-medium text-ink">
+                    {commentsError}
+                  </p>
+                )}
+
+                <div className="space-y-3">
+                  {commentsStatus === "loading" ? (
+                    <div className="flex items-center gap-2 rounded-[20px] bg-white/60 px-4 py-3 text-sm text-ink/62">
+                      <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+                      Carregando comentarios...
+                    </div>
+                  ) : comments.length === 0 ? (
+                    <div className="rounded-[20px] border border-dashed border-ink/12 bg-white/54 px-4 py-5 text-sm leading-6 text-ink/56">
+                      Nenhum comentario registrado ainda. Use esse espaço para contexto de ligação,
+                      objeções e próximos passos.
+                    </div>
+                  ) : (
+                    comments.map((comment) => (
+                      <article className="rounded-[22px] bg-white/58 p-4" key={comment.id}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-ink">{comment.authorName}</p>
+                            <p className="mt-1 text-xs text-ink/46">{comment.authorEmail}</p>
+                          </div>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white/72 px-3 py-1.5 text-[11px] font-semibold text-ink/56">
+                            <Clock3 size={12} aria-hidden="true" />
+                            {formatCommentTimestamp(comment.createdAt)}
+                          </span>
+                        </div>
+                        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-ink/70">
+                          {comment.body}
+                        </p>
+                      </article>
+                    ))
+                  )}
+                </div>
               </section>
             </div>
 
@@ -859,6 +1079,22 @@ async function parseLeadDeleteResponse(response: Response): Promise<LeadDeleteRe
   }
 }
 
+async function parseLeadCommentsResponse(response: Response): Promise<LeadCommentsResponse> {
+  try {
+    return (await response.json()) as LeadCommentsResponse;
+  } catch {
+    return {};
+  }
+}
+
+async function parseLeadCommentResponse(response: Response): Promise<LeadCommentResponse> {
+  try {
+    return (await response.json()) as LeadCommentResponse;
+  } catch {
+    return {};
+  }
+}
+
 function getFriendlyUpdateError(error?: string) {
   if (!error) {
     return "Nao foi possivel atualizar o lead agora.";
@@ -888,12 +1124,26 @@ function getFriendlyDeleteError(error?: string) {
     return "Sua sessao expirou. Entre novamente para excluir leads.";
   }
 
-  if (error.includes("Apenas usuarios supervisores") || error.includes("Apenas supervisores")) {
-    return "Apenas usuarios supervisores podem excluir leads.";
+  if (error.includes("Conecte uma conta Meta ativa")) {
+    return "Conecte uma conta Meta ativa para excluir leads vindos do Meta Ads.";
   }
 
   if (error.includes("Supabase nao configurado")) {
     return "Supabase ainda nao configurado. A exclusao exige a base real configurada.";
+  }
+
+  return error;
+}
+
+function getFriendlyLeadCommentError(error: string | undefined, action: "load" | "create") {
+  if (!error) {
+    return action === "load"
+      ? "Nao foi possivel carregar os comentarios agora."
+      : "Nao foi possivel salvar o comentario agora.";
+  }
+
+  if (error.includes("sessao expirou")) {
+    return "Sua sessao expirou. Entre novamente para comentar no lead.";
   }
 
   return error;
@@ -905,6 +1155,15 @@ function stageToValue(stage: string) {
 
 function editableValue(value: string) {
   return emptyDisplayValues.has(value) ? "" : value;
+}
+
+function buildPhoneHref(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return digits ? `tel:${digits}` : undefined;
+}
+
+function buildEmailHref(email: string) {
+  return email && !emptyDisplayValues.has(email) ? `mailto:${email}` : undefined;
 }
 
 function normalizeDateTimeLocal(value: string) {
@@ -933,6 +1192,21 @@ function toDateTimeLocal(value?: string | null) {
 
   const timezoneOffset = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+}
+
+function formatCommentTimestamp(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }
 
 function fieldClass(hasError: boolean) {

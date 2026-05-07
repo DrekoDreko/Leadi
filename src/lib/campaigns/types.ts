@@ -1,3 +1,14 @@
+export type CampaignPublishMode = "draft" | "manual_review" | "scheduled" | "paused";
+
+export type CampaignPublicationStatus =
+  | "not_connected"
+  | "ready_to_prepare"
+  | "draft_created"
+  | "pending_review"
+  | "published"
+  | "paused"
+  | "failed";
+
 export type CampaignGenerationForm = {
   brokerageName: string;
   audience: string;
@@ -5,6 +16,15 @@ export type CampaignGenerationForm = {
   region: string;
   differentiator: string;
   tone: string;
+  connectedAccountId: string | null;
+  metaPageId: string | null;
+  metaAdAccountId: string | null;
+  metaLeadFormId: string | null;
+  publishMode: CampaignPublishMode;
+  publicationStatus: CampaignPublicationStatus;
+  metaCampaignId: string | null;
+  metaAdSetId: string | null;
+  metaAdId: string | null;
 };
 
 export type CampaignStatus = "generated" | "archived";
@@ -26,6 +46,15 @@ export type CampaignHistoryItem = {
   createdByProfileId: string;
   status: CampaignStatus;
   product: string;
+  connectedAccountId: string | null;
+  metaPageId: string | null;
+  metaAdAccountId: string | null;
+  metaLeadFormId: string | null;
+  publishMode: CampaignPublishMode;
+  publicationStatus: CampaignPublicationStatus;
+  metaCampaignId: string | null;
+  metaAdSetId: string | null;
+  metaAdId: string | null;
   campaignName: string;
   audience: string;
   offer: string;

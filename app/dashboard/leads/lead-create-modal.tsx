@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { CheckCircle2, Loader2, Plus, X } from "lucide-react";
+import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import type { Lead } from "@/data/mock";
+import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import type { LeadDataMode } from "@/lib/leads/repository";
 import { leadStageOptions } from "@/lib/leads/stages";
 
 type LeadCreateModalProps = {
   canCreateMetaAdsLeads: boolean;
+  createLeadAccess: ResourceAccessSummary;
   open: boolean;
   onClose: () => void;
   onCreated: (lead: Lead, mode?: LeadDataMode) => void;
@@ -46,6 +49,7 @@ const sourceOptions = [
 
 export function LeadCreateModal({
   canCreateMetaAdsLeads,
+  createLeadAccess,
   open,
   onClose,
   onCreated
@@ -91,15 +95,47 @@ export function LeadCreateModal({
     return null;
   }
 
-  const visibleSourceOptions = canCreateMetaAdsLeads
-    ? sourceOptions
-    : sourceOptions.filter((option) => option.value !== "meta_lead_ads");
-
   const closeModal = () => {
     if (!isSubmitting) {
       onClose();
     }
   };
+
+  if (!createLeadAccess.allowed) {
+    return (
+      <div
+        aria-labelledby="lead-create-title"
+        aria-modal="true"
+        className="fixed inset-0 z-50 flex items-end bg-ink/42 px-3 py-4 backdrop-blur-md sm:items-center sm:px-5"
+        onClick={closeModal}
+        role="dialog"
+      >
+        <section
+          className="mx-auto w-full max-w-3xl rounded-[32px] border border-white/70 bg-cloud/95 p-4 shadow-glass sm:p-6"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="flex items-start justify-between gap-4 border-b border-ink/10 pb-5">
+            <div>
+              <p className="text-sm font-medium text-cobalt">CRM</p>
+              <h2 className="mt-2 text-2xl font-semibold sm:text-3xl" id="lead-create-title">
+                Novo lead indisponível
+              </h2>
+            </div>
+            <button className="icon-button shrink-0" onClick={closeModal} type="button" title="Fechar">
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="pt-5">
+            <SubscriptionAccessBanner notice={createLeadAccess} />
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  const visibleSourceOptions = canCreateMetaAdsLeads
+    ? sourceOptions
+    : sourceOptions.filter((option) => option.value !== "meta_lead_ads");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

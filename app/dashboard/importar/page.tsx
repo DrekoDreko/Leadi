@@ -1,9 +1,16 @@
+import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { PageHeading } from "@/components/dashboard/widgets";
+import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
+import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
 import { requireImportPermission } from "@/lib/workspaces/context";
 import { CsvImportWorkspace } from "./csv-import-workspace";
 
 export default async function ImportarLeadsPage() {
-  const context = await requireImportPermission();
+  const [context, createLeadAccess, connectionState] = await Promise.all([
+    requireImportPermission(),
+    getCurrentResourceAccess("lead_creation"),
+    getConnectedAccountsForCurrentUser()
+  ]);
   const description = context.isSupervisor
     ? "Importe uma base para a equipe e distribua os leads entre vendedores."
     : "Importe leads apenas para a sua propria carteira comercial.";
@@ -11,8 +18,12 @@ export default async function ImportarLeadsPage() {
   return (
     <div className="space-y-4">
       <PageHeading eyebrow="Importacao" title="Importar leads" description={description} />
+      {!createLeadAccess.allowed ? <SubscriptionAccessBanner notice={createLeadAccess} /> : null}
 
-      <CsvImportWorkspace canCreateMetaAdsLeads={context.isSupervisor} />
+      <CsvImportWorkspace
+        canCreateMetaAdsLeads={Boolean(connectionState.metaConnection)}
+        createLeadAccess={createLeadAccess}
+      />
     </div>
   );
 }

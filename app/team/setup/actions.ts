@@ -1,6 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  BillingResourceAccessError,
+  assertCurrentResourceAccess
+} from "@/lib/billing/subscription-limits.server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -33,23 +37,38 @@ export async function createInviteAction(): Promise<CreateInviteResult> {
     };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("create_workspace_invite").single();
+  try {
+    await assertCurrentResourceAccess("team_invites");
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("create_workspace_invite").single();
 
-  if (error || !data) {
+    if (error || !data) {
+      return {
+        ok: false,
+        error: "Nao foi possivel gerar o convite agora."
+      };
+    }
+
+    revalidatePath("/team/setup");
+
+    return {
+      ok: true,
+      invitePath: data.invite_url_path,
+      expiresAt: data.expires_at
+    };
+  } catch (error) {
+    if (error instanceof BillingResourceAccessError) {
+      return {
+        ok: false,
+        error: error.access.message
+      };
+    }
+
     return {
       ok: false,
       error: "Nao foi possivel gerar o convite agora."
     };
   }
-
-  revalidatePath("/team/setup");
-
-  return {
-    ok: true,
-    invitePath: data.invite_url_path,
-    expiresAt: data.expires_at
-  };
 }
 
 export async function updateTeamNameAction(formData: FormData): Promise<UpdateTeamNameResult> {

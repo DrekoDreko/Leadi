@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Plus, Search } from "lucide-react";
+import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { BrandMark } from "@/components/brand-mark";
 import { getDashboardNavItems } from "@/lib/navigation";
+import type { SubscriptionNotice } from "@/lib/billing/subscription-limits.server";
 import type { DashboardNavVariant } from "@/lib/workspaces/context";
 
 export function DashboardShell({
@@ -12,12 +14,14 @@ export function DashboardShell({
   displayName = "Usuario",
   navVariant = "supervisor-team",
   preview = false,
+  subscriptionNotice = null,
   workspaceName = "LeadHealth"
 }: {
   children: React.ReactNode;
   displayName?: string;
   navVariant?: DashboardNavVariant;
   preview?: boolean;
+  subscriptionNotice?: SubscriptionNotice | null;
   workspaceName?: string;
 }) {
   const pathname = usePathname();
@@ -159,6 +163,7 @@ export function DashboardShell({
             </Link>
           </nav>
 
+          {subscriptionNotice ? <SubscriptionAccessBanner notice={subscriptionNotice} /> : null}
           {children}
         </div>
       </div>

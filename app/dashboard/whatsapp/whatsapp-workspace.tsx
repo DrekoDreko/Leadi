@@ -12,8 +12,10 @@ import {
   Send,
   Sparkles
 } from "lucide-react";
+import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { Metric, PageHeading } from "@/components/dashboard/widgets";
 import type { Lead } from "@/data/mock";
+import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import {
   buildFallbackWhatsAppMessage,
   buildWhatsAppStageObjective,
@@ -48,7 +50,8 @@ export function WhatsAppWorkspace({
   initialMessages,
   historyMode,
   historyMessage,
-  brokerageName
+  brokerageName,
+  generateAccess
 }: {
   leads: Lead[];
   initialLeadId: string | null;
@@ -56,6 +59,7 @@ export function WhatsAppWorkspace({
   historyMode: WhatsAppListState["mode"];
   historyMessage?: string;
   brokerageName: string;
+  generateAccess: ResourceAccessSummary;
 }) {
   const [selectedLeadId, setSelectedLeadId] = useState(initialLeadId ?? leads[0]?.id ?? null);
   const [selectedStage, setSelectedStage] = useState<WhatsAppStage>(() =>
@@ -186,7 +190,7 @@ export function WhatsAppWorkspace({
         {selectedLead ? (
           <button
             className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={isGenerating}
+            disabled={isGenerating || !generateAccess.allowed}
             onClick={generateMessage}
             type="button"
           >
@@ -207,6 +211,8 @@ export function WhatsAppWorkspace({
           </Link>
         )}
       </PageHeading>
+
+      {!generateAccess.allowed ? <SubscriptionAccessBanner notice={generateAccess} /> : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric label="Conversas" value={metrics.conversations} note={metrics.conversationsNote} tone="blue" />

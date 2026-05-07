@@ -65,8 +65,8 @@ function getUpdateLeadErrorMessage(error: unknown) {
     return "Nao encontramos seu perfil no CRM. Recarregue a pagina ou fale com o administrador.";
   }
 
-  if (message.includes("Apenas supervisores")) {
-    return "Apenas usuarios supervisores podem editar leads gerados pelo Meta Ads.";
+  if (message.includes("Conecte uma conta Meta ativa")) {
+    return "Conecte uma conta Meta ativa para editar leads dessa origem.";
   }
 
   if (message.includes("Sem permissao")) {
@@ -95,8 +95,8 @@ function getDeleteLeadErrorMessage(error: unknown) {
     return "Lead nao encontrado ou ja removido.";
   }
 
-  if (message.includes("Apenas supervisores")) {
-    return "Apenas usuarios supervisores podem excluir leads gerados pelo Meta Ads.";
+  if (message.includes("Conecte uma conta Meta ativa")) {
+    return "Conecte uma conta Meta ativa para excluir leads dessa origem.";
   }
 
   if (message.includes("Sem permissao")) {
@@ -117,7 +117,7 @@ function getLeadMutationErrorStatus(error: unknown) {
     return 401;
   }
 
-  if (message.includes("Apenas supervisores") || message.includes("Sem permissao")) {
+  if (message.includes("Conecte uma conta Meta ativa") || message.includes("Sem permissao")) {
     return 403;
   }
 

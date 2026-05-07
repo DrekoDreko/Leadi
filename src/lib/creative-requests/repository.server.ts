@@ -1,3 +1,4 @@
+import { assertOrganizationResourceAccess } from "@/lib/billing/subscription-limits.server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -221,6 +222,7 @@ export async function createCreativeRequestForCurrentUser(
   }
 
   const profile = await getCurrentProfile();
+  await assertOrganizationResourceAccess(profile.organization_id, "creative_requests");
   const supabase = await createSupabaseServerClient();
   const payload = buildCreativeRequestInsert(profile, input);
   const { data, error } = await supabase

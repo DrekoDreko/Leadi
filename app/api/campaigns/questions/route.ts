@@ -6,6 +6,11 @@ import {
   type ComplianceQuestionsInput,
   type ComplianceQuestionsOutput
 } from "@/lib/openai";
+import { resolveOpenAIKeyForOrganization } from "@/lib/integrations/repository.server";
+import {
+  BillingResourceAccessError,
+  assertOrganizationResourceAccess
+} from "@/lib/billing/subscription-limits.server";
 import { chargeCreditsForFeature } from "@/lib/billing/usage.server";
 import { isBillingConfigured } from "@/lib/billing/config";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
@@ -62,6 +67,13 @@ export async function POST(request: Request) {
     if (!billingContext) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
+
+    const openAIKey = await resolveOpenAIKeyForOrganization(billingContext.organizationId);
+
+    await assertOrganizationResourceAccess(
+      billingContext.organizationId,
+      "campaign_questions"
+    );
     const usageReferenceId = request.headers.get("x-idempotency-key") ?? randomUUID();
 
     await chargeCreditsForFeature({
@@ -83,7 +95,7 @@ export async function POST(request: Request) {
     const result = await generateComplianceQuestions({
       ...input,
       objective: `${input.objective ?? ""}; Corretora responsavel: ${billingContext.brokerageName}`
-    });
+    }, openAIKey ? { apiKey: openAIKey } : undefined);
 
     return NextResponse.json({
       questions: {
@@ -153,6 +165,13 @@ function getQuestionsError(error: unknown) {
     return {
       message: error.message,
       status: error.code === "missing_api_key" ? 400 : 502
+    };
+  }
+
+  if (error instanceof BillingResourceAccessError) {
+    return {
+      message: error.access.message,
+      status: error.status
     };
   }
 

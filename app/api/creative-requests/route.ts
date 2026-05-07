@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { BillingResourceAccessError } from "@/lib/billing/subscription-limits.server";
 import {
   createCreativeRequestForCurrentUser,
   getCreativeRequestsForCurrentUser
@@ -64,6 +65,10 @@ function getCreateCreativeRequestErrorStatus(error: unknown) {
 
   if (message.includes("Usuario nao autenticado")) {
     return 401;
+  }
+
+  if (error instanceof BillingResourceAccessError) {
+    return error.status;
   }
 
   return 400;

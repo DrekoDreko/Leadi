@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EnvValidationError, requireIntegrationEnv } from "@/lib/env/server";
 import {
   BILLING_PRODUCTS,
   type BillingProductKey,
@@ -17,10 +18,7 @@ type CheckoutRequestBody = {
 export async function POST(request: Request) {
   try {
     if (!isBillingConfigured()) {
-      return NextResponse.json(
-        { error: "Configure SUPABASE_SERVICE_ROLE_KEY e MERCADO_PAGO_ACCESS_TOKEN para gerar o checkout." },
-        { status: 503 }
-      );
+      requireIntegrationEnv("billing");
     }
 
     const body = (await request.json().catch(() => null)) as CheckoutRequestBody | null;
@@ -71,6 +69,10 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
+    if (error instanceof EnvValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+
     const message =
       error instanceof Error && error.message
         ? error.message

@@ -1,3 +1,4 @@
+import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
 import { parseLeadUrlFilters } from "@/lib/leads/filters";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { SalesFunnelWorkspace } from "./sales-funnel-workspace";
@@ -9,7 +10,10 @@ type SalesFunnelPageProps = {
 export default async function SalesFunnelPage({ searchParams }: SalesFunnelPageProps) {
   const resolvedSearchParams = await searchParams;
   const leadFilters = parseLeadUrlFilters(resolvedSearchParams);
-  const leadState = await getLeadsForCurrentUser(leadFilters);
+  const [leadState, createLeadAccess] = await Promise.all([
+    getLeadsForCurrentUser(leadFilters),
+    getCurrentResourceAccess("lead_creation")
+  ]);
 
-  return <SalesFunnelWorkspace leadState={leadState} />;
+  return <SalesFunnelWorkspace createLeadAccess={createLeadAccess} leadState={leadState} />;
 }

@@ -16,6 +16,7 @@ import {
   SendHorizontal,
   SlidersHorizontal
 } from "lucide-react";
+import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { Metric, PageHeading } from "@/components/dashboard/widgets";
 import {
   CREATIVE_REQUEST_ATTACHMENT_ACCEPT,
@@ -26,6 +27,7 @@ import {
   type CreativeRequestItem,
   type CreativeRequestListState
 } from "@/lib/creative-requests/types";
+import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import type { CreativeRequestStatus } from "@/lib/supabase/database.types";
 
 const requestTypeOptions = [
@@ -127,12 +129,14 @@ type ListCreativeRequestsResponse = CreativeRequestListState & {
 };
 
 export function PedidosWorkspace({
+  createRequestAccess,
   initialRequests,
   listMode,
   listMessage,
   showAdminLink = false,
   workspaceName
 }: {
+  createRequestAccess: ResourceAccessSummary;
   initialRequests: CreativeRequestItem[];
   listMode: CreativeRequestListState["mode"];
   listMessage?: string;
@@ -142,7 +146,9 @@ export function PedidosWorkspace({
   const [requests, setRequests] = useState(initialRequests);
   const [form, setForm] = useState<FormState>(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(initialRequests.length === 0);
+  const [isFormOpen, setIsFormOpen] = useState(
+    createRequestAccess.allowed && initialRequests.length === 0
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [uploadingRequestId, setUploadingRequestId] = useState("");
   const [updatingRequestId, setUpdatingRequestId] = useState("");
@@ -171,11 +177,17 @@ export function PedidosWorkspace({
     filteredRequests.find((request) => request.id === selectedRequestId) ?? filteredRequests[0] ?? null;
   const hasActiveFilters = typeFilter !== "all" || statusFilter !== "all";
   const canMutateRequests = currentListMode !== "error" && currentListMode !== "unauthenticated";
+  const canCreateRequests = canMutateRequests && createRequestAccess.allowed;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSuccessMessage("");
+
+    if (!canCreateRequests) {
+      setError(createRequestAccess.message);
+      return;
+    }
 
     const validationError = validateForm(form);
     if (validationError) {
@@ -431,14 +443,21 @@ export function PedidosWorkspace({
           </Link>
         ) : null}
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
-          onClick={() => setIsFormOpen((current) => !current)}
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={!canCreateRequests}
+          onClick={() => {
+            if (canCreateRequests) {
+              setIsFormOpen((current) => !current);
+            }
+          }}
           type="button"
         >
           <FilePlus2 size={18} aria-hidden="true" />
           {isFormOpen ? "Fechar formulario" : "Novo pedido"}
         </button>
       </PageHeading>
+
+      {!createRequestAccess.allowed ? <SubscriptionAccessBanner notice={createRequestAccess} /> : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric label="Pedidos ativos" value={String(metrics.active)} note={metrics.activeNote} tone="dark" />
@@ -553,8 +572,13 @@ export function PedidosWorkspace({
                 Abra o formulario para enviar o primeiro briefing e acompanhar os prazos por aqui.
               </p>
               <button
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
-                onClick={() => setIsFormOpen(true)}
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!canCreateRequests}
+                onClick={() => {
+                  if (canCreateRequests) {
+                    setIsFormOpen(true);
+                  }
+                }}
                 type="button"
               >
                 <FilePlus2 size={18} aria-hidden="true" />
@@ -576,8 +600,13 @@ export function PedidosWorkspace({
                   Limpar filtros
                 </button>
                 <button
-                  className="inline-flex items-center gap-2 rounded-full bg-white/70 px-5 py-3 text-sm font-semibold text-ink"
-                  onClick={() => setIsFormOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-full bg-white/70 px-5 py-3 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={!canCreateRequests}
+                  onClick={() => {
+                    if (canCreateRequests) {
+                      setIsFormOpen(true);
+                    }
+                  }}
                   type="button"
                 >
                   <FilePlus2 size={18} aria-hidden="true" />
@@ -1009,7 +1038,7 @@ export function PedidosWorkspace({
                 <div className="flex flex-wrap gap-2 pt-2">
                   <button
                     className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !canCreateRequests}
                     type="submit"
                   >
                     {isSubmitting ? (
@@ -1045,8 +1074,13 @@ export function PedidosWorkspace({
                 </div>
               </div>
               <button
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
-                onClick={() => setIsFormOpen(true)}
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!canCreateRequests}
+                onClick={() => {
+                  if (canCreateRequests) {
+                    setIsFormOpen(true);
+                  }
+                }}
                 type="button"
               >
                 <FilePlus2 size={18} aria-hidden="true" />
