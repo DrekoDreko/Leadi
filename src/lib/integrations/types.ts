@@ -1,9 +1,16 @@
 import type { Json } from "@/lib/supabase/database.types";
 
-export type IntegrationProvider = "meta" | "openai";
-export type IntegrationStatus = "connected" | "disconnected" | "expired" | "pending";
-export type IntegrationConnectionStatus = IntegrationStatus;
-export type IntegrationSyncStatus = "success" | "warning" | "failed" | "running";
+export type ConnectedAccountProvider = "meta" | "openai";
+export type ConnectedAccountStatus =
+  | "connected"
+  | "disconnected"
+  | "expired"
+  | "pending"
+  | "error";
+export type IntegrationProvider = ConnectedAccountProvider;
+export type IntegrationStatus = ConnectedAccountStatus;
+export type IntegrationConnectionStatus = ConnectedAccountStatus;
+export type IntegrationSyncStatus = "success" | "warning" | "failed" | "error" | "running";
 export type CampaignPublishMode = "draft" | "manual_review" | "scheduled" | "paused";
 export type CampaignPublicationStatus =
   | "not_connected"
@@ -14,30 +21,32 @@ export type CampaignPublicationStatus =
   | "paused"
   | "failed";
 
-export type ConnectedAccountSummary = {
+export type ConnectedAccount = {
   id: string;
-  provider: IntegrationProvider;
+  organizationId: string;
+  provider: ConnectedAccountProvider;
+  status: ConnectedAccountStatus;
+  connectedByUserId?: string | null;
+  connectedAt?: string | null;
+  expiresAt?: string | null;
+  lastSyncAt?: string | null;
+  scopes: string[];
+};
+
+export type ConnectedAccountSummary = ConnectedAccount & {
   label: string;
-  status: IntegrationStatus;
-  lastSyncAt: string | null;
   description: string;
 };
 
-export type MetaConnection = {
-  id: string;
-  organizationId: string;
+export type MetaConnection = ConnectedAccount & {
   provider: "meta";
-  status: IntegrationStatus;
-  connectedByUserId: string | null;
-  connectedAt: string | null;
-  expiresAt: string | null;
-  lastSyncAt: string | null;
-  scopes: string[];
   accessTokenCiphertext: string | null;
   accessTokenReference: string | null;
   tokenLastFour: string | null;
+  tokenPreview: string | null;
   metaUserId: string | null;
   metaUserName: string | null;
+  permissions: string[];
   lastError: string | null;
   connectionStatusLabel: string;
 };
@@ -78,22 +87,18 @@ export type MetaLeadForm = {
   lastSyncAt: string | null;
 };
 
-export type OpenAIConnection = {
-  id: string;
-  organizationId: string;
+export type OpenAIConnection = ConnectedAccount & {
   provider: "openai";
-  status: IntegrationStatus;
   apiKeyCiphertext: string | null;
   apiKeyReference: string | null;
   keyPreview: string;
   keyLastFour: string | null;
-  connectedAt: string | null;
   lastValidatedAt: string | null;
-  connectedByUserId: string | null;
   lastError: string | null;
+  usageMode: "customer_key";
 };
 
-export type SyncLogEntry = {
+export type IntegrationSyncLog = {
   id: string;
   organizationId: string;
   provider: IntegrationProvider;
@@ -106,6 +111,8 @@ export type SyncLogEntry = {
   createdByUserId: string | null;
   createdAt: string;
 };
+
+export type SyncLogEntry = IntegrationSyncLog;
 
 export type ConnectedAccountsState = {
   mode: "supabase" | "demo" | "not-configured" | "unauthenticated" | "error";

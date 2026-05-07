@@ -23,11 +23,6 @@ const ENV_INTEGRATIONS = {
       "Operacao administrativa indisponivel. Configure NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente do servidor.",
     required: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]
   },
-  openai: {
-    message:
-      "Recurso de IA indisponivel. Conecte uma chave OpenAI na area Empresa ou configure OPENAI_API_KEY no ambiente do servidor.",
-    required: ["OPENAI_API_KEY"]
-  },
   billing: {
     message:
       "Billing indisponivel. Configure NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY e MERCADO_PAGO_ACCESS_TOKEN no servidor.",

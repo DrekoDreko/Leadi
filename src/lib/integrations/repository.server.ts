@@ -562,8 +562,34 @@ export async function markOpenAIConnectionValidated(input: {
   const { data, error } = await admin
     .from("openai_connections")
     .update({
-      status: input.lastError ? "expired" : "connected",
+      status: input.lastError ? "error" : "connected",
       last_validated_at: new Date().toISOString(),
+      last_error: input.lastError ?? null
+    })
+    .eq("organization_id", input.organizationId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ? mapOpenAIConnectionRow(data) : null;
+}
+
+export async function markOpenAIConnectionDisconnected(input: {
+  organizationId: string;
+  lastError?: string | null;
+}) {
+  if (!hasSupabaseServiceRole()) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY nao configurada.");
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("openai_connections")
+    .update({
+      status: "disconnected",
       last_error: input.lastError ?? null
     })
     .eq("organization_id", input.organizationId)
@@ -712,20 +738,30 @@ function buildConnectedAccountSummaries(
     metaConnection
       ? {
           id: metaConnection.id,
+          organizationId: metaConnection.organizationId,
           provider: metaConnection.provider,
           label: metaConnection.metaUserName || "Conta Meta conectada",
           status: metaConnection.status,
+          connectedByUserId: metaConnection.connectedByUserId,
+          connectedAt: metaConnection.connectedAt,
+          expiresAt: metaConnection.expiresAt,
           lastSyncAt: metaConnection.lastSyncAt,
+          scopes: metaConnection.scopes,
           description: "Páginas, contas de anúncio e formulários sincronizados."
         }
       : null,
     openAIConnection
       ? {
           id: openAIConnection.id,
+          organizationId: openAIConnection.organizationId,
           provider: openAIConnection.provider,
-          label: "OpenAI do cliente",
+          label: "OpenAI da organizacao",
           status: openAIConnection.status,
+          connectedByUserId: openAIConnection.connectedByUserId,
+          connectedAt: openAIConnection.connectedAt,
+          expiresAt: openAIConnection.expiresAt,
           lastSyncAt: openAIConnection.lastValidatedAt,
+          scopes: openAIConnection.scopes,
           description: "Chave cadastrada pelo cliente e validada para uso na IA."
         }
       : null
@@ -752,8 +788,10 @@ function mapMetaConnectionRow(row: MetaConnectionRow | null): MetaConnection | n
     accessTokenCiphertext: row.access_token_ciphertext,
     accessTokenReference: row.access_token_reference,
     tokenLastFour: row.token_last_four,
+    tokenPreview: row.token_last_four ? `meta-...${row.token_last_four}` : null,
     metaUserId: row.meta_user_id ?? row.meta_account_id,
     metaUserName: row.meta_user_name ?? row.meta_account_name,
+    permissions: row.scopes ?? [],
     lastError: row.last_error,
     connectionStatusLabel: getIntegrationStatusLabel(status)
   };
@@ -819,9 +857,13 @@ function mapOpenAIConnectionRow(row: OpenAIConnectionRow | null): OpenAIConnecti
     keyPreview,
     keyLastFour: row.key_last_four,
     connectedAt: row.connected_at,
+    expiresAt: null,
+    lastSyncAt: row.last_validated_at,
+    scopes: [],
     lastValidatedAt: row.last_validated_at,
     connectedByUserId: row.connected_by_profile_id,
-    lastError: row.last_error
+    lastError: row.last_error,
+    usageMode: "customer_key"
   };
 }
 
@@ -928,6 +970,10 @@ async function resolveMetaPageConnectionId(
 }
 
 function mapMetaConnectionStatus(row: MetaConnectionRow): IntegrationConnectionStatus {
+  if (row.status === "error") {
+    return "error";
+  }
+
   if (row.connection_status) {
     return row.connection_status;
   }
@@ -952,6 +998,10 @@ function mapMetaTableStatus(value: string): IntegrationConnectionStatus {
     return "connected";
   }
 
+  if (value === "error") {
+    return "error";
+  }
+
   if (value === "inactive" || value === "revoked") {
     return "disconnected";
   }
@@ -960,7 +1010,13 @@ function mapMetaTableStatus(value: string): IntegrationConnectionStatus {
 }
 
 function mapIntegrationStatus(value: string): IntegrationConnectionStatus {
-  if (value === "connected" || value === "disconnected" || value === "expired" || value === "pending") {
+  if (
+    value === "connected" ||
+    value === "disconnected" ||
+    value === "expired" ||
+    value === "pending" ||
+    value === "error"
+  ) {
     return value;
   }
 
@@ -978,11 +1034,21 @@ function mapIntegrationStatusToMetaConnectionStatus(
     return "inactive";
   }
 
+  if (status === "error") {
+    return "error";
+  }
+
   return "error";
 }
 
 function mapSyncStatus(value: string): IntegrationSyncStatus {
-  if (value === "success" || value === "warning" || value === "failed" || value === "running") {
+  if (
+    value === "success" ||
+    value === "warning" ||
+    value === "failed" ||
+    value === "error" ||
+    value === "running"
+  ) {
     return value;
   }
 
@@ -994,7 +1060,8 @@ function getIntegrationStatusLabel(status: IntegrationConnectionStatus) {
     connected: "Conectada",
     disconnected: "Desconectada",
     expired: "Expirada",
-    pending: "Pendente"
+    pending: "Pendente",
+    error: "Com erro"
   }[status];
 }
 

@@ -29,7 +29,7 @@ const requestTypeFilterOptions = [
   { value: "all", label: "Todos os tipos" },
   { value: "design", label: "Design" },
   { value: "video", label: "Video" },
-  { value: "campaign", label: "Campanha completa" }
+  { value: "campaign", label: "Kit de campanha" }
 ] as const;
 
 const workflowStatusFilterOptions = [
@@ -43,7 +43,7 @@ const workflowStatusFilterOptions = [
 ] as const;
 
 const typeLabels = {
-  campaign: "Campanha completa",
+  campaign: "Kit de campanha",
   design: "Design",
   video: "Video"
 } as const;
@@ -199,7 +199,7 @@ export function AdminPedidosWorkspace({
       <PageHeading
         eyebrow="Admin"
         title="Fila operacional de pedidos"
-        description="Visualize pedidos de todas as organizacoes em uma area protegida para operacao interna."
+        description="Visualize briefings de todas as organizacoes em uma area protegida para suporte e revisão, sem publicar campanhas pelas contas dos clientes."
       >
         <Link
           className="inline-flex items-center gap-2 rounded-full bg-white/72 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white"

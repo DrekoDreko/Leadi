@@ -70,6 +70,16 @@ export async function POST(request: Request) {
 
     const openAIKey = await resolveOpenAIKeyForOrganization(billingContext.organizationId);
 
+    if (!openAIKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Conecte sua chave OpenAI em Empresa para gerar perguntas com IA usando a conta da sua organização."
+        },
+        { status: 400 }
+      );
+    }
+
     await assertOrganizationResourceAccess(
       billingContext.organizationId,
       "campaign_questions"
@@ -95,7 +105,7 @@ export async function POST(request: Request) {
     const result = await generateComplianceQuestions({
       ...input,
       objective: `${input.objective ?? ""}; Corretora responsavel: ${billingContext.brokerageName}`
-    }, openAIKey ? { apiKey: openAIKey } : undefined);
+    }, { apiKey: openAIKey });
 
     return NextResponse.json({
       questions: {

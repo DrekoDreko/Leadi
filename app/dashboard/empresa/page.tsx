@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Clock3,
+  Instagram,
   Link2,
   RefreshCw,
   ShieldCheck,
@@ -28,6 +29,7 @@ const statusLabels: Record<string, string> = {
   disconnected: "Desconectada",
   expired: "Expirada",
   pending: "Pendente",
+  error: "Com erro",
   success: "Concluida",
   warning: "Com aviso",
   failed: "Falha",
@@ -39,6 +41,7 @@ const statusToneClasses: Record<string, string> = {
   disconnected: "bg-white/58 text-ink",
   expired: "bg-signal text-ink",
   pending: "bg-white/58 text-ink/72",
+  error: "bg-ink text-white",
   success: "bg-lagoon text-white",
   warning: "bg-signal text-ink",
   failed: "bg-ink text-white",
@@ -75,7 +78,7 @@ export default async function EmpresaPage({
       <PageHeading
         eyebrow="Empresa"
         title="Contas conectadas"
-        description="Conecte sua conta Meta e sua chave OpenAI para que a LeadHealth importe ativos, prepare campanhas e ajude no acompanhamento comercial com mais contexto."
+        description="Conecte as contas da sua empresa para importar ativos, sincronizar leads e preparar campanhas com permissões autorizadas por você."
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-4 py-2 text-sm font-semibold text-ink">
           <ShieldCheck size={18} aria-hidden="true" />
@@ -100,7 +103,7 @@ export default async function EmpresaPage({
         <Metric
           label="Meta"
           value={state.metaConnection?.connectionStatusLabel ?? "Pendente"}
-          note={state.metaConnection?.connectionStatusLabel ?? "Conecte a conta do cliente"}
+          note={state.metaConnection?.connectionStatusLabel ?? "Conecte sua conta Meta"}
           tone={state.metaConnection?.status === "connected" ? "teal" : "yellow"}
         />
         <Metric
@@ -110,8 +113,8 @@ export default async function EmpresaPage({
             state.openAIConnection?.status === "connected"
               ? "Chave validada"
               : state.openAIConnection
-                ? "Revise a chave do cliente"
-                : "Cadastre a chave do cliente"
+                ? "Revise a chave da empresa"
+                : "Cadastre sua chave OpenAI"
           }
           tone={state.openAIConnection?.status === "connected" ? "blue" : "yellow"}
         />
@@ -129,7 +132,7 @@ export default async function EmpresaPage({
         />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="grid gap-4 xl:grid-cols-3">
         <article className="glass-strong rounded-[34px] p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
@@ -139,13 +142,13 @@ export default async function EmpresaPage({
                 </span>
                 <div>
                   <p className="text-sm font-medium text-cobalt">Meta</p>
-                  <h2 className="text-2xl font-semibold">Conta do cliente</h2>
+                  <h2 className="text-2xl font-semibold">Sua conta Meta</h2>
                 </div>
               </div>
               <p className="mt-4 text-sm leading-7 text-ink/64">
-                Conecte a conta Meta da empresa para que a LeadHealth consiga importar leads,
-                ler páginas, acompanhar formulários e preparar campanhas com revisão antes da
-                publicação.
+                Conecte sua conta Meta para que o LeadHealth consiga importar leads, encontrar
+                páginas, sincronizar formulários e preparar campanhas usando as contas autorizadas
+                por você.
               </p>
             </div>
 
@@ -199,6 +202,10 @@ export default async function EmpresaPage({
               value={state.metaConnection?.metaUserName ?? "Ainda não conectada"}
             />
             <InfoChip
+              label="Token"
+              value={state.metaConnection?.tokenPreview ?? "Nunca exibido completo"}
+            />
+            <InfoChip
               label="Conectada em"
               value={state.metaConnection?.connectedAt ? formatDateTime(state.metaConnection.connectedAt) : "Aguardando"}
             />
@@ -228,17 +235,44 @@ export default async function EmpresaPage({
 
         <article className="glass rounded-[34px] p-6">
           <div className="flex items-center gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/70 text-ink">
+              <Instagram size={20} aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-cobalt">Instagram</p>
+              <h2 className="text-2xl font-semibold">Via Meta</h2>
+            </div>
+          </div>
+          <p className="mt-4 text-sm leading-7 text-ink/64">
+            As permissões do Instagram dependem das páginas e contas conectadas à sua conta
+            Meta. Quando a Meta retornar ativos do Instagram, eles serão exibidos aqui sem criar
+            um fluxo separado falso.
+          </p>
+          <div className="mt-6 grid gap-3">
+            <InfoChip
+              label="Status"
+              value={state.metaConnection ? "Vinculada à Meta" : "Conecte a Meta primeiro"}
+            />
+            <InfoChip
+              label="Origem"
+              value="Permissões autorizadas na conexão Meta"
+            />
+          </div>
+        </article>
+
+        <article className="glass rounded-[34px] p-6">
+          <div className="flex items-center gap-3">
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-signal text-ink">
               <WandSparkles size={20} aria-hidden="true" />
             </span>
             <div>
               <p className="text-sm font-medium text-cobalt">OpenAI</p>
-              <h2 className="text-2xl font-semibold">Chave do cliente</h2>
+              <h2 className="text-2xl font-semibold">Sua chave OpenAI</h2>
             </div>
           </div>
           <p className="mt-4 text-sm leading-7 text-ink/64">
-            O cliente cadastra a própria chave da OpenAI. A LeadHealth não exibe a chave completa
-            e usa o preview apenas para confirmar visualmente qual credencial está ativa.
+            Cadastre sua própria chave OpenAI para usar recursos de geração de textos e imagens
+            dentro da plataforma. Por segurança, a chave nunca é exibida completa.
           </p>
 
           <div className="mt-6 space-y-3">
@@ -256,7 +290,7 @@ export default async function EmpresaPage({
             />
           </div>
 
-          <form action="/api/integrations/openai/save" className="mt-6 space-y-3" method="post">
+          <form action="/api/integrations/openai/connect" className="mt-6 space-y-3" method="post">
             <input name="returnTo" type="hidden" value="/dashboard/empresa" />
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-ink/74">Salvar ou atualizar chave</span>
@@ -289,8 +323,27 @@ export default async function EmpresaPage({
               Testar conexão OpenAI
             </button>
           </form>
+          {state.openAIConnection ? (
+            <form action="/api/integrations/openai/disconnect" className="mt-3" method="post">
+              <input name="returnTo" type="hidden" value="/dashboard/empresa" />
+              <button
+                className="inline-flex items-center gap-2 rounded-full bg-white/56 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/72"
+                type="submit"
+              >
+                <Unplug size={18} aria-hidden="true" />
+                Desconectar OpenAI
+              </button>
+            </form>
+          ) : null}
         </article>
       </section>
+
+      {state.mode === "demo" ? (
+        <section className="rounded-[28px] border border-cobalt/20 bg-cobalt/8 px-5 py-4 text-sm leading-6 text-ink/68">
+          Modo de demonstração ativo: os ativos exibidos são mocks seguros. Nenhum token Meta ou
+          chave OpenAI real é armazenado ou exibido nesses dados.
+        </section>
+      ) : null}
 
       <section className="grid gap-4 xl:grid-cols-3">
         <AssetPanel
@@ -489,7 +542,9 @@ function getOpenAIFeedback(value: string) {
     saved: "Chave OpenAI salva com segurança.",
     tested: "A chave OpenAI respondeu corretamente.",
     invalid: "A chave OpenAI nao foi validada. Revise o valor e tente novamente.",
-    missing: "Cadastre a chave OpenAI do cliente para usar a IA."
+    missing: "Cadastre sua chave OpenAI para usar a IA.",
+    disconnected: "OpenAI desconectada com segurança.",
+    error: "Nao foi possivel concluir a ação da OpenAI agora. Tente novamente."
   };
 
   return feedback[value] ?? null;

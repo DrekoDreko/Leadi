@@ -1,4 +1,5 @@
 import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
+import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getWhatsAppMessagesForCurrentUser } from "@/lib/whatsapp/repository.server";
@@ -11,11 +12,12 @@ type WhatsAppPageProps = {
 };
 
 export default async function WhatsAppPage({ searchParams }: WhatsAppPageProps) {
-  const [context, leadState, historyState, generateAccess] = await Promise.all([
+  const [context, leadState, historyState, generateAccess, connectedAccounts] = await Promise.all([
     requireCompletedProfile(),
     getLeadsForCurrentUser(),
     getWhatsAppMessagesForCurrentUser(4),
-    getCurrentResourceAccess("whatsapp_generation")
+    getCurrentResourceAccess("whatsapp_generation"),
+    getConnectedAccountsForCurrentUser()
   ]);
   const resolvedSearchParams = await searchParams;
   const leadId = Array.isArray(resolvedSearchParams?.lead)
@@ -30,6 +32,7 @@ export default async function WhatsAppPage({ searchParams }: WhatsAppPageProps) 
       initialMessages={historyState.messages}
       brokerageName={context.brokerageName}
       generateAccess={generateAccess}
+      hasOpenAIConnection={Boolean(connectedAccounts.openAIConnection)}
       leads={leadState.leads}
     />
   );

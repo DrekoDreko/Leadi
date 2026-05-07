@@ -75,6 +75,16 @@ export async function POST(request: Request) {
     ]);
     const input = parseCampaignRequest(body, metaConnection?.id ?? null);
 
+    if (!openAiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Conecte sua chave OpenAI em Empresa para gerar campanhas com IA usando a conta da sua organização."
+        },
+        { status: 400 }
+      );
+    }
+
     await assertOrganizationResourceAccess(
       billingContext.organizationId,
       "campaign_generation"
@@ -115,7 +125,7 @@ export async function POST(request: Request) {
       channel: campaignInput.channel,
       tone: campaignInput.tone,
       constraints: [...(campaignInput.constraints ?? []), ...localNotes]
-    }, openAiKey ? { apiKey: openAiKey } : undefined);
+    }, { apiKey: openAiKey });
     const persistedCampaign = {
       ...campaign,
       complianceNotes: [...localNotes, ...campaign.complianceNotes]

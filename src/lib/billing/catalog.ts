@@ -43,7 +43,7 @@ export const BILLING_PRODUCTS: Record<BillingProductKey, BillingProduct> = {
   operation_plan: {
     key: "operation_plan",
     label: "Plano Operação",
-    description: "Para corretoras que querem um pacote maior e atendimento assistido.",
+    description: "Para corretoras que querem mais volume, revisão e organização de materiais.",
     kind: "plan",
     credits: 1200,
     amountCents: 49700,

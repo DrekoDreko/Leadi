@@ -42,6 +42,16 @@ export async function POST(request: Request) {
 
     const openAIKey = await resolveOpenAIKeyForOrganization(billingContext.organizationId);
 
+    if (!openAIKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Conecte sua chave OpenAI em Empresa para gerar mensagens com IA usando a conta da sua organização."
+        },
+        { status: 400 }
+      );
+    }
+
     await assertOrganizationResourceAccess(
       billingContext.organizationId,
       "whatsapp_generation"
@@ -67,7 +77,7 @@ export async function POST(request: Request) {
     const message = await generateWhatsAppMessage({
       ...input,
       brokerageName: billingContext.brokerageName
-    }, openAIKey ? { apiKey: openAIKey } : undefined);
+    }, { apiKey: openAIKey });
     const savedForm: WhatsAppGenerationForm = {
       leadId: getOptionalString(body?.leadId),
       leadName: input.leadName,

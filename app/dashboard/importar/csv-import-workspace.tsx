@@ -61,10 +61,12 @@ const previewFields: LeadImportFieldKey[] = ["name", "email", "phone", "city", "
 
 export function CsvImportWorkspace({
   canCreateMetaAdsLeads,
-  createLeadAccess
+  createLeadAccess,
+  metaConnectedAccountId
 }: {
   canCreateMetaAdsLeads: boolean;
   createLeadAccess: ResourceAccessSummary;
+  metaConnectedAccountId: string | null;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -211,6 +213,8 @@ export function CsvImportWorkspace({
             },
             body: JSON.stringify({
               ...row.payload,
+              meta_connected_account_id:
+                row.payload?.source === "meta_lead_ads" ? metaConnectedAccountId : undefined,
               import_batch_id: importBatchId
             })
           });

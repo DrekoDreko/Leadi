@@ -132,8 +132,10 @@ export function CampaignGenerator({
   const selectedMetaLeadForm = connectedAccounts.metaLeadForms.find(
     (leadForm) => leadForm.metaFormId === form.metaLeadFormId
   );
+  const hasMinimumMetaAssets = Boolean(metaConnection && form.metaPageId && form.metaAdAccountId);
   const publicationState = resolvePublicationState({
     hasMetaConnection: Boolean(metaConnection),
+    hasMinimumMetaAssets,
     form
   });
 
@@ -318,7 +320,7 @@ export function CampaignGenerator({
       >
         <button
           className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={isGenerating || !campaignAccess.allowed}
+          disabled={isGenerating || !campaignAccess.allowed || !openAIConnection}
           form="campaign-generator-form"
           type="submit"
         >
@@ -329,13 +331,22 @@ export function CampaignGenerator({
           )}
           {isGenerating
             ? "Gerando"
-            : metaConnection
+            : hasMinimumMetaAssets
               ? "Preparar campanha"
               : "Gerar campanha"}
         </button>
       </PageHeading>
 
       {!campaignAccess.allowed ? <SubscriptionAccessBanner notice={campaignAccess} /> : null}
+      {!openAIConnection ? (
+        <div className="rounded-[26px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
+          Conecte sua chave OpenAI em{" "}
+          <Link className="font-semibold text-cobalt underline underline-offset-4" href="/dashboard/empresa">
+            Empresa
+          </Link>{" "}
+          para gerar campanhas, mensagens e perguntas usando a conta da sua organização.
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric
@@ -376,7 +387,8 @@ export function CampaignGenerator({
                     <h3 className="mt-2 text-lg font-semibold">Meta e publicação controlada</h3>
                     <p className="mt-2 text-sm leading-6 text-ink/64">
                       O LeadHealth usa a conta Meta conectada da empresa e prepara a campanha
-                      para revisão antes da publicação.
+                      para revisão antes da publicação. Sem página e conta de anúncio selecionadas,
+                      a geração fica salva como texto, sem avançar para preparo.
                     </p>
                   </div>
                   <span
@@ -607,7 +619,7 @@ export function CampaignGenerator({
               </div>
               <button
                 className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={isGeneratingQuestions || !questionAccess.allowed}
+                disabled={isGeneratingQuestions || !questionAccess.allowed || !openAIConnection}
                 onClick={handleGenerateQuestions}
                 type="button"
               >
@@ -713,6 +725,10 @@ export function CampaignGenerator({
                   Conectar Meta
                   <ArrowUpRight size={16} aria-hidden="true" />
                 </Link>
+              ) : !hasMinimumMetaAssets ? (
+                <p className="rounded-[20px] bg-signal/18 px-4 py-3 text-sm font-semibold text-ink">
+                  Selecione uma página e uma conta de anúncio para preparar o rascunho Meta.
+                </p>
               ) : null}
             </div>
           </section>
@@ -925,9 +941,11 @@ function createInitialForm(connectedAccounts: ConnectedAccountsState): FormState
 
 function resolvePublicationState({
   hasMetaConnection,
+  hasMinimumMetaAssets,
   form
 }: {
   hasMetaConnection: boolean;
+  hasMinimumMetaAssets: boolean;
   form: FormState;
 }) {
   if (!hasMetaConnection) {
@@ -935,6 +953,14 @@ function resolvePublicationState({
       label: "Sem Meta conectada",
       tone: "yellow" as const,
       connectedAccountLabel: "Conecte sua conta na Empresa"
+    };
+  }
+
+  if (!hasMinimumMetaAssets) {
+    return {
+      label: "Aguardando ativos",
+      tone: "yellow" as const,
+      connectedAccountLabel: "Escolha página e conta"
     };
   }
 

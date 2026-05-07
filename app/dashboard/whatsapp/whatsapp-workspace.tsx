@@ -51,7 +51,8 @@ export function WhatsAppWorkspace({
   historyMode,
   historyMessage,
   brokerageName,
-  generateAccess
+  generateAccess,
+  hasOpenAIConnection
 }: {
   leads: Lead[];
   initialLeadId: string | null;
@@ -60,6 +61,7 @@ export function WhatsAppWorkspace({
   historyMessage?: string;
   brokerageName: string;
   generateAccess: ResourceAccessSummary;
+  hasOpenAIConnection: boolean;
 }) {
   const [selectedLeadId, setSelectedLeadId] = useState(initialLeadId ?? leads[0]?.id ?? null);
   const [selectedStage, setSelectedStage] = useState<WhatsAppStage>(() =>
@@ -190,7 +192,7 @@ export function WhatsAppWorkspace({
         {selectedLead ? (
           <button
             className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={isGenerating || !generateAccess.allowed}
+            disabled={isGenerating || !generateAccess.allowed || !hasOpenAIConnection}
             onClick={generateMessage}
             type="button"
           >
@@ -213,6 +215,15 @@ export function WhatsAppWorkspace({
       </PageHeading>
 
       {!generateAccess.allowed ? <SubscriptionAccessBanner notice={generateAccess} /> : null}
+      {!hasOpenAIConnection ? (
+        <div className="rounded-[26px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
+          Conecte sua chave OpenAI em{" "}
+          <Link className="font-semibold text-cobalt underline underline-offset-4" href="/dashboard/empresa">
+            Empresa
+          </Link>{" "}
+          para gerar mensagens com IA usando a conta da sua organização.
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric label="Conversas" value={metrics.conversations} note={metrics.conversationsNote} tone="blue" />
@@ -379,7 +390,7 @@ export function WhatsAppWorkspace({
                 <div className="mt-5 flex flex-wrap gap-2">
                   <button
                     className="inline-flex items-center gap-2 rounded-full bg-cobalt px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-                    disabled={isGenerating}
+                    disabled={isGenerating || !hasOpenAIConnection}
                     onClick={generateMessage}
                     type="button"
                   >

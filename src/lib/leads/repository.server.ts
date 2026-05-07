@@ -72,6 +72,7 @@ type LeadCreateInput = {
   meta_campaign_id?: unknown;
   meta_adset_id?: unknown;
   meta_ad_id?: unknown;
+  meta_connected_account_id?: unknown;
   import_batch_id?: unknown;
   raw_payload?: unknown;
 };
@@ -1007,6 +1008,7 @@ function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInser
     meta_campaign_id: stringOrNull(input.meta_campaign_id),
     meta_adset_id: stringOrNull(input.meta_adset_id),
     meta_ad_id: stringOrNull(input.meta_ad_id),
+    meta_connected_account_id: stringOrNull(input.meta_connected_account_id),
     import_batch_id: stringOrNull(input.import_batch_id),
     raw_payload: rawPayload ?? {}
   };
@@ -1066,6 +1068,7 @@ function createMockLead(input: LeadCreateInput): Lead {
     metaLeadId: stringOrNull(input.meta_lead_id),
     metaFormId: stringOrNull(input.meta_form_id),
     metaPageId: stringOrNull(input.meta_page_id),
+    metaConnectedAccountId: stringOrNull(input.meta_connected_account_id),
     receivedAt: now.toISOString()
   };
 }
@@ -1149,6 +1152,10 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
       input.meta_page_id === undefined
         ? existingLead?.metaPageId ?? null
         : stringOrNull(input.meta_page_id),
+    metaConnectedAccountId:
+      input.meta_connected_account_id === undefined
+        ? existingLead?.metaConnectedAccountId ?? null
+        : stringOrNull(input.meta_connected_account_id),
     receivedAt: existingLead?.receivedAt ?? now.toISOString()
   };
 }
@@ -1207,6 +1214,10 @@ function buildLeadUpdate(input: LeadCreateInput): Database["public"]["Tables"]["
       input.meta_campaign_id === undefined ? undefined : stringOrNull(input.meta_campaign_id),
     meta_adset_id: input.meta_adset_id === undefined ? undefined : stringOrNull(input.meta_adset_id),
     meta_ad_id: input.meta_ad_id === undefined ? undefined : stringOrNull(input.meta_ad_id),
+    meta_connected_account_id:
+      input.meta_connected_account_id === undefined
+        ? undefined
+        : stringOrNull(input.meta_connected_account_id),
     raw_payload: rawPayload ?? undefined
   });
 }
@@ -1245,6 +1256,7 @@ function mapLeadRowToLead(
     metaLeadId: row.meta_lead_id,
     metaFormId: row.meta_form_id,
     metaPageId: row.meta_page_id,
+    metaConnectedAccountId: row.meta_connected_account_id,
     receivedAt: row.received_at
   };
 }

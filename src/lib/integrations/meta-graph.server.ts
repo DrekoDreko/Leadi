@@ -147,7 +147,7 @@ export async function exchangeMetaOAuthCode(input: {
       ? new Date(Date.now() + accessTokenResponse.expires_in * 1000).toISOString()
       : null,
     metaUserId: profile.id?.trim() ?? input.state.profileId,
-    metaUserName: profile.name?.trim() ?? "Conta Meta do cliente",
+    metaUserName: profile.name?.trim() ?? "Conta Meta da organizacao",
     pages,
     adAccounts,
     leadForms,

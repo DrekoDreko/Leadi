@@ -61,11 +61,22 @@ function buildDemoMetaConnection(): MetaConnection {
       "ads_read",
       "ads_management"
     ],
-    accessTokenCiphertext: "demo-ciphertext",
+    // Mock de desenvolvimento: token real nunca deve aparecer no frontend ou em dados seed.
+    accessTokenCiphertext: null,
     accessTokenReference: null,
     tokenLastFour: "Wxyz",
+    tokenPreview: "meta-...Wxyz",
     metaUserId: "1000000001",
-    metaUserName: "Lucas LeadHealth",
+    metaUserName: "Corretora Demo Meta",
+    permissions: [
+      "business_management",
+      "leads_retrieval",
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_manage_metadata",
+      "ads_read",
+      "ads_management"
+    ],
     lastError: null,
     connectionStatusLabel: "Conectada"
   };
@@ -79,14 +90,19 @@ function buildDemoOpenAIConnection(): OpenAIConnection {
     organizationId: DEMO_ORGANIZATION_ID,
     provider: "openai",
     status: "connected",
-    apiKeyCiphertext: "demo-openai-ciphertext",
+    // Mock de desenvolvimento: a chave completa nunca fica visivel.
+    apiKeyCiphertext: null,
     apiKeyReference: null,
     keyPreview: "sk-...Wxyz",
     keyLastFour: "Wxyz",
     connectedAt: isoMinutesAgo(now, 58),
     lastValidatedAt: isoMinutesAgo(now, 6),
+    expiresAt: null,
+    lastSyncAt: isoMinutesAgo(now, 6),
+    scopes: [],
     connectedByUserId: DEMO_PROFILE_ID,
-    lastError: null
+    lastError: null,
+    usageMode: "customer_key"
   };
 }
 
@@ -98,7 +114,7 @@ function buildDemoMetaPages(connectedAccountId: string): MetaPage[] {
       id: "demo-meta-page-1",
       organizationId: DEMO_ORGANIZATION_ID,
       metaPageId: "page_123456",
-      name: "LeadHealth Corretora",
+      name: "Corretora Demo Empresarial",
       category: "Insurance company",
       status: "connected",
       connectedAccountId,
@@ -108,7 +124,7 @@ function buildDemoMetaPages(connectedAccountId: string): MetaPage[] {
       id: "demo-meta-page-2",
       organizationId: DEMO_ORGANIZATION_ID,
       metaPageId: "page_789012",
-      name: "LeadHealth Saúde Empresarial",
+      name: "Corretora Demo Beneficios",
       category: "Product/service",
       status: "connected",
       connectedAccountId,
@@ -125,7 +141,7 @@ function buildDemoMetaAdAccounts(connectedAccountId: string): MetaAdAccount[] {
       id: "demo-meta-ad-account-1",
       organizationId: DEMO_ORGANIZATION_ID,
       metaAdAccountId: "act_123456789",
-      name: "LeadHealth Principal",
+      name: "Corretora Demo Principal",
       currency: "BRL",
       timezone: "America/Sao_Paulo",
       status: "connected",
@@ -136,7 +152,7 @@ function buildDemoMetaAdAccounts(connectedAccountId: string): MetaAdAccount[] {
       id: "demo-meta-ad-account-2",
       organizationId: DEMO_ORGANIZATION_ID,
       metaAdAccountId: "act_987654321",
-      name: "LeadHealth Testes",
+      name: "Corretora Demo Testes",
       currency: "BRL",
       timezone: "America/Sao_Paulo",
       status: "connected",
@@ -159,7 +175,7 @@ function buildDemoMetaLeadForms(
       metaFormId: "form_445566",
       name: "Cotacao empresarial - principal",
       pageId: pages[0]?.metaPageId ?? "page_123456",
-      pageName: pages[0]?.name ?? "LeadHealth Corretora",
+      pageName: pages[0]?.name ?? "Corretora Demo Empresarial",
       status: "connected",
       connectedAccountId,
       lastLeadSyncAt: isoMinutesAgo(now, 9),
@@ -171,7 +187,7 @@ function buildDemoMetaLeadForms(
       metaFormId: "form_778899",
       name: "Analise consultiva - interior",
       pageId: pages[1]?.metaPageId ?? "page_789012",
-      pageName: pages[1]?.name ?? "LeadHealth Saúde Empresarial",
+      pageName: pages[1]?.name ?? "Corretora Demo Beneficios",
       status: "pending",
       connectedAccountId,
       lastLeadSyncAt: null,
@@ -226,7 +242,7 @@ function buildDemoSyncLogs(
       assetType: "openai_key",
       status: "success",
       title: "Chave OpenAI validada",
-      message: "A chave do cliente respondeu corretamente ao teste de conexao.",
+      message: "A chave da organizacao respondeu corretamente ao teste de conexao.",
       details: {
         model: "gpt-4o-mini"
       },
@@ -239,10 +255,15 @@ function buildDemoSyncLogs(
 function buildSummary(connection: MetaConnection): ConnectedAccountSummary {
   return {
     id: connection.id,
+    organizationId: connection.organizationId,
     provider: connection.provider,
     label: connection.metaUserName || "Conta Meta conectada",
     status: connection.status,
+    connectedByUserId: connection.connectedByUserId,
+    connectedAt: connection.connectedAt,
+    expiresAt: connection.expiresAt,
     lastSyncAt: connection.lastSyncAt,
+    scopes: connection.scopes,
     description: "Página, contas de anúncio e formulários sincronizados."
   };
 }
@@ -250,10 +271,15 @@ function buildSummary(connection: MetaConnection): ConnectedAccountSummary {
 function buildOpenAISummary(connection: OpenAIConnection): ConnectedAccountSummary {
   return {
     id: connection.id,
+    organizationId: connection.organizationId,
     provider: connection.provider,
-    label: "OpenAI do cliente",
+    label: "OpenAI da organizacao",
     status: connection.status,
+    connectedByUserId: connection.connectedByUserId,
+    connectedAt: connection.connectedAt,
+    expiresAt: connection.expiresAt,
     lastSyncAt: connection.lastValidatedAt,
+    scopes: connection.scopes,
     description: "Chave cadastrada pelo cliente e validada para uso na IA."
   };
 }

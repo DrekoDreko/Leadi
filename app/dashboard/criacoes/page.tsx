@@ -38,7 +38,7 @@ const primaryCreations = [
 const secondaryCreations = [
   {
     title: "Novo pedido",
-    description: "Solicite ajustes, variações de criativos, landing pages ou materiais de apoio.",
+    description: "Organize ajustes, variações de criativos, landing pages ou materiais de apoio.",
     href: "/dashboard/pedidos",
     icon: FilePlus2
   },
@@ -62,7 +62,7 @@ export default function CriacoesPage() {
       <PageHeading
         eyebrow="Criar"
         title="Novas criações"
-        description="Um ponto rápido para iniciar campanhas, anúncios, pedidos criativos e outras demandas que surgem no dia a dia."
+        description="Um ponto rápido para iniciar campanhas, anúncios, briefings criativos e materiais que ficam sob revisão da sua empresa."
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white">
           <Plus size={18} aria-hidden="true" />

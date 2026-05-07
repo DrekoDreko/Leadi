@@ -9,7 +9,7 @@ SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O 
 - TypeScript
 - Tailwind CSS
 - Supabase para auth, banco, storage e contexto multi-tenant
-- OpenAI para geracao de campanhas, mensagens e revisao assistida, com chave do cliente quando conectada
+- OpenAI para geracao de campanhas, mensagens e revisao assistida, sempre com chave conectada pela organizacao
 - Mercado Pago para checkout de planos e pacotes de creditos
 
 ## O que ja esta implementado
@@ -89,8 +89,9 @@ SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O 
 - `GET /api/integrations/meta/callback`: recebe callback OAuth da Meta
 - `POST /api/integrations/meta/sync`: sincroniza ativos Meta conectados
 - `POST /api/integrations/meta/disconnect`: desconecta a conta Meta
-- `POST /api/integrations/openai/save`: salva a chave OpenAI do cliente
+- `POST /api/integrations/openai/connect`: salva a chave OpenAI da organizacao
 - `POST /api/integrations/openai/test`: valida a chave OpenAI conectada
+- `POST /api/integrations/openai/disconnect`: desconecta a chave OpenAI da organizacao
 
 ### Pedidos criativos
 
@@ -122,7 +123,6 @@ SUPABASE_SERVICE_ROLE_KEY=
 Integracoes opcionais:
 
 ```bash
-OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o-mini
 INTEGRATIONS_SECRET_KEY=
 MERCADO_PAGO_ACCESS_TOKEN=
@@ -140,7 +140,7 @@ Observacoes:
 - o build de producao valida o core e falha cedo se `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` ou `SUPABASE_SERVICE_ROLE_KEY` estiverem ausentes
 - `SUPABASE_SERVICE_ROLE_KEY` e o uso operacional de `NEXT_PUBLIC_SUPABASE_URL` devem ficar apenas no servidor, em automacoes locais e no MCP Supabase. Nunca exponha a service role em componentes client
 - sem Supabase configurado, partes do produto podem operar em modo de demonstracao ou ficar indisponiveis conforme o modulo
-- sem `OPENAI_API_KEY` ou uma chave OpenAI conectada, o validador de compliance continua com regras locais, mas as geracoes de campanha e WhatsApp nao funcionam
+- sem uma chave OpenAI conectada em `/dashboard/empresa`, o validador de compliance continua com regras locais, mas as geracoes de campanha, perguntas e WhatsApp ficam bloqueadas com CTA para conectar
 - sem billing configurado, checkout e cobranca retornam erro amigavel de configuracao
 - sem `META_APP_SECRET`, `META_VERIFY_TOKEN` ou as credenciais OAuth da Meta, os recursos de webhook/integracao falham com mensagem clara sem expor segredos
 - `INTEGRATIONS_SECRET_KEY` e opcional, mas recomendado para cifrar tokens e chaves conectados na area Empresa

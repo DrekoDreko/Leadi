@@ -116,7 +116,7 @@ export async function fetchMetaLeadById(input: {
   const accessToken = input.accessToken?.trim();
   if (!accessToken) {
     throw new MetaLeadRetrievalError(
-      "Token da conta Meta conectada nao informado. Sincronize a conta do cliente na area Empresa."
+      "Token da conta Meta conectada nao informado. Sincronize a conta da organizacao na area Empresa."
     );
   }
 

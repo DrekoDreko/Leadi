@@ -33,7 +33,7 @@ import type { CreativeRequestStatus } from "@/lib/supabase/database.types";
 const requestTypeOptions = [
   { value: "design", label: "Design" },
   { value: "video", label: "Video" },
-  { value: "campaign", label: "Campanha completa" }
+  { value: "campaign", label: "Kit de campanha" }
 ] as const;
 
 const requestTypeFilterOptions = [
@@ -56,7 +56,7 @@ const workflowStatusFilterOptions = [
 ] as const;
 
 const typeLabels = {
-  campaign: "Campanha completa",
+  campaign: "Kit de campanha",
   design: "Design",
   video: "Video"
 } as const;
@@ -432,7 +432,7 @@ export function PedidosWorkspace({
       <PageHeading
         eyebrow="Pedidos"
         title="Pedidos criativos"
-        description={`Acompanhe a fila de pedidos de design, video ou campanha completa do workspace ${workspaceName}.`}
+        description={`Acompanhe briefings e materiais de apoio do workspace ${workspaceName}, sempre preparados para revisão antes de qualquer publicação.`}
       >
         {showAdminLink ? (
           <Link

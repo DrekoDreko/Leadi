@@ -53,7 +53,7 @@ Guia operacional para a LeadHealth publicar a integracao Meta com o minimo de re
 
 1. Abrir o dominio final publicado.
 2. Mostrar `/privacy`, `/terms` e `/data-deletion` sem login.
-3. Mostrar a area autenticada `/dashboard/empresa` onde a conta Meta e a chave OpenAI do cliente sao conectadas.
+3. Mostrar a area autenticada `/dashboard/empresa` onde a conta Meta e a chave OpenAI da organizacao sao conectadas.
 4. Explicar que o app recebe leads de formularios Meta autorizados para uso comercial do cliente e prepara campanhas com revisão.
 5. Demonstrar o webhook ou os logs internos de recebimento.
 

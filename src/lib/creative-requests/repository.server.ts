@@ -71,9 +71,9 @@ const mockCreativeRequestSeed: CreativeRequestItem[] = [
         id: "mock-comment-2",
         creativeRequestId: "mock-request-1",
         authorProfileId: "mock-admin-1",
-        authorName: "Operacao LeadHealth",
-        authorEmail: "operacao@leadhealth.demo",
-        body: "Recebido. Vamos subir a primeira proposta ainda hoje para revisao.",
+        authorName: "Suporte LeadHealth",
+        authorEmail: "suporte@leadhealth.demo",
+        body: "Recebido. O material ficará organizado como rascunho para revisão da sua equipe.",
         visibility: "workspace",
         createdAt: "2026-04-29T16:05:00.000Z",
         updatedAt: "2026-04-29T16:05:00.000Z"
@@ -99,9 +99,9 @@ const mockCreativeRequestSeed: CreativeRequestItem[] = [
         id: "mock-comment-3",
         creativeRequestId: "mock-request-2",
         authorProfileId: "mock-admin-2",
-        authorName: "Operacao LeadHealth",
-        authorEmail: "operacao@leadhealth.demo",
-        body: "Storyboard inicial em andamento. Precisamos confirmar se o foco principal vai ser reducao de custo ou comparativo de cobertura.",
+        authorName: "Suporte LeadHealth",
+        authorEmail: "suporte@leadhealth.demo",
+        body: "Storyboard inicial registrado. Confirmem se o foco principal será faixa de investimento ou comparativo de cobertura.",
         visibility: "workspace",
         createdAt: "2026-04-29T12:10:00.000Z",
         updatedAt: "2026-04-29T12:10:00.000Z"
@@ -110,9 +110,9 @@ const mockCreativeRequestSeed: CreativeRequestItem[] = [
         id: "mock-comment-4",
         creativeRequestId: "mock-request-2",
         authorProfileId: "mock-admin-2",
-        authorName: "Operacao LeadHealth",
-        authorEmail: "operacao@leadhealth.demo",
-        body: "Manter a primeira versao so na operacao ate validarmos o roteiro final.",
+        authorName: "Suporte LeadHealth",
+        authorEmail: "suporte@leadhealth.demo",
+        body: "Manter a primeira versao como anotação interna até a revisão do roteiro final.",
         visibility: "ops_only",
         createdAt: "2026-04-29T12:40:00.000Z",
         updatedAt: "2026-04-29T12:40:00.000Z"
@@ -125,7 +125,7 @@ const mockCreativeRequestSeed: CreativeRequestItem[] = [
     id: "mock-request-3",
     type: "campaign",
     title: "Criativo para lead form",
-    objective: "Preparar uma campanha completa para captura de contatos.",
+    objective: "Preparar um kit de campanha para captura de contatos com revisão controlada.",
     briefing:
       "Combinar arte principal, texto-base e orientação visual para lead form voltado a PME.",
     notes: "",
@@ -365,7 +365,7 @@ export async function createCreativeRequestCommentForAdmin(
   if (!isSupabaseConfigured()) {
     return addMockCreativeRequestComment(requestId, {
       authorEmail: "operacao@leadhealth.local",
-      authorName: "Operacao LeadHealth",
+      authorName: "Suporte LeadHealth",
       body,
       visibility
     }, true);

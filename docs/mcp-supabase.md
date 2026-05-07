@@ -60,9 +60,10 @@ As tabelas abaixo ficam liberadas no MCP para validacao operacional e suporte:
 - `meta_pages`: paginas conectadas a uma integracao, com `connected_account_id`, `page_id`, `page_name`, `category` e `status`.
 - `meta_ad_accounts`: contas de anuncio conectadas a uma integracao, com `connected_account_id`, `meta_ad_account_id`, moeda, timezone e `status`.
 - `meta_forms`: formularios conectados a paginas integradas, com `connected_account_id`, `page_id`, `page_name`, `form_id`, `form_name` e `status`.
-- `openai_connections`: chave OpenAI cifrada por organizacao, com preview mascarado, ultimos 4 caracteres, status e ultima validacao.
+- `openai_connections`: chave OpenAI da organizacao cifrada, com preview mascarado, ultimos 4 caracteres, status, modo `customer_key` na camada de aplicacao e ultima validacao.
 - `integration_sync_logs`: trilha de sincronizacao e validacao para Meta/OpenAI com status, titulo, mensagem e detalhes em JSON.
 - `campaigns`: historico de campanhas com `connected_account_id`, `meta_page_id`, `meta_ad_account_id`, `meta_lead_form_id`, `publish_mode` e `publication_status` para o fluxo controlado.
+- `leads`: leads com `meta_connected_account_id`, `meta_page_id` e `meta_form_id` quando vierem de ativos Meta conectados.
 
 Observacoes:
 

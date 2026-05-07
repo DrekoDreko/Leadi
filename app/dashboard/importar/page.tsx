@@ -22,6 +22,7 @@ export default async function ImportarLeadsPage() {
 
       <CsvImportWorkspace
         canCreateMetaAdsLeads={Boolean(connectionState.metaConnection)}
+        metaConnectedAccountId={connectionState.metaConnection?.id ?? null}
         createLeadAccess={createLeadAccess}
       />
     </div>

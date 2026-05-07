@@ -485,220 +485,200 @@ Criterios de aceite:
 
 - [x] **Codex**
 
-```txt
-Crie a pagina /dashboard/empresa para centralizar contas conectadas da empresa.
-
-Contexto:
-- A LeadHealth precisa separar configuracao da empresa do perfil do usuario.
-- A nova pagina deve ser o lugar oficial para conectar Meta e OpenAI.
+Descricao:
+- Central de conexoes da organizacao para Meta, Instagram via Meta e OpenAI da propria empresa.
 
 Objetivo:
-- Criar a area da empresa com status, conexoes e acoes de integracao.
+- Dar ao usuario um lugar unico para conectar, reconectar, sincronizar e desconectar contas autorizadas por ele.
 
-Requisitos:
-- Criar a rota /dashboard/empresa.
-- Exibir cards para Meta/Facebook/Instagram e OpenAI.
-- Mostrar status de conexao, expirado, erro e ultima sincronizacao.
-- Manter /dashboard/perfil focado em nome comercial, usuario e webhook.
-- Preservar o estilo visual do dashboard atual.
+Subtarefas tecnicas:
+- Exibir status Meta, paginas, contas de anuncio, formularios Lead Ads e logs.
+- Explicar Instagram como permissao dependente da conexao Meta.
+- Exibir OpenAI com preview mascarado, teste de conexao e desconexao.
+- Mostrar aviso de modo demonstracao quando os dados forem mocks.
 
 Criterios de aceite:
-- A pagina abre autenticada.
-- O usuario entende claramente o que esta conectado.
-- npm run lint passa.
+- Usuario sem Meta ve CTA para conectar.
+- Usuario com Meta ve ativos conectados.
+- Usuario sem OpenAI ve CTA para cadastrar chave.
+- Nenhum token ou API key aparece completo.
 
-Observacao:
-- Implementada a central /dashboard/empresa com cards de Meta e OpenAI, ativos conectados, logs e CTAs; /dashboard/configuracoes agora redireciona para esta area.
-```
+Observacoes de seguranca:
+- Segredos devem ficar criptografados ou referenciados no backend.
+- Mocks nunca devem conter token/chave real.
+
+Dependencias:
+- Supabase, tabelas de integracoes e credenciais Meta quando houver teste real.
 
 ### F6.13 - Criar estrutura de dados para contas conectadas
 
 - [x] **Codex**
 
-```txt
-Crie a estrutura de banco e tipos para contas conectadas da empresa.
-
-Contexto:
-- A integracao Meta ja possui tabelas iniciais.
-- Falta modelar a camada de conexao por organizacao e a conexao OpenAI.
+Descricao:
+- Base multi-tenant para contas conectadas Meta/OpenAI, ativos Meta, logs e rastreio de leads.
 
 Objetivo:
-- Persistir conexoes com seguranca e isolamento por organizacao.
+- Persistir conexoes por organizacao sem depender de uma conta Meta/OpenAI central da plataforma.
 
-Requisitos:
-- Estender ou criar tabelas para Meta com pagina, instagram, ad account e escopos.
-- Criar tabela para integracao OpenAI por organizacao.
-- Armazenar segredos criptografados ou referencias seguras.
-- Salvar ultimos 4 caracteres, status, expiracao e ultimo erro.
-- Atualizar tipos do Supabase.
-- Garantir RLS por organizacao.
-- Liberar tabelas novas no MCP Supabase e documentar em docs/mcp-supabase.md.
+Subtarefas tecnicas:
+- Padronizar tipos `ConnectedAccountProvider`, `ConnectedAccountStatus`, `ConnectedAccount` e `IntegrationSyncLog`.
+- Incluir status `error` para conexoes e logs.
+- Modelar `MetaConnection`, `OpenAIConnection`, paginas, contas de anuncio e formularios.
+- Adicionar `usageMode: customer_key` para OpenAI.
+- Preparar `meta_connected_account_id` em leads.
 
 Criterios de aceite:
 - Dados ficam isolados por organizacao.
-- Segredos nao sao expostos em queries de leitura comuns.
-- npm run lint e npm run build passam.
+- Leads Meta podem apontar para a conta conectada que os originou.
+- Status de erro aparece sem expor segredo.
 
-Observacao:
-- Foram criados os tipos, mocks, criptografia de segredos, logs de sincronizacao e migration com meta_ad_accounts, openai_connections e integration_sync_logs.
-```
+Observacoes de seguranca:
+- Chaves e tokens nao ficam em texto puro.
+- Preview deve mostrar apenas valor mascarado.
+
+Dependencias:
+- RLS, service role apenas server-side e migrations aplicadas.
 
 ### F6.14 - Implementar conexao Meta com OAuth e sincronizacao de ativos
 
 - [x] **Codex + Eu**
 
-```txt
-Implemente o fluxo de conexao Meta com OAuth e sincronizacao de ativos.
-
-Contexto:
-- O cliente deve conectar a propria conta Facebook para acessar Page, Instagram e ativos de anuncio.
+Descricao:
+- Fluxo OAuth para o usuario conectar a propria conta Meta e sincronizar ativos autorizados.
 
 Objetivo:
-- Autorizar a LeadHealth a operar com ativos Meta da organizacao.
+- Usar paginas, contas de anuncio e formularios Lead Ads da organizacao conectada pelo cliente.
 
-Requisitos para Codex:
-- Criar inicio de OAuth Meta.
-- Criar callback server-side.
-- Salvar token e metadados com seguranca.
-- Sincronizar contas, paginas, instagram business account e ad account.
-- Permitir reconectar, trocar conta, sincronizar novamente e desconectar.
-- Tratar token expirado, permissao faltando e erro de sincronizacao.
-
-Parte manual:
-- Eu vou autenticar a conta Meta real e validar o fluxo.
+Subtarefas tecnicas:
+- Iniciar OAuth em `/api/integrations/meta/connect`.
+- Processar callback em `/api/integrations/meta/callback`.
+- Salvar token de forma segura, com preview mascarado.
+- Sincronizar paginas, contas de anuncio e formularios.
+- Permitir sync manual, reconexao e desconexao.
 
 Criterios de aceite:
-- A conta Meta conecta com sucesso.
-- Os ativos disponiveis aparecem na interface.
-- O sistema guarda a selecao ativa da organizacao.
+- Conexao Meta redireciona e retorna para `/dashboard/empresa`.
+- Ativos autorizados aparecem na central da empresa.
+- Erros de permissao/token sao amigaveis.
 
-Observacao:
-- OAuth, callback, sync e disconnect foram implementados com armazenamento seguro do token por organizacao; a validacao real em conta Meta depende de credenciais do app.
-```
+Observacoes de seguranca:
+- Nunca solicitar token manual do usuario.
+- Nunca exibir token completo.
+
+Dependencias:
+- `META_APP_ID`, `META_APP_SECRET`, `META_REDIRECT_URI`, App Review quando necessario.
 
 ### F6.15 - Implementar conexao OpenAI por API key do cliente
 
 - [x] **Codex + Eu**
 
-```txt
-Implemente a conexao OpenAI por chave do cliente.
-
-Contexto:
-- Para gerar imagens e outras saidas de IA, a LeadHealth deve usar a chave do proprio cliente quando existir.
+Descricao:
+- Fluxo para a empresa cadastrar e validar a propria chave OpenAI.
 
 Objetivo:
-- Permitir que a empresa conecte a conta OpenAI e valide a chave antes de salvar.
+- Recursos de IA do cliente usam a chave OpenAI conectada pela organizacao.
 
-Requisitos para Codex:
-- Criar formulario para salvar API key da OpenAI na area da empresa.
-- Validar a chave no servidor antes de persistir.
-- Armazenar a chave de forma segura.
-- Exibir status de conexao, ultima validacao e ultimo erro.
-- Definir fallback para chave global da plataforma somente se isso permanecer habilitado.
-- Garantir que a chave completa nunca seja exibida na interface.
-
-Parte manual:
-- Eu vou informar uma chave valida de teste, se necessario.
+Subtarefas tecnicas:
+- Criar `/api/integrations/openai/connect`, `/test` e `/disconnect`.
+- Salvar chave com criptografia ou referencia segura.
+- Exibir somente preview mascarado.
+- Bloquear geracao de campanhas, perguntas e WhatsApp sem chave conectada.
 
 Criterios de aceite:
 - Chave valida ativa a integracao.
-- Chave invalida retorna erro claro.
-- npm run lint passa.
+- Chave invalida marca status de erro e mostra mensagem amigavel.
+- Nenhum fluxo do cliente depende de credencial central da plataforma.
 
-Observacao:
-- A chave do cliente agora e salva/testada na area Empresa com preview mascarado; as rotas de IA usam a chave conectada antes do fallback de servidor.
-```
+Observacoes de seguranca:
+- Nunca logar ou exibir a chave completa.
+- Modo mock mostra apenas preview seguro.
+
+Dependencias:
+- Supabase admin e chave OpenAI informada pela propria empresa.
 
 ### F6.16 - Adaptar campanhas para usar contas conectadas
 
 - [x] **Codex**
 
-```txt
-Adapte o fluxo de campanhas para usar as contas conectadas da empresa.
-
-Contexto:
-- A pagina /dashboard/campanhas hoje gera texto e perguntas, mas ainda nao opera com contas conectadas.
+Descricao:
+- Campanhas passam a depender de Meta conectada para preparo Meta e de OpenAI conectada para IA.
 
 Objetivo:
-- Permitir criar campanhas com Meta e OpenAI da propria empresa.
+- Preparar campanhas usando pagina, conta de anuncio e formulario autorizados pela organizacao.
 
-Requisitos:
-- Ler a integracao ativa da organizacao antes de gerar imagem ou publicar.
-- Usar a conta OpenAI da empresa para gerar imagens quando disponivel.
-- Exibir aviso quando faltar conexao Meta ou OpenAI.
-- Preparar o draft de campanha com Page, Instagram e Ad Account selecionados.
-- Manter a geracao de copy e compliance existentes.
-- Nao quebrar o fluxo atual quando a conta nao estiver conectada.
+Subtarefas tecnicas:
+- Carregar contas conectadas em `/dashboard/campanhas`.
+- Mostrar CTA quando Meta ou OpenAI estiver ausente.
+- Persistir `connectedAccountId`, `metaPageId`, `metaAdAccountId`, `metaLeadFormId`, `publishMode` e `publicationStatus`.
+- Gerar copy somente com OpenAI conectada.
 
 Criterios de aceite:
-- O usuario consegue ver o que falta para publicar.
-- O fluxo continua funcionando sem integracao, com fallback controlado.
-- npm run lint e npm run build passam.
+- Sem OpenAI, botoes de IA ficam bloqueados com CTA.
+- Sem Meta, campanha nao avanca para preparo/publicacao.
+- Com Meta, usuario escolhe pagina, conta de anuncio e formulario.
 
-Observacao:
-- O gerador de campanhas agora seleciona pagina, conta de anuncio e formulario conectados, e persiste o modo/status de publicacao controlada.
-```
+Observacoes de seguranca:
+- Textos continuam passando por guardrails de compliance.
+- Publicacao nao deve ser automatica sem revisao.
+
+Dependencias:
+- Conexao Meta, conexao OpenAI e historico de campanhas.
 
 ### F6.17 - Criar publicacao de campanha no Meta com rascunho controlado
 
 - [x] **Codex + Eu**
 
-```txt
-Crie o fluxo controlado de publicacao de campanha no Meta.
-
-Contexto:
-- A LeadHealth deve preparar a campanha para publicacao usando os ativos conectados.
+Descricao:
+- Fluxo local de preparo de rascunho/revisao para futura publicacao Meta autorizada.
 
 Objetivo:
-- Transformar o gerador de campanhas em um fluxo que prepara e publica rascunhos.
+- Registrar estado de preparo sem prometer publicacao automatica total.
 
-Requisitos para Codex:
-- Criar payload de publicacao com ad account, page, instagram e criativo.
-- Salvar o estado da campanha antes da publicacao.
-- Tratar erros de permissao, conta ausente e asset expirado.
-- Registrar o resultado da operacao.
-- Preservar o compliance e o historico atual.
-
-Parte manual:
-- Eu vou validar a publicacao em uma conta Meta de teste ou real.
+Subtarefas tecnicas:
+- Calcular status `not_connected`, `ready_to_prepare`, `draft_created`, `pending_review`, `paused` ou `failed`.
+- Bloquear preparo quando pagina/conta de anuncio nao estiverem selecionadas.
+- Guardar IDs Meta apenas quando existirem retornos reais da API.
+- Exibir texto de revisao antes de publicar.
 
 Criterios de aceite:
-- O sistema consegue preparar a campanha para publicacao.
-- Erros ficam compreensiveis para o usuario.
+- Campanha sem Meta fica `not_connected`.
+- Campanha com Meta mas sem ativos fica aguardando ativos.
+- Campanha com ativos fica pronta para revisao/rascunho controlado.
 
-Observacao:
-- A LeadHealth agora prepara rascunho/revisao/pausa com status de publicacao e metadados da conta conectada; o push real para a API da Meta continua como prox. integracao quando o app estiver pronto para publicar.
-```
+Observacoes de seguranca:
+- Nao publicar campanha automaticamente.
+- Erros Meta nao devem expor token ou payload sensivel.
+
+Dependencias:
+- Marketing API e permissoes especificas para publicacao real futura.
 
 ### F6.18 - Adicionar testes e verificacoes do fluxo de conexao
 
 - [x] **Codex**
 
-```txt
-Adicione testes e verificacoes para o novo fluxo de conexao da empresa.
-
-Contexto:
-- O fluxo envolve Meta, Instagram, OpenAI e publicacao de campanhas.
+Descricao:
+- Checklist tecnico e validacoes automatizadas do fluxo de contas conectadas.
 
 Objetivo:
-- Cobrir os casos principais de sucesso e erro.
+- Garantir que a nova arquitetura nao volte a depender de conta central da plataforma.
 
-Requisitos:
-- Testar conexao Meta com selecao de ativos.
-- Testar validacao da chave OpenAI.
-- Testar fallback quando a conta nao estiver conectada.
-- Testar isolamento por organizacao.
-- Testar erro de token expirado e desconexao.
-- Garantir que o dashboard siga abrindo e que a pagina de campanhas nao quebre.
+Subtarefas tecnicas:
+- Rodar `npm run lint`, `npm run build` e `npm run compliance:battery`.
+- Buscar referencias antigas em codigo e docs.
+- Validar UI sem Meta, com Meta, sem OpenAI e com OpenAI.
+- Confirmar que leads Meta carregam formulario, pagina e conta conectada.
 
 Criterios de aceite:
-- Os testes principais passam.
-- npm run lint passa.
-- npm run build passa.
+- Nenhum texto ativo pede token/API manual ao cliente.
+- Nenhum fluxo promete que a LeadHealth publica anuncios pela propria conta.
+- Nenhuma chave OpenAI completa aparece na UI.
 
-Observacao:
-- A validacao automatizada atual passou por `npm run lint` e `npm run build`; nao foram adicionados testes unitarios novos nesta passada.
-```
+Observacoes de seguranca:
+- Logs de sync nao podem conter segredos.
+- Falhas devem ser amigaveis e auditaveis.
+
+Dependencias:
+- Ambiente local com dependencias instaladas e migrations atualizadas.
 
 ## Fase 7 - Pagamentos e planos
 
@@ -1714,27 +1694,27 @@ Criterios de aceite:
 - Exportacao respeita filtros e RLS.
 ```
 
-### B9 - Decidir automacao completa de Meta Ads
+### B9 - Evoluir publicacao controlada com contas Meta conectadas
 
 - [ ] **Codex + Eu**
 
 ```txt
-Ajude a decidir quando transformar a operacao manual de Meta Ads em automacao completa.
+Ajude a decidir quando evoluir de rascunho controlado para publicacao real via Meta Marketing API.
 
 Contexto:
-- Automacao completa aumenta complexidade, risco de compliance e necessidade de permissoes.
+- A publicacao real depende da conta Meta conectada pela propria organizacao, permissoes aprovadas e revisao antes de ativacao.
 
 Objetivo:
-- Criar uma matriz de decisao para evoluir de operacao manual para automacao.
+- Criar uma matriz de decisao para evoluir de preparo de rascunho para publicacao autorizada.
 
 Requisitos para Codex:
 - Listar requisitos tecnicos, riscos, permissoes e custos.
-- Comparar operacao manual, semi-automatica e automatica.
+- Comparar rascunho local, rascunho enviado pausado e publicacao controlada.
 - Transformar decisao em roadmap se for aprovado.
 
 Parte manual:
-- Eu devo decidir com base em clientes, volume e capacidade operacional.
+- Eu devo decidir com base em clientes, volume, App Review e permissao Marketing API.
 
 Criterios de aceite:
-- Existe recomendacao clara de quando automatizar.
+- Existe recomendacao clara de quando publicar via contas conectadas.
 ```

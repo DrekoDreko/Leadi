@@ -21,9 +21,9 @@ const plans = [
   {
     name: "Operação",
     price: "Sob consulta",
-    description: "Para corretoras que querem campanha, design e operação assistida.",
+    description: "Para corretoras que precisam de mais volume, revisão e organização de materiais.",
     credits: "Pacote maior sob demanda",
-    features: ["Pedidos de criativo", "Revisão consultiva", "Setup manual Meta", "Suporte prioritário"]
+    features: ["Pedidos de criativo", "Revisão consultiva", "Contas conectadas", "Suporte prioritário"]
   }
 ];
 

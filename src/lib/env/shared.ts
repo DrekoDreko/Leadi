@@ -32,10 +32,6 @@ export const ENV_VARIABLES = {
     description: "Chave administrativa do Supabase para operacoes server-side e MCP.",
     public: false
   },
-  OPENAI_API_KEY: {
-    description: "Chave server-side de fallback para IA quando a empresa nao tiver chave conectada.",
-    public: false
-  },
   OPENAI_MODEL: {
     description: "Modelo padrao usado nas rotas de IA.",
     public: false

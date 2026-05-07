@@ -1,20 +1,16 @@
 import { NextResponse } from "next/server";
 import {
+  getOpenAIConnectionForOrganization,
+  markOpenAIConnectionDisconnected,
   recordIntegrationSyncLog,
-  resolveCurrentIdentity,
-  saveOpenAIConnectionSnapshot
+  resolveCurrentIdentity
 } from "@/lib/integrations/repository.server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export async function POST(request: Request) {
   const requestUrl = new URL(request.url);
   const formData = await request.formData().catch(() => null);
   const returnTo = getReturnTo(formData);
   const identity = await resolveCurrentIdentity();
-
-  if (!isSupabaseConfigured()) {
-    return redirectBack(requestUrl, returnTo, "openai=missing");
-  }
 
   if (!identity) {
     return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(returnTo)}`, requestUrl));
@@ -24,17 +20,14 @@ export async function POST(request: Request) {
     return redirectBack(requestUrl, returnTo, "openai=error");
   }
 
-  const apiKey = String(formData?.get("apiKey") ?? "").trim();
-
-  if (!apiKey) {
-    return redirectBack(requestUrl, returnTo, "openai=missing");
+  const connection = await getOpenAIConnectionForOrganization(identity.organization.id);
+  if (!connection) {
+    return redirectBack(requestUrl, returnTo, "openai=disconnected");
   }
 
   try {
-    const connection = await saveOpenAIConnectionSnapshot({
-      organizationId: identity.organization.id,
-      connectedByProfileId: identity.profile.id,
-      apiKey
+    await markOpenAIConnectionDisconnected({
+      organizationId: identity.organization.id
     });
 
     await recordIntegrationSyncLog({
@@ -43,32 +36,32 @@ export async function POST(request: Request) {
       connectionId: connection.id,
       assetType: "openai_key",
       status: "success",
-      title: "Chave OpenAI salva",
-      message: "A chave OpenAI da organizacao foi salva com segurança.",
+      title: "OpenAI desconectada",
+      message: "A chave OpenAI da empresa foi desconectada.",
       details: {
-        route: "api/integrations/openai/save"
+        route: "api/integrations/openai/disconnect"
       },
       createdByProfileId: identity.profile.id
     });
 
-    return redirectBack(requestUrl, returnTo, "openai=saved");
+    return redirectBack(requestUrl, returnTo, "openai=disconnected");
   } catch (error) {
-    console.error("Falha ao salvar a chave OpenAI.", error);
+    console.error("Falha ao desconectar a OpenAI.", error);
 
     try {
       await recordIntegrationSyncLog({
         organizationId: identity.organization.id,
         provider: "openai",
-        connectionId: null,
+        connectionId: connection.id,
         assetType: "openai_key",
         status: "failed",
-        title: "Falha ao salvar chave OpenAI",
+        title: "Falha ao desconectar OpenAI",
         message:
           error instanceof Error && error.message
             ? error.message
-            : "Nao foi possivel salvar a chave OpenAI agora.",
+            : "Nao foi possivel desconectar a OpenAI agora.",
         details: {
-          route: "api/integrations/openai/save"
+          route: "api/integrations/openai/disconnect"
         },
         createdByProfileId: identity.profile.id
       });
@@ -76,7 +69,7 @@ export async function POST(request: Request) {
       console.error("Nao foi possivel registrar o log de falha da OpenAI.", logError);
     }
 
-    return redirectBack(requestUrl, returnTo, "openai=invalid");
+    return redirectBack(requestUrl, returnTo, "openai=error");
   }
 }
 

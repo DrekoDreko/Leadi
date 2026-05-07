@@ -29,9 +29,9 @@ export type BillingGateway = "internal" | "mercado_pago" | "asaas" | "stripe" | 
 export type BillingIntervalUnit = "day" | "week" | "month" | "year";
 export type SubscriptionStatus = "pending" | "trialing" | "active" | "past_due" | "paused" | "cancelled" | "expired";
 export type PaymentEventStatus = "pending" | "processed" | "failed" | "cancelled";
-export type IntegrationConnectionStatus = "connected" | "disconnected" | "expired" | "pending";
+export type IntegrationConnectionStatus = "connected" | "disconnected" | "expired" | "pending" | "error";
 export type IntegrationProvider = "meta" | "openai";
-export type IntegrationSyncStatus = "success" | "warning" | "failed" | "running";
+export type IntegrationSyncStatus = "success" | "warning" | "failed" | "error" | "running";
 export type WhatsAppStage = LeadStage;
 export type ProfileRole = "owner" | "admin" | "seller" | "supervisor";
 export type WorkspaceType = "solo" | "team";
@@ -842,6 +842,7 @@ export type Database = {
           meta_campaign_id: string | null;
           meta_adset_id: string | null;
           meta_ad_id: string | null;
+          meta_connected_account_id: string | null;
           import_batch_id: string | null;
           raw_payload: Json;
           received_at: string;
@@ -876,6 +877,7 @@ export type Database = {
           meta_campaign_id?: string | null;
           meta_adset_id?: string | null;
           meta_ad_id?: string | null;
+          meta_connected_account_id?: string | null;
           import_batch_id?: string | null;
           raw_payload?: Json;
           received_at?: string;
@@ -910,6 +912,7 @@ export type Database = {
           meta_campaign_id?: string | null;
           meta_adset_id?: string | null;
           meta_ad_id?: string | null;
+          meta_connected_account_id?: string | null;
           import_batch_id?: string | null;
           raw_payload?: Json;
           received_at?: string;

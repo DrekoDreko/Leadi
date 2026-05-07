@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getServerEnv, requireIntegrationEnv } from "@/lib/env/server";
+import { getServerEnv } from "@/lib/env/server";
 import {
   buildCampaignTextPrompt,
   buildComplianceQuestionsPrompt,
@@ -263,15 +263,10 @@ function getOpenAIApiKey(override?: string | null) {
     return normalizedOverride;
   }
 
-  try {
-    requireIntegrationEnv("openai");
-    return getServerEnv("OPENAI_API_KEY");
-  } catch {
-    throw new LeadHealthOpenAIError(
-      "Nenhuma chave OpenAI foi encontrada. Cadastre a chave na area Empresa ou configure OPENAI_API_KEY no servidor.",
-      "missing_api_key"
-    );
-  }
+  throw new LeadHealthOpenAIError(
+    "Nenhuma chave OpenAI conectada foi encontrada. Cadastre sua chave OpenAI na area Empresa para usar este recurso.",
+    "missing_api_key"
+  );
 }
 
 function getOpenAIModel() {

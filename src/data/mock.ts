@@ -46,6 +46,7 @@ export type Lead = {
   metaLeadId?: string | null;
   metaFormId?: string | null;
   metaPageId?: string | null;
+  metaConnectedAccountId?: string | null;
   receivedAt?: string | null;
   nextContactAt?: string | null;
 };
@@ -68,6 +69,11 @@ export const leads: Lead[] = [
     receivedAt: "2026-04-27T15:30:00-03:00",
     budget: "R$ 18k/mês",
     interest: "Plano empresarial com coparticipação",
+    sourceCampaign: "Campanha PME conectada",
+    metaLeadId: "demo-meta-lead-1042",
+    metaFormId: "form_445566",
+    metaPageId: "page_123456",
+    metaConnectedAccountId: "demo-meta-connection",
     lastInteraction: "Solicitou comparação entre duas operadoras e pediu retorno no fim da tarde.",
     notes: "Lead em expansão, decisora direta e com urgência para fechar ainda este mês."
   },
@@ -87,9 +93,9 @@ export const leads: Lead[] = [
     createdAt: "26 abr 2026",
     receivedAt: "2026-04-26T10:00:00-03:00",
     budget: "R$ 6k/mês",
-    interest: "Redução de custo do plano atual",
-    lastInteraction: "Respondeu ao WhatsApp com faixa de vidas e pediu simulação sem odontológico.",
-    notes: "Lead sensível a preço. Vale abrir com economia estimada antes de falar de rede."
+    interest: "Revisão de alternativas para o plano atual",
+    lastInteraction: "Respondeu ao WhatsApp com faixa de vidas e pediu simulação objetiva sem odontológico.",
+    notes: "Lead sensível a investimento. Vale abrir comparando faixa, rede e próximos passos."
   },
   {
     id: "LH-1031",
@@ -128,6 +134,11 @@ export const leads: Lead[] = [
     receivedAt: "2026-04-23T16:00:00-03:00",
     budget: "R$ 42k/mês",
     interest: "Migração de contrato com maior rede hospitalar",
+    sourceCampaign: "Campanha empresarial conectada",
+    metaLeadId: "demo-meta-lead-1028",
+    metaFormId: "form_778899",
+    metaPageId: "page_789012",
+    metaConnectedAccountId: "demo-meta-connection",
     lastInteraction: "Comparou proposta final com contrato atual e pediu ajuste para diretoria.",
     notes: "Alto potencial. Preparar argumento de rede credenciada e risco de reajuste."
   }
