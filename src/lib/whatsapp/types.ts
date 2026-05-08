@@ -1,6 +1,17 @@
 import type { WhatsAppMessageOutput } from "@/lib/openai";
 
-export type WhatsAppStage = "new" | "qualification" | "proposal" | "negotiation" | "won" | "lost";
+export type WhatsAppStage =
+  | "new"
+  | "qualification"
+  | "proposal"
+  | "negotiation"
+  | "won"
+  | "lost"
+  | "new_lead"
+  | "first_contact"
+  | "awaiting_response"
+  | "closing"
+  | "post_service";
 
 export type WhatsAppGenerationForm = {
   leadId?: string | null;

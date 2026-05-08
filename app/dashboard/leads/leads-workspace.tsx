@@ -6,23 +6,20 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
+  ArrowUpRight,
   ChevronRight,
-  Clock3,
   Filter,
   Inbox,
   Loader2,
-  MessageCircle,
-  PhoneCall,
   Plus,
   RefreshCcw,
   Search,
-  Sparkles,
   X
 } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import type { Lead } from "@/data/mock";
 import { LeadDetailsPopup } from "@/components/dashboard/lead-details-popup";
-import { Metric, OperationalAgendaMetrics, PageHeading } from "@/components/dashboard/widgets";
+import { Metric, PageHeading } from "@/components/dashboard/widgets";
 import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import {
   defaultLeadUrlFilters,
@@ -59,10 +56,16 @@ const paginationQueryKeys = ["limit", "offset"];
 
 export function LeadsWorkspace({
   createLeadAccess,
+  hasOpenAIConnection,
+  initialLeadId,
+  initialLeadPanel,
   leadFilters,
   leadState
 }: {
   createLeadAccess: ResourceAccessSummary;
+  hasOpenAIConnection: boolean;
+  initialLeadId: string | null;
+  initialLeadPanel: "details" | "message";
   leadFilters: LeadUrlFilters;
   leadState: LeadDataState;
 }) {
@@ -70,7 +73,9 @@ export function LeadsWorkspace({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [leads, setLeads] = useState(leadState.leads);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(() =>
+    initialLeadId ? leadState.leads.find((lead) => lead.id === initialLeadId) ?? null : null
+  );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
   const [createFeedback, setCreateFeedback] = useState<string | null>(null);
@@ -84,6 +89,7 @@ export function LeadsWorkspace({
   const [pagination, setPagination] = useState(leadState.pagination);
   const [isLoadingMoreLeads, setIsLoadingMoreLeads] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const [selectedLeadPanel, setSelectedLeadPanel] = useState<"details" | "message">(initialLeadPanel);
 
   const visibleLeads = leads;
   const hasActiveFilters = searchTerm.trim().length > 0 || hasActiveLeadUrlFilters(leadFilters);
@@ -126,6 +132,16 @@ export function LeadsWorkspace({
     setLoadMoreError(null);
     setIsLoadingMoreLeads(false);
   }, [leadState.leads, leadState.pagination]);
+
+  useEffect(() => {
+    if (!initialLeadId) {
+      return;
+    }
+
+    const leadFromQuery = leadState.leads.find((lead) => lead.id === initialLeadId) ?? null;
+    setSelectedLead(leadFromQuery);
+    setSelectedLeadPanel(initialLeadPanel);
+  }, [initialLeadId, initialLeadPanel, leadState.leads]);
 
   useEffect(() => {
     setSearchTerm(leadFilters.search);
@@ -247,6 +263,11 @@ export function LeadsWorkspace({
     if (mode === "supabase" || mode === undefined) {
       router.refresh();
     }
+  }
+
+  function openLeadDetails(lead: Lead) {
+    setSelectedLead(lead);
+    setSelectedLeadPanel("details");
   }
 
   function handleLeadUpdated(lead: Lead, mode?: LeadDataMode) {
@@ -404,8 +425,6 @@ export function LeadsWorkspace({
         <LeadWorkspaceErrorState message={leadState.message} onRetry={handleRefresh} />
       ) : (
         <>
-          <OperationalAgendaMetrics metrics={leadState.agendaMetrics} />
-
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Metric
               label="Novos leads"
@@ -441,27 +460,25 @@ export function LeadsWorkspace({
           ) : (
             <>
               <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-stretch">
-                <div className="min-w-0 flex h-full flex-col gap-4">
+                <div className="min-w-0 flex h-full flex-col gap-4 xl:col-span-2">
                   <LeadTablePanel
                     leads={visibleLeads}
                     hasActiveFilters={hasActiveFilters}
                     onSearchChange={setSearchTerm}
                     onOpenFilters={openFilterPopup}
                     onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
-                    onLeadOpen={setSelectedLead}
+                    onLeadOpen={openLeadDetails}
                     onLeadStageChange={handleLeadStageChange}
                     updatingLeadId={updatingLeadId}
                     searchTerm={searchTerm}
                   />
                   <LeadKanbanPanel
                     columns={kanbanColumns}
-                    onLeadOpen={setSelectedLead}
+                    onLeadOpen={openLeadDetails}
                     onLeadStageChange={handleLeadStageChange}
                     updatingLeadId={updatingLeadId}
                   />
                 </div>
-
-                <LeadContactQueue leads={visibleLeads} onLeadOpen={setSelectedLead} />
               </section>
               <LeadPaginationControls
                 error={loadMoreError}
@@ -483,7 +500,10 @@ export function LeadsWorkspace({
         open={isCreateOpen}
       />
       <LeadDetailsPopup
+        hasOpenAIConnection={hasOpenAIConnection}
+        initialPanel={selectedLeadPanel}
         lead={selectedLead}
+        messageGeneratorEnabled
         onClose={() => setSelectedLead(null)}
         onDeleted={selectedLeadCanDelete ? handleLeadDeleted : undefined}
         onUpdated={selectedLeadCanEdit ? handleLeadUpdated : undefined}
@@ -1023,9 +1043,13 @@ function LeadKanbanPanel({
           <p className="text-sm text-ink/54">Kanban</p>
           <h2 className="text-2xl font-semibold">Funil de vendas</h2>
         </div>
-        <button className="icon-button" type="button" title="Ajustar automação">
-          <Sparkles size={18} aria-hidden="true" />
-        </button>
+        <Link
+          className="icon-button"
+          href="/dashboard/funil"
+          title="Visualizar todo o funil"
+        >
+          <ArrowUpRight size={18} aria-hidden="true" />
+        </Link>
       </div>
 
       <div className="grid gap-3 xl:grid-cols-4">
@@ -1071,56 +1095,6 @@ function LeadKanbanPanel({
         ))}
       </div>
     </section>
-  );
-}
-
-function LeadContactQueue({
-  leads,
-  onLeadOpen
-}: {
-  leads: Lead[];
-  onLeadOpen: (lead: Lead) => void;
-}) {
-  return (
-    <aside className="flex h-full flex-col">
-      <section className="glass rounded-[34px] p-5 h-full">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="font-semibold">Próximos contatos</h2>
-          <Clock3 size={20} aria-hidden="true" />
-        </div>
-
-        <div className="space-y-3">
-          {leads.map((lead) => (
-            <article className="rounded-[24px] bg-white/42 p-4" key={lead.id}>
-              <button className="w-full text-left" onClick={() => onLeadOpen(lead)} type="button">
-                <span className="flex items-start justify-between gap-3">
-                  <span>
-                    <span className="block font-semibold">{lead.name}</span>
-                    <span className="mt-1 block text-sm text-ink/56">{lead.phone}</span>
-                  </span>
-                  <span className="rounded-full bg-white/64 px-2.5 py-1 text-xs font-semibold">
-                    {lead.score}%
-                  </span>
-                </span>
-              </button>
-
-              <div className="mt-4 flex gap-2">
-                <Link
-                  className="icon-button"
-                  href={`/dashboard/whatsapp?lead=${lead.id}`}
-                  title={`Abrir sugestões de mensagem para ${lead.name}`}
-                >
-                  <MessageCircle size={18} aria-hidden="true" />
-                </Link>
-                <button className="icon-button" type="button" title="Ligar">
-                  <PhoneCall size={18} aria-hidden="true" />
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-    </aside>
   );
 }
 

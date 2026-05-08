@@ -458,7 +458,7 @@ export function SalesFunnelWorkspace({
               </h2>
               <p className="mt-3 text-sm leading-6 text-ink/62">
                 O card inteiro abre o popup do cliente. Os controles rápidos continuam disponíveis
-                para WhatsApp, ligação e mudança de etapa.
+                para ligacao, abertura do lead e mudanca de etapa.
               </p>
             </div>
 
@@ -627,14 +627,17 @@ function FunnelLeadCard({
         </div>
 
         <div className="flex gap-2">
-          <Link
+          <button
             className="icon-button h-10 w-10 bg-white/68"
-            href={`/dashboard/whatsapp?lead=${lead.id}`}
-            onClick={(event) => event.stopPropagation()}
-            title={`Abrir WhatsApp para ${lead.name}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              onLeadOpen(lead);
+            }}
+            title={`Abrir lead ${lead.name}`}
+            type="button"
           >
             <MessageCircle size={16} aria-hidden="true" />
-          </Link>
+          </button>
           <a
             className="icon-button h-10 w-10 bg-white/68"
             href={phoneHref ?? "#"}

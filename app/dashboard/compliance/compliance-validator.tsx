@@ -63,7 +63,15 @@ const severityClasses: Record<RiskLevel, string> = {
   medium: "bg-yellow-100 text-yellow-800 ring-yellow-200/70"
 };
 
-export function ComplianceValidator() {
+export function ComplianceValidator({
+  eyebrow = "Compliance",
+  title = "Validador de campanha",
+  description = "Cole textos de anuncio, formulario ou mensagem para detectar linguagem sensivel antes de publicar."
+}: {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+} = {}) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [review, setReview] = useState<ComplianceReview | null>(null);
   const [error, setError] = useState("");
@@ -142,9 +150,9 @@ export function ComplianceValidator() {
   return (
     <div className="space-y-4">
       <PageHeading
-        eyebrow="Compliance"
-        title="Validador de campanha"
-        description="Cole textos de anuncio, formulario ou mensagem para detectar linguagem sensivel antes de publicar."
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
       >
         <button
           className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"

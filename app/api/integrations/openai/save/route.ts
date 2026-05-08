@@ -87,7 +87,7 @@ function getReturnTo(formData: FormData | null) {
     return returnTo;
   }
 
-  return "/dashboard/empresa";
+  return "/dashboard/perfil?section=empresa";
 }
 
 function redirectBack(url: URL, returnTo: string, query: string) {

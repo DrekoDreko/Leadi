@@ -1,19 +1,11 @@
 import { NextResponse } from "next/server";
-import { randomUUID } from "node:crypto";
-import { EnvValidationError, requireIntegrationEnv } from "@/lib/env/server";
+import { EnvValidationError } from "@/lib/env/server";
 import {
   generateWhatsAppMessage,
   LeadHealthOpenAIError,
   type WhatsAppMessageInput
 } from "@/lib/openai";
 import { resolveOpenAIKeyForOrganization } from "@/lib/integrations/repository.server";
-import {
-  BillingResourceAccessError,
-  assertOrganizationResourceAccess
-} from "@/lib/billing/subscription-limits.server";
-import { BILLING_FEATURE_COSTS } from "@/lib/billing/catalog";
-import { chargeCreditsForFeature } from "@/lib/billing/usage.server";
-import { isBillingConfigured } from "@/lib/billing/config";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import { saveWhatsAppMessageForCurrentUser } from "@/lib/whatsapp/repository.server";
 import type { WhatsAppGenerationForm } from "@/lib/whatsapp/types";
@@ -28,10 +20,6 @@ type ParsedWhatsAppInput = Omit<WhatsAppMessageInput, "brokerageName"> & {
 
 export async function POST(request: Request) {
   try {
-    if (!isBillingConfigured()) {
-      requireIntegrationEnv("billing");
-    }
-
     const body = (await request.json().catch(() => null)) as WhatsAppRequestBody | null;
     const input = parseWhatsAppRequest(body);
     const billingContext = await getBillingAuthContext();
@@ -46,33 +34,11 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Conecte sua chave OpenAI em Empresa para gerar mensagens com IA usando a conta da sua organização."
+            "Conecte sua chave OpenAI no Perfil para gerar mensagens com IA usando a conta da sua organizacao."
         },
         { status: 400 }
       );
     }
-
-    await assertOrganizationResourceAccess(
-      billingContext.organizationId,
-      "whatsapp_generation"
-    );
-    const usageReferenceId = request.headers.get("x-idempotency-key") ?? randomUUID();
-
-    await chargeCreditsForFeature({
-      organizationId: billingContext.organizationId,
-      amount: BILLING_FEATURE_COSTS.whatsapp_message,
-      featureKey: "whatsapp_message",
-      source: "system",
-      referenceType: "whatsapp_message_generation",
-      referenceId: usageReferenceId,
-      profileId: billingContext.profileId,
-      metadata: {
-        brokerageName: billingContext.brokerageName,
-        product: input.product,
-        stage: input.stage,
-        objective: input.objective
-      }
-    });
 
     const message = await generateWhatsAppMessage({
       ...input,
@@ -135,7 +101,12 @@ function getStage(value: unknown): WhatsAppMessageInput["stage"] {
     value === "proposal" ||
     value === "negotiation" ||
     value === "won" ||
-    value === "lost"
+    value === "lost" ||
+    value === "new_lead" ||
+    value === "first_contact" ||
+    value === "awaiting_response" ||
+    value === "closing" ||
+    value === "post_service"
   ) {
     return value;
   }
@@ -158,24 +129,7 @@ function getWhatsAppError(error: unknown) {
     };
   }
 
-  if (error instanceof BillingResourceAccessError) {
-    return {
-      message: error.access.message,
-      status: error.status
-    };
-  }
-
   if (error instanceof Error && error.message) {
-    const message = error.message.toLowerCase();
-
-    if (message.includes("credito") || message.includes("crédito") || message.includes("insuf")) {
-      return {
-        message:
-          "Créditos insuficientes para gerar a mensagem do WhatsApp. Adquira mais créditos no plano ou em um pacote avulso.",
-        status: 402
-      };
-    }
-
     return {
       message: error.message,
       status: 400

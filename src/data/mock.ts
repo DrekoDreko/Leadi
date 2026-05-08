@@ -1,23 +1,20 @@
 import {
   BarChart3,
-  CalendarDays,
   Kanban,
   LayoutDashboard,
-  MessageCircle,
-  ShieldCheck,
   Sparkles,
   UsersRound,
+  UserPlus,
   WalletCards
 } from "lucide-react";
 
 export const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Agenda", href: "/dashboard/agenda", icon: CalendarDays },
   { label: "Leads", href: "/dashboard/leads", icon: UsersRound },
   { label: "Funil", href: "/dashboard/funil", icon: Kanban },
-  { label: "Campanhas", href: "/dashboard/campanhas", icon: Sparkles },
-  { label: "Compliance", href: "/dashboard/compliance", icon: ShieldCheck },
-  { label: "WhatsApp", href: "/dashboard/whatsapp", icon: MessageCircle },
+  { label: "Importar Leads", href: "/dashboard/importar", icon: BarChart3 },
+  { label: "Criar Equipe", href: "/dashboard/criar-equipe", icon: UserPlus },
+  { label: "Criações", href: "/dashboard/criacoes", icon: Sparkles },
   { label: "Relatórios", href: "/dashboard/relatorios", icon: BarChart3 },
   { label: "Planos", href: "/pricing", icon: WalletCards }
 ];

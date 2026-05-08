@@ -85,7 +85,7 @@ function sanitizeReturnTo(value: string) {
   const normalized = value.trim();
 
   if (!normalized.startsWith("/")) {
-    return "/dashboard/empresa";
+    return "/dashboard/perfil?section=empresa";
   }
 
   return normalized;

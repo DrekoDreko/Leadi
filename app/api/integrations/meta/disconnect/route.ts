@@ -93,7 +93,7 @@ async function getReturnTo(request: Request) {
     return returnTo;
   }
 
-  return "/dashboard/empresa";
+  return "/dashboard/perfil?section=empresa";
 }
 
 function redirectBack(url: URL, returnTo: string, query: string) {

@@ -136,7 +136,7 @@ function buildWhatsAppInsert(
     lead_id: input.form.leadId ?? null,
     lead_name: input.form.leadName,
     lead_context: input.form.leadContext ?? "",
-    stage: input.form.stage,
+    stage: normalizePersistedWhatsAppStage(input.form.stage),
     objective: input.form.objective,
     tone: input.form.tone,
     product: input.form.product || DEFAULT_PRODUCT,
@@ -327,12 +327,34 @@ function normalizeWhatsAppStage(value: string | null): WhatsAppStage {
     value === "proposal" ||
     value === "negotiation" ||
     value === "won" ||
-    value === "lost"
+    value === "lost" ||
+    value === "new_lead" ||
+    value === "first_contact" ||
+    value === "awaiting_response" ||
+    value === "closing" ||
+    value === "post_service"
   ) {
     return value;
   }
 
   return "new";
+}
+
+function normalizePersistedWhatsAppStage(stage: WhatsAppStage) {
+  switch (stage) {
+    case "new_lead":
+      return "new";
+    case "first_contact":
+      return "qualification";
+    case "awaiting_response":
+      return "proposal";
+    case "closing":
+      return "negotiation";
+    case "post_service":
+      return "won";
+    default:
+      return stage;
+  }
 }
 
 function arrayFromPayload(value: Json | null | undefined, fallback: Json | null | undefined) {

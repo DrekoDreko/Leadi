@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { randomUUID } from "node:crypto";
 import {
   generateComplianceQuestions,
   LeadHealthOpenAIError,
@@ -7,14 +6,7 @@ import {
   type ComplianceQuestionsOutput
 } from "@/lib/openai";
 import { resolveOpenAIKeyForOrganization } from "@/lib/integrations/repository.server";
-import {
-  BillingResourceAccessError,
-  assertOrganizationResourceAccess
-} from "@/lib/billing/subscription-limits.server";
-import { chargeCreditsForFeature } from "@/lib/billing/usage.server";
-import { isBillingConfigured } from "@/lib/billing/config";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
-import { BILLING_FEATURE_COSTS } from "@/lib/billing/catalog";
 
 type QuestionsRequestBody = {
   audience?: unknown;
@@ -53,13 +45,6 @@ const PROHIBITED_QUESTION_PATTERNS = [
 
 export async function POST(request: Request) {
   try {
-    if (!isBillingConfigured()) {
-      return NextResponse.json(
-        { error: "Configure o billing para liberar a geracao com créditos." },
-        { status: 503 }
-      );
-    }
-
     const body = (await request.json()) as QuestionsRequestBody;
     const input = parseQuestionsRequest(body);
     const billingContext = await getBillingAuthContext();
@@ -74,33 +59,11 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Conecte sua chave OpenAI em Empresa para gerar perguntas com IA usando a conta da sua organização."
+            "Conecte sua chave OpenAI no Perfil para gerar perguntas com IA usando a conta da sua organizacao."
         },
         { status: 400 }
       );
     }
-
-    await assertOrganizationResourceAccess(
-      billingContext.organizationId,
-      "campaign_questions"
-    );
-    const usageReferenceId = request.headers.get("x-idempotency-key") ?? randomUUID();
-
-    await chargeCreditsForFeature({
-      organizationId: billingContext.organizationId,
-      amount: BILLING_FEATURE_COSTS.campaign_questions,
-      featureKey: "campaign_questions",
-      source: "system",
-      referenceType: "campaign_questions_generation",
-      referenceId: usageReferenceId,
-      profileId: billingContext.profileId,
-      metadata: {
-        brokerageName: billingContext.brokerageName,
-        audience: input.audience,
-        product: input.product,
-        objective: input.objective
-      }
-    });
 
     const result = await generateComplianceQuestions({
       ...input,
@@ -176,25 +139,6 @@ function getQuestionsError(error: unknown) {
       message: error.message,
       status: error.code === "missing_api_key" ? 400 : 502
     };
-  }
-
-  if (error instanceof BillingResourceAccessError) {
-    return {
-      message: error.access.message,
-      status: error.status
-    };
-  }
-
-  if (error instanceof Error && error.message) {
-    const message = error.message.toLowerCase();
-
-    if (message.includes("credito") || message.includes("crédito") || message.includes("insuf")) {
-      return {
-        message:
-          "Créditos insuficientes para gerar as perguntas. Adquira mais créditos no plano ou em um pacote avulso.",
-        status: 402
-      };
-    }
   }
 
   if (error instanceof Error && error.message) {

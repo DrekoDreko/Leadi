@@ -5,7 +5,7 @@ import { EnvValidationError } from "@/lib/env/server";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-  const returnToFallback = "/dashboard/empresa";
+  const returnToFallback = "/dashboard/perfil?section=empresa";
 
   if (requestUrl.searchParams.has("error")) {
     return redirectBack(requestUrl, returnToFallback, "meta=error");

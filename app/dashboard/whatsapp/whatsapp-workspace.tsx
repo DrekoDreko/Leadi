@@ -218,7 +218,7 @@ export function WhatsAppWorkspace({
       {!hasOpenAIConnection ? (
         <div className="rounded-[26px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
           Conecte sua chave OpenAI em{" "}
-          <Link className="font-semibold text-cobalt underline underline-offset-4" href="/dashboard/empresa">
+          <Link className="font-semibold text-cobalt underline underline-offset-4" href="/dashboard/perfil?section=empresa&highlight=openai">
             Empresa
           </Link>{" "}
           para gerar mensagens com IA usando a conta da sua organização.

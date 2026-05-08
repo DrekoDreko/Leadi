@@ -1,5 +1,5 @@
-import { ComplianceValidator } from "./compliance-validator";
+import { redirect } from "next/navigation";
 
 export default function CompliancePage() {
-  return <ComplianceValidator />;
+  redirect("/dashboard/criacoes/compliance");
 }

@@ -31,7 +31,18 @@ type WhatsAppPromptInput = {
   brokerageName?: string;
   leadName?: string;
   leadContext?: string;
-  stage?: "new" | "qualification" | "proposal" | "negotiation" | "won" | "lost";
+  stage?:
+    | "new"
+    | "qualification"
+    | "proposal"
+    | "negotiation"
+    | "won"
+    | "lost"
+    | "new_lead"
+    | "first_contact"
+    | "awaiting_response"
+    | "closing"
+    | "post_service";
   objective?: string;
   tone?: string;
 };

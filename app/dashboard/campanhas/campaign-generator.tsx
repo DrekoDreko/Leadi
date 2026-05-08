@@ -11,13 +11,12 @@ import {
   ArrowUpRight,
   FileText,
   Loader2,
+  Paperclip,
   ShieldCheck,
   Sparkles
 } from "lucide-react";
-import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { campaignDraft } from "@/data/mock";
 import { Metric, PageHeading } from "@/components/dashboard/widgets";
-import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import type { ConnectedAccountsState } from "@/lib/integrations/types";
 import type {
   CampaignHistoryItem,
@@ -41,6 +40,10 @@ const initialForm = {
   offer: "Analise consultiva para comparar plano empresarial",
   region: "Campinas e regiao",
   differentiator: "Atendimento rapido com comparativo objetivo entre operadoras",
+  notes: "",
+  creativeAssetType: "imagem",
+  creativeBrief: "",
+  creativeRequestMode: "enviar_arquivo",
   tone: "consultivo, direto e seguro",
   metaPageId: "",
   metaAdAccountId: "",
@@ -96,21 +99,17 @@ const campaignHistoryDateFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 type CampaignGeneratorProps = {
-  campaignAccess: ResourceAccessSummary;
   connectedAccounts: ConnectedAccountsState;
   initialCampaigns: CampaignHistoryItem[];
   historyMode: CampaignListState["mode"];
   historyMessage?: string;
-  questionAccess: ResourceAccessSummary;
 };
 
 export function CampaignGenerator({
-  campaignAccess,
   connectedAccounts,
   initialCampaigns,
   historyMessage,
-  historyMode,
-  questionAccess
+  historyMode
 }: CampaignGeneratorProps) {
   const [form, setForm] = useState<FormState>(() => createInitialForm(connectedAccounts));
   const [campaign, setCampaign] = useState<CampaignTextOutput | null>(null);
@@ -121,6 +120,8 @@ export function CampaignGenerator({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [copiedKey, setCopiedKey] = useState("");
+  const [creativeFileNames, setCreativeFileNames] = useState<string[]>([]);
+  const [submissionNotice, setSubmissionNotice] = useState("");
   const metaConnection = connectedAccounts.metaConnection;
   const openAIConnection = connectedAccounts.openAIConnection;
   const selectedMetaPage = connectedAccounts.metaPages.find(
@@ -154,6 +155,7 @@ export function CampaignGenerator({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setSubmissionNotice("");
     setIsGenerating(true);
 
     try {
@@ -163,7 +165,10 @@ export function CampaignGenerator({
           "Content-Type": "application/json",
           "X-Idempotency-Key": crypto.randomUUID()
         },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          creativeFileNames
+        })
       });
       const payload = (await response.json().catch(() => null)) as {
         campaign?: CampaignTextOutput;
@@ -183,6 +188,9 @@ export function CampaignGenerator({
           ...currentHistory.filter((item) => item.id !== savedCampaign.id)
         ]);
       }
+      setSubmissionNotice(
+        "Recebemos a solicitacao. Retornaremos com o valor e o andamento da campanha na area Validador de campanha."
+      );
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -314,13 +322,13 @@ export function CampaignGenerator({
   return (
     <div className="space-y-4">
       <PageHeading
-        eyebrow="Campanhas"
-        title="IA de campanha"
-        description="Gere e salve campanhas para plano de saude empresarial com campos separados, tom comercial e revisao de linguagem sensivel."
+        eyebrow="Criações"
+        title="IA Gerador de Campanha"
+        description="Crie campanhas com publico, objetivo, oferta, observacoes e apoio criativo sem sair do hub de Criações."
       >
         <button
           className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={isGenerating || !campaignAccess.allowed || !openAIConnection}
+          disabled={isGenerating || !openAIConnection}
           form="campaign-generator-form"
           type="submit"
         >
@@ -337,14 +345,22 @@ export function CampaignGenerator({
         </button>
       </PageHeading>
 
-      {!campaignAccess.allowed ? <SubscriptionAccessBanner notice={campaignAccess} /> : null}
       {!openAIConnection ? (
         <div className="rounded-[26px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
           Conecte sua chave OpenAI em{" "}
-          <Link className="font-semibold text-cobalt underline underline-offset-4" href="/dashboard/empresa">
-            Empresa
+          <Link
+            className="font-semibold text-cobalt underline underline-offset-4"
+            href="/dashboard/perfil?section=empresa&highlight=openai"
+          >
+            Perfil
           </Link>{" "}
           para gerar campanhas, mensagens e perguntas usando a conta da sua organização.
+        </div>
+      ) : null}
+
+      {submissionNotice ? (
+        <div className="rounded-[24px] border border-emerald-200/70 bg-emerald-50/80 p-4 text-sm text-emerald-800">
+          {submissionNotice}
         </div>
       ) : null}
 
@@ -497,8 +513,11 @@ export function CampaignGenerator({
                 ) : (
                   <div className="mt-4 rounded-[24px] border border-dashed border-cobalt/20 bg-white/50 p-4 text-sm leading-6 text-ink/64">
                     Conecte sua conta Meta em{" "}
-                    <Link className="font-semibold text-cobalt underline underline-offset-4" href="/dashboard/empresa">
-                      Empresa
+                    <Link
+                      className="font-semibold text-cobalt underline underline-offset-4"
+                      href="/dashboard/perfil?section=empresa"
+                    >
+                      Perfil
                     </Link>{" "}
                     para escolher página, conta de anúncio e formulário de Lead Ads antes da revisão.
                   </div>
@@ -519,6 +538,16 @@ export function CampaignGenerator({
                   />
                 </label>
               ))}
+              <label className="space-y-2 md:col-span-2" htmlFor="notes">
+                <span className="text-sm font-semibold text-ink/62">Observacoes</span>
+                <textarea
+                  className="liquid-input min-h-[110px] resize-y"
+                  id="notes"
+                  onChange={(event) => updateField("notes", event.target.value)}
+                  placeholder="Ex.: evitar promessas fortes, reforcar atendimento consultivo e destacar foco em empresas."
+                  value={form.notes}
+                />
+              </label>
               <label className="space-y-2 md:col-span-2" htmlFor="tone">
                 <span className="text-sm font-semibold text-ink/62">Tom</span>
                 <select
@@ -533,6 +562,80 @@ export function CampaignGenerator({
                   <option value="educativo, pratico e confiavel">Educativo pratico</option>
                 </select>
               </label>
+              <div className="md:col-span-2 rounded-[28px] border border-white/50 bg-white/34 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-cobalt">Criativo</p>
+                    <h3 className="mt-2 text-lg font-semibold">Arquivo ou solicitacao</h3>
+                    <p className="mt-2 text-sm leading-6 text-ink/64">
+                      Carregue um criativo existente ou solicite video, arte, imagem ou outro material para esta campanha.
+                    </p>
+                  </div>
+                  <Paperclip size={20} aria-hidden="true" />
+                </div>
+
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <label className="space-y-2">
+                    <span className="text-sm font-semibold text-ink/62">Tipo de criativo</span>
+                    <select
+                      className="liquid-input"
+                      onChange={(event) => updateField("creativeAssetType", event.target.value)}
+                      value={form.creativeAssetType}
+                    >
+                      <option value="video">Video</option>
+                      <option value="arte">Arte</option>
+                      <option value="imagem">Imagem</option>
+                      <option value="outro">Outro arquivo</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-sm font-semibold text-ink/62">Como seguir</span>
+                    <select
+                      className="liquid-input"
+                      onChange={(event) => updateField("creativeRequestMode", event.target.value)}
+                      value={form.creativeRequestMode}
+                    >
+                      <option value="enviar_arquivo">Carregar criativo</option>
+                      <option value="solicitar_criativo">Solicitar criativo</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label className="mt-4 block space-y-2">
+                  <span className="text-sm font-semibold text-ink/62">Briefing do criativo</span>
+                  <textarea
+                    className="liquid-input min-h-[96px] resize-y"
+                    onChange={(event) => updateField("creativeBrief", event.target.value)}
+                    placeholder="Ex.: imagem limpa, foco em PME, CTA para cotacao consultiva e identidade mais profissional."
+                    value={form.creativeBrief}
+                  />
+                </label>
+
+                <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/78">
+                  <Paperclip size={16} aria-hidden="true" />
+                  Adicionar arquivo
+                  <input
+                    className="sr-only"
+                    multiple
+                    onChange={(event) => {
+                      const files = Array.from(event.currentTarget.files ?? []);
+                      setCreativeFileNames(files.map((file) => file.name));
+                    }}
+                    type="file"
+                  />
+                </label>
+
+                {creativeFileNames.length ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {creativeFileNames.map((fileName) => (
+                      <span className="rounded-full bg-white/58 px-3 py-1.5 text-xs font-semibold text-ink/58" key={fileName}>
+                        {fileName}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </form>
             {error ? (
               <div className="mt-4 flex items-start gap-3 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
@@ -619,7 +722,7 @@ export function CampaignGenerator({
               </div>
               <button
                 className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={isGeneratingQuestions || !questionAccess.allowed || !openAIConnection}
+                disabled={isGeneratingQuestions || !openAIConnection}
                 onClick={handleGenerateQuestions}
                 type="button"
               >
@@ -631,12 +734,6 @@ export function CampaignGenerator({
                 {isGeneratingQuestions ? "Gerando" : "Gerar perguntas"}
               </button>
             </div>
-
-            {!questionAccess.allowed ? (
-              <div className="mb-4">
-                <SubscriptionAccessBanner notice={questionAccess} />
-              </div>
-            ) : null}
 
             {questionsError ? (
               <div className="mb-4 flex items-start gap-3 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
@@ -720,7 +817,7 @@ export function CampaignGenerator({
               {!metaConnection ? (
                 <Link
                   className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white"
-                  href="/dashboard/empresa"
+                  href="/dashboard/perfil?section=empresa"
                 >
                   Conectar Meta
                   <ArrowUpRight size={16} aria-hidden="true" />

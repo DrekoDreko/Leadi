@@ -134,7 +134,8 @@ export function PedidosWorkspace({
   listMode,
   listMessage,
   showAdminLink = false,
-  workspaceName
+  workspaceName,
+  workspaceVariant = "requests"
 }: {
   createRequestAccess: ResourceAccessSummary;
   initialRequests: CreativeRequestItem[];
@@ -142,6 +143,7 @@ export function PedidosWorkspace({
   listMessage?: string;
   showAdminLink?: boolean;
   workspaceName: string;
+  workspaceVariant?: "requests" | "validator";
 }) {
   const [requests, setRequests] = useState(initialRequests);
   const [form, setForm] = useState<FormState>(initialForm);
@@ -178,6 +180,17 @@ export function PedidosWorkspace({
   const hasActiveFilters = typeFilter !== "all" || statusFilter !== "all";
   const canMutateRequests = currentListMode !== "error" && currentListMode !== "unauthenticated";
   const canCreateRequests = canMutateRequests && createRequestAccess.allowed;
+  const visibleStatusLabels =
+    workspaceVariant === "validator"
+      ? {
+          approved: "Aprovada",
+          cancelled: "Cancelada",
+          delivered: "Entregue/pronta",
+          in_progress: "Em criação",
+          in_review: "Aguardando aprovação",
+          requested: "Aguardando análise"
+        }
+      : statusLabels;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -232,7 +245,11 @@ export function PedidosWorkspace({
       setForm(initialForm);
       setIsFormOpen(false);
       setCurrentListMode(payload.mode ?? currentListMode);
-      setSuccessMessage("Pedido criado com sucesso e adicionado a fila.");
+      setSuccessMessage(
+        workspaceVariant === "validator"
+          ? "Solicitação criada com sucesso e adicionada ao acompanhamento."
+          : "Pedido criado com sucesso e adicionado a fila."
+      );
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -361,8 +378,8 @@ export function PedidosWorkspace({
       setSelectedRequestId(payload.request.id);
       setSuccessMessage(
         payload.mode === "not-configured"
-          ? `Status atualizado para ${statusLabels[payload.request.status]} nesta visualizacao.`
-          : `Status atualizado para ${statusLabels[payload.request.status]}.`
+          ? `Status atualizado para ${visibleStatusLabels[payload.request.status]} nesta visualizacao.`
+          : `Status atualizado para ${visibleStatusLabels[payload.request.status]}.`
       );
     } catch (statusError) {
       setError(
@@ -430,9 +447,13 @@ export function PedidosWorkspace({
   return (
     <div className="space-y-4">
       <PageHeading
-        eyebrow="Pedidos"
-        title="Pedidos criativos"
-        description={`Acompanhe briefings e materiais de apoio do workspace ${workspaceName}, sempre preparados para revisão antes de qualquer publicação.`}
+        eyebrow={workspaceVariant === "validator" ? "Criações" : "Pedidos"}
+        title={workspaceVariant === "validator" ? "Validador de campanha" : "Pedidos criativos"}
+        description={
+          workspaceVariant === "validator"
+            ? `Acompanhe o andamento das solicitações da conta ${workspaceName}, revise materiais e concentre o status comercial de cada campanha em um só lugar.`
+            : `Acompanhe briefings e materiais de apoio do workspace ${workspaceName}, sempre preparados para revisão antes de qualquer publicação.`
+        }
       >
         {showAdminLink ? (
           <Link
@@ -453,14 +474,25 @@ export function PedidosWorkspace({
           type="button"
         >
           <FilePlus2 size={18} aria-hidden="true" />
-          {isFormOpen ? "Fechar formulario" : "Novo pedido"}
+          {isFormOpen
+            ? workspaceVariant === "validator"
+              ? "Fechar formulario"
+              : "Fechar formulario"
+            : workspaceVariant === "validator"
+              ? "Nova solicitacao"
+              : "Novo pedido"}
         </button>
       </PageHeading>
 
       {!createRequestAccess.allowed ? <SubscriptionAccessBanner notice={createRequestAccess} /> : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Pedidos ativos" value={String(metrics.active)} note={metrics.activeNote} tone="dark" />
+        <Metric
+          label={workspaceVariant === "validator" ? "Solicitações ativas" : "Pedidos ativos"}
+          value={String(metrics.active)}
+          note={metrics.activeNote}
+          tone="dark"
+        />
         <Metric label="Entregues" value={String(metrics.delivered)} note={metrics.deliveredNote} tone="teal" />
         <Metric label="Pendentes" value={String(metrics.pending)} note={metrics.pendingNote} tone="yellow" />
         <Metric label="Aprovados" value={String(metrics.approved)} note={metrics.approvedNote} tone="blue" />
@@ -495,7 +527,9 @@ export function PedidosWorkspace({
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm text-ink/54">Fila</p>
-              <h2 className="text-2xl font-semibold">Pedidos da organizacao</h2>
+              <h2 className="text-2xl font-semibold">
+                {workspaceVariant === "validator" ? "Solicitações da conta" : "Pedidos da organizacao"}
+              </h2>
             </div>
             <button
               className="icon-button disabled:cursor-not-allowed disabled:opacity-70"
@@ -552,7 +586,8 @@ export function PedidosWorkspace({
 
           <div className="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold text-ink/58">
             <span className="rounded-full bg-white/58 px-3 py-1.5">
-              Mostrando {filteredRequests.length} de {requests.length} pedidos
+              Mostrando {filteredRequests.length} de {requests.length}{" "}
+              {workspaceVariant === "validator" ? "solicitacoes" : "pedidos"}
             </span>
             {hasActiveFilters ? (
               <button
@@ -567,9 +602,15 @@ export function PedidosWorkspace({
 
           {requests.length === 0 ? (
             <div className="rounded-[28px] border border-dashed border-white/55 bg-white/24 p-6">
-              <h3 className="text-lg font-semibold text-ink">Nenhum pedido criado ainda</h3>
+              <h3 className="text-lg font-semibold text-ink">
+                {workspaceVariant === "validator"
+                  ? "Nenhuma solicitacao criada ainda"
+                  : "Nenhum pedido criado ainda"}
+              </h3>
               <p className="mt-2 text-sm leading-6 text-ink/62">
-                Abra o formulario para enviar o primeiro briefing e acompanhar os prazos por aqui.
+                {workspaceVariant === "validator"
+                  ? "Abra o formulario para enviar a primeira solicitacao e acompanhar o andamento por aqui."
+                  : "Abra o formulario para enviar o primeiro briefing e acompanhar os prazos por aqui."}
               </p>
               <button
                 className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
@@ -582,14 +623,20 @@ export function PedidosWorkspace({
                 type="button"
               >
                 <FilePlus2 size={18} aria-hidden="true" />
-                Criar primeiro pedido
+                {workspaceVariant === "validator" ? "Criar primeira solicitacao" : "Criar primeiro pedido"}
               </button>
             </div>
           ) : filteredRequests.length === 0 ? (
             <div className="rounded-[28px] border border-dashed border-white/55 bg-white/24 p-6">
-              <h3 className="text-lg font-semibold text-ink">Nenhum pedido encontrado</h3>
+              <h3 className="text-lg font-semibold text-ink">
+                {workspaceVariant === "validator"
+                  ? "Nenhuma solicitacao encontrada"
+                  : "Nenhum pedido encontrado"}
+              </h3>
               <p className="mt-2 text-sm leading-6 text-ink/62">
-                Ajuste os filtros para voltar a ver a fila completa ou abra um novo pedido.
+                {workspaceVariant === "validator"
+                  ? "Ajuste os filtros para voltar a ver a fila completa ou abra uma nova solicitacao."
+                  : "Ajuste os filtros para voltar a ver a fila completa ou abra um novo pedido."}
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <button
@@ -610,7 +657,7 @@ export function PedidosWorkspace({
                   type="button"
                 >
                   <FilePlus2 size={18} aria-hidden="true" />
-                  Novo pedido
+                  {workspaceVariant === "validator" ? "Nova solicitacao" : "Novo pedido"}
                 </button>
               </div>
             </div>
@@ -641,7 +688,7 @@ export function PedidosWorkspace({
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClasses[request.status]}`}
                       >
-                        {statusLabels[request.status]}
+                        {visibleStatusLabels[request.status]}
                       </span>
                       <span className="rounded-full bg-ink/6 px-3 py-1 text-xs font-semibold text-ink/62">
                         Prioridade {priorityLabels[request.priority]}
@@ -690,7 +737,7 @@ export function PedidosWorkspace({
                 <span
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold ${statusClasses[selectedRequest.status]}`}
                 >
-                  {statusLabels[selectedRequest.status]}
+                  {visibleStatusLabels[selectedRequest.status]}
                 </span>
               </div>
 
@@ -948,9 +995,15 @@ export function PedidosWorkspace({
               <div className="flex items-start gap-3">
                 <ClipboardList className="mt-0.5 text-cobalt" size={20} aria-hidden="true" />
                 <div>
-                  <h2 className="text-xl font-semibold">Sem pedido selecionado</h2>
+                  <h2 className="text-xl font-semibold">
+                    {workspaceVariant === "validator"
+                      ? "Sem solicitacao selecionada"
+                      : "Sem pedido selecionado"}
+                  </h2>
                   <p className="mt-2 text-sm leading-6 text-ink/62">
-                    Escolha um pedido na fila para ver status, prazo, briefing e anexos em um unico lugar.
+                    {workspaceVariant === "validator"
+                      ? "Escolha uma solicitacao na fila para ver status, prazo, briefing e anexos em um unico lugar."
+                      : "Escolha um pedido na fila para ver status, prazo, briefing e anexos em um unico lugar."}
                   </p>
                 </div>
               </div>
@@ -962,7 +1015,9 @@ export function PedidosWorkspace({
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-ink/54">Formulario</p>
-                  <h2 className="text-xl font-semibold">Novo pedido</h2>
+                  <h2 className="text-xl font-semibold">
+                    {workspaceVariant === "validator" ? "Nova solicitacao" : "Novo pedido"}
+                  </h2>
                 </div>
                 <ClipboardList size={20} aria-hidden="true" />
               </div>
@@ -1069,7 +1124,9 @@ export function PedidosWorkspace({
                 <div>
                   <h2 className="text-xl font-semibold">Formulario pronto</h2>
                   <p className="mt-2 text-sm leading-6 text-ink/62">
-                    Abra outro pedido quando precisar de mais um criativo para a operacao.
+                    {workspaceVariant === "validator"
+                      ? "Abra outra solicitacao quando precisar de uma nova campanha, criativo ou ajuste para a operacao."
+                      : "Abra outro pedido quando precisar de mais um criativo para a operacao."}
                   </p>
                 </div>
               </div>
@@ -1084,8 +1141,8 @@ export function PedidosWorkspace({
                 type="button"
               >
                 <FilePlus2 size={18} aria-hidden="true" />
-                Abrir outro pedido
-              </button>
+                {workspaceVariant === "validator" ? "Abrir outra solicitacao" : "Abrir outro pedido"}
+                </button>
             </section>
           )}
 

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { randomUUID } from "node:crypto";
-import { EnvValidationError, requireIntegrationEnv } from "@/lib/env/server";
+import { EnvValidationError } from "@/lib/env/server";
 import { containsSensitiveCompliancePattern } from "@/lib/openai/compliance-guardrails";
 import {
   generateCampaignText,
@@ -11,15 +10,9 @@ import {
   getMetaConnectionForOrganization,
   resolveOpenAIKeyForOrganization
 } from "@/lib/integrations/repository.server";
-import {
-  BillingResourceAccessError,
-  assertOrganizationResourceAccess
-} from "@/lib/billing/subscription-limits.server";
-import { chargeCreditsForFeature } from "@/lib/billing/usage.server";
-import { isBillingConfigured } from "@/lib/billing/config";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
-import { BILLING_FEATURE_COSTS } from "@/lib/billing/catalog";
 import { saveCampaignForCurrentUser } from "@/lib/campaigns/repository.server";
+import { createCreativeRequestForCurrentUser } from "@/lib/creative-requests/repository.server";
 import type {
   CampaignPublishMode,
   CampaignPublicationStatus
@@ -38,10 +31,20 @@ type CampaignRequestBody = {
   metaCampaignId?: unknown;
   metaAdSetId?: unknown;
   metaAdId?: unknown;
+  notes?: unknown;
+  creativeAssetType?: unknown;
+  creativeRequestMode?: unknown;
+  creativeBrief?: unknown;
+  creativeFileNames?: unknown;
 };
 
 type CampaignRequestInput = CampaignTextInput & {
+  creativeAssetType: string | null;
+  creativeBrief: string | null;
+  creativeFileNames: string[];
+  creativeRequestMode: string | null;
   differentiator: string;
+  notes: string | null;
   connectedAccountId: string | null;
   metaPageId: string | null;
   metaAdAccountId: string | null;
@@ -58,10 +61,6 @@ const DEFAULT_PRODUCT = "Plano de saude empresarial";
 
 export async function POST(request: Request) {
   try {
-    if (!isBillingConfigured()) {
-      requireIntegrationEnv("billing");
-    }
-
     const body = (await request.json()) as CampaignRequestBody;
     const billingContext = await getBillingAuthContext();
 
@@ -79,33 +78,11 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Conecte sua chave OpenAI em Empresa para gerar campanhas com IA usando a conta da sua organização."
+            "Conecte sua chave OpenAI no Perfil para gerar campanhas com IA usando a conta da sua organizacao."
         },
         { status: 400 }
       );
     }
-
-    await assertOrganizationResourceAccess(
-      billingContext.organizationId,
-      "campaign_generation"
-    );
-    const usageReferenceId = request.headers.get("x-idempotency-key") ?? randomUUID();
-
-    await chargeCreditsForFeature({
-      organizationId: billingContext.organizationId,
-      amount: BILLING_FEATURE_COSTS.campaign,
-      featureKey: "campaign",
-      source: "system",
-      referenceType: "campaign_generation",
-      referenceId: usageReferenceId,
-      profileId: billingContext.profileId,
-      metadata: {
-        brokerageName: billingContext.brokerageName,
-        audience: input.audience,
-        region: input.region,
-        channel: input.channel
-      }
-    });
 
     const { differentiator, ...campaignInput } = input;
     const localNotes = getLocalComplianceNotes([
@@ -137,7 +114,12 @@ export async function POST(request: Request) {
         offer: campaignInput.offer ?? "",
         region: campaignInput.region ?? "",
         differentiator,
+        notes: input.notes ?? "",
         tone: campaignInput.tone ?? "",
+        creativeAssetType: input.creativeAssetType,
+        creativeBrief: input.creativeBrief,
+        creativeRequestMode: input.creativeRequestMode,
+        creativeFileNames: input.creativeFileNames,
         connectedAccountId: input.connectedAccountId,
         metaPageId: input.metaPageId,
         metaAdAccountId: input.metaAdAccountId,
@@ -150,9 +132,11 @@ export async function POST(request: Request) {
       },
       campaign: persistedCampaign
     });
+    const creativeRequest = await maybeCreateCreativeRequest(input, persistedCampaign);
 
     return NextResponse.json({
       campaign: persistedCampaign,
+      creativeRequest,
       savedCampaign
     });
   } catch (error) {
@@ -178,6 +162,15 @@ function parseCampaignRequest(
   const metaCampaignId = getOptionalString(body.metaCampaignId);
   const metaAdSetId = getOptionalString(body.metaAdSetId);
   const metaAdId = getOptionalString(body.metaAdId);
+  const notes = getOptionalString(body.notes);
+  const creativeAssetType = getOptionalString(body.creativeAssetType);
+  const creativeRequestMode = getOptionalString(body.creativeRequestMode);
+  const creativeBrief = getOptionalString(body.creativeBrief);
+  const creativeFileNames = Array.isArray(body.creativeFileNames)
+    ? body.creativeFileNames
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        .map((value) => value.trim().slice(0, MAX_FIELD_LENGTH))
+    : [];
   const publicationStatus = resolvePublicationStatus({
     hasConnectedMetaAccount: Boolean(connectedAccountId),
     metaPageId,
@@ -188,6 +181,7 @@ function parseCampaignRequest(
   return {
     audience,
     differentiator,
+    notes,
     connectedAccountId,
     product: DEFAULT_PRODUCT,
     objective: "gerar leads qualificados para cotacao consultiva",
@@ -195,6 +189,10 @@ function parseCampaignRequest(
     region,
     channel: "meta_ads",
     tone,
+    creativeAssetType,
+    creativeBrief,
+    creativeFileNames,
+    creativeRequestMode,
     metaPageId,
     metaAdAccountId,
     metaLeadFormId,
@@ -205,6 +203,11 @@ function parseCampaignRequest(
     metaAdId,
     constraints: [
       `Diferencial informado: ${differentiator}`,
+      notes ? `Observacoes da campanha: ${notes}` : "",
+      creativeAssetType ? `Tipo de criativo solicitado: ${creativeAssetType}` : "",
+      creativeRequestMode ? `Modo de criativo: ${creativeRequestMode}` : "",
+      creativeBrief ? `Briefing criativo: ${creativeBrief}` : "",
+      creativeFileNames.length ? `Arquivos enviados: ${creativeFileNames.join(", ")}` : "",
       "Nao usar promessa de economia garantida, aprovacao garantida ou resultado medico.",
       "Nao chamar o usuario por condicao de saude, idade sensivel, diagnostico ou situacao pessoal protegida.",
       "Priorizar empresas, decisores comerciais, quantidade de vidas, regiao e necessidade de cotacao."
@@ -297,25 +300,6 @@ function getCampaignError(error: unknown) {
     };
   }
 
-  if (error instanceof BillingResourceAccessError) {
-    return {
-      message: error.access.message,
-      status: error.status
-    };
-  }
-
-  if (error instanceof Error && error.message) {
-    const message = error.message.toLowerCase();
-
-    if (message.includes("credito") || message.includes("crédito") || message.includes("insuf")) {
-      return {
-        message:
-          "Créditos insuficientes para gerar a campanha. Adquira mais créditos no plano ou em um pacote avulso.",
-        status: 402
-      };
-    }
-  }
-
   if (error instanceof Error && error.message) {
     return {
       message: error.message,
@@ -327,4 +311,65 @@ function getCampaignError(error: unknown) {
     message: "Nao foi possivel gerar a campanha. Revise os dados e tente novamente.",
     status: 400
   };
+}
+
+async function maybeCreateCreativeRequest(
+  input: CampaignRequestInput,
+  campaign: Awaited<ReturnType<typeof generateCampaignText>>
+) {
+  const shouldCreateRequest =
+    input.creativeRequestMode === "solicitar_criativo" ||
+    Boolean(input.creativeBrief) ||
+    input.creativeFileNames.length > 0;
+
+  if (!shouldCreateRequest) {
+    return null;
+  }
+
+  try {
+    return await createCreativeRequestForCurrentUser({
+      type: mapCreativeRequestType(input.creativeAssetType),
+      title: `Campanha IA - ${input.region ?? input.audience}`,
+      objective: `Validar campanha e criativo para ${input.audience}. Oferta: ${input.offer ?? "cotacao consultiva"}.`,
+      briefing: [
+        `Nome sugerido: ${campaign.campaignName}.`,
+        input.creativeBrief ? `Briefing criativo: ${input.creativeBrief}.` : "",
+        `Headline base: ${campaign.headline}.`,
+        `CTA: ${campaign.callToAction}.`,
+        input.creativeFileNames.length
+          ? `Arquivos enviados: ${input.creativeFileNames.join(", ")}.`
+          : ""
+      ]
+        .filter(Boolean)
+        .join(" "),
+      notes: [
+        input.notes ? `Observacoes: ${input.notes}.` : "",
+        input.creativeAssetType ? `Tipo de criativo: ${input.creativeAssetType}.` : "",
+        input.creativeRequestMode
+          ? `Modo solicitado: ${formatCreativeRequestMode(input.creativeRequestMode)}.`
+          : ""
+      ]
+        .filter(Boolean)
+        .join(" ")
+    });
+  } catch (error) {
+    console.error("Nao foi possivel criar o pedido criativo vinculado a campanha.", error);
+    return null;
+  }
+}
+
+function mapCreativeRequestType(assetType: string | null) {
+  if (assetType === "video") {
+    return "video";
+  }
+
+  return "campaign";
+}
+
+function formatCreativeRequestMode(value: string) {
+  if (value === "solicitar_criativo") {
+    return "solicitar criativo";
+  }
+
+  return "carregar criativo";
 }

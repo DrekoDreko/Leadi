@@ -1,6 +1,13 @@
 import type { WhatsAppStage } from "./types";
 
-export type WhatsAppToneValue = "consultivo" | "direto" | "acolhedor";
+export type WhatsAppToneValue =
+  | "consultivo"
+  | "profissional"
+  | "empatico"
+  | "otimista"
+  | "direto_firme"
+  | "reengajamento"
+  | "urgente_equilibrado";
 
 export type WhatsAppLeadContext = {
   name: string;
@@ -24,14 +31,34 @@ export const whatsappToneOptions = [
     prompt: "consultivo, seguro e orientado ao proximo passo"
   },
   {
-    value: "direto",
-    label: "Direto",
-    prompt: "direto, objetivo e comercial sem pressao"
+    value: "profissional",
+    label: "Profissional",
+    prompt: "profissional, claro e orientado ao contexto comercial"
   },
   {
-    value: "acolhedor",
-    label: "Acolhedor",
-    prompt: "acolhedor, humano e profissional"
+    value: "empatico",
+    label: "Empatico",
+    prompt: "empatico, humano e profissional"
+  },
+  {
+    value: "otimista",
+    label: "Otimista",
+    prompt: "otimista, seguro e comercial sem exagero"
+  },
+  {
+    value: "direto_firme",
+    label: "Direto/Firme",
+    prompt: "direto, firme e objetivo sem agressividade"
+  },
+  {
+    value: "reengajamento",
+    label: "Reengajamento",
+    prompt: "reengajamento, respeitoso e focado em retomar a conversa"
+  },
+  {
+    value: "urgente_equilibrado",
+    label: "Urgente sem ser agressivo",
+    prompt: "urgente, claro e consultivo sem pressao artificial"
   }
 ] as const satisfies ReadonlyArray<{
   value: WhatsAppToneValue;
@@ -75,6 +102,36 @@ export const whatsappStageStrategies = {
     objective: "fazer follow-up respeitoso e deixar porta aberta para uma nova avaliacao futura",
     guidance:
       "Perdido: seja respeitoso, reconheca a decisao e deixe um caminho simples para reabrir a conversa no futuro."
+  },
+  new_lead: {
+    label: "Novo lead",
+    objective: "acolher o novo lead e abrir uma conversa comercial simples",
+    guidance:
+      "Novo lead: apresente-se com clareza, mostre contexto comercial e convide o lead para responder sem friccao."
+  },
+  first_contact: {
+    label: "Primeiro contato",
+    objective: "fazer o primeiro contato e entender o cenario da empresa",
+    guidance:
+      "Primeiro contato: seja breve, confirme o interesse e peca apenas informacoes comerciais como cidade, faixa de vidas e prazo."
+  },
+  awaiting_response: {
+    label: "Aguardando resposta",
+    objective: "retomar a conversa sem pressao e incentivar uma resposta simples",
+    guidance:
+      "Aguardando resposta: relembre o contexto, facilite a resposta com uma pergunta objetiva e mantenha o tom respeitoso."
+  },
+  closing: {
+    label: "Fechamento",
+    objective: "organizar os ultimos passos para a decisao e fechamento comercial",
+    guidance:
+      "Fechamento: reforce proximos passos, documentos comerciais e alinhamentos finais sem prometer resultado garantido."
+  },
+  post_service: {
+    label: "Pos-atendimento",
+    objective: "manter o relacionamento ativo apos o atendimento ou fechamento",
+    guidance:
+      "Pos-atendimento: acompanhe com gentileza, confirme se esta tudo claro e deixe caminho aberto para novas necessidades."
   }
 } as const satisfies Record<
   WhatsAppStage,
@@ -126,6 +183,7 @@ export function buildFallbackWhatsAppMessage({
   const toneNote = getWhatsAppToneLabel(tone).toLowerCase();
 
   switch (stage) {
+    case "first_contact":
     case "qualification":
       return {
         openingMessage: `Ola, ${firstName}! Para te orientar melhor sobre ${interest}${company}, posso confirmar algumas informacoes comerciais bem objetivas?`,
@@ -135,6 +193,17 @@ export function buildFallbackWhatsAppMessage({
           "Se ainda nao tiver tudo fechado, sem problema. Podemos comecar pelo cenario atual da empresa e ajustar a comparacao depois.",
         complianceNotes: [
           "Qualifique apenas informacoes comerciais, sem perguntar dados de saude, diagnosticos ou perfil sensivel."
+        ]
+      };
+    case "awaiting_response":
+      return {
+        openingMessage: `Ola, ${firstName}! Passando para retomar nosso contato sobre ${interest}${company}.`,
+        followUpMessage:
+          "Se ficar mais facil, pode me responder so com a cidade da empresa, a faixa de vidas e o melhor prazo para seguir.",
+        objectionReply:
+          "Se agora nao for o melhor momento, sem problema. Posso retomar quando fizer mais sentido para voce.",
+        complianceNotes: [
+          "Retome a conversa sem insistencia excessiva e sem criar urgencia artificial."
         ]
       };
     case "proposal":
@@ -148,6 +217,17 @@ export function buildFallbackWhatsAppMessage({
           "Evite prometer aprovacao, cobertura especifica ou economia garantida; mantenha a conversa nos criterios comerciais."
         ]
       };
+    case "closing":
+      return {
+        openingMessage: `Ola, ${firstName}! Estamos nos ajustes finais de ${interest}${company}.`,
+        followUpMessage:
+          "Posso organizar os ultimos pontos comerciais e te mostrar o que falta para seguirmos com clareza?",
+        objectionReply:
+          "Se houver alguma duvida sobre custo, rede ou prazo, eu separo os cenarios finais para facilitar a aprovacao.",
+        complianceNotes: [
+          "Trate o fechamento como alinhamento comercial final, sem prometer aprovacao ou economia garantida."
+        ]
+      };
     case "negotiation":
       return {
         openingMessage: `Ola, ${firstName}! Vi que estamos ajustando a proposta de ${interest}${company}.`,
@@ -157,6 +237,17 @@ export function buildFallbackWhatsAppMessage({
           "Se a duvida principal for custo, rede ou prazo, eu separo os cenarios possiveis para voce avaliar com calma.",
         complianceNotes: [
           "Trate objeções comerciais sem urgencia artificial e sem garantir condicoes que dependem da operadora."
+        ]
+      };
+    case "post_service":
+      return {
+        openingMessage: `Ola, ${firstName}! Passando para acompanhar como ficou ${interest}${company}.`,
+        followUpMessage:
+          "Se surgir qualquer ajuste ou nova necessidade da empresa, posso te ajudar a organizar os proximos passos.",
+        objectionReply:
+          "Se fizer sentido, tambem podemos revisar outros pontos comerciais no futuro sem pressa.",
+        complianceNotes: [
+          "Use o pos-atendimento para relacionamento e suporte comercial, sem abordagem agressiva."
         ]
       };
     case "won":
@@ -181,6 +272,7 @@ export function buildFallbackWhatsAppMessage({
           "Mantenha o follow-up respeitoso, sem insistencia excessiva ou promessa comercial."
         ]
       };
+    case "new_lead":
     case "new":
     default:
       return {

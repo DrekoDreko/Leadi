@@ -35,8 +35,9 @@ export async function updateBrokerageNameAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/perfil");
-  revalidatePath("/dashboard/whatsapp");
-  revalidatePath("/dashboard/campanhas");
+  revalidatePath("/dashboard/leads");
+  revalidatePath("/dashboard/criacoes/campanhas");
+  revalidatePath("/dashboard/anuncios");
 
   redirect("/dashboard/perfil?brokerage=updated");
 }

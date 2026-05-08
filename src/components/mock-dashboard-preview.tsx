@@ -1,18 +1,17 @@
 import {
   ArrowUpRight,
-  CalendarDays,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
   Copy,
-  MessageCircle,
   MoreHorizontal,
   Plus,
   RotateCw,
-  ShieldCheck,
   Sparkles,
   Share,
+  Upload,
+  UserPlus,
   UsersRound
 } from "lucide-react";
 import { campaignDraft, kanbanColumns, leads } from "@/data/mock";
@@ -68,9 +67,9 @@ export function MockDashboardPreview() {
           <div className="space-y-4">
             {[
               { label: "Leads", icon: UsersRound },
-              { label: "Campanhas", icon: Sparkles },
-              { label: "Compliance", icon: ShieldCheck },
-              { label: "WhatsApp", icon: MessageCircle }
+              { label: "Importar Leads", icon: Upload },
+              { label: "Criar Equipe", icon: UserPlus },
+              { label: "Criações", icon: Sparkles }
             ].map((item) => (
               <div
                 className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white"
@@ -134,12 +133,10 @@ export function MockDashboardPreview() {
                 <div>
                   <h3 className="font-semibold">Agenda da equipe</h3>
                   <p className="mt-1 text-sm text-ink/54">
-                    {agendaEntries.length > 0
-                      ? `${agendaEntries.length} compromissos priorizados`
-                      : "Sem compromissos com data ativa"}
+                    Mini calendário com lembretes rápidos da operação.
                   </p>
                 </div>
-                <CalendarDays size={18} aria-hidden="true" />
+                <Clock3 size={18} aria-hidden="true" />
               </div>
               <div className="space-y-2">
                 {agendaEntries.length === 0 ? (
@@ -170,7 +167,7 @@ export function MockDashboardPreview() {
 
             <section className="glass rounded-[30px] p-5">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-semibold">Campanha sugerida</h3>
+                  <h3 className="font-semibold">Criar nova campanha</h3>
                   <Sparkles size={18} aria-hidden="true" />
                 </div>
               <p className="text-lg font-semibold">{campaignDraft.title}</p>
@@ -199,7 +196,7 @@ export function MockDashboardPreview() {
             <p className="mt-1 text-sm text-ink/58">{leads[0].email}</p>
             <div className="mt-6 flex justify-center gap-2">
               {[
-                { label: "Mensagem", icon: MessageCircle },
+                { label: "Mensagem", icon: Sparkles },
                 { label: "Agendar", icon: Clock3 },
                 { label: "Concluir", icon: CheckCircle2 }
               ].map((item) => (

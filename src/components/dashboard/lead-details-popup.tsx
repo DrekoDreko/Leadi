@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import Link from "next/link";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -21,11 +20,15 @@ import {
 import type { Lead } from "@/data/mock";
 import type { LeadFollowUpEvent } from "@/lib/leads/follow-up-events";
 import type { LeadComment } from "@/lib/leads/comments";
+import { LeadMessageGenerator } from "./lead-message-generator";
 
 type LeadUpdateMode = "supabase" | "mock" | "not-configured" | "unauthenticated" | "error";
 
 type LeadDetailsPopupProps = {
+  hasOpenAIConnection?: boolean;
+  initialPanel?: "details" | "message";
   lead: Lead | null;
+  messageGeneratorEnabled?: boolean;
   onClose: () => void;
   onDeleted?: (leadId: string, mode?: LeadUpdateMode) => void;
   onUpdated?: (lead: Lead, mode?: LeadUpdateMode) => void;
@@ -112,8 +115,17 @@ const followUpActionLabels: Record<LeadFollowUpAction, string> = {
   not_completed: "Não realizado"
 };
 
-export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDetailsPopupProps) {
+export function LeadDetailsPopup({
+  hasOpenAIConnection = false,
+  initialPanel = "details",
+  lead,
+  messageGeneratorEnabled = false,
+  onClose,
+  onDeleted,
+  onUpdated
+}: LeadDetailsPopupProps) {
   const previousLeadIdRef = useRef<string | null>(null);
+  const [activePanel, setActivePanel] = useState<"details" | "message">(initialPanel);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -160,6 +172,7 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
     setComments([]);
     setCommentsError(null);
     setCommentsStatus("idle");
+    setActivePanel(messageGeneratorEnabled && initialPanel === "message" ? "message" : "details");
     setFollowUpEvents([]);
     setFollowUpError(null);
     setFollowUpStatus("idle");
@@ -169,7 +182,7 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
     setIsSubmittingFollowUp(false);
     setCommentDraft("");
     setIsSubmittingComment(false);
-  }, [lead]);
+  }, [initialPanel, lead, messageGeneratorEnabled]);
 
   useEffect(() => {
     if (!lead) {
@@ -638,13 +651,16 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
                 >
                   <Mail size={18} aria-hidden="true" />
                 </a>
-                <Link
-                  className="icon-button"
-                  href={`/dashboard/whatsapp?lead=${lead.id}`}
-                  title={`Abrir sugestões de mensagem para ${lead.name}`}
-                >
-                  <MessageCircle size={18} aria-hidden="true" />
-                </Link>
+                {messageGeneratorEnabled ? (
+                  <button
+                    className={`icon-button ${activePanel === "message" ? "bg-cobalt text-white hover:bg-cobalt/90" : ""}`}
+                    onClick={() => setActivePanel("message")}
+                    title={`Gerar mensagem para ${lead.name}`}
+                    type="button"
+                  >
+                    <MessageCircle size={18} aria-hidden="true" />
+                  </button>
+                ) : null}
                 <a
                   className="icon-button"
                   href={phoneHref ?? "#"}
@@ -717,6 +733,33 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
             </span>
           </div>
         )}
+
+        {!isEditing && messageGeneratorEnabled ? (
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                activePanel === "details"
+                  ? "bg-ink text-white"
+                  : "bg-white/70 text-ink hover:bg-white"
+              }`}
+              onClick={() => setActivePanel("details")}
+              type="button"
+            >
+              Detalhes do lead
+            </button>
+            <button
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                activePanel === "message"
+                  ? "bg-cobalt text-white"
+                  : "bg-white/70 text-ink hover:bg-white"
+              }`}
+              onClick={() => setActivePanel("message")}
+              type="button"
+            >
+              Gerar mensagem
+            </button>
+          </div>
+        ) : null}
 
         {isEditing && formValues ? (
           <form className="pt-5" noValidate onSubmit={handleSubmit}>
@@ -887,6 +930,13 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
               </button>
             </div>
           </form>
+        ) : activePanel === "message" && messageGeneratorEnabled ? (
+          <div className="pt-5">
+            <LeadMessageGenerator
+              hasOpenAIConnection={hasOpenAIConnection}
+              lead={lead}
+            />
+          </div>
         ) : (
           <div className="grid gap-4 pt-5 lg:grid-cols-[minmax(0,1.1fr)_360px]">
             <div className="min-w-0 space-y-4">

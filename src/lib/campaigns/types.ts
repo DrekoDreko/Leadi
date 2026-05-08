@@ -15,7 +15,12 @@ export type CampaignGenerationForm = {
   offer: string;
   region: string;
   differentiator: string;
+  notes: string;
   tone: string;
+  creativeAssetType: string | null;
+  creativeBrief: string | null;
+  creativeRequestMode: string | null;
+  creativeFileNames: string[];
   connectedAccountId: string | null;
   metaPageId: string | null;
   metaAdAccountId: string | null;

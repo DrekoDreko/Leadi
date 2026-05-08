@@ -1,9 +1,4 @@
-import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
-import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
-import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
-import { requireCompletedProfile } from "@/lib/workspaces/context";
-import { getWhatsAppMessagesForCurrentUser } from "@/lib/whatsapp/repository.server";
-import { WhatsAppWorkspace } from "./whatsapp-workspace";
+import { redirect } from "next/navigation";
 
 type WhatsAppPageProps = {
   searchParams?: Promise<{
@@ -12,28 +7,14 @@ type WhatsAppPageProps = {
 };
 
 export default async function WhatsAppPage({ searchParams }: WhatsAppPageProps) {
-  const [context, leadState, historyState, generateAccess, connectedAccounts] = await Promise.all([
-    requireCompletedProfile(),
-    getLeadsForCurrentUser(),
-    getWhatsAppMessagesForCurrentUser(4),
-    getCurrentResourceAccess("whatsapp_generation"),
-    getConnectedAccountsForCurrentUser()
-  ]);
   const resolvedSearchParams = await searchParams;
   const leadId = Array.isArray(resolvedSearchParams?.lead)
     ? resolvedSearchParams?.lead[0]
     : resolvedSearchParams?.lead;
 
-  return (
-    <WhatsAppWorkspace
-      historyMessage={historyState.message}
-      historyMode={historyState.mode}
-      initialLeadId={leadId ?? null}
-      initialMessages={historyState.messages}
-      brokerageName={context.brokerageName}
-      generateAccess={generateAccess}
-      hasOpenAIConnection={Boolean(connectedAccounts.openAIConnection)}
-      leads={leadState.leads}
-    />
+  redirect(
+    leadId
+      ? `/dashboard/leads?lead=${encodeURIComponent(leadId)}&panel=message`
+      : "/dashboard/leads?panel=message"
   );
 }

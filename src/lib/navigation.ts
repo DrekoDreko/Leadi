@@ -1,12 +1,6 @@
 import {
-  Coins,
-  CalendarDays,
-  Building2,
   Import,
   LayoutDashboard,
-  MessageCircle,
-  ShieldCheck,
-  Sparkles,
   UserPlus,
   UsersRound
 } from "lucide-react";
@@ -16,13 +10,7 @@ export function getDashboardNavItems(variant: DashboardNavVariant) {
   if (variant === "owner-team") {
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Agenda", href: "/dashboard/agenda", icon: CalendarDays },
-      { label: "Empresa", href: "/dashboard/empresa", icon: Building2 },
       { label: "Leads da Equipe", href: "/dashboard/leads", icon: UsersRound },
-      { label: "Campanhas", href: "/dashboard/campanhas", icon: Sparkles },
-      { label: "Mensagens WhatsApp", href: "/dashboard/whatsapp", icon: MessageCircle },
-      { label: "Créditos", href: "/dashboard/creditos", icon: Coins },
-      { label: "Compliance", href: "/dashboard/compliance", icon: ShieldCheck },
       { label: "Importar Leads", href: "/dashboard/importar", icon: Import },
       { label: "Equipe", href: "/team/setup", icon: UserPlus }
     ];
@@ -31,25 +19,13 @@ export function getDashboardNavItems(variant: DashboardNavVariant) {
   if (variant === "seller-team") {
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Agenda", href: "/dashboard/agenda", icon: CalendarDays },
-      { label: "Empresa", href: "/dashboard/empresa", icon: Building2 },
       { label: "Meus Leads", href: "/dashboard/leads", icon: UsersRound },
-      { label: "Campanhas IA", href: "/dashboard/campanhas", icon: Sparkles },
-      { label: "Mensagens WhatsApp", href: "/dashboard/whatsapp", icon: MessageCircle },
-      { label: "Créditos", href: "/dashboard/creditos", icon: Coins },
-      { label: "Compliance", href: "/dashboard/compliance", icon: ShieldCheck },
     ];
   }
 
   return [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Agenda", href: "/dashboard/agenda", icon: CalendarDays },
-    { label: "Empresa", href: "/dashboard/empresa", icon: Building2 },
     { label: "Leads", href: "/dashboard/leads", icon: UsersRound },
-    { label: "Campanhas IA", href: "/dashboard/campanhas", icon: Sparkles },
-    { label: "Mensagens WhatsApp", href: "/dashboard/whatsapp", icon: MessageCircle },
-    { label: "Créditos", href: "/dashboard/creditos", icon: Coins },
-    { label: "Compliance", href: "/dashboard/compliance", icon: ShieldCheck },
     { label: "Importar Leads", href: "/dashboard/importar", icon: Import },
     { label: "Criar Equipe", href: "/dashboard/criar-equipe", icon: UserPlus }
   ];

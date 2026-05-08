@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
 function normalizeReturnTo(value: string | null) {
   if (!value || !value.startsWith("/")) {
-    return "/dashboard/empresa";
+    return "/dashboard/perfil?section=empresa";
   }
 
   return value;

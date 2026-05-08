@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   Upload
 } from "lucide-react";
-import { campaignDraft, kanbanColumns, leads, type Lead } from "@/data/mock";
+import { kanbanColumns, leads, type Lead } from "@/data/mock";
 import type { LeadAgendaMetrics } from "@/lib/leads/repository";
 
 type MetricTone = "blue" | "yellow" | "teal" | "dark";
@@ -267,16 +267,18 @@ export function KanbanBoard({
   );
 }
 
-export function SuggestedCampaignPanel({ href = "/dashboard/campanhas" }: { href?: string }) {
+export function SuggestedCampaignPanel({ href = "/dashboard/criacoes/campanhas" }: { href?: string }) {
   return (
     <section className="glass-strong rounded-[34px] p-5 md:p-6">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl">
-          <p className="text-sm font-medium text-cobalt">Campanha sugerida</p>
-          <h2 className="mt-2 text-2xl font-semibold md:text-3xl">{campaignDraft.title}</h2>
-          <p className="mt-3 max-w-xl leading-7 text-ink/64">{campaignDraft.copy}</p>
+          <p className="text-sm font-medium text-cobalt">Criar nova campanha</p>
+          <h2 className="mt-2 text-2xl font-semibold md:text-3xl">IA Gerador de Campanha</h2>
+          <p className="mt-3 max-w-xl leading-7 text-ink/64">
+            Comece uma campanha nova com publico, oferta, observacoes e briefing criativo em um fluxo unico dentro de Criações.
+          </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            {["Análise consultiva", "Leads qualificados", "Meta Lead Form"].map((tag) => (
+            {["Criacoes", "Publico e objetivo", "Briefing criativo"].map((tag) => (
               <span className="rounded-full bg-white/58 px-3 py-1.5 text-xs font-semibold" key={tag}>
                 {tag}
               </span>
@@ -298,11 +300,11 @@ export function SuggestedCampaignPanel({ href = "/dashboard/campanhas" }: { href
           </span>
           <span className="relative flex min-w-0 flex-1 flex-col">
             <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/74">
-              Fluxo principal
+              Hub de criacoes
             </span>
-            <span className="text-lg font-semibold leading-tight">Nova campanha sugerida</span>
+            <span className="text-lg font-semibold leading-tight">Abrir IA Gerador de Campanha</span>
             <span className="mt-1 text-sm leading-5 text-white/84">
-              Crie uma campanha nova com base nos leads mais quentes do funil.
+              Monte a campanha, anexe criativos e acompanhe o retorno no validador.
             </span>
           </span>
           <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/12 ring-1 ring-white/24 transition duration-200 group-hover:bg-white/28 group-hover:shadow-[0_10px_26px_rgba(255,255,255,0.18)] group-hover:ring-white/45">
