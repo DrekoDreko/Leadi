@@ -147,7 +147,6 @@ O ambiente local pode ser usado apenas para manutencoes tecnicas pontuais, scrip
 Core obrigatorio em Production:
 
 ```bash
-NEXT_PUBLIC_APP_URL=https://leadhealth.vercel.app
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
@@ -179,8 +178,8 @@ DATABASE_URL=
 Observacoes:
 
 - `NEXT_PUBLIC_APP_URL` deve apontar para `https://leadhealth.vercel.app` ou para o dominio customizado final, caso ele seja configurado
-- `NEXT_PUBLIC_APP_URL` tambem deve ser configurada no ambiente de producao, porque alimenta links canonicos, metadata e o redirect do login OAuth
-- o build de producao valida o core e falha cedo se `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` ou `SUPABASE_SERVICE_ROLE_KEY` estiverem ausentes
+- se `NEXT_PUBLIC_APP_URL` nao estiver definida na Vercel, o app usa o dominio da propria implantacao como fallback para permitir o deploy
+- o build de producao valida o core e falha cedo se `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` ou `SUPABASE_SERVICE_ROLE_KEY` estiverem ausentes
 - `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no servidor, em automacoes seguras e em rotinas administrativas
 - sem uma chave OpenAI conectada em `/dashboard/empresa`, o validador de compliance continua com regras locais, mas campanhas, perguntas e WhatsApp ficam bloqueados com CTA para conectar
 - sem billing configurado, checkout e cobranca retornam erro amigavel de configuracao

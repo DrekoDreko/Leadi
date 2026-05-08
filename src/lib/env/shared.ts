@@ -72,8 +72,7 @@ export const ENV_VARIABLES = {
 
 export type EnvVariableName = keyof typeof ENV_VARIABLES;
 
-export const CORE_ENV_KEYS = [
-  "NEXT_PUBLIC_APP_URL",
+export const PRODUCTION_CORE_ENV_KEYS = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY"
@@ -96,7 +95,7 @@ export function findMissingEnvKeys(
 }
 
 export function validateProductionCoreEnv(source: NodeJS.ProcessEnv = process.env) {
-  const missing = findMissingEnvKeys(CORE_ENV_KEYS, source);
+  const missing = findMissingEnvKeys(PRODUCTION_CORE_ENV_KEYS, source);
 
   if (missing.length === 0) {
     return;

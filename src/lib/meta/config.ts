@@ -1,4 +1,5 @@
 import { getServerEnv } from "@/lib/env/server";
+import { getSiteUrl } from "@/lib/site/config";
 
 const DEFAULT_META_GRAPH_API_VERSION = "v22.0";
 const DEFAULT_META_OAUTH_SCOPES = [
@@ -29,7 +30,7 @@ export function getMetaRedirectUri() {
     return configuredRedirect;
   }
 
-  const appUrl = getServerEnv("NEXT_PUBLIC_APP_URL") || "http://localhost:3000";
+  const appUrl = getSiteUrl();
   return new URL("/api/integrations/meta/callback", appUrl).toString();
 }
 

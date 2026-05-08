@@ -18,8 +18,33 @@ function normalizeUrl(value: string) {
   }
 }
 
+function normalizeDeploymentUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return DEFAULT_SITE_URL;
+  }
+
+  const candidates = trimmed.startsWith("http://") || trimmed.startsWith("https://")
+    ? [trimmed]
+    : [`https://${trimmed}`, `http://${trimmed}`];
+
+  for (const candidate of candidates) {
+    try {
+      return new URL(candidate).toString().replace(/\/$/, "");
+    } catch {
+      // Try the next candidate before falling back.
+    }
+  }
+
+  return DEFAULT_SITE_URL;
+}
+
 export function getSiteUrl() {
-  return normalizeUrl(process.env.NEXT_PUBLIC_APP_URL || DEFAULT_SITE_URL);
+  return (
+    getConfiguredSiteUrl() ??
+    normalizeDeploymentUrl(process.env.NEXT_PUBLIC_VERCEL_URL || process.env.VERCEL_URL || "") ??
+    DEFAULT_SITE_URL
+  );
 }
 
 export function getConfiguredSiteUrl() {
@@ -66,7 +91,7 @@ export function getRequestOrigin(headerStore: HeaderStore) {
   const protocol = headerStore.get("x-forwarded-proto") ?? "http";
 
   if (!host) {
-    return getConfiguredSiteUrl() ?? DEFAULT_SITE_URL;
+    return getConfiguredSiteUrl() ?? getSiteUrl() ?? DEFAULT_SITE_URL;
   }
 
   return normalizeUrl(`${protocol}://${host}`);
@@ -79,7 +104,7 @@ export function getAuthCallbackOrigin(headerStore: HeaderStore) {
     return requestOrigin;
   }
 
-  return getConfiguredSiteUrl() ?? requestOrigin;
+  return getConfiguredSiteUrl() ?? getSiteUrl() ?? requestOrigin;
 }
 
 function isLocalOrigin(value: string) {
