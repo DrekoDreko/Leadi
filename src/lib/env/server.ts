@@ -1,7 +1,6 @@
 import "server-only";
 
 import {
-  CORE_ENV_KEYS,
   type EnvVariableName,
   findMissingEnvKeys,
   readEnvValue
@@ -13,11 +12,6 @@ type EnvIntegrationDefinition = {
 };
 
 const ENV_INTEGRATIONS = {
-  core: {
-    message:
-      "Ambiente principal incompleto. Configure as variaveis obrigatorias do core antes de subir o app em producao.",
-    required: CORE_ENV_KEYS
-  },
   supabase_admin: {
     message:
       "Operacao administrativa indisponivel. Configure NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente do servidor.",
@@ -36,6 +30,11 @@ const ENV_INTEGRATIONS = {
     message:
       "Webhook do Mercado Pago sem assinatura configurada. Defina MERCADO_PAGO_WEBHOOK_SECRET para validar notificacoes em producao.",
     required: ["MERCADO_PAGO_WEBHOOK_SECRET"]
+  },
+  meta_oauth: {
+    message:
+      "OAuth da Meta indisponivel. Configure META_APP_ID e META_APP_SECRET no ambiente do servidor.",
+    required: ["META_APP_ID", "META_APP_SECRET"]
   },
   meta_webhook: {
     message:

@@ -11,6 +11,7 @@ import {
   Mail,
   MessageCircle,
   PhoneCall,
+  RefreshCcw,
   Save,
   Send,
   Trash2,
@@ -18,6 +19,7 @@ import {
   X
 } from "lucide-react";
 import type { Lead } from "@/data/mock";
+import type { LeadFollowUpEvent } from "@/lib/leads/follow-up-events";
 import type { LeadComment } from "@/lib/leads/comments";
 
 type LeadUpdateMode = "supabase" | "mock" | "not-configured" | "unauthenticated" | "error";
@@ -70,6 +72,21 @@ type LeadCommentResponse = {
   mode?: LeadUpdateMode;
 };
 
+type LeadFollowUpEventsResponse = {
+  events?: LeadFollowUpEvent[];
+  error?: string;
+  mode?: LeadUpdateMode;
+};
+
+type LeadFollowUpEventResponse = {
+  event?: LeadFollowUpEvent;
+  lead?: Lead;
+  error?: string;
+  mode?: LeadUpdateMode;
+};
+
+type LeadFollowUpAction = LeadFollowUpEvent["eventType"];
+
 const stageOptions = [
   { value: "new", label: "Novo lead" },
   { value: "qualification", label: "Qualificação" },
@@ -88,6 +105,13 @@ const emptyDisplayValues = new Set([
   "Sem observacoes registradas."
 ]);
 
+const followUpActionLabels: Record<LeadFollowUpAction, string> = {
+  completed: "Concluído",
+  rescheduled: "Reagendado",
+  cancelled: "Cancelado",
+  not_completed: "Não realizado"
+};
+
 export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDetailsPopupProps) {
   const previousLeadIdRef = useRef<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -100,6 +124,13 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
   const [comments, setComments] = useState<LeadComment[]>([]);
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [commentsStatus, setCommentsStatus] = useState<"idle" | "loading" | "ready">("idle");
+  const [followUpEvents, setFollowUpEvents] = useState<LeadFollowUpEvent[]>([]);
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
+  const [followUpStatus, setFollowUpStatus] = useState<"idle" | "loading" | "ready">("idle");
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [followUpDraftNote, setFollowUpDraftNote] = useState("");
+  const [followUpDraftNextContactAt, setFollowUpDraftNextContactAt] = useState("");
+  const [isSubmittingFollowUp, setIsSubmittingFollowUp] = useState(false);
   const [commentDraft, setCommentDraft] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [status, setStatus] = useState<{
@@ -129,6 +160,13 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
     setComments([]);
     setCommentsError(null);
     setCommentsStatus("idle");
+    setFollowUpEvents([]);
+    setFollowUpError(null);
+    setFollowUpStatus("idle");
+    setIsRescheduleOpen(false);
+    setFollowUpDraftNote("");
+    setFollowUpDraftNextContactAt(toDateTimeLocal(lead.nextContactAt));
+    setIsSubmittingFollowUp(false);
     setCommentDraft("");
     setIsSubmittingComment(false);
   }, [lead]);
@@ -184,6 +222,52 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
       return;
     }
 
+    let active = true;
+    setFollowUpStatus("loading");
+    setFollowUpError(null);
+
+    void fetch(`/api/leads/${encodeURIComponent(lead.id)}/follow-up-events`, {
+      method: "GET",
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        const data = await parseLeadFollowUpEventsResponse(response);
+
+        if (!response.ok) {
+          throw new Error(getFriendlyLeadFollowUpError(data.error, "load"));
+        }
+
+        if (!active) {
+          return;
+        }
+
+        setFollowUpEvents(data.events ?? []);
+        setFollowUpStatus("ready");
+      })
+      .catch((error) => {
+        if (!active) {
+          return;
+        }
+
+        setFollowUpEvents([]);
+        setFollowUpError(
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel carregar o historico da agenda deste lead."
+        );
+        setFollowUpStatus("ready");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [lead]);
+
+  useEffect(() => {
+    if (!lead) {
+      return;
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || isSubmitting || isDeleting) {
         return;
@@ -221,6 +305,7 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
   }
 
   const activeLead = lead;
+  const canRecordFollowUp = Boolean(onUpdated);
   const emailHref = buildEmailHref(lead.email);
   const phoneHref = buildPhoneHref(lead.phone);
 
@@ -405,6 +490,78 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
       );
     } finally {
       setIsSubmittingComment(false);
+    }
+  }
+
+  function openRescheduleForm() {
+    setFollowUpError(null);
+    setFollowUpStatus("idle");
+    setIsRescheduleOpen(true);
+    setFollowUpDraftNextContactAt(toDateTimeLocal(activeLead.nextContactAt));
+  }
+
+  async function handleFollowUpAction(action: LeadFollowUpAction) {
+    if (action === "rescheduled" && !followUpDraftNextContactAt) {
+      setFollowUpError("Escolha uma nova data para reagendar o compromisso.");
+      return;
+    }
+
+    setFollowUpError(null);
+    setStatus(null);
+    setIsSubmittingFollowUp(true);
+
+    try {
+      const response = await fetch(
+        `/api/leads/${encodeURIComponent(activeLead.id)}/follow-up-events`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            action,
+            next_contact_at:
+              action === "rescheduled"
+                ? normalizeDateTimeLocal(followUpDraftNextContactAt)
+                : undefined,
+            note: followUpDraftNote.trim() || undefined
+          })
+        }
+      );
+      const data = await parseLeadFollowUpEventResponse(response);
+
+      if (!response.ok || !data.event || !data.lead) {
+        throw new Error(getFriendlyLeadFollowUpError(data.error, "create", action));
+      }
+
+      setFollowUpEvents((currentEvents) => [
+        data.event!,
+        ...currentEvents.filter((event) => event.id !== data.event!.id)
+      ]);
+      setFollowUpStatus("ready");
+      setIsRescheduleOpen(false);
+      setFollowUpDraftNote("");
+      setFollowUpDraftNextContactAt(toDateTimeLocal(data.lead.nextContactAt));
+      setStatus({
+        type: "success",
+        message:
+          action === "rescheduled"
+            ? "Compromisso reagendado e salvo no histórico."
+            : action === "completed"
+              ? "Compromisso concluído e registrado no histórico."
+              : action === "cancelled"
+                ? "Compromisso cancelado e registrado no histórico."
+                : "Compromisso marcado como não realizado."
+      });
+      onUpdated?.(data.lead, data.mode);
+    } catch (error) {
+      setFollowUpError(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel registrar o follow-up agora."
+      );
+    } finally {
+      setIsSubmittingFollowUp(false);
     }
   }
 
@@ -851,16 +1008,189 @@ export function LeadDetailsPopup({ lead, onClose, onDeleted, onUpdated }: LeadDe
               <section className="rounded-[28px] bg-ink p-5 text-white">
                 <p className="text-sm text-white/62">Próximo contato</p>
                 <h3 className="mt-2 text-2xl font-semibold">{lead.nextContact}</h3>
-                <div className="mt-5 space-y-3 text-sm">
-                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-3">
-                    <span>WhatsApp</span>
-                    <span className="font-semibold">{lead.phone}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-3">
-                    <span>Email</span>
-                    <span className="max-w-[180px] truncate font-semibold">{lead.email}</span>
-                  </div>
+                <p className="mt-2 text-sm leading-6 text-white/72">
+                  {lead.nextContactAt
+                    ? `Agendado para ${formatLeadFollowUpDate(lead.nextContactAt)}.`
+                    : "Sem compromisso ativo para esta agenda."}
+                </p>
+
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/92 disabled:cursor-not-allowed disabled:opacity-70"
+                    disabled={!canRecordFollowUp || isSubmittingFollowUp}
+                    onClick={() => void handleFollowUpAction("completed")}
+                    type="button"
+                  >
+                    <CheckCircle2 size={16} aria-hidden="true" />
+                    Concluir
+                  </button>
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white/12 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-70"
+                    disabled={!canRecordFollowUp || isSubmittingFollowUp}
+                    onClick={openRescheduleForm}
+                    type="button"
+                  >
+                    <RefreshCcw size={16} aria-hidden="true" />
+                    Reagendar
+                  </button>
                 </div>
+
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white/12 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-70"
+                    disabled={!canRecordFollowUp || isSubmittingFollowUp}
+                    onClick={() => void handleFollowUpAction("not_completed")}
+                    type="button"
+                  >
+                    <AlertTriangle size={16} aria-hidden="true" />
+                    Não realizado
+                  </button>
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white/12 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-70"
+                    disabled={!canRecordFollowUp || isSubmittingFollowUp}
+                    onClick={() => void handleFollowUpAction("cancelled")}
+                    type="button"
+                  >
+                    <X size={16} aria-hidden="true" />
+                    Cancelar
+                  </button>
+                </div>
+
+                {isRescheduleOpen && canRecordFollowUp && (
+                  <form
+                    className="mt-4 space-y-3 rounded-[22px] border border-white/12 bg-white/8 p-4"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleFollowUpAction("rescheduled");
+                    }}
+                  >
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-white/64">
+                        Nova data
+                      </span>
+                      <input
+                        className="w-full rounded-2xl border border-white/12 bg-white/14 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/38 focus:border-white/28 focus:bg-white/18"
+                        disabled={isSubmittingFollowUp}
+                        onChange={(event) => setFollowUpDraftNextContactAt(event.target.value)}
+                        type="datetime-local"
+                        value={followUpDraftNextContactAt}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-white/64">
+                        Observação
+                      </span>
+                      <textarea
+                        className="min-h-[92px] w-full rounded-2xl border border-white/12 bg-white/14 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/38 focus:border-white/28 focus:bg-white/18"
+                        disabled={isSubmittingFollowUp}
+                        maxLength={2000}
+                        onChange={(event) => setFollowUpDraftNote(event.target.value)}
+                        placeholder="Ex.: cliente pediu retorno na sexta, aguardar diretoria."
+                        value={followUpDraftNote}
+                      />
+                    </label>
+                    <div className="flex items-center justify-between gap-3">
+                      <button
+                        className="rounded-full bg-white/12 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-70"
+                        disabled={isSubmittingFollowUp}
+                        onClick={() => {
+                          setIsRescheduleOpen(false);
+                          setFollowUpError(null);
+                        }}
+                        type="button"
+                      >
+                        Fechar
+                      </button>
+                      <button
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-ink transition hover:bg-white/92 disabled:cursor-not-allowed disabled:opacity-70"
+                        disabled={isSubmittingFollowUp}
+                        type="submit"
+                      >
+                        {isSubmittingFollowUp ? (
+                          <Loader2 className="animate-spin" size={14} aria-hidden="true" />
+                        ) : (
+                          <Save size={14} aria-hidden="true" />
+                        )}
+                        {isSubmittingFollowUp ? "Salvando..." : "Salvar reagendamento"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {followUpError && (
+                  <p className="mt-4 rounded-[20px] bg-white/12 px-4 py-3 text-sm font-medium text-white">
+                    {followUpError}
+                  </p>
+                )}
+
+                {!canRecordFollowUp && (
+                  <p className="mt-4 rounded-[20px] bg-white/12 px-4 py-3 text-sm text-white/80">
+                    Seu perfil nao pode registrar follow-up neste lead.
+                  </p>
+                )}
+              </section>
+
+              <section className="rounded-[28px] bg-white/44 p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cobalt text-white">
+                      <Clock3 size={18} aria-hidden="true" />
+                    </span>
+                    <div>
+                      <p className="text-sm text-ink/54">Memória da agenda</p>
+                      <h3 className="font-semibold">Histórico de follow-ups</h3>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-ink/62">
+                    {followUpEvents.length}
+                  </span>
+                </div>
+
+                {followUpStatus === "loading" ? (
+                  <div className="flex items-center gap-2 rounded-[20px] bg-white/60 px-4 py-3 text-sm text-ink/62">
+                    <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+                    Carregando histórico...
+                  </div>
+                ) : followUpEvents.length === 0 ? (
+                  <div className="rounded-[20px] border border-dashed border-ink/12 bg-white/54 px-4 py-5 text-sm leading-6 text-ink/56">
+                    Nenhum follow-up registrado ainda. Marque concluído ou reagende para criar a
+                    trilha operacional.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {followUpEvents.map((event) => (
+                      <article className="rounded-[22px] bg-white/58 p-4" key={event.id}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-ink">
+                              {followUpActionLabels[event.eventType]}
+                            </p>
+                            <p className="mt-1 text-xs text-ink/46">{event.authorName}</p>
+                          </div>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white/72 px-3 py-1.5 text-[11px] font-semibold text-ink/56">
+                            <Clock3 size={12} aria-hidden="true" />
+                            {formatFollowUpTimestamp(event.createdAt)}
+                          </span>
+                        </div>
+
+                        {event.note ? (
+                          <p className="mt-3 whitespace-pre-line text-sm leading-6 text-ink/70">
+                            {event.note}
+                          </p>
+                        ) : null}
+
+                        <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-ink/58">
+                          <span className="rounded-full bg-white/72 px-3 py-1.5">
+                            Antes: {formatLeadFollowUpDate(event.previousNextContactAt)}
+                          </span>
+                          <span className="rounded-full bg-white/72 px-3 py-1.5">
+                            Novo: {formatLeadFollowUpDate(event.nextContactAt)}
+                          </span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
               </section>
 
               <section className="rounded-[28px] bg-white/44 p-5">
@@ -1095,6 +1425,26 @@ async function parseLeadCommentResponse(response: Response): Promise<LeadComment
   }
 }
 
+async function parseLeadFollowUpEventsResponse(
+  response: Response
+): Promise<LeadFollowUpEventsResponse> {
+  try {
+    return (await response.json()) as LeadFollowUpEventsResponse;
+  } catch {
+    return {};
+  }
+}
+
+async function parseLeadFollowUpEventResponse(
+  response: Response
+): Promise<LeadFollowUpEventResponse> {
+  try {
+    return (await response.json()) as LeadFollowUpEventResponse;
+  } catch {
+    return {};
+  }
+}
+
 function getFriendlyUpdateError(error?: string) {
   if (!error) {
     return "Nao foi possivel atualizar o lead agora.";
@@ -1144,6 +1494,32 @@ function getFriendlyLeadCommentError(error: string | undefined, action: "load" |
 
   if (error.includes("sessao expirou")) {
     return "Sua sessao expirou. Entre novamente para comentar no lead.";
+  }
+
+  return error;
+}
+
+function getFriendlyLeadFollowUpError(
+  error: string | undefined,
+  action: "load" | "create",
+  followUpAction?: LeadFollowUpAction
+) {
+  if (!error) {
+    if (action === "load") {
+      return "Nao foi possivel carregar o historico da agenda agora.";
+    }
+
+    if (followUpAction === "rescheduled") {
+      return "Nao foi possivel reagendar o compromisso agora.";
+    }
+
+    return "Nao foi possivel registrar o follow-up agora.";
+  }
+
+  if (error.includes("sessao expirou")) {
+    return action === "load"
+      ? "Sua sessao expirou. Entre novamente para carregar o historico da agenda."
+      : "Sua sessao expirou. Entre novamente para registrar o follow-up.";
   }
 
   return error;
@@ -1207,6 +1583,29 @@ function formatCommentTimestamp(value: string) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(date);
+}
+
+function formatLeadFollowUpDate(value: string | null) {
+  if (!value) {
+    return "Sem data";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Data invalida";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function formatFollowUpTimestamp(value: string) {
+  return formatLeadFollowUpDate(value);
 }
 
 function fieldClass(hasError: boolean) {

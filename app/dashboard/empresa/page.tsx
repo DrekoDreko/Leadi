@@ -189,7 +189,7 @@ export default async function EmpresaPage({
                 </>
               ) : (
                 <div className="rounded-full bg-white/56 px-4 py-3 text-sm font-semibold text-ink/64">
-                  Apenas a conta administradora pode alterar conexões.
+                  Apenas o owner ou os admins podem alterar conexões.
                 </div>
               )}
             </div>

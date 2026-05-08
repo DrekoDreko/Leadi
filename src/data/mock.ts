@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  CalendarDays,
   Kanban,
   LayoutDashboard,
   MessageCircle,
@@ -11,6 +12,7 @@ import {
 
 export const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Agenda", href: "/dashboard/agenda", icon: CalendarDays },
   { label: "Leads", href: "/dashboard/leads", icon: UsersRound },
   { label: "Funil", href: "/dashboard/funil", icon: Kanban },
   { label: "Campanhas", href: "/dashboard/campanhas", icon: Sparkles },
@@ -24,6 +26,7 @@ export type Lead = {
   id: string;
   name: string;
   owner: string;
+  ownerProfileId?: string | null;
   canEdit?: boolean;
   canDelete?: boolean;
   stage: string;

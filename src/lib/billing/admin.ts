@@ -1,4 +1,7 @@
+import "server-only";
+
 import { createClient } from "@supabase/supabase-js";
+import { requireIntegrationEnv } from "@/lib/env/server";
 import { isBillingConfigured } from "./config";
 
 export type BillingWalletRow = {
@@ -84,16 +87,10 @@ export type BillingSnapshot = {
 };
 
 export function createBillingAdminClient() {
-  if (!isBillingConfigured()) {
-    throw new Error("Billing nao configurado.");
-  }
+  requireIntegrationEnv("billing");
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-  if (!url || !serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY nao configurada.");
-  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
 
   return createClient(url, serviceRoleKey, {
     auth: {

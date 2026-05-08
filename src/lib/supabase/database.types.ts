@@ -24,8 +24,10 @@ export type LeadSource = "manual" | "csv_import" | "meta_lead_ads" | "make_zapie
 export type MetaConnectionStatus = "active" | "inactive" | "error" | "revoked";
 export type LeadWebhookEventStatus = "processed" | "failed";
 export type LeadStage = "new" | "qualification" | "proposal" | "negotiation" | "won" | "lost";
+export type LeadFollowUpEventType = "completed" | "rescheduled" | "cancelled" | "not_completed";
 export type PlanStatus = "active" | "inactive" | "archived";
-export type BillingGateway = "internal" | "mercado_pago" | "asaas" | "stripe" | "manual";
+export type BillingProviderGateway = "asaas" | "mercado_pago" | "stripe";
+export type BillingGateway = "internal" | BillingProviderGateway | "manual";
 export type BillingIntervalUnit = "day" | "week" | "month" | "year";
 export type SubscriptionStatus = "pending" | "trialing" | "active" | "past_due" | "paused" | "cancelled" | "expired";
 export type PaymentEventStatus = "pending" | "processed" | "failed" | "cancelled";
@@ -33,9 +35,9 @@ export type IntegrationConnectionStatus = "connected" | "disconnected" | "expire
 export type IntegrationProvider = "meta" | "openai";
 export type IntegrationSyncStatus = "success" | "warning" | "failed" | "error" | "running";
 export type WhatsAppStage = LeadStage;
-export type ProfileRole = "owner" | "admin" | "seller" | "supervisor";
+export type ProfileRole = "owner" | "admin" | "seller";
 export type WorkspaceType = "solo" | "team";
-export type WorkspaceMemberRole = "seller" | "supervisor";
+export type WorkspaceMemberRole = "owner" | "admin" | "seller";
 export type WorkspaceMemberStatus = "active" | "invited" | "removed";
 export type InviteStatus = "active" | "expired" | "used";
 
@@ -780,7 +782,7 @@ export type Database = {
           token: string;
           workspace_id: string;
           created_by_user_id: string;
-          role_to_assign: "seller";
+          role_to_assign: "admin" | "seller";
           status: InviteStatus;
           used_by_user_id: string | null;
           used_at: string | null;
@@ -792,7 +794,7 @@ export type Database = {
           token: string;
           workspace_id: string;
           created_by_user_id: string;
-          role_to_assign?: "seller";
+          role_to_assign?: "admin" | "seller";
           status?: InviteStatus;
           used_by_user_id?: string | null;
           used_at?: string | null;
@@ -804,7 +806,7 @@ export type Database = {
           token?: string;
           workspace_id?: string;
           created_by_user_id?: string;
-          role_to_assign?: "seller";
+          role_to_assign?: "admin" | "seller";
           status?: InviteStatus;
           used_by_user_id?: string | null;
           used_at?: string | null;
@@ -952,6 +954,51 @@ export type Database = {
           author_name?: string;
           author_email?: string;
           body?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      lead_follow_up_events: {
+        Row: {
+          id: string;
+          organization_id: string;
+          lead_id: string;
+          author_profile_id: string;
+          author_name: string;
+          author_email: string;
+          event_type: LeadFollowUpEventType;
+          previous_next_contact_at: string | null;
+          next_contact_at: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          lead_id: string;
+          author_profile_id: string;
+          author_name: string;
+          author_email: string;
+          event_type: LeadFollowUpEventType;
+          previous_next_contact_at?: string | null;
+          next_contact_at?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          lead_id?: string;
+          author_profile_id?: string;
+          author_name?: string;
+          author_email?: string;
+          event_type?: LeadFollowUpEventType;
+          previous_next_contact_at?: string | null;
+          next_contact_at?: string | null;
+          note?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1133,7 +1180,7 @@ export type Database = {
         }[];
       };
       complete_profile_setup: {
-        Args: { setup_mode: "solo" | "supervisor" };
+        Args: { setup_mode: "solo" | "team" };
         Returns: {
           role: WorkspaceMemberRole;
           organization_id: string;
@@ -1141,11 +1188,28 @@ export type Database = {
         }[];
       };
       create_workspace_invite: {
-        Args: Record<PropertyKey, never>;
+        Args: { requested_role_to_assign?: "admin" | "seller" };
         Returns: {
           token: string;
           invite_url_path: string;
           expires_at: string;
+          role_to_assign: "admin" | "seller";
+        }[];
+      };
+      update_workspace_member_role: {
+        Args: { target_profile_id: string; next_role: "admin" | "seller" };
+        Returns: {
+          workspace_id: string;
+          user_id: string;
+          role: WorkspaceMemberRole;
+        }[];
+      };
+      remove_workspace_member: {
+        Args: { target_profile_id: string };
+        Returns: {
+          workspace_id: string;
+          user_id: string;
+          role: WorkspaceMemberRole;
         }[];
       };
       create_lead_webhook_integration: {

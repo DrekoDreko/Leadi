@@ -317,7 +317,7 @@ begin
     raise exception 'Convites exigem um workspace de equipe.';
   end if;
 
-  generated_token := encode(gen_random_bytes(24), 'hex');
+  generated_token := replace(gen_random_uuid()::text, '-', '');
   generated_expires_at := now() + interval '30 days';
 
   insert into public.invites (

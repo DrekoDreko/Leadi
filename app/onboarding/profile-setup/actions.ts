@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function completeProfileSetupAction(formData: FormData) {
-  const setupMode = formData.get("setupMode") === "supervisor" ? "supervisor" : "solo";
+  const setupMode = formData.get("setupMode") === "team" ? "team" : "solo";
 
   if (!isSupabaseConfigured()) {
     redirect("/dashboard");

@@ -8,8 +8,29 @@ export type LeadDataState = {
   canDeleteLeads: boolean;
   canCreateMetaAdsLeads: boolean;
   pagination: LeadPaginationMeta;
+  agendaMetrics: LeadAgendaMetrics;
   message?: string;
 };
+
+export type LeadAgendaMetrics = {
+  scopeLabel: string;
+  scopeDescription: string;
+  noAgenda: number;
+  overdueFollowUps: number;
+  todayCommitments: number;
+};
+
+export function buildEmptyLeadAgendaMetrics(
+  overrides?: Partial<Pick<LeadAgendaMetrics, "scopeLabel" | "scopeDescription">>
+): LeadAgendaMetrics {
+  return {
+    scopeLabel: overrides?.scopeLabel ?? "Sem dados",
+    scopeDescription: overrides?.scopeDescription ?? "Indicadores indisponíveis no momento.",
+    noAgenda: 0,
+    overdueFollowUps: 0,
+    todayCommitments: 0
+  };
+}
 
 export type LeadPaginationOptions = {
   limit?: number | null;

@@ -54,7 +54,7 @@ begin
     raise exception 'Organizacao nao encontrada.';
   end if;
 
-  generated_token := encode(gen_random_bytes(24), 'hex');
+  generated_token := replace(gen_random_uuid()::text, '-', '');
 
   insert into public.lead_webhook_integrations (
     organization_id,

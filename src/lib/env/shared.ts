@@ -29,7 +29,7 @@ export const ENV_VARIABLES = {
     public: true
   },
   SUPABASE_SERVICE_ROLE_KEY: {
-    description: "Chave administrativa do Supabase para operacoes server-side e MCP.",
+    description: "Chave administrativa do Supabase para operacoes server-side e MCP local.",
     public: false
   },
   OPENAI_MODEL: {
@@ -73,8 +73,14 @@ export const ENV_VARIABLES = {
 export type EnvVariableName = keyof typeof ENV_VARIABLES;
 
 export const CORE_ENV_KEYS = [
+  "NEXT_PUBLIC_APP_URL",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY"
+] as const satisfies readonly EnvVariableName[];
+
+export const MCP_SUPABASE_ENV_KEYS = [
+  "NEXT_PUBLIC_SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY"
 ] as const satisfies readonly EnvVariableName[];
 

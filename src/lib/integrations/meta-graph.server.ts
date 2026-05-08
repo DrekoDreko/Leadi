@@ -1,5 +1,6 @@
 import "server-only";
 
+import { requireIntegrationEnv } from "@/lib/env/server";
 import { getMetaAppId, getMetaAppSecret, getMetaGraphApiVersion, getMetaOAuthScopes, getMetaRedirectUri } from "@/lib/meta/config";
 import {
   recordIntegrationSyncLog,
@@ -83,6 +84,8 @@ export function buildMetaOAuthAuthorizationUrl(input: {
   state: string;
   returnTo: string;
 }) {
+  requireIntegrationEnv("meta_oauth");
+
   const clientId = getMetaAppId().trim();
   const appSecret = getMetaAppSecret().trim();
 
@@ -106,6 +109,8 @@ export async function exchangeMetaOAuthCode(input: {
   code: string;
   state: MetaOAuthStatePayload;
 }) {
+  requireIntegrationEnv("meta_oauth");
+
   const clientId = getMetaAppId().trim();
   const appSecret = getMetaAppSecret().trim();
   const redirectUri = getMetaRedirectUri();

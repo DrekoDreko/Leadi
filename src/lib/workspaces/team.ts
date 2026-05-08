@@ -2,6 +2,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import type { WorkspaceContext } from "./context";
+import { normalizeWorkspaceRole } from "./permissions";
 
 type InviteRow = Database["public"]["Tables"]["invites"]["Row"];
 type MemberRow = Database["public"]["Tables"]["workspace_members"]["Row"];
@@ -12,7 +13,7 @@ export type TeamMember = {
   profileId: string;
   name: string;
   email: string;
-  role: string;
+  role: "owner" | "admin" | "seller";
   status: string;
   createdAt: string;
 };
@@ -21,6 +22,7 @@ export type TeamInvite = {
   id: string;
   token: string;
   invitePath: string;
+  roleToAssign: "admin" | "seller";
   status: string;
   createdAt: string;
   expiresAt: string;
@@ -42,7 +44,7 @@ export async function getTeamSetupData(context: WorkspaceContext): Promise<TeamS
           profileId: "demo-profile",
           name: context.displayName,
           email: "demo@leadhealth.app",
-          role: "supervisor",
+          role: "owner",
           status: "active",
           createdAt: new Date().toISOString()
         }
@@ -97,7 +99,7 @@ async function mapMembers(memberRows: MemberRow[]): Promise<TeamMember[]> {
       profileId: member.user_id,
       name: getProfileName(profile),
       email: profile?.email ?? "sem-email@leadhealth.app",
-      role: member.role,
+      role: normalizeWorkspaceRole(member.role),
       status: member.status,
       createdAt: member.created_at
     };
@@ -117,6 +119,7 @@ function mapInvite(invite: InviteRow): TeamInvite {
     id: invite.id,
     token: invite.token,
     invitePath: `/invite/${invite.token}`,
+    roleToAssign: normalizeWorkspaceRole(invite.role_to_assign) === "admin" ? "admin" : "seller",
     status: invite.status,
     createdAt: invite.created_at,
     expiresAt: invite.expires_at

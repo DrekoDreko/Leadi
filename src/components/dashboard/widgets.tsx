@@ -12,6 +12,7 @@ import {
   Upload
 } from "lucide-react";
 import { campaignDraft, kanbanColumns, leads, type Lead } from "@/data/mock";
+import type { LeadAgendaMetrics } from "@/lib/leads/repository";
 
 type MetricTone = "blue" | "yellow" | "teal" | "dark";
 
@@ -68,6 +69,48 @@ export function Metric({
         </span>
       </div>
     </article>
+  );
+}
+
+export function OperationalAgendaMetrics({
+  metrics
+}: {
+  metrics: LeadAgendaMetrics;
+}) {
+  return (
+    <section className="glass-strong rounded-[34px] p-5 md:p-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-3xl">
+          <p className="text-sm font-medium text-cobalt">Indicadores operacionais</p>
+          <h2 className="mt-2 text-2xl font-semibold md:text-3xl">Qualidade da agenda comercial</h2>
+          <p className="mt-2 leading-7 text-ink/62">{metrics.scopeDescription}</p>
+        </div>
+        <span className="w-fit rounded-full bg-white/60 px-3 py-1.5 text-xs font-semibold text-ink/68">
+          {metrics.scopeLabel}
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        <Metric
+          label="Sem agenda"
+          value={String(metrics.noAgenda)}
+          note="sem próximo contato"
+          tone="dark"
+        />
+        <Metric
+          label="Follow-ups atrasados"
+          value={String(metrics.overdueFollowUps)}
+          note="já venceram"
+          tone="yellow"
+        />
+        <Metric
+          label="Compromissos de hoje"
+          value={String(metrics.todayCommitments)}
+          note="restantes no dia"
+          tone="teal"
+        />
+      </div>
+    </section>
   );
 }
 

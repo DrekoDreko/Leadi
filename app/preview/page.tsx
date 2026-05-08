@@ -5,7 +5,7 @@ export default function PreviewPage() {
   return (
     <DashboardShell
       displayName="Preview"
-      navVariant="supervisor-team"
+      navVariant="owner-team"
       preview
       workspaceName="LeadHealth Preview"
     >

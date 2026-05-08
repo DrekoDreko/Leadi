@@ -13,6 +13,7 @@ import {
   getMercadoPagoWebhookSignature,
   validateMercadoPagoWebhookSignature
 } from "@/lib/billing/mercadopago";
+import { EnvValidationError } from "@/lib/env/server";
 
 export async function POST(request: Request) {
   try {
@@ -94,6 +95,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, status: payment.status, credited: !alreadyCredited });
   } catch (error) {
+    if (error instanceof EnvValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+
     const message =
       error instanceof Error && error.message
         ? error.message

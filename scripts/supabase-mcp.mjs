@@ -24,6 +24,7 @@ const ALLOWED_TABLES = [
   "meta_forms",
   "lead_webhook_integrations",
   "lead_webhook_events",
+  "lead_follow_up_events",
   "profiles",
   "workspace_members",
   "invites",

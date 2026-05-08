@@ -15,9 +15,12 @@ import {
   Share,
   UsersRound
 } from "lucide-react";
-import { campaignDraft, kanbanColumns, leads, scheduledTasks } from "@/data/mock";
+import { campaignDraft, kanbanColumns, leads } from "@/data/mock";
+import { buildAgendaEntries } from "@/lib/leads/agenda";
 
 export function MockDashboardPreview() {
+  const agendaEntries = buildAgendaEntries(leads);
+
   return (
     <div className="pointer-events-none relative w-full select-none overflow-hidden rounded-[34px] border border-[#1d2229] bg-white/24 shadow-[0_24px_70px_rgba(18,23,33,0.10)] backdrop-blur-3xl">
       <div className="relative flex h-12 items-center border-b border-white/10 bg-[#303438] px-4 text-white">
@@ -127,23 +130,41 @@ export function MockDashboardPreview() {
 
           <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
             <section className="glass rounded-[30px] p-5">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-semibold">Agenda da equipe</h3>
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold">Agenda da equipe</h3>
+                  <p className="mt-1 text-sm text-ink/54">
+                    {agendaEntries.length > 0
+                      ? `${agendaEntries.length} compromissos priorizados`
+                      : "Sem compromissos com data ativa"}
+                  </p>
+                </div>
                 <CalendarDays size={18} aria-hidden="true" />
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {scheduledTasks.map((task) => (
-                  <div
-                    className="min-h-[118px] rounded-[22px] bg-white/44 p-3"
-                    key={task.day}
-                  >
-                    <span className="text-sm text-ink/54">Abr</span>
-                    <p className="text-2xl font-semibold">{task.day}</p>
-                    <p className="mt-3 text-xs leading-snug text-ink/62">
-                      {task.label}
-                    </p>
+              <div className="space-y-2">
+                {agendaEntries.length === 0 ? (
+                  <div className="rounded-[22px] bg-white/44 p-4 text-sm leading-6 text-ink/58">
+                    Nenhum compromisso ativo por enquanto.
                   </div>
-                ))}
+                ) : (
+                  agendaEntries.map((entry) => (
+                    <div
+                      className="flex items-start justify-between gap-3 rounded-[22px] bg-white/44 p-3"
+                      key={entry.lead.id}
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{entry.lead.name}</p>
+                        <p className="mt-1 text-sm text-ink/58">{entry.lead.owner}</p>
+                        <p className="mt-2 text-xs text-ink/52">{entry.detailLabel}</p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getAgendaToneClass(entry.tone)}`}
+                      >
+                        {entry.statusLabel}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </section>
 
@@ -241,4 +262,16 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <span className="text-right font-medium">{value}</span>
     </div>
   );
+}
+
+function getAgendaToneClass(tone: "danger" | "warning" | "neutral") {
+  if (tone === "danger") {
+    return "bg-red-100 text-red-700";
+  }
+
+  if (tone === "warning") {
+    return "bg-signal/60 text-ink";
+  }
+
+  return "bg-white/70 text-ink/62";
 }

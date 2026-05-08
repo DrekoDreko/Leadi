@@ -1,10 +1,12 @@
+import "server-only";
+
 import crypto from "node:crypto";
+import { requireIntegrationEnv } from "@/lib/env/server";
 import {
   getMercadoPagoAccessToken,
   getMercadoPagoBackUrl,
   getMercadoPagoNotificationUrl,
-  getMercadoPagoWebhookSecret,
-  isMercadoPagoConfigured
+  getMercadoPagoWebhookSecret
 } from "./config";
 
 export type MercadoPagoCheckoutInput = {
@@ -42,9 +44,7 @@ type MercadoPagoPaymentResponse = {
 };
 
 export async function createMercadoPagoCheckout(input: MercadoPagoCheckoutInput) {
-  if (!isMercadoPagoConfigured()) {
-    throw new Error("Mercado Pago nao configurado.");
-  }
+  requireIntegrationEnv("billing");
 
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
@@ -98,9 +98,7 @@ export async function createMercadoPagoCheckout(input: MercadoPagoCheckoutInput)
 }
 
 export async function fetchMercadoPagoPayment(paymentId: string) {
-  if (!isMercadoPagoConfigured()) {
-    throw new Error("Mercado Pago nao configurado.");
-  }
+  requireIntegrationEnv("billing");
 
   const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     headers: {
@@ -122,10 +120,12 @@ export function validateMercadoPagoWebhookSignature(input: {
   requestIdHeader: string | null;
   dataId: string;
 }) {
+  requireIntegrationEnv("mercadopago_webhook");
+
   const secret = getMercadoPagoWebhookSecret();
 
   if (!secret) {
-    return process.env.NODE_ENV !== "production";
+    return false;
   }
 
   if (!input.signatureHeader || !input.requestIdHeader || !input.dataId) {

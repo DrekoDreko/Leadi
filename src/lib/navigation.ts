@@ -1,5 +1,6 @@
 import {
   Coins,
+  CalendarDays,
   Building2,
   Import,
   LayoutDashboard,
@@ -12,9 +13,10 @@ import {
 import type { DashboardNavVariant } from "@/lib/workspaces/context";
 
 export function getDashboardNavItems(variant: DashboardNavVariant) {
-  if (variant === "supervisor-team") {
+  if (variant === "owner-team") {
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Agenda", href: "/dashboard/agenda", icon: CalendarDays },
       { label: "Empresa", href: "/dashboard/empresa", icon: Building2 },
       { label: "Leads da Equipe", href: "/dashboard/leads", icon: UsersRound },
       { label: "Campanhas", href: "/dashboard/campanhas", icon: Sparkles },
@@ -29,6 +31,7 @@ export function getDashboardNavItems(variant: DashboardNavVariant) {
   if (variant === "seller-team") {
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Agenda", href: "/dashboard/agenda", icon: CalendarDays },
       { label: "Empresa", href: "/dashboard/empresa", icon: Building2 },
       { label: "Meus Leads", href: "/dashboard/leads", icon: UsersRound },
       { label: "Campanhas IA", href: "/dashboard/campanhas", icon: Sparkles },
@@ -40,6 +43,7 @@ export function getDashboardNavItems(variant: DashboardNavVariant) {
 
   return [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Agenda", href: "/dashboard/agenda", icon: CalendarDays },
     { label: "Empresa", href: "/dashboard/empresa", icon: Building2 },
     { label: "Leads", href: "/dashboard/leads", icon: UsersRound },
     { label: "Campanhas IA", href: "/dashboard/campanhas", icon: Sparkles },

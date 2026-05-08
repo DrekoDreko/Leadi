@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { exchangeMetaOAuthCode, syncMetaOrganizationAssets } from "@/lib/integrations/meta-graph.server";
 import { parseMetaOAuthState } from "@/lib/integrations/oauth-state.server";
+import { EnvValidationError } from "@/lib/env/server";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -38,6 +39,10 @@ export async function GET(request: Request) {
     return redirectBack(requestUrl, state.returnTo || returnToFallback, "meta=connected&sync=updated");
   } catch (error) {
     console.error("Falha ao concluir o OAuth da Meta.", error);
+    if (error instanceof EnvValidationError) {
+      return redirectBack(requestUrl, state.returnTo || returnToFallback, "meta=missing");
+    }
+
     return redirectBack(requestUrl, state.returnTo || returnToFallback, "meta=error");
   }
 }

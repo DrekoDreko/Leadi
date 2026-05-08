@@ -12,7 +12,7 @@ import type { DashboardNavVariant } from "@/lib/workspaces/context";
 export function DashboardShell({
   children,
   displayName = "Usuario",
-  navVariant = "supervisor-team",
+  navVariant = "owner-team",
   preview = false,
   subscriptionNotice = null,
   workspaceName = "LeadHealth"

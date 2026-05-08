@@ -11,7 +11,7 @@ export default async function ImportarLeadsPage() {
     getCurrentResourceAccess("lead_creation"),
     getConnectedAccountsForCurrentUser()
   ]);
-  const description = context.isSupervisor
+  const description = context.isManager
     ? "Importe uma base para a equipe e distribua os leads entre vendedores."
     : "Importe leads apenas para a sua propria carteira comercial.";
 

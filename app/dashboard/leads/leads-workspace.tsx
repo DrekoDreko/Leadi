@@ -22,7 +22,7 @@ import {
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import type { Lead } from "@/data/mock";
 import { LeadDetailsPopup } from "@/components/dashboard/lead-details-popup";
-import { Metric, PageHeading } from "@/components/dashboard/widgets";
+import { Metric, OperationalAgendaMetrics, PageHeading } from "@/components/dashboard/widgets";
 import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import {
   defaultLeadUrlFilters,
@@ -94,7 +94,6 @@ export function LeadsWorkspace({
   const newLeads = visibleLeads.filter((lead) => lead.stage === "Novo lead").length;
   const qualifiedLeads = visibleLeads.filter((lead) => lead.stage === "Qualificação").length;
   const proposalLeads = visibleLeads.filter((lead) => lead.stage === "Proposta").length;
-  const staleLeads = visibleLeads.filter((lead) => lead.nextContact === "A definir").length;
   const selectedLeadCanEdit = selectedLead?.canEdit ?? true;
   const selectedLeadCanDelete = selectedLead?.canDelete ?? leadState.canDeleteLeads;
   const canCreateLeads = createLeadAccess.allowed;
@@ -405,7 +404,9 @@ export function LeadsWorkspace({
         <LeadWorkspaceErrorState message={leadState.message} onRetry={handleRefresh} />
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <OperationalAgendaMetrics metrics={leadState.agendaMetrics} />
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Metric
               label="Novos leads"
               value={String(newLeads)}
@@ -414,7 +415,6 @@ export function LeadsWorkspace({
             />
             <Metric label="Qualificação" value={String(qualifiedLeads)} note="em diagnóstico" tone="teal" />
             <Metric label="Propostas" value={String(proposalLeads)} note="em negociação" tone="yellow" />
-            <Metric label="Sem agenda" value={String(staleLeads)} note="prioridade" tone="dark" />
           </div>
 
           <LeadFiltersPopup

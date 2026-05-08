@@ -1,6 +1,7 @@
 import { leads as mockLeads, type Lead } from "@/data/mock";
 import { getMetaConnectionForOrganization } from "@/lib/integrations/repository.server";
 import { assertOrganizationResourceAccess } from "@/lib/billing/subscription-limits.server";
+import type { LeadFollowUpEvent } from "@/lib/leads/follow-up-events";
 import type { LeadComment } from "@/lib/leads/comments";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -25,19 +26,25 @@ import {
   stringOrNull
 } from "./normalization";
 import {
+  buildEmptyLeadAgendaMetrics,
   buildLeadPaginationMeta,
   normalizeLeadPaginationOptions,
   paginateLeads,
+  type LeadAgendaMetrics,
   type LeadDataState,
   type LeadPaginationOptions
 } from "./repository";
+import { getLeadStageValue } from "./stages";
 
 type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
 type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 type LeadCommentRow = Database["public"]["Tables"]["lead_comments"]["Row"];
 type LeadCommentInsert = Database["public"]["Tables"]["lead_comments"]["Insert"];
+type LeadFollowUpEventRow = Database["public"]["Tables"]["lead_follow_up_events"]["Row"];
+type LeadFollowUpEventInsert = Database["public"]["Tables"]["lead_follow_up_events"]["Insert"];
 type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type LeadAgendaRow = Pick<LeadRow, "stage" | "next_contact_at">;
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 type LeadDuplicateReason = "meta_lead_id" | "phone_e164" | "email";
@@ -121,6 +128,8 @@ const contactFormatter = new Intl.DateTimeFormat("pt-BR", {
   minute: "2-digit"
 });
 
+const leadAgendaTimeZone = "America/Sao_Paulo";
+
 const mockLeadComments: LeadComment[] = mockLeads.slice(0, 3).map((lead, index) => {
   const createdAt = new Date(Date.now() - (index + 1) * 1000 * 60 * 90).toISOString();
 
@@ -136,6 +145,39 @@ const mockLeadComments: LeadComment[] = mockLeads.slice(0, 3).map((lead, index) 
   };
 });
 
+const mockLeadFollowUpEvents: LeadFollowUpEvent[] = mockLeads.slice(0, 4).map((lead, index) => {
+  const createdAt = new Date(Date.now() - (index + 1) * 1000 * 60 * 45).toISOString();
+  const eventType: LeadFollowUpEvent["eventType"] =
+    index === 0 ? "completed" : index === 1 ? "rescheduled" : index === 2 ? "not_completed" : "cancelled";
+  const previousNextContactAt = new Date(Date.now() - (index + 1) * 1000 * 60 * 60 * 6).toISOString();
+  const nextContactAt =
+    eventType === "rescheduled"
+      ? new Date(Date.now() + 1000 * 60 * 60 * 24 * (index + 1)).toISOString()
+      : null;
+
+  return {
+    id: `mock-follow-up-${lead.id.toLowerCase()}`,
+    leadId: lead.id,
+    organizationId: "mock-organization",
+    authorProfileId: "mock-profile",
+    authorName: lead.owner,
+    authorEmail: `${lead.owner.toLowerCase()}@demo.leadhealth.local`,
+    eventType,
+    previousNextContactAt,
+    nextContactAt,
+    note:
+      eventType === "completed"
+        ? "Compromisso executado com sucesso."
+        : eventType === "rescheduled"
+          ? "Reagendado para acompanhar a resposta do decisor."
+          : eventType === "not_completed"
+            ? "Contato nao realizado no horario previsto."
+            : "Compromisso cancelado pela equipe.",
+    createdAt,
+    updatedAt: createdAt
+  };
+});
+
 export async function getLeadsForCurrentUser(
   filters: LeadUrlFilters = defaultLeadUrlFilters,
   paginationOptions?: LeadPaginationOptions
@@ -146,12 +188,14 @@ export async function getLeadsForCurrentUser(
     if (!isSupabaseConfigured()) {
       const filteredLeads = mockLeads.filter((lead) => applyLeadUrlFilters(lead, filters));
       const paginatedLeads = paginateLeads(filteredLeads, pagination);
+      const agendaMetrics = buildLeadAgendaMetricsFromMockLeads(mockLeads);
 
       return {
         leads: paginatedLeads,
         mode: "not-configured",
         canDeleteLeads: true,
         canCreateMetaAdsLeads: true,
+        agendaMetrics,
         pagination: buildLeadPaginationMeta(
           pagination,
           filteredLeads.length,
@@ -173,6 +217,7 @@ export async function getLeadsForCurrentUser(
         mode: "unauthenticated",
         canDeleteLeads: false,
         canCreateMetaAdsLeads: false,
+        agendaMetrics: buildEmptyLeadAgendaMetrics(),
         pagination: buildLeadPaginationMeta(pagination, 0, 0),
         message: "Usuario nao autenticado."
       };
@@ -190,6 +235,7 @@ export async function getLeadsForCurrentUser(
         mode: "error",
         canDeleteLeads: false,
         canCreateMetaAdsLeads: false,
+        agendaMetrics: buildEmptyLeadAgendaMetrics(),
         pagination: buildLeadPaginationMeta(pagination, 0, 0),
         message: "Nao foi possivel carregar os leads."
       };
@@ -197,6 +243,9 @@ export async function getLeadsForCurrentUser(
 
     const hasMetaConnection = Boolean(
       await getMetaConnectionForOrganization(profile.organization_id)
+    );
+    const agendaMetricsPromise = getLeadAgendaMetricsForProfile(supabase, profile).catch(() =>
+      buildLeadAgendaMetricsFallback(profile)
     );
 
     let query =
@@ -207,7 +256,7 @@ export async function getLeadsForCurrentUser(
             .select("*", { count: "exact" })
             .eq("organization_id", profile.organization_id);
 
-    if (profile.role !== "supervisor") {
+    if (profile.role === "seller") {
       query = query.eq("owner_profile_id", profile.id);
     }
 
@@ -255,7 +304,7 @@ export async function getLeadsForCurrentUser(
       query = query.range(pagination.offset, pagination.offset + pagination.limit - 1);
     }
 
-    const { data, error, count } = await query;
+    const [agendaMetrics, { data, error, count }] = await Promise.all([agendaMetricsPromise, query]);
 
     if (error) {
       return {
@@ -263,6 +312,7 @@ export async function getLeadsForCurrentUser(
         mode: "error",
         canDeleteLeads: false,
         canCreateMetaAdsLeads: hasMetaConnection,
+        agendaMetrics,
         pagination: buildLeadPaginationMeta(pagination, 0, 0),
         message: "Nao foi possivel carregar os leads."
       };
@@ -276,6 +326,7 @@ export async function getLeadsForCurrentUser(
       mode: "supabase",
       canDeleteLeads: canDeleteOrganizationLeads(profile),
       canCreateMetaAdsLeads: hasMetaConnection,
+      agendaMetrics,
       pagination: buildLeadPaginationMeta(pagination, total, leads.length)
     };
   } catch {
@@ -284,6 +335,7 @@ export async function getLeadsForCurrentUser(
       mode: "error",
       canDeleteLeads: false,
       canCreateMetaAdsLeads: false,
+      agendaMetrics: buildEmptyLeadAgendaMetrics(),
       pagination: buildLeadPaginationMeta(pagination, 0, 0),
       message: "Nao foi possivel carregar os leads."
     };
@@ -547,6 +599,113 @@ export async function createLeadCommentForCurrentUser(
   return mapLeadCommentRowToItem(data);
 }
 
+export async function listLeadFollowUpEventsForCurrentUser(id: string): Promise<LeadFollowUpEvent[]> {
+  if (!isSupabaseConfigured()) {
+    return mockLeadFollowUpEvents
+      .filter((event) => event.leadId === id)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }
+
+  const profile = await getCurrentProfile();
+  const lead = await getLeadForMutation(id, profile.organization_id);
+
+  assertCanAccessLead(profile, lead, "visualizar");
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("lead_follow_up_events")
+    .select("*")
+    .eq("organization_id", profile.organization_id)
+    .eq("lead_id", lead.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map(mapLeadFollowUpEventRowToItem);
+}
+
+export async function createLeadFollowUpEventForCurrentUser(
+  id: string,
+  input: { action?: unknown; next_contact_at?: unknown; note?: unknown }
+): Promise<{ lead: Lead; event: LeadFollowUpEvent }> {
+  const eventType = normalizeLeadFollowUpEventType(input.action);
+  const note = normalizeLeadFollowUpNote(input.note);
+
+  if (!isSupabaseConfigured()) {
+    const event = createMockLeadFollowUpEvent(id, eventType, input.next_contact_at, note);
+    const lead = updateMockLeadFollowUpLead(id, event.nextContactAt);
+
+    mockLeadFollowUpEvents.unshift(event);
+
+    return { lead, event };
+  }
+
+  const profile = await getCurrentProfile();
+  const hasMetaConnection = Boolean(
+    await getMetaConnectionForOrganization(profile.organization_id)
+  );
+  const lead = await getLeadForMutation(id, profile.organization_id);
+
+  assertCanAccessLead(profile, lead, "comentar");
+
+  const previousNextContactAt = lead.next_contact_at;
+  const nextContactAt =
+    eventType === "rescheduled" ? normalizeFollowUpDate(input.next_contact_at) : null;
+
+  if (eventType === "rescheduled" && !nextContactAt) {
+    throw new Error("Data de reagendamento obrigatoria.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: updatedLeadRow, error: updateError } = await supabase
+    .from("leads")
+    .update({
+      next_contact_at: eventType === "rescheduled" ? nextContactAt : null
+    })
+    .eq("id", id)
+    .eq("organization_id", profile.organization_id)
+    .select("*")
+    .single();
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  const { data: eventRow, error: insertError } = await supabase
+    .from("lead_follow_up_events")
+    .insert(
+      buildLeadFollowUpEventInsert(
+        updatedLeadRow,
+        profile,
+        eventType,
+        previousNextContactAt,
+        nextContactAt,
+        note
+      )
+    )
+    .select("*")
+    .single();
+
+  if (insertError) {
+    await supabase
+      .from("leads")
+      .update({
+        next_contact_at: previousNextContactAt
+      })
+      .eq("id", id)
+      .eq("organization_id", profile.organization_id);
+
+    throw new Error(insertError.message);
+  }
+
+  return {
+    lead: mapLeadRowToLead(updatedLeadRow, profile, hasMetaConnection),
+    event: mapLeadFollowUpEventRowToItem(eventRow)
+  };
+}
+
 async function findDuplicateLead(
   supabase: ServerClient | AdminClient,
   organizationId: string,
@@ -679,6 +838,27 @@ function buildLeadCommentInsert(
   };
 }
 
+function buildLeadFollowUpEventInsert(
+  lead: LeadRow,
+  profile: ProfileRow,
+  eventType: LeadFollowUpEvent["eventType"],
+  previousNextContactAt: string | null,
+  nextContactAt: string | null,
+  note: string | null
+): LeadFollowUpEventInsert {
+  return {
+    organization_id: lead.organization_id,
+    lead_id: lead.id,
+    author_profile_id: profile.id,
+    author_name: profile.full_name?.trim() || profile.email.split("@")[0] || "Usuario",
+    author_email: profile.email,
+    event_type: eventType,
+    previous_next_contact_at: previousNextContactAt,
+    next_contact_at: nextContactAt,
+    note
+  };
+}
+
 function mapLeadCommentRowToItem(row: LeadCommentRow): LeadComment {
   return {
     id: row.id,
@@ -690,6 +870,134 @@ function mapLeadCommentRowToItem(row: LeadCommentRow): LeadComment {
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
+}
+
+function mapLeadFollowUpEventRowToItem(row: LeadFollowUpEventRow): LeadFollowUpEvent {
+  return {
+    id: row.id,
+    leadId: row.lead_id,
+    organizationId: row.organization_id,
+    authorProfileId: row.author_profile_id,
+    authorName: row.author_name,
+    authorEmail: row.author_email,
+    eventType: row.event_type,
+    previousNextContactAt: row.previous_next_contact_at,
+    nextContactAt: row.next_contact_at,
+    note: row.note,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function normalizeLeadFollowUpEventType(value: unknown): LeadFollowUpEvent["eventType"] {
+  const action = stringOrNull(value)?.trim().toLowerCase();
+
+  if (
+    action === "completed" ||
+    action === "rescheduled" ||
+    action === "cancelled" ||
+    action === "not_completed"
+  ) {
+    return action;
+  }
+
+  throw new Error("Ação de follow-up inválida.");
+}
+
+function normalizeLeadFollowUpNote(value: unknown) {
+  const note = stringOrNull(value)?.trim();
+
+  if (!note) {
+    return null;
+  }
+
+  if (note.length > 2000) {
+    throw new Error("Observacao muito longa. Use ate 2000 caracteres.");
+  }
+
+  return note;
+}
+
+function normalizeFollowUpDate(value: unknown) {
+  const nextContact = stringOrNull(value)?.trim();
+
+  if (!nextContact) {
+    return null;
+  }
+
+  const date = new Date(nextContact);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Data de reagendamento invalida.");
+  }
+
+  return date.toISOString();
+}
+
+function createMockLeadFollowUpEvent(
+  id: string,
+  eventType: LeadFollowUpEvent["eventType"],
+  nextContactAt: unknown,
+  note: string | null
+): LeadFollowUpEvent {
+  const createdAt = new Date().toISOString();
+  const normalizedNextContactAt =
+    eventType === "rescheduled" ? normalizeFollowUpDate(nextContactAt) : null;
+  const authorName = "Equipe demo";
+
+  return {
+    id: `mock-follow-up-${Date.now()}`,
+    leadId: id,
+    organizationId: "mock-organization",
+    authorProfileId: "mock-profile",
+    authorName,
+    authorEmail: "demo@leadhealth.local",
+    eventType,
+    previousNextContactAt: null,
+    nextContactAt: normalizedNextContactAt,
+    note:
+      note ??
+      (eventType === "completed"
+        ? "Compromisso executado com sucesso."
+        : eventType === "rescheduled"
+          ? "Compromisso reagendado."
+          : eventType === "not_completed"
+            ? "Compromisso nao realizado."
+            : "Compromisso cancelado."),
+    createdAt,
+    updatedAt: createdAt
+  };
+}
+
+function updateMockLeadFollowUpLead(
+  id: string,
+  nextContactAt: string | null
+): Lead {
+  const existingLead = mockLeads.find((lead) => lead.id === id);
+  const fallbackLead = createMockLead({
+    name: "Lead sem nome",
+    next_contact_at: nextContactAt
+  });
+  const updatedLead = existingLead
+    ? {
+        ...existingLead,
+        nextContactAt,
+        nextContact: nextContactAt ? formatNextContact(nextContactAt) : "A definir"
+      }
+    : {
+        ...fallbackLead,
+        id,
+        nextContactAt,
+        nextContact: nextContactAt ? formatNextContact(nextContactAt) : "A definir"
+      };
+
+  const leadIndex = mockLeads.findIndex((lead) => lead.id === id);
+
+  if (leadIndex >= 0) {
+    mockLeads[leadIndex] = updatedLead;
+  }
+
+  return updatedLead;
 }
 
 async function getLeadForMutation(id: string, organizationId: string) {
@@ -878,7 +1186,7 @@ function isMetaLeadUniqueViolation(error: { code?: string; message?: string }) {
 }
 
 function canDeleteOrganizationLeads(profile: ProfileRow) {
-  return profile.role === "supervisor";
+  return profile.role === "owner" || profile.role === "admin";
 }
 
 function canManageLead(
@@ -887,7 +1195,8 @@ function canManageLead(
   hasMetaConnection = false
 ) {
   return (
-    profile.role === "supervisor" ||
+    profile.role === "owner" ||
+    profile.role === "admin" ||
     (lead.owner_profile_id === profile.id &&
       (lead.source !== "meta_lead_ads" || hasMetaConnection))
   );
@@ -898,7 +1207,7 @@ function assertCanCreateLead(
   payload: LeadInsert,
   hasMetaConnection: boolean
 ) {
-  if (profile.role === "supervisor") {
+  if (profile.role === "owner" || profile.role === "admin") {
     return;
   }
 
@@ -916,7 +1225,7 @@ function assertCanApplyLeadUpdate(
   payload: Database["public"]["Tables"]["leads"]["Update"],
   hasMetaConnection: boolean
 ) {
-  if (profile.role !== "supervisor" && payload.source === "meta_lead_ads" && !hasMetaConnection) {
+  if (profile.role === "seller" && payload.source === "meta_lead_ads" && !hasMetaConnection) {
     throw new Error("Conecte uma conta Meta ativa para usar essa origem.");
   }
 }
@@ -939,7 +1248,7 @@ function assertCanManageLead(
 }
 
 function assertCanAccessLead(profile: ProfileRow, lead: LeadRow, action: "visualizar" | "comentar") {
-  if (profile.role === "supervisor") {
+  if (profile.role === "owner" || profile.role === "admin") {
     return;
   }
 
@@ -1233,6 +1542,7 @@ function mapLeadRowToLead(
     id: row.id,
     name: row.name,
     owner: getLeadOwnerLabel(row, profile),
+    ownerProfileId: row.owner_profile_id,
     canEdit: canManage,
     canDelete: canManage,
     stage: stageLabels[row.stage],
@@ -1259,6 +1569,154 @@ function mapLeadRowToLead(
     metaConnectedAccountId: row.meta_connected_account_id,
     receivedAt: row.received_at
   };
+}
+
+async function getLeadAgendaMetricsForProfile(
+  supabase: ServerClient,
+  profile: ProfileRow
+): Promise<LeadAgendaMetrics> {
+  let query = supabase
+    .from("leads")
+    .select("stage,next_contact_at")
+    .eq("organization_id", profile.organization_id);
+
+  if (profile.role === "seller") {
+    query = query.eq("owner_profile_id", profile.id);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return buildLeadAgendaMetricsFromLeadRows(data ?? [], profile);
+}
+
+function buildLeadAgendaMetricsFromLeadRows(
+  rows: LeadAgendaRow[],
+  profile: ProfileRow
+): LeadAgendaMetrics {
+  const activeRows = rows.filter((row) => isOperationalAgendaStage(row.stage));
+  const now = new Date();
+  const todayKey = getLocalDateKey(now);
+
+  let noAgenda = 0;
+  let overdueFollowUps = 0;
+  let todayCommitments = 0;
+
+  for (const row of activeRows) {
+    if (!row.next_contact_at) {
+      noAgenda += 1;
+      continue;
+    }
+
+    const nextContact = new Date(row.next_contact_at);
+
+    if (Number.isNaN(nextContact.getTime())) {
+      noAgenda += 1;
+      continue;
+    }
+
+    if (nextContact.getTime() < now.getTime()) {
+      overdueFollowUps += 1;
+      continue;
+    }
+
+    if (getLocalDateKey(nextContact) === todayKey) {
+      todayCommitments += 1;
+    }
+  }
+
+  return {
+    scopeLabel: getLeadAgendaScopeLabel(profile),
+    scopeDescription: getLeadAgendaScopeDescription(profile),
+    noAgenda,
+    overdueFollowUps,
+    todayCommitments
+  };
+}
+
+function buildLeadAgendaMetricsFromMockLeads(leads: Lead[]): LeadAgendaMetrics {
+  const now = new Date();
+  const todayKey = getLocalDateKey(now);
+
+  let noAgenda = 0;
+  let overdueFollowUps = 0;
+  let todayCommitments = 0;
+
+  for (const lead of leads) {
+    if (!isOperationalAgendaStage(lead.stage)) {
+      continue;
+    }
+
+    if (!lead.nextContactAt) {
+      noAgenda += 1;
+      continue;
+    }
+
+    const nextContact = new Date(lead.nextContactAt);
+
+    if (Number.isNaN(nextContact.getTime())) {
+      noAgenda += 1;
+      continue;
+    }
+
+    if (nextContact.getTime() < now.getTime()) {
+      overdueFollowUps += 1;
+      continue;
+    }
+
+    if (getLocalDateKey(nextContact) === todayKey) {
+      todayCommitments += 1;
+    }
+  }
+
+  return {
+    scopeLabel: "Demo",
+    scopeDescription: "Indicadores simulados enquanto o Supabase nao esta conectado.",
+    noAgenda,
+    overdueFollowUps,
+    todayCommitments
+  };
+}
+
+function buildLeadAgendaMetricsFallback(profile?: ProfileRow): LeadAgendaMetrics {
+  if (!profile) {
+    return buildEmptyLeadAgendaMetrics();
+  }
+
+  return buildEmptyLeadAgendaMetrics({
+    scopeLabel: getLeadAgendaScopeLabel(profile),
+    scopeDescription: getLeadAgendaScopeDescription(profile)
+  });
+}
+
+function getLeadAgendaScopeLabel(profile: ProfileRow) {
+  return profile.role === "seller" ? "Escopo: minha carteira" : "Escopo: equipe";
+}
+
+function getLeadAgendaScopeDescription(profile: ProfileRow) {
+  return profile.role === "seller"
+    ? "Indicadores apenas da sua carteira comercial."
+    : "Indicadores da equipe inteira na organizacao.";
+}
+
+function isOperationalAgendaStage(stage: string) {
+  const normalizedStage = getLeadStageValue(stage) ?? stage;
+
+  return (
+    normalizedStage === "new" ||
+    normalizedStage === "qualification" ||
+    normalizedStage === "proposal" ||
+    normalizedStage === "negotiation"
+  );
+}
+
+function getLocalDateKey(value: Date) {
+  return value.toLocaleDateString("sv-SE", {
+    timeZone: leadAgendaTimeZone
+  });
 }
 
 function getSupabaseLeadSearchPattern(value: string) {
@@ -1299,10 +1757,8 @@ function getProfileWebhookPriority(role: ProfileRow["role"]) {
       return 0;
     case "admin":
       return 1;
-    case "supervisor":
-      return 2;
     default:
-      return 3;
+      return 2;
   }
 }
 

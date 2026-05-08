@@ -10,6 +10,45 @@ create table if not exists public.lead_comments (
   updated_at timestamptz not null default now()
 );
 
+create or replace function public.current_profile_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select id
+  from public.profiles
+  where auth_user_id = auth.uid()
+  limit 1
+$$;
+
+create or replace function public.current_profile_organization_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select organization_id
+  from public.profiles
+  where auth_user_id = auth.uid()
+  limit 1
+$$;
+
+create or replace function public.current_profile_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select role
+  from public.profiles
+  where auth_user_id = auth.uid()
+  limit 1
+$$;
+
 create index if not exists lead_comments_lead_created_idx
   on public.lead_comments (lead_id, created_at asc);
 
@@ -49,5 +88,9 @@ with check (
     where organization_id = public.current_profile_organization_id()
   )
 );
+
+grant execute on function public.current_profile_id() to authenticated;
+grant execute on function public.current_profile_organization_id() to authenticated;
+grant execute on function public.current_profile_role() to authenticated;
 
 notify pgrst, 'reload schema';

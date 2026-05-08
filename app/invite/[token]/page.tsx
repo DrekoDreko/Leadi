@@ -35,7 +35,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
     return (
       <InviteMessage
         title="Convite indisponivel"
-        message="Este convite nao foi encontrado, ja foi usado ou expirou. Peca um novo link para o supervisor."
+        message="Este convite nao foi encontrado, ja foi usado ou expirou. Peca um novo link para o owner ou admin da equipe."
       />
     );
   }

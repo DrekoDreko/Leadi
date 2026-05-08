@@ -53,7 +53,7 @@ set
     when status = 'revoked' then 'disconnected'
     when status = 'inactive' then 'disconnected'
     else 'pending'
-  end,
+  end::public.integration_connection_status,
   connected_at = coalesce(connected_at, created_at),
   expires_at = coalesce(expires_at, token_expires_at)
 where connection_status is null
@@ -174,7 +174,7 @@ set connected_account_id = coalesce(connected_account_id, integration_id)
 where connected_account_id is null;
 
 update public.meta_forms
-set connected_account_id = coalesce(connected_account_id, meta_pages.integration_id)
+set connected_account_id = coalesce(meta_forms.connected_account_id, meta_pages.integration_id)
 from public.meta_pages
 where meta_forms.page_connection_id = meta_pages.id
   and meta_forms.connected_account_id is null;

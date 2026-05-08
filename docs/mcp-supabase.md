@@ -12,6 +12,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
 Use a service role key apenas no servidor/local MCP. Ela ignora RLS e nunca deve ir para o browser.
+O MCP depende apenas de `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente local/servidor.
 
 ## Rodar
 
@@ -42,15 +43,17 @@ Exemplo de configuração:
 - `supabase_update`: atualiza linhas, sempre exigindo ao menos um filtro.
 - `supabase_delete`: remove linhas, sempre exigindo filtro e `confirm: "DELETE"`.
 
-Tabelas liberadas: `campaigns`, `creative_requests`, `creative_request_comments`, `whatsapp_messages`, `plans`, `subscriptions`, `payment_events`, `organizations`, `meta_integrations`, `meta_pages`, `meta_forms`, `meta_ad_accounts`, `openai_connections`, `integration_sync_logs`, `lead_webhook_integrations`, `lead_webhook_events`, `profiles`, `workspace_members`, `invites`, `leads`.
+Tabelas liberadas: `campaigns`, `creative_requests`, `creative_request_comments`, `whatsapp_messages`, `plans`, `subscriptions`, `payment_events`, `organizations`, `meta_integrations`, `meta_pages`, `meta_forms`, `meta_ad_accounts`, `openai_connections`, `integration_sync_logs`, `lead_webhook_integrations`, `lead_webhook_events`, `lead_follow_up_events`, `profiles`, `workspace_members`, `invites`, `leads`.
 
 ## Billing
 
 As tabelas abaixo ficam liberadas no MCP para evolucao e validacao operacional do billing:
 
-- `plans`: catalogo de planos com preco, intervalo, status, `gateway` e `gateway_plan_id` opcionais para manter compatibilidade com Mercado Pago, Asaas ou Stripe.
+- `plans`: catalogo de planos com preco, intervalo, status, `gateway` e `gateway_plan_id` opcionais para manter compatibilidade com Asaas, Mercado Pago ou Stripe.
 - `subscriptions`: assinatura vinculada a `organization_id`, com `status`, periodo vigente, `gateway`, `external_id` e indice parcial para impedir mais de uma assinatura corrente por organizacao.
 - `payment_events`: trilha de cobranca e pagamento por organizacao, com ligacao opcional a assinatura/plano, `event_type`, `status`, `external_id`, valor e payload bruto do provedor.
+
+O foco operacional atual desta etapa e Asaas, mas o schema permanece independente do gateway para permitir alternancia para Stripe ou Mercado Pago sem redesenhar as tabelas.
 
 ## Integracoes Meta
 
@@ -64,6 +67,7 @@ As tabelas abaixo ficam liberadas no MCP para validacao operacional e suporte:
 - `integration_sync_logs`: trilha de sincronizacao e validacao para Meta/OpenAI com status, titulo, mensagem e detalhes em JSON.
 - `campaigns`: historico de campanhas com `connected_account_id`, `meta_page_id`, `meta_ad_account_id`, `meta_lead_form_id`, `publish_mode` e `publication_status` para o fluxo controlado.
 - `leads`: leads com `meta_connected_account_id`, `meta_page_id` e `meta_form_id` quando vierem de ativos Meta conectados.
+- `lead_follow_up_events`: trilha operacional da agenda comercial com `lead_id`, `author_profile_id`, `author_name`, `author_email`, `event_type`, `previous_next_contact_at`, `next_contact_at` e `note` para registrar concluido, reagendado, cancelado ou nao realizado.
 
 Observacoes:
 

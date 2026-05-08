@@ -4,6 +4,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database, Json, MetaConnectionStatus } from "@/lib/supabase/database.types";
+import { normalizeWorkspaceRole } from "@/lib/workspaces/permissions";
 import { getDemoConnectedAccountsState } from "./demo";
 import {
   decryptIntegrationSecret,
@@ -1066,11 +1067,12 @@ function getIntegrationStatusLabel(status: IntegrationConnectionStatus) {
 }
 
 function canManageConnections(profile: ProfileRow, organization: OrganizationRow) {
+  const normalizedRole = normalizeWorkspaceRole(profile.role);
+
   return (
     organization.type === "solo" ||
-    profile.role === "owner" ||
-    profile.role === "admin" ||
-    profile.role === "supervisor"
+    normalizedRole === "owner" ||
+    normalizedRole === "admin"
   );
 }
 

@@ -50,8 +50,9 @@ export default function PricingPage() {
             Planos para vender plano empresarial com mais controle
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-ink/64">
-            Cada plano já foi pensado para liberar créditos de uso da IA. A cobrança
-            real entra com Mercado Pago no checkout do app.
+            Cada plano já foi pensado para liberar créditos de uso da IA. A
+            cobrança real entra com Asaas no checkout do app, mas o modelo já
+            nasce preparado para Stripe ou Mercado Pago depois.
           </p>
         </section>
 
@@ -97,13 +98,13 @@ export default function PricingPage() {
                   </div>
                 ))}
               </div>
-                <Link
+              <Link
                 className={`mt-8 inline-flex w-full justify-center rounded-full px-5 py-4 font-semibold ${
                   plan.featured ? "bg-signal text-ink" : "bg-ink text-white"
                 }`}
                 href="/login?next=/dashboard/creditos"
               >
-                Comprar com Mercado Pago
+                Assinar com Asaas
               </Link>
             </article>
           ))}

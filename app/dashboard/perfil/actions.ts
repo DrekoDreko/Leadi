@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { normalizeWorkspaceRole } from "@/lib/workspaces/permissions";
 
 export type CreateLeadWebhookTokenActionState = {
   error: string | null;
@@ -98,11 +99,13 @@ export async function createLeadWebhookTokenAction(
     };
   }
 
-  const canManageToken = profile.role === "supervisor" || organization.type === "solo";
+  const normalizedRole = normalizeWorkspaceRole(profile.role);
+  const canManageToken =
+    normalizedRole === "owner" || normalizedRole === "admin" || organization.type === "solo";
 
   if (!canManageToken) {
     return {
-      error: "Somente o supervisor pode gerar um novo token para a equipe.",
+      error: "Somente o owner ou os admins podem gerar um novo token para a equipe.",
       successMessage: null,
       token: null,
       label: null

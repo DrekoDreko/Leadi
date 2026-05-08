@@ -14,7 +14,7 @@ import { WebhookSetupCard } from "./webhook-setup-card";
 const brokerageFeedbackMessages: Record<string, string> = {
   failed: "Nao foi possivel salvar o nome da corretora agora.",
   missing: "Informe o nome da corretora ou o seu proprio nome comercial.",
-  permission: "Apenas o supervisor da equipe pode alterar o nome da corretora.",
+  permission: "Apenas o owner ou os admins da equipe podem alterar o nome da corretora.",
   "schema-missing":
     "O banco conectado ainda nao recebeu a migration de nome da corretora. Aplique a migration mais recente e tente novamente.",
   updated: "Nome comercial atualizado para as proximas mensagens e campanhas."
@@ -30,8 +30,8 @@ export default async function PerfilPage({
   const brokerageFeedback = params?.brokerage
     ? brokerageFeedbackMessages[params.brokerage] ?? null
     : null;
-  const canEditBrokerageName = context.isSupervisor || context.isSoloSeller;
-  const canManageWebhookToken = context.isSupervisor || context.isSoloSeller;
+  const canEditBrokerageName = context.isManager || context.isSoloOwner;
+  const canManageWebhookToken = context.isManager || context.isSoloOwner;
   const webhookFilter = normalizeWebhookStatusFilter(params?.webhookStatus);
   const webhookLogs =
     context.mode === "supabase" && context.workspace
@@ -51,7 +51,7 @@ export default async function PerfilPage({
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
           <Settings size={18} aria-hidden="true" />
-          {context.role === "supervisor" ? "Supervisor" : "Vendedor"}
+          {context.role === "owner" ? "Owner" : context.role === "admin" ? "Admin" : "Vendedor"}
         </span>
         <Link
           className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
@@ -105,7 +105,7 @@ export default async function PerfilPage({
               defaultValue={context.brokerageName}
               maxLength={80}
               name="brokerageName"
-              placeholder={context.isSoloSeller ? context.displayName : "Nome da corretora"}
+              placeholder={context.isSoloOwner ? context.displayName : "Nome da corretora"}
               required
               type="text"
             />
@@ -115,7 +115,7 @@ export default async function PerfilPage({
             >
               Salvar nome
             </button>
-            {context.isSoloSeller ? (
+            {context.isSoloOwner ? (
               <p className="text-sm text-ink/56 md:col-span-2">
                 Sugestao para corretor solo: {context.displayName}.
               </p>
@@ -123,8 +123,8 @@ export default async function PerfilPage({
           </form>
         ) : (
           <div className="rounded-[24px] border border-white/44 bg-white/36 p-4 text-sm leading-6 text-ink/64">
-            Voce esta em uma equipe. O supervisor configura o nome comercial que todos os
-            vendedores usam no contato com clientes.
+            Voce esta em uma equipe. O owner ou os admins configuram o nome comercial que todos
+            os vendedores usam no contato com clientes.
           </div>
         )}
       </section>

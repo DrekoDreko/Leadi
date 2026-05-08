@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/lib/supabase/database.types";
 import { isSupabaseConfigured, getSupabaseConfig } from "@/lib/supabase/config";
+import { normalizeWorkspaceRole, isWorkspaceManagerRole } from "@/lib/workspaces/permissions";
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -93,7 +94,8 @@ export async function middleware(request: NextRequest) {
     .maybeSingle();
 
   const profileSetupCompleted = profile.profile_setup_completed;
-  const role = profile.role === "supervisor" ? "supervisor" : "seller";
+  const role = normalizeWorkspaceRole(profile.role);
+  const isManager = isWorkspaceManagerRole(role);
   const workspaceType = workspace?.type === "team" ? "team" : "solo";
 
   if (isProtectedRoute && !profileSetupCompleted && !isProfileSetupRoute && !isInviteRoute) {
@@ -108,15 +110,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (isTeamRoute && role !== "supervisor") {
+  if (isTeamRoute && !isManager) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (isImportRoute && role !== "supervisor" && workspaceType !== "solo") {
+  if (isImportRoute && !isManager && workspaceType !== "solo") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (isCreateTeamRoute && (role !== "seller" || workspaceType !== "solo")) {
+  if (isCreateTeamRoute && !(role === "owner" && workspaceType === "solo")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
