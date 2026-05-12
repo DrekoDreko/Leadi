@@ -51,6 +51,7 @@ const ENV_INTEGRATIONS = {
 export type EnvIntegrationName = keyof typeof ENV_INTEGRATIONS;
 
 export class EnvValidationError extends Error {
+  public readonly status = 500;
   constructor(
     message: string,
     public readonly integration: EnvIntegrationName,

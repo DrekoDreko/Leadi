@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { BillingResourceAccessError } from "@/lib/billing/subscription-limits.server";
 import {
   createLeadForCurrentUser,
-  getLeadsForCurrentUser
+  getLeadsForCurrentUser,
+  type LeadCreateInput
 } from "@/lib/leads/repository.server";
 import { parseLeadPaginationParams } from "@/lib/leads/repository";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
     assertPayloadSize(request, "WEBHOOK_JSON");
     body = await request.json();
-    const result = await createLeadForCurrentUser(body);
+    const result = await createLeadForCurrentUser(body as LeadCreateInput);
 
     return NextResponse.json(
       { lead: result.lead, mode, status: result.status },

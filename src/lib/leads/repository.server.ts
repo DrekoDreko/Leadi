@@ -55,7 +55,7 @@ type LeadCreationResult = {
   duplicateReason?: LeadDuplicateReason;
 };
 
-type LeadCreateInput = {
+export type LeadCreateInput = {
   name?: unknown;
   phone?: unknown;
   email?: unknown;
@@ -84,7 +84,7 @@ type LeadCreateInput = {
   raw_payload?: unknown;
 };
 
-type LeadWebhookCreateInput = LeadCreateInput & {
+export type LeadWebhookCreateInput = LeadCreateInput & {
   organization_id?: unknown;
   organization_slug?: unknown;
   owner_profile_id?: unknown;

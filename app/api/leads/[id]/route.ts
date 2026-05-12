@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   deleteLeadForCurrentUser,
-  updateLeadForCurrentUser
+  updateLeadForCurrentUser,
+  type LeadCreateInput
 } from "@/lib/leads/repository.server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -19,7 +20,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
     body = await request.json();
-    const lead = await updateLeadForCurrentUser(id, body);
+    const lead = await updateLeadForCurrentUser(id, body as LeadCreateInput);
 
     return NextResponse.json({ lead, mode });
   } catch (error) {

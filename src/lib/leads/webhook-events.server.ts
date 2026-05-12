@@ -12,7 +12,7 @@ type LeadWebhookEventInput = {
   errorMessage?: string | null;
 };
 
-import { sensitize } from "@/lib/logger";
+import { logger, sensitize } from "@/lib/logger";
 
 export async function recordLeadWebhookEvent(input: LeadWebhookEventInput) {
   if (!hasSupabaseServiceRole()) {
