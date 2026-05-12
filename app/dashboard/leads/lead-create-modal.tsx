@@ -7,6 +7,7 @@ import type { Lead } from "@/data/mock";
 import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import type { LeadDataMode } from "@/lib/leads/repository";
 import { leadStageOptions } from "@/lib/leads/stages";
+import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 
 type LeadCreateModalProps = {
   canCreateMetaAdsLeads: boolean;
@@ -182,10 +183,7 @@ export function LeadCreateModal({
     } catch (error) {
       setStatus({
         type: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Nao foi possivel criar o lead. Tente novamente em instantes."
+        message: getFriendlyErrorMessage(error).message
       });
     } finally {
       setIsSubmitting(false);
@@ -513,19 +511,7 @@ async function parseLeadCreateResponse(response: Response): Promise<LeadCreateRe
 }
 
 function getFriendlySubmitError(error?: string) {
-  if (!error) {
-    return "Nao foi possivel criar o lead agora.";
-  }
-
-  if (error.includes("Usuario nao autenticado")) {
-    return "Sua sessao expirou. Entre novamente para criar leads.";
-  }
-
-  if (error.includes("Supabase nao configurado")) {
-    return "Supabase ainda nao configurado. Use o modo demonstracao ou configure a base real.";
-  }
-
-  return error;
+  return getFriendlyErrorMessage(error).message;
 }
 
 function normalizeDateTimeLocal(value: string) {

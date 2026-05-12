@@ -30,6 +30,7 @@ import type {
   WhatsAppListState,
   WhatsAppStage
 } from "@/lib/whatsapp/types";
+import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 
 type WhatsAppMessage = {
   openingMessage: string;
@@ -149,11 +150,7 @@ export function WhatsAppWorkspace({
         ...current.filter((item) => item.id !== nextHistoryItem.id)
       ]);
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Nao foi possivel gerar a mensagem."
-      );
+      setError(getFriendlyErrorMessage(requestError).message);
     } finally {
       setIsGenerating(false);
     }
@@ -173,8 +170,8 @@ export function WhatsAppWorkspace({
       window.setTimeout(() => {
         setCopiedKey((currentKey) => (currentKey === key ? "" : currentKey));
       }, 2200);
-    } catch {
-      setError("Nao foi possivel copiar automaticamente neste navegador.");
+    } catch (error) {
+      setError(getFriendlyErrorMessage(error, "Nao foi possivel copiar automaticamente neste navegador.").message);
     }
   }
 

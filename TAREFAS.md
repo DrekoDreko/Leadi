@@ -1,6 +1,6 @@
-# Tarefas da LeadHealth - prompts para Codex
+# Tarefas da LeadHealth - prompts para Antigravity
 
-Checklist vivo dos próximos passos da SaaS LeadHealth. Use este arquivo como uma fila de prompts: copie um bloco `txt`, cole no Codex e execute uma tarefa por vez.
+Checklist vivo dos próximos passos da SaaS LeadHealth. Use este arquivo como uma fila de prompts: copie um bloco `txt`, cole no Antigravity e execute uma tarefa por vez.
 
 O `README.md` fica apenas como descrição pública do projeto no GitHub. Este arquivo é operacional.
 
@@ -8,12 +8,12 @@ O `README.md` fica apenas como descrição pública do projeto no GitHub. Este a
 
 1. Escolha uma tarefa pendente.
 2. Copie somente o bloco `txt` da tarefa.
-3. Cole no Codex.
+3. Cole no Antigravity.
 4. Depois que a implementação estiver validada, marque a tarefa como concluída neste arquivo.
 
 ## Prompt base recomendado
 
-Use este texto junto com qualquer tarefa abaixo quando quiser dar mais contexto ao Codex:
+Use este texto junto com qualquer tarefa abaixo quando quiser dar mais contexto ao Antigravity:
 
 ```txt
 Você está trabalhando no projeto LeadHealth, uma SaaS CRM + IA para vendedores de plano de saúde empresarial.
@@ -45,26 +45,26 @@ Depois de implementar:
 ## Legenda
 
 - **Eu:** tarefa que depende de conta, decisão, credencial, validação de negócio ou ação manual fora do código.
-- **Codex:** tarefa que pode ser implementada direto no repositório.
-- **Codex + Eu:** tarefa que precisa de implementação e também de acesso, revisão, decisão comercial ou teste manual.
+- **Antigravity:** tarefa que pode ser implementada direto no repositório.
+- **Antigravity + Eu:** tarefa que precisa de implementação e também de acesso, revisão, decisão comercial ou teste manual.
 
 ## Regra para Supabase via MCP
 
-O MCP Supabase ja esta conectado via Role Key. Para tarefas novas ou pendentes que envolvam leitura, validação ou alteração de dados no Supabase, o Codex deve usar o MCP local `leadhealth-supabase` como caminho operacional principal, conforme `docs/mcp-supabase.md`.
+O MCP Supabase ja esta conectado via Role Key. Para tarefas novas ou pendentes que envolvam leitura, validação ou alteração de dados no Supabase, o Antigravity deve usar o MCP local `leadhealth-supabase` como caminho operacional principal, conforme `docs/mcp-supabase.md`.
 
-- O app continua usando Supabase SSR/client no runtime, mas validações e intervenções de dados feitas pelo Codex devem passar pelo MCP.
+- O app continua usando Supabase SSR/client no runtime, mas validações e intervenções de dados feitas pelo Antigravity devem passar pelo MCP.
 - Antes de mexer em dados reais, rodar `supabase_status` e confirmar variáveis/allowlist.
 - Para inspecionar dados reais, usar `supabase_select` nas tabelas liberadas.
 - Para criar, atualizar ou excluir dados reais, usar `supabase_insert`, `supabase_update` ou `supabase_delete` com filtros explícitos e registrar o que foi alterado.
 - Como a Role Key ignora RLS, usar operações de escrita apenas com filtros explícitos, escopo mínimo e sem expor dados sensíveis no output.
 - Migrations e mudanças de schema continuam versionadas em `supabase/migrations`; depois de aplicar ou orientar aplicação, validar tabelas/dados via MCP nas tabelas liberadas.
-- Se uma tarefa criar ou renomear tabela que precise ser consultada pelo Codex, atualizar `ALLOWED_TABLES` em `scripts/supabase-mcp.mjs` e a lista de tabelas em `docs/mcp-supabase.md`.
+- Se uma tarefa criar ou renomear tabela que precise ser consultada pelo Antigravity, atualizar `ALLOWED_TABLES` em `scripts/supabase-mcp.mjs` e a lista de tabelas em `docs/mcp-supabase.md`.
 - O painel do Supabase fica apenas para ações externas inevitáveis, como configuração de Auth, Storage, URLs, secrets e execução manual de DDL quando o MCP não cobrir schema.
 
 
 ### F8.4 - Preparar scripts ou instrucoes de migration
 
-- [ ] **Codex**
+- [x] **Antigravity**
 
 ```txt
 Prepare scripts ou instrucoes claras para aplicar migrations Supabase.
@@ -95,7 +95,7 @@ Criterios de aceite:
 
 ### F8.6 - Configurar URLs publicas de Meta, webhooks e pagamentos
 
-- [ ] **Codex + Eu**
+- [x] **Antigravity + Eu**
 
 ```txt
 Revise URLs publicas usadas por Meta, webhooks e gateway de pagamento.
@@ -106,7 +106,7 @@ Contexto:
 Objetivo:
 - Garantir que callbacks e webhooks apontem para o dominio correto.
 
-Requisitos para Codex:
+Requisitos para Antigravity:
 - Listar todas as URLs publicas do app.
 - Conferir se cada rota existe e responde.
 - Atualizar README/.env.example com nomes corretos.
@@ -124,7 +124,7 @@ Criterios de aceite:
 
 ### F9.1 - Adicionar testes unitarios de normalizacao
 
-- [ ] **Codex**
+- [x] **Antigravity**
 
 ```txt
 Adicione testes unitarios para normalizacao de leads.
@@ -149,7 +149,7 @@ Criterios de aceite:
 
 ### F9.2 - Adicionar testes de API para CRUD de leads
 
-- [ ] **Codex**
+- [x] **Antigravity**
 
 ```txt
 Adicione testes para APIs de CRUD de leads.
@@ -175,7 +175,7 @@ Criterios de aceite:
 
 ### F9.3 - Adicionar testes basicos de paginas criticas
 
-- [ ] **Codex**
+- [x] **Antigravity**
 
 ```txt
 Adicione testes basicos para paginas criticas.
@@ -198,7 +198,7 @@ Criterios de aceite:
 
 ### F9.4 - Revisar RLS
 
-- [ ] **Codex**
+- [x] **Antigravity**
 
 ```txt
 Revise as policies RLS para garantir isolamento por organizacao.
@@ -226,7 +226,7 @@ Criterios de aceite:
 
 ### F9.5 - Adicionar logs controlados para erros de API
 
-- [ ] **Codex**
+- [x] **Antigravity**
 
 ```txt
 Adicione logs controlados para erros de API.
@@ -252,7 +252,7 @@ Criterios de aceite:
 
 ### F9.6 - Criar limites de tamanho para payloads e uploads
 
-- [ ] **Codex**
+- [x] **Antigravity**
 
 ```txt
 Implemente limites de tamanho para payloads e uploads.
@@ -277,7 +277,7 @@ Criterios de aceite:
 
 ### F9.7 - Melhorar mensagens de erro para usuario final
 
-- [ ] **Codex**
+- [x] **Antigravity**
 
 ```txt
 Melhore mensagens de erro para usuario final nas telas principais.
@@ -302,7 +302,7 @@ Criterios de aceite:
 
 ### F9.8 - Adicionar rate limit em endpoints publicos
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Adicione rate limit em endpoints publicos de webhook.
@@ -327,7 +327,7 @@ Criterios de aceite:
 
 ### F9.9 - Criar rotina ou orientacao de backup Supabase
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Crie orientacao de backup para Supabase.
@@ -353,7 +353,7 @@ Criterios de aceite:
 
 ### F9.10 - Teste de uso como vendedor real por 1 dia
 
-- [ ] **Codex + Eu**
+- [ ] **Antigravity + Eu**
 
 ```txt
 Prepare e acompanhe um teste de uso da LeadHealth como vendedor real por 1 dia.
@@ -364,7 +364,7 @@ Contexto:
 Objetivo:
 - Transformar friccoes reais em melhorias priorizadas.
 
-Requisitos para Codex:
+Requisitos para Antigravity:
 - Criar checklist de teste: cadastrar leads, filtrar, gerar mensagem, criar campanha, registrar proximo contato.
 - Validar pelo MCP Supabase os registros gerados no teste do dia, sem expor dados pessoais no resumo.
 - Corrigir bugs pequenos encontrados.
@@ -387,7 +387,7 @@ Criterios de aceite:
 
 ### F10.1 - Criar checklist de onboarding no dashboard
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Crie checklist de onboarding dentro do dashboard.
@@ -414,7 +414,7 @@ Criterios de aceite:
 
 ### F10.2 - Criar exemplos prontos de campanhas e mensagens
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Crie exemplos prontos de campanhas e mensagens para plano de saude empresarial.
@@ -442,7 +442,7 @@ Criterios de aceite:
 
 ### F10.3 - Criar indicadores de ativacao
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Crie indicadores de ativacao do produto.
@@ -468,7 +468,7 @@ Criterios de aceite:
 
 ### F10.4 - Transformar feedback beta em tarefas
 
-- [ ] **Codex + Eu**
+- [ ] **Antigravity + Eu**
 
 ```txt
 Organize feedback dos primeiros beta testers em tarefas executaveis.
@@ -479,7 +479,7 @@ Contexto:
 Objetivo:
 - Transformar feedback solto em backlog priorizado no TAREFAS.md.
 
-Requisitos para Codex:
+Requisitos para Antigravity:
 - Agrupar feedback por tema: bug, UX, comercial, integracao, performance.
 - Criar tarefas pequenas com prompts no mesmo formato deste arquivo.
 - Sugerir prioridade P0/P1/P2.
@@ -501,7 +501,7 @@ Nota operacional 2026-05-06:
 
 ### F11.1 - Trocar agenda mockada da home por agenda real
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Substitua o card "Agenda da equipe" do dashboard por dados reais.
@@ -530,7 +530,7 @@ Criterios de aceite:
 
 ### F11.3 - Melhorar cadastro e edicao de proximo contato
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Melhore a experiencia de cadastrar e editar proximo contato dos leads.
@@ -561,7 +561,7 @@ Criterios de aceite:
 
 ### B1 - Integracao para publicar campanha pausada no Meta Ads
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Planeje e implemente a base para publicar campanha pausada no Meta Ads.
@@ -587,7 +587,7 @@ Criterios de aceite:
 
 ### B2 - Upload de imagens para Meta Marketing API
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Implemente base para upload de imagens para Meta Marketing API.
@@ -614,7 +614,7 @@ Criterios de aceite:
 
 ### B4 - Kanban com drag and drop persistido
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Crie pipeline visual Kanban com drag and drop persistido.
@@ -639,7 +639,7 @@ Criterios de aceite:
 
 ### B5 - Integracoes com WhatsApp oficial ou provedor externo
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Planeje e implemente base para integracao com WhatsApp oficial ou provedor externo.
@@ -664,7 +664,7 @@ Criterios de aceite:
 
 ### B6 - Scoring automatico de leads
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Crie scoring automatico de leads.
@@ -689,7 +689,7 @@ Criterios de aceite:
 
 ### B7 - Relatorios de ROI por campanha, origem e vendedor
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Crie relatorios de ROI por campanha, origem e vendedor.
@@ -714,7 +714,7 @@ Criterios de aceite:
 
 ### B8 - Exportacao de leads e relatorios
 
-- [ ] **Codex**
+- [ ] **Antigravity**
 
 ```txt
 Implemente exportacao de leads e relatorios.
@@ -739,7 +739,7 @@ Criterios de aceite:
 
 ### B9 - Evoluir publicacao controlada com contas Meta conectadas
 
-- [ ] **Codex + Eu**
+- [ ] **Antigravity + Eu**
 
 ```txt
 Ajude a decidir quando evoluir de rascunho controlado para publicacao real via Meta Marketing API.
@@ -750,7 +750,7 @@ Contexto:
 Objetivo:
 - Criar uma matriz de decisao para evoluir de preparo de rascunho para publicacao autorizada.
 
-Requisitos para Codex:
+Requisitos para Antigravity:
 - Listar requisitos tecnicos, riscos, permissoes e custos.
 - Comparar rascunho local, rascunho enviado pausado e publicacao controlada.
 - Transformar decisao em roadmap se for aprovado.

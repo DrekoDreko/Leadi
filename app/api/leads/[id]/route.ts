@@ -11,41 +11,61 @@ type RouteContext = {
   }>;
 };
 
+import { logger } from "@/lib/logger";
+
 export async function PATCH(request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  let body: unknown;
   try {
-    const { id } = await context.params;
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
-    const body = await request.json();
+    body = await request.json();
     const lead = await updateLeadForCurrentUser(id, body);
 
     return NextResponse.json({ lead, mode });
   } catch (error) {
-    console.error(error);
+    const status = getLeadMutationErrorStatus(error);
+    const errorMessage = getUpdateLeadErrorMessage(error);
+
+    logger.error({
+      route: `/api/leads/${id}`,
+      operation: "UPDATE_LEAD",
+      status,
+      message: errorMessage,
+      data: { body }
+    }, error);
 
     return NextResponse.json(
       {
-        error: getUpdateLeadErrorMessage(error)
+        error: errorMessage
       },
-      { status: getLeadMutationErrorStatus(error) }
+      { status }
     );
   }
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
   try {
-    const { id } = await context.params;
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
     await deleteLeadForCurrentUser(id);
 
     return NextResponse.json({ ok: true, mode });
   } catch (error) {
-    console.error(error);
+    const status = getLeadMutationErrorStatus(error);
+    const errorMessage = getDeleteLeadErrorMessage(error);
+
+    logger.error({
+      route: `/api/leads/${id}`,
+      operation: "DELETE_LEAD",
+      status,
+      message: errorMessage
+    }, error);
 
     return NextResponse.json(
       {
-        error: getDeleteLeadErrorMessage(error)
+        error: errorMessage
       },
-      { status: getLeadMutationErrorStatus(error) }
+      { status }
     );
   }
 }

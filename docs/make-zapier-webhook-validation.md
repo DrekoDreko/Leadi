@@ -52,7 +52,7 @@ Aliases comuns tambem sao aceitos, incluindo `nome`, `telefone`, `cidade`, `inte
 Para um disparo local rapido fora do Make/Zapier:
 
 ```bash
-export LEAD_WEBHOOK_URL=http://localhost:3000/api/webhooks/leads
+export LEAD_WEBHOOK_URL=https://leadhealth.vercel.app/api/webhooks/leads
 export LEAD_WEBHOOK_TOKEN=cole_o_token_gerado_no_dashboard
 npm run webhook:test
 ```

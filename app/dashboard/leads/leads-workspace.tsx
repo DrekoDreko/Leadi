@@ -43,6 +43,7 @@ import {
   type LeadPaginationMeta
 } from "@/lib/leads/repository";
 import { LeadCreateModal } from "./lead-create-modal";
+import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 
 const filterKeys: Array<keyof LeadUrlFilters> = [
   "stage",
@@ -220,9 +221,7 @@ export function LeadsWorkspace({
       });
       setPagination(data.pagination);
     } catch (error) {
-      setLoadMoreError(
-        error instanceof Error ? error.message : "Nao foi possivel carregar mais leads."
-      );
+      setLoadMoreError(getFriendlyErrorMessage(error).message);
     } finally {
       setIsLoadingMoreLeads(false);
     }
@@ -366,10 +365,7 @@ export function LeadsWorkspace({
       );
       setStageFeedback({
         type: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Nao foi possivel atualizar a etapa do lead. Tente novamente."
+        message: getFriendlyErrorMessage(error).message
       });
     } finally {
       setUpdatingLeadId(null);
@@ -795,7 +791,7 @@ function LeadWorkspaceErrorState({
           <p className="text-sm font-medium text-cobalt">Leads</p>
           <h2 className="mt-2 text-2xl font-semibold md:text-3xl">Nao foi possivel carregar os leads</h2>
           <p className="mt-3 max-w-xl leading-7 text-ink/64">
-            {message ?? "Tente novamente para recarregar a lista."}
+            {message ? getFriendlyErrorMessage(message).message : "Tente novamente para recarregar a lista."}
           </p>
         </div>
 

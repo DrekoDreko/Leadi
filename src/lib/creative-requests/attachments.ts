@@ -1,8 +1,9 @@
 import type { Json } from "@/lib/supabase/database.types";
 import type { CreativeRequestAttachmentItem } from "./types";
+import { PAYLOAD_LIMITS } from "@/lib/payload-limits";
 
 export const CREATIVE_REQUEST_ATTACHMENT_BUCKET = "creative-request-files";
-export const CREATIVE_REQUEST_ATTACHMENT_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+export const CREATIVE_REQUEST_ATTACHMENT_MAX_SIZE_BYTES = PAYLOAD_LIMITS.ATTACHMENT;
 export const CREATIVE_REQUEST_ATTACHMENT_ACCEPT =
   "image/png,image/jpeg,image/webp,image/svg+xml,application/pdf,video/mp4,video/quicktime,application/zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint,.png,.jpg,.jpeg,.webp,.svg,.pdf,.mp4,.mov,.zip,.doc,.docx,.ppt,.pptx";
 
@@ -51,7 +52,8 @@ export function validateCreativeRequestAttachment(file: {
   }
 
   if (file.size > CREATIVE_REQUEST_ATTACHMENT_MAX_SIZE_BYTES) {
-    return "Cada anexo pode ter no maximo 10 MB.";
+    const limitMb = CREATIVE_REQUEST_ATTACHMENT_MAX_SIZE_BYTES / (1024 * 1024);
+    return `Cada anexo pode ter no maximo ${limitMb} MB.`;
   }
 
   if (!resolveCreativeRequestAttachmentMimeType(file)) {

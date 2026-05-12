@@ -1,0 +1,111 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { GET, POST } from './route';
+import { createLeadForCurrentUser, getLeadsForCurrentUser } from '@/lib/leads/repository.server';
+import { isSupabaseConfigured } from '@/lib/supabase/config';
+
+// Mocks
+vi.mock('@/lib/leads/repository.server', () => ({
+  createLeadForCurrentUser: vi.fn(),
+  getLeadsForCurrentUser: vi.fn()
+}));
+
+vi.mock('@/lib/supabase/config', () => ({
+  isSupabaseConfigured: vi.fn()
+}));
+
+vi.mock('@/lib/billing/subscription-limits.server', () => {
+  return {
+    BillingResourceAccessError: class extends Error {
+      status = 403;
+      constructor(message: string) {
+        super(message);
+        this.name = 'BillingResourceAccessError';
+      }
+    }
+  };
+});
+
+describe('Leads API - /api/leads', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('GET', () => {
+    it('retorna a lista de leads com sucesso', async () => {
+      const mockState = {
+        leads: [],
+        mode: 'supabase',
+        canDeleteLeads: true,
+        canCreateMetaAdsLeads: true,
+        agendaMetrics: {},
+        pagination: { total: 0, pages: 0, current: 1 }
+      };
+
+      vi.mocked(getLeadsForCurrentUser).mockResolvedValue(mockState as never);
+
+      const request = new Request('http://localhost:3000/api/leads?stage=new');
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual(mockState);
+      expect(getLeadsForCurrentUser).toHaveBeenCalled();
+    });
+  });
+
+  describe('POST', () => {
+    it('cria um novo lead com sucesso', async () => {
+      vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+      const mockLead = { id: '123', name: 'Test Lead' };
+      vi.mocked(createLeadForCurrentUser).mockResolvedValue({
+        lead: mockLead as never,
+        status: 'created'
+      });
+
+      const request = new Request('http://localhost:3000/api/leads', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Test Lead', email: 'test@example.com' })
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.lead).toEqual(mockLead);
+      expect(data.mode).toBe('supabase');
+      expect(data.status).toBe('created');
+    });
+
+    it('retorna erro de validacao (ex: nome do lead nao informado)', async () => {
+      vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+      vi.mocked(createLeadForCurrentUser).mockRejectedValue(new Error('Nome do lead incorreto'));
+
+      const request = new Request('http://localhost:3000/api/leads', {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Informe o nome do lead antes de salvar.');
+    });
+
+    it('retorna erro de duplicidade (Conecte uma conta Meta ativa)', async () => {
+      vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+      vi.mocked(createLeadForCurrentUser).mockRejectedValue(new Error('Conecte uma conta Meta ativa'));
+
+      const request = new Request('http://localhost:3000/api/leads', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Dupe', phone: '11999999999' })
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('Ja existe um lead do Meta Ads com esse contato. Conecte uma conta Meta ativa para alterar esse registro.');
+    });
+  });
+});

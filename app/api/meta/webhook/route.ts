@@ -10,6 +10,9 @@ import {
   validateMetaWebhookSignature
 } from "@/lib/meta/webhook";
 
+import { logger } from "@/lib/logger";
+import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
+
 export async function GET(request: Request) {
   try {
     requireIntegrationEnv("meta_webhook");
@@ -45,6 +48,7 @@ export async function POST(request: Request) {
 
   try {
     requireIntegrationEnv("meta_webhook");
+    assertPayloadSize(request, "WEBHOOK_JSON");
     assertJsonRequest(request);
     const rawBody = await request.text();
     assertRawBody(rawBody);
@@ -75,7 +79,12 @@ export async function POST(request: Request) {
           : null;
 
       if (duplicateMessage) {
-        console.info(duplicateMessage);
+        logger.info({
+          route: "/api/meta/webhook",
+          operation: "META_WEBHOOK_DUPLICATE",
+          message: duplicateMessage,
+          data: { metaLeadId: result.metaLeadId }
+        });
       }
 
       eventResults.push({
@@ -118,6 +127,14 @@ export async function POST(request: Request) {
         : "Nao foi possivel processar o webhook da Meta.";
     const status = getMetaWebhookErrorStatus(error);
 
+    logger.error({
+      route: "/api/meta/webhook",
+      operation: "META_WEBHOOK_ERROR",
+      status,
+      message: errorMessage,
+      data: { body, headers: safeHeaders }
+    }, error);
+
     await recordLeadWebhookEvent({
       status: "failed",
       httpStatus: status,
@@ -145,7 +162,7 @@ function assertRawBody(rawBody: string) {
 }
 
 function getMetaWebhookErrorStatus(error: unknown) {
-  if (error instanceof BillingResourceAccessError) {
+  if (error instanceof BillingResourceAccessError || error instanceof PayloadTooLargeError) {
     return error.status;
   }
 

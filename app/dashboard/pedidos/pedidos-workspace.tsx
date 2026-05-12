@@ -29,6 +29,7 @@ import {
 } from "@/lib/creative-requests/types";
 import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import type { CreativeRequestStatus } from "@/lib/supabase/database.types";
+import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 
 const requestTypeOptions = [
   { value: "design", label: "Design" },
@@ -251,11 +252,7 @@ export function PedidosWorkspace({
           : "Pedido criado com sucesso e adicionado a fila."
       );
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Nao foi possivel salvar o pedido."
-      );
+      setError(getFriendlyErrorMessage(requestError).message);
     } finally {
       setIsSubmitting(false);
     }
@@ -290,11 +287,7 @@ export function PedidosWorkspace({
           : "Lista atualizada com os pedidos mais recentes."
       );
     } catch (refreshError) {
-      setError(
-        refreshError instanceof Error
-          ? refreshError.message
-          : "Nao foi possivel atualizar a lista de pedidos."
-      );
+      setError(getFriendlyErrorMessage(refreshError).message);
     } finally {
       setIsRefreshing(false);
     }
@@ -341,11 +334,7 @@ export function PedidosWorkspace({
       setSelectedRequestId(payload.request.id);
       setSuccessMessage("Anexo enviado com sucesso.");
     } catch (uploadError) {
-      setError(
-        uploadError instanceof Error
-          ? uploadError.message
-          : "Nao foi possivel anexar o arquivo."
-      );
+      setError(getFriendlyErrorMessage(uploadError).message);
     } finally {
       setUploadingRequestId("");
     }
@@ -382,11 +371,7 @@ export function PedidosWorkspace({
           : `Status atualizado para ${visibleStatusLabels[payload.request.status]}.`
       );
     } catch (statusError) {
-      setError(
-        statusError instanceof Error
-          ? statusError.message
-          : "Nao foi possivel atualizar o status do pedido."
-      );
+      setError(getFriendlyErrorMessage(statusError).message);
     } finally {
       setUpdatingRequestId("");
     }
@@ -429,11 +414,7 @@ export function PedidosWorkspace({
       setCommentBody("");
       setSuccessMessage("Comentario adicionado ao pedido.");
     } catch (commentError) {
-      setError(
-        commentError instanceof Error
-          ? commentError.message
-          : "Nao foi possivel salvar o comentario."
-      );
+      setError(getFriendlyErrorMessage(commentError).message);
     } finally {
       setCommentingRequestId("");
     }

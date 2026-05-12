@@ -29,6 +29,7 @@ import {
   type LeadImportMapping,
   type ParsedCsvFile
 } from "@/lib/imports/csv";
+import { validateFilePayloadSize } from "@/lib/payload-limits";
 
 type ImportPreviewRow = {
   index: number;
@@ -119,6 +120,13 @@ export function CsvImportWorkspace({
     const file = event.target.files?.[0];
 
     if (!file) {
+      return;
+    }
+
+    try {
+      validateFilePayloadSize(file, "CSV_IMPORT");
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Arquivo muito grande.");
       return;
     }
 
@@ -387,7 +395,7 @@ export function CsvImportWorkspace({
             </p>
             <h2 className="mt-3 text-3xl font-semibold md:text-4xl">Upload, preview e mapeamento</h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-white/78 md:text-base">
-              Envie um CSV com cabeçalho, ajuste o mapeamento das colunas e confirme a importação
+              Envie um CSV (máximo 10MB) com cabeçalho, ajuste o mapeamento das colunas e confirme a importação
               somente depois de revisar a prévia dos leads.
             </p>
           </div>

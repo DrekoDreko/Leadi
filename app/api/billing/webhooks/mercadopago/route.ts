@@ -14,9 +14,11 @@ import {
   validateMercadoPagoWebhookSignature
 } from "@/lib/billing/mercadopago";
 import { EnvValidationError } from "@/lib/env/server";
+import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
 
 export async function POST(request: Request) {
   try {
+    assertPayloadSize(request, "WEBHOOK_JSON");
     const signature = getMercadoPagoWebhookSignature(request);
     const requestId = getMercadoPagoWebhookRequestId(request);
     const urlPaymentId = getMercadoPagoPaymentIdFromWebhook(request);
@@ -95,8 +97,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, status: payment.status, credited: !alreadyCredited });
   } catch (error) {
-    if (error instanceof EnvValidationError) {
-      return NextResponse.json({ error: error.message }, { status: 503 });
+    if (error instanceof EnvValidationError || error instanceof PayloadTooLargeError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
     }
 
     const message =

@@ -24,6 +24,7 @@ import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { updateBrokerageNameAction } from "./actions";
 import { WebhookLogsCard } from "./webhook-logs-card";
 import { WebhookSetupCard } from "./webhook-setup-card";
+import { getSiteUrl } from "@/lib/site/config";
 
 const PROFILE_COMPANY_SECTION_HREF = "/dashboard/perfil?section=empresa";
 
@@ -460,7 +461,7 @@ async function getLeadWebhookUrl() {
   const protocol = headerStore.get("x-forwarded-proto") ?? "http";
 
   if (!host) {
-    return "http://localhost:3000/api/webhooks/leads";
+    return `${getSiteUrl()}/api/webhooks/leads`;
   }
 
   return `${protocol}://${host}/api/webhooks/leads`;

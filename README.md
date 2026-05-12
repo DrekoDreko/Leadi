@@ -270,6 +270,9 @@ Checklist complementar: `docs/meta-app-review.md`.
 
 ## Banco e migrations
 
+Para saber mais sobre como aplicar as migrations, a ordem correta e o processo de validação pós-deploy, leia o documento oficial:
+👉 **[Guia de Migrations e Deploy de Banco de Dados](docs/MIGRATIONS.md)**
+
 As migrations ficam em `supabase/migrations/` e cobrem, entre outros pontos:
 
 - core multi-tenant

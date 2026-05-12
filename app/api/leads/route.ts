@@ -8,6 +8,9 @@ import { parseLeadPaginationParams } from "@/lib/leads/repository";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { parseLeadUrlFilters } from "@/lib/leads/filters";
 
+import { logger } from "@/lib/logger";
+import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
+
 export async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams;
   const state = await getLeadsForCurrentUser(
@@ -19,9 +22,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  let body: unknown;
   try {
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
-    const body = await request.json();
+    assertPayloadSize(request, "WEBHOOK_JSON");
+    body = await request.json();
     const result = await createLeadForCurrentUser(body);
 
     return NextResponse.json(
@@ -29,13 +34,22 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error(error);
+    const status = getCreateLeadErrorStatus(error);
+    const errorMessage = getCreateLeadErrorMessage(error);
+
+    logger.error({
+      route: "/api/leads",
+      operation: "CREATE_LEAD",
+      status,
+      message: errorMessage,
+      data: { body }
+    }, error);
 
     return NextResponse.json(
       {
-        error: getCreateLeadErrorMessage(error)
+        error: errorMessage
       },
-      { status: getCreateLeadErrorStatus(error) }
+      { status }
     );
   }
 }
@@ -67,6 +81,10 @@ function getCreateLeadErrorMessage(error: unknown) {
 }
 
 function getCreateLeadErrorStatus(error: unknown) {
+  if (error instanceof PayloadTooLargeError) {
+    return error.status;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {

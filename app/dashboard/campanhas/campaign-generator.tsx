@@ -23,6 +23,7 @@ import type {
   CampaignListState,
   CampaignTextOutput
 } from "@/lib/campaigns/types";
+import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 
 type ComplianceQuestionsOutput = {
   questions: Array<{
@@ -192,11 +193,7 @@ export function CampaignGenerator({
         "Recebemos a solicitacao. Retornaremos com o valor e o andamento da campanha na area Validador de campanha."
       );
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Nao foi possivel gerar a campanha."
-      );
+      setError(getFriendlyErrorMessage(requestError).message);
     } finally {
       setIsGenerating(false);
     }
@@ -231,11 +228,7 @@ export function CampaignGenerator({
 
       setQuestions(payload.questions);
     } catch (requestError) {
-      setQuestionsError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Nao foi possivel gerar perguntas."
-      );
+      setQuestionsError(getFriendlyErrorMessage(requestError).message);
     } finally {
       setIsGeneratingQuestions(false);
     }
@@ -253,8 +246,8 @@ export function CampaignGenerator({
       await navigator.clipboard.writeText(text);
       setCopiedKey(key);
       window.setTimeout(() => setCopiedKey(""), 2200);
-    } catch {
-      setError("Nao foi possivel copiar automaticamente neste navegador.");
+    } catch (error) {
+      setError(getFriendlyErrorMessage(error, "Nao foi possivel copiar automaticamente neste navegador.").message);
     }
   }
 

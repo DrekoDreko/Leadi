@@ -10,6 +10,9 @@ import {
 import { hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import type { LeadSource } from "@/lib/supabase/database.types";
 
+import { logger } from "@/lib/logger";
+import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
+
 const safeWebhookLeadSources = new Set<LeadSource>(["make_zapier", "api"]);
 
 export async function POST(request: Request) {
@@ -17,6 +20,7 @@ export async function POST(request: Request) {
   let webhookAuth: LeadWebhookAuthContext | undefined;
 
   try {
+    assertPayloadSize(request, "WEBHOOK_JSON");
     assertJsonRequest(request);
     body = await request.json();
     webhookAuth = await authenticateLeadWebhookRequest(request);
@@ -53,9 +57,22 @@ export async function POST(request: Request) {
       { status: result.status === "created" ? 201 : 200 }
     );
   } catch (error) {
-    console.error(error);
     const status = getWebhookLeadErrorStatus(error);
     const errorMessage = getWebhookLeadErrorMessage(error);
+    const safeHeaders = getSafeWebhookHeaders(request);
+
+    logger.error({
+      route: "/api/webhooks/leads",
+      operation: "PROCESS_LEAD_WEBHOOK",
+      status,
+      message: errorMessage,
+      data: { 
+        body, 
+        headers: safeHeaders,
+        organizationId: webhookAuth?.organizationId,
+        integrationId: webhookAuth?.integrationId
+      }
+    }, error);
 
     await recordLeadWebhookEvent({
       organizationId: webhookAuth?.organizationId,
@@ -63,7 +80,7 @@ export async function POST(request: Request) {
       status: "failed",
       httpStatus: status,
       rawPayload: body,
-      safeHeaders: getSafeWebhookHeaders(request),
+      safeHeaders,
       errorMessage
     });
 
@@ -262,7 +279,7 @@ function getWebhookLeadErrorMessage(error: unknown) {
 }
 
 function getWebhookLeadErrorStatus(error: unknown) {
-  if (error instanceof BillingResourceAccessError) {
+  if (error instanceof BillingResourceAccessError || error instanceof PayloadTooLargeError) {
     return error.status;
   }
 

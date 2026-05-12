@@ -12,6 +12,8 @@ type LeadWebhookEventInput = {
   errorMessage?: string | null;
 };
 
+import { sensitize } from "@/lib/logger";
+
 export async function recordLeadWebhookEvent(input: LeadWebhookEventInput) {
   if (!hasSupabaseServiceRole()) {
     return;
@@ -24,13 +26,18 @@ export async function recordLeadWebhookEvent(input: LeadWebhookEventInput) {
     lead_id: input.leadId ?? null,
     status: input.status,
     http_status: input.httpStatus,
-    raw_payload: toJson(input.rawPayload) ?? {},
+    raw_payload: sensitize(toJson(input.rawPayload) ?? {}),
     safe_headers: toJson(input.safeHeaders) ?? {},
     error_message: input.errorMessage ?? null
   });
 
   if (error) {
-    console.error("Nao foi possivel registrar o evento do webhook de leads.", error);
+    logger.error({
+      route: "INTERNAL",
+      operation: "RECORD_LEAD_WEBHOOK_EVENT",
+      message: "Nao foi possivel registrar o evento do webhook de leads.",
+      data: { input }
+    }, error);
   }
 }
 

@@ -4,6 +4,7 @@ import {
   isCreativeRequestSetupErrorMessage
 } from "@/lib/creative-requests/errors";
 import { addCreativeRequestAttachmentForCurrentUser } from "@/lib/creative-requests/repository.server";
+import { PayloadTooLargeError, validateFilePayloadSize } from "@/lib/payload-limits";
 
 type RouteContext = {
   params: Promise<{
@@ -20,6 +21,8 @@ export async function POST(request: Request, context: RouteContext) {
     if (!(uploadedFile instanceof File)) {
       throw new Error("Selecione um arquivo para anexar.");
     }
+
+    validateFilePayloadSize(uploadedFile, "ATTACHMENT");
 
     const creativeRequest = await addCreativeRequestAttachmentForCurrentUser(id, uploadedFile);
 
@@ -71,6 +74,10 @@ function getCreativeRequestAttachmentErrorMessage(error: unknown) {
 }
 
 function getCreativeRequestAttachmentErrorStatus(error: unknown) {
+  if (error instanceof PayloadTooLargeError) {
+    return error.status;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {
