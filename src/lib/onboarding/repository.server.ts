@@ -74,12 +74,23 @@ export async function updateOnboardingStateForCurrentUser(input: {
 
   if (!profile) throw new Error("Perfil nao encontrado.");
 
+  const payload: {
+    organization_id: string;
+    dismissed_at?: string | null;
+    completed_steps?: string[];
+  } = {
+    organization_id: profile.organization_id,
+  };
+  if (input.dismissedAt !== undefined) {
+    payload.dismissed_at = input.dismissedAt;
+  }
+  if (input.completedSteps !== undefined) {
+    payload.completed_steps = input.completedSteps;
+  }
+
   const { error } = await supabase
     .from("onboarding_states")
-    .upsert({
-      organization_id: profile.organization_id,
-      ...input
-    }, { onConflict: "organization_id" });
+    .upsert(payload, { onConflict: "organization_id" });
 
   if (error) {
     throw new Error("Erro ao atualizar estado de onboarding: " + error.message);
