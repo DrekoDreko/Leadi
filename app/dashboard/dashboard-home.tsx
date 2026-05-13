@@ -16,7 +16,7 @@ import { DashboardRemindersCalendar } from "@/components/dashboard/dashboard-rem
 import { buildAgendaEntries, type AgendaEntry } from "@/lib/leads/agenda";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { dismissOnboardingChecklist, toggleOnboardingStep } from "./onboarding-actions";
-import type { OnboardingState } from "@/lib/onboarding/repository.server";
+import type { OnboardingState } from "@/lib/onboarding/types";
 
 type DashboardHomeProps = {
   leads?: Lead[];

@@ -2,12 +2,11 @@ import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import type { Database } from "@/lib/supabase/database.types";
+import type { OnboardingState } from "./types";
 
-export type OnboardingState = {
-  organizationId: string;
-  dismissedAt: string | null;
-  completedSteps: string[];
-};
+export type { OnboardingState };
+
 
 export async function getOnboardingStateForCurrentUser(): Promise<OnboardingState | null> {
   if (!isSupabaseConfigured()) {
@@ -49,7 +48,7 @@ export async function getOnboardingStateForCurrentUser(): Promise<OnboardingStat
   return {
     organizationId: data.organization_id,
     dismissedAt: data.dismissed_at,
-    completedSteps: data.completed_steps
+    completedSteps: data.completed_steps || []
   };
 }
 
@@ -74,16 +73,16 @@ export async function updateOnboardingStateForCurrentUser(input: {
 
   if (!profile) throw new Error("Perfil nao encontrado.");
 
-  const payload: {
-    organization_id: string;
-    dismissed_at?: string | null;
-    completed_steps?: string[];
-  } = {
+  type OnboardingInsert = Database["public"]["Tables"]["onboarding_states"]["Insert"];
+  
+  const payload: OnboardingInsert = {
     organization_id: profile.organization_id,
   };
+
   if (input.dismissedAt !== undefined) {
     payload.dismissed_at = input.dismissedAt;
   }
+  
   if (input.completedSteps !== undefined) {
     payload.completed_steps = input.completedSteps;
   }
@@ -96,3 +95,4 @@ export async function updateOnboardingStateForCurrentUser(input: {
     throw new Error("Erro ao atualizar estado de onboarding: " + error.message);
   }
 }
+
