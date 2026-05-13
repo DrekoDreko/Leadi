@@ -78,6 +78,39 @@ export async function getCampaignsForCurrentUser(limit = 4): Promise<CampaignLis
   };
 }
 
+export async function getCampaignsCountForCurrentUser(): Promise<number> {
+  if (!isSupabaseConfigured()) {
+    return 1;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) return 0;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile) return 0;
+
+  const { count, error } = await supabase
+    .from("campaigns")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", profile.organization_id);
+
+  if (error) {
+    console.error("Erro ao contar campanhas:", error);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
 export async function saveCampaignForCurrentUser(
   input: CampaignSaveInput
 ): Promise<CampaignHistoryItem> {

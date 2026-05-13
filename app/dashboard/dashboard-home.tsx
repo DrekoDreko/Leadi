@@ -28,6 +28,7 @@ type DashboardHomeProps = {
   hasMetaConnection?: boolean;
   hasOpenAIConnection?: boolean;
   whatsappMessagesCount?: number;
+  creativeRequestsCount?: number;
   onboardingState?: OnboardingState | null;
 };
 
@@ -38,6 +39,7 @@ export function DashboardHome({
   hasMetaConnection = false,
   hasOpenAIConnection = false,
   whatsappMessagesCount = 0,
+  creativeRequestsCount = 0,
   onboardingState = null
 }: DashboardHomeProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -67,17 +69,17 @@ export function DashboardHome({
     },
     {
       id: "copy-message",
-      title: "Copie uma mensagem",
+      title: "Mensagem copiada",
       description: "Gere e copie uma mensagem personalizada para abordar seus novos leads.",
       href: "/dashboard/criacoes/whatsapp",
       isCompleted: whatsappMessagesCount > 0 || onboardingState?.completedSteps.includes("copy-message") || false
     },
     {
-      id: "configure-integration",
-      title: "Configure integrações",
-      description: "Conecte sua conta Meta Ads ou OpenAI para automatizar processos.",
-      href: "/dashboard/conexoes",
-      isCompleted: hasMetaConnection || hasOpenAIConnection || onboardingState?.completedSteps.includes("configure-integration") || false
+      id: "send-order",
+      title: "Pedido enviado",
+      description: "Solicite um criativo profissional (imagem ou vídeo) para suas campanhas.",
+      href: "/dashboard/criacoes/pedidos",
+      isCompleted: creativeRequestsCount > 0 || onboardingState?.completedSteps.includes("send-order") || false
     }
   ];
 

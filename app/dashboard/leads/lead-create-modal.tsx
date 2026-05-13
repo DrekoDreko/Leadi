@@ -61,6 +61,7 @@ export function LeadCreateModal({
     type: "error" | "success";
     message: string;
   } | null>(null);
+  const [nextContactAt, setNextContactAt] = useState("");
 
   useEffect(() => {
     if (!open) {
@@ -69,6 +70,7 @@ export function LeadCreateModal({
 
     setErrors({});
     setStatus(null);
+    setNextContactAt("");
   }, [open]);
 
   useEffect(() => {
@@ -209,6 +211,9 @@ export function LeadCreateModal({
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/62">
               Cadastre um contato manualmente e acompanhe o atendimento no funil da LeadHealth.
+            </p>
+            <p className="mt-2 inline-flex rounded-full bg-cobalt/10 px-3 py-1 text-xs font-semibold text-cobalt">
+              Score calculado automaticamente por perfil, intenção e interações.
             </p>
           </div>
           <button className="icon-button shrink-0" onClick={closeModal} type="button" title="Fechar">
@@ -356,8 +361,43 @@ export function LeadCreateModal({
                 className={fieldClass(Boolean(errors.next_contact_at))}
                 disabled={isSubmitting}
                 name="next_contact_at"
+                onChange={(e) => setNextContactAt(e.target.value)}
                 type="datetime-local"
+                value={nextContactAt}
               />
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  className="rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/60 transition hover:bg-white hover:text-ink"
+                  onClick={() => {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    tomorrow.setHours(10, 0, 0, 0);
+                    setNextContactAt(toDateTimeLocal(tomorrow));
+                  }}
+                  type="button"
+                >
+                  Amanhã 10h
+                </button>
+                <button
+                  className="rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/60 transition hover:bg-white hover:text-ink"
+                  onClick={() => {
+                    const monday = new Date();
+                    monday.setDate(monday.getDate() + ((1 + 7 - monday.getDay()) % 7 || 7));
+                    monday.setHours(9, 0, 0, 0);
+                    setNextContactAt(toDateTimeLocal(monday));
+                  }}
+                  type="button"
+                >
+                  Próxima Segunda
+                </button>
+                <button
+                  className="rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/60 transition hover:bg-white hover:text-ink"
+                  onClick={() => setNextContactAt("")}
+                  type="button"
+                >
+                  Limpar
+                </button>
+              </div>
             </LeadField>
 
             <LeadField className="md:col-span-2" error={errors.notes} label="Observações">
@@ -522,4 +562,13 @@ function fieldClass(hasError: boolean) {
   return `liquid-input disabled:cursor-not-allowed disabled:opacity-60 ${
     hasError ? "border-signal/80 bg-signal/20" : ""
   }`;
+}
+function toDateTimeLocal(date: Date | string | null | undefined): string {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  
+  const z = d.getTimezoneOffset() * 60000;
+  const localISOTime = new Date(d.getTime() - z).toISOString().slice(0, 16);
+  return localISOTime;
 }

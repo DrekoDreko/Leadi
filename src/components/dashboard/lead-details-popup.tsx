@@ -21,6 +21,8 @@ import type { Lead } from "@/data/mock";
 import type { LeadFollowUpEvent } from "@/lib/leads/follow-up-events";
 import type { LeadComment } from "@/lib/leads/comments";
 import { LeadMessageGenerator } from "./lead-message-generator";
+import type { SystemTemplate } from "@/lib/templates/types";
+import { calculateLeadScore, formatLeadScorePercentage, getLeadScoreBandLabel } from "@/lib/leads/scoring";
 
 type LeadUpdateMode = "supabase" | "mock" | "not-configured" | "unauthenticated" | "error";
 
@@ -32,6 +34,7 @@ type LeadDetailsPopupProps = {
   onClose: () => void;
   onDeleted?: (leadId: string, mode?: LeadUpdateMode) => void;
   onUpdated?: (lead: Lead, mode?: LeadUpdateMode) => void;
+  whatsappTemplates?: SystemTemplate[];
 };
 
 type LeadEditValues = {
@@ -71,6 +74,7 @@ type LeadCommentsResponse = {
 
 type LeadCommentResponse = {
   comment?: LeadComment;
+  lead?: Lead;
   error?: string;
   mode?: LeadUpdateMode;
 };
@@ -122,7 +126,8 @@ export function LeadDetailsPopup({
   messageGeneratorEnabled = false,
   onClose,
   onDeleted,
-  onUpdated
+  onUpdated,
+  whatsappTemplates = []
 }: LeadDetailsPopupProps) {
   const previousLeadIdRef = useRef<string | null>(null);
   const [activePanel, setActivePanel] = useState<"details" | "message">(initialPanel);
@@ -497,6 +502,9 @@ export function LeadDetailsPopup({
             ? "Comentario adicionado no modo demonstracao."
             : "Comentario salvo no lead."
       });
+      if (data.lead) {
+        onUpdated?.(data.lead, data.mode);
+      }
     } catch (error) {
       setCommentsError(
         error instanceof Error ? error.message : "Nao foi possivel salvar o comentario agora."
@@ -585,6 +593,21 @@ export function LeadDetailsPopup({
     { icon: Mail, label: "Email", value: lead.email },
     { icon: CheckCircle2, label: "Cidade", value: lead.city ?? "Cidade nao informada" }
   ];
+  const scoreInsight = calculateLeadScore({
+    stage: lead.stage,
+    source: lead.source,
+    email: lead.email,
+    phone: lead.phone,
+    city: lead.city,
+    companyName: lead.companyName,
+    livesCount: lead.livesCount ?? null,
+    budget: lead.budget,
+    interest: lead.interest,
+    lastInteraction: lead.lastInteraction,
+    notes: lead.notes,
+    nextContactAt: lead.nextContactAt,
+    receivedAt: lead.receivedAt
+  });
 
   return (
     <div
@@ -608,7 +631,7 @@ export function LeadDetailsPopup({
                 {lead.stage}
               </span>
               <span className="rounded-full bg-cobalt px-3 py-1.5 text-xs font-semibold text-white">
-                {lead.score}% fit
+                {formatLeadScorePercentage(lead.score)} fit
               </span>
             </div>
             <h2 className="text-2xl font-semibold sm:text-3xl" id="lead-popup-title">
@@ -617,6 +640,34 @@ export function LeadDetailsPopup({
             <p className="mt-2 text-sm leading-6 text-ink/62 sm:text-base">
               {lead.interest}
             </p>
+            <div className="mt-4 rounded-[24px] border border-white/55 bg-white/40 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink/45">
+                    Score automático
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold">
+                    {formatLeadScorePercentage(lead.score)} {getLeadScoreBandLabel(lead.score).toLowerCase()}
+                  </p>
+                </div>
+                <span className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
+                  {scoreInsight.bandLabel}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-ink/66">{scoreInsight.summary}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {scoreInsight.signals.slice(0, 4).map((signal) => (
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      signal.points >= 0 ? "bg-lagoon/12 text-ink" : "bg-signal/20 text-ink"
+                    }`}
+                    key={`${signal.label}-${signal.detail}`}
+                  >
+                    {signal.label} {signal.points > 0 ? `+${signal.points}` : signal.points}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="flex shrink-0 gap-2">
@@ -874,6 +925,39 @@ export function LeadDetailsPopup({
                   type="datetime-local"
                   value={formValues.next_contact_at}
                 />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    className="rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/60 transition hover:bg-white hover:text-ink"
+                    onClick={() => {
+                      const tomorrow = new Date();
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      tomorrow.setHours(10, 0, 0, 0);
+                      updateField("next_contact_at", toDateTimeLocal(tomorrow));
+                    }}
+                    type="button"
+                  >
+                    Amanhã 10h
+                  </button>
+                  <button
+                    className="rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/60 transition hover:bg-white hover:text-ink"
+                    onClick={() => {
+                      const monday = new Date();
+                      monday.setDate(monday.getDate() + ((1 + 7 - monday.getDay()) % 7 || 7));
+                      monday.setHours(9, 0, 0, 0);
+                      updateField("next_contact_at", toDateTimeLocal(monday));
+                    }}
+                    type="button"
+                  >
+                    Próxima Segunda
+                  </button>
+                  <button
+                    className="rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/60 transition hover:bg-white hover:text-ink"
+                    onClick={() => updateField("next_contact_at", "")}
+                    type="button"
+                  >
+                    Limpar
+                  </button>
+                </div>
               </LeadField>
 
               <LeadField error={errors.last_interaction} label="Última interação">
@@ -925,6 +1009,7 @@ export function LeadDetailsPopup({
             <LeadMessageGenerator
               hasOpenAIConnection={hasOpenAIConnection}
               lead={lead}
+              systemTemplates={whatsappTemplates}
             />
           </div>
         ) : (
@@ -1045,12 +1130,25 @@ export function LeadDetailsPopup({
             </div>
 
             <aside className="space-y-4">
-              <section className="rounded-[28px] bg-ink p-5 text-white">
+              <section className={`rounded-[28px] p-5 text-white ${
+                lead.nextContactAt && new Date(lead.nextContactAt) < new Date() 
+                  ? "bg-red-700 shadow-lg shadow-red-900/20" 
+                  : "bg-ink"
+              }`}>
                 <p className="text-sm text-white/62">Próximo contato</p>
-                <h3 className="mt-2 text-2xl font-semibold">{lead.nextContact}</h3>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <h3 className="text-2xl font-semibold">{lead.nextContact}</h3>
+                  {lead.nextContactAt && new Date(lead.nextContactAt) < new Date() && (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white animate-pulse">
+                      <Clock3 size={18} />
+                    </span>
+                  )}
+                </div>
                 <p className="mt-2 text-sm leading-6 text-white/72">
                   {lead.nextContactAt
-                    ? `Agendado para ${formatLeadFollowUpDate(lead.nextContactAt)}.`
+                    ? (new Date(lead.nextContactAt) < new Date() 
+                        ? `Atrasado desde ${formatLeadFollowUpDate(lead.nextContactAt)}.` 
+                        : `Agendado para ${formatLeadFollowUpDate(lead.nextContactAt)}.`)
                     : "Sem compromisso ativo para esta agenda."}
                 </p>
 
@@ -1115,6 +1213,32 @@ export function LeadDetailsPopup({
                         type="datetime-local"
                         value={followUpDraftNextContactAt}
                       />
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button
+                          className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white/60 transition hover:bg-white/20 hover:text-white"
+                          onClick={() => {
+                            const tomorrow = new Date();
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+                            tomorrow.setHours(10, 0, 0, 0);
+                            setFollowUpDraftNextContactAt(toDateTimeLocal(tomorrow));
+                          }}
+                          type="button"
+                        >
+                          Amanhã 10h
+                        </button>
+                        <button
+                          className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white/60 transition hover:bg-white/20 hover:text-white"
+                          onClick={() => {
+                            const monday = new Date();
+                            monday.setDate(monday.getDate() + ((1 + 7 - monday.getDay()) % 7 || 7));
+                            monday.setHours(9, 0, 0, 0);
+                            setFollowUpDraftNextContactAt(toDateTimeLocal(monday));
+                          }}
+                          type="button"
+                        >
+                          Próxima Segunda
+                        </button>
+                      </div>
                     </label>
                     <label className="block">
                       <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-white/64">
@@ -1595,7 +1719,7 @@ function formatLivesCount(value: number | null | undefined) {
   return `${value} vidas`;
 }
 
-function toDateTimeLocal(value?: string | null) {
+function toDateTimeLocal(value?: string | Date | null) {
   if (!value) {
     return "";
   }

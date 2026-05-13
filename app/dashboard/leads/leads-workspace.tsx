@@ -5,9 +5,12 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
+  Calendar,
   CheckCircle2,
   ArrowUpRight,
   ChevronRight,
+  Clock3,
+  Download,
   Filter,
   Inbox,
   Loader2,
@@ -36,8 +39,10 @@ import {
   type LeadDataState,
   type LeadPaginationMeta
 } from "@/lib/leads/repository";
+import { formatLeadScorePercentage, getLeadScoreBandLabel } from "@/lib/leads/scoring";
 import { LeadCreateModal } from "./lead-create-modal";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
+import type { SystemTemplate } from "@/lib/templates/types";
 
 const filterKeys: Array<keyof LeadUrlFilters> = [
   "stage",
@@ -55,7 +60,8 @@ export function LeadsWorkspace({
   initialLeadId,
   initialLeadPanel,
   leadFilters,
-  leadState
+  leadState,
+  whatsappTemplates = []
 }: {
   createLeadAccess: ResourceAccessSummary;
   hasOpenAIConnection: boolean;
@@ -63,6 +69,7 @@ export function LeadsWorkspace({
   initialLeadPanel: "details" | "message";
   leadFilters: LeadUrlFilters;
   leadState: LeadDataState;
+  whatsappTemplates?: SystemTemplate[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -93,6 +100,7 @@ export function LeadsWorkspace({
   const selectedLeadCanEdit = selectedLead?.canEdit ?? true;
   const selectedLeadCanDelete = selectedLead?.canDelete ?? leadState.canDeleteLeads;
   const canCreateLeads = createLeadAccess.allowed;
+  const exportHref = `/api/leads/export${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`;
 
   const replaceLeadUrlFilters = useCallback((nextFilters: LeadUrlFilters) => {
     const nextSearchParams = new URLSearchParams(searchParams?.toString() ?? "");
@@ -291,6 +299,13 @@ export function LeadsWorkspace({
         title="Leads"
         description="Lista dedicada para qualificar contatos, acompanhar responsáveis e priorizar próximos passos."
       >
+        <Link
+          className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white/72 px-5 py-3 text-sm font-semibold text-ink"
+          href={exportHref}
+        >
+          <Download size={18} aria-hidden="true" />
+          Exportar CSV
+        </Link>
         <button
           className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           disabled={!canCreateLeads}
@@ -396,6 +411,7 @@ export function LeadsWorkspace({
         onClose={() => setSelectedLead(null)}
         onDeleted={selectedLeadCanDelete ? handleLeadDeleted : undefined}
         onUpdated={selectedLeadCanEdit ? handleLeadUpdated : undefined}
+        whatsappTemplates={whatsappTemplates}
       />
     </div>
   );
@@ -831,11 +847,13 @@ function LeadTablePanel({
       </div>
 
       <div className="overflow-hidden rounded-[26px] border border-white/48 bg-white/28">
-        <div className="hidden grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px_44px] gap-4 border-b border-ink/8 px-5 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
+        <div className="hidden grid-cols-[minmax(200px,1.2fr)_140px_180px_120px_96px_160px_110px_44px] gap-4 border-b border-ink/8 px-5 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
           <span>Lead</span>
           <span>Telefone</span>
           <span>Email</span>
           <span>Responsável</span>
+          <span>Score</span>
+          <span>Próximo Contato</span>
           <span>Status</span>
           <span aria-hidden="true" />
         </div>
@@ -843,7 +861,7 @@ function LeadTablePanel({
         {leads.map((lead) => {
           return (
             <article
-              className="grid gap-3 border-b border-ink/8 px-5 py-4 text-left transition hover:bg-white/34 last:border-0 md:grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px_44px] md:items-center"
+              className="grid gap-3 border-b border-ink/8 px-5 py-4 text-left transition hover:bg-white/34 last:border-0 md:grid-cols-[minmax(200px,1.2fr)_140px_180px_120px_96px_160px_110px_44px] md:items-center"
               key={lead.id}
             >
               <button
@@ -853,6 +871,9 @@ function LeadTablePanel({
               >
                 <span className="block font-semibold leading-tight">{lead.name}</span>
                 <span className="mt-1 block text-sm text-ink/54 md:hidden">{lead.phone}</span>
+                <span className="mt-1 inline-flex items-center rounded-full bg-white/68 px-2.5 py-1 text-[11px] font-semibold text-ink/54 md:hidden">
+                  {formatLeadScorePercentage(lead.score)} {getLeadScoreBandLabel(lead.score).toLowerCase()}
+                </span>
               </button>
 
               <button
@@ -877,6 +898,22 @@ function LeadTablePanel({
                 type="button"
               >
                 {lead.owner}
+              </button>
+
+              <button
+                className="text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50 md:pr-2"
+                onClick={() => onLeadOpen(lead)}
+                type="button"
+              >
+                <LeadScoreBadge score={lead.score} />
+              </button>
+
+              <button
+                className="text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50 md:pr-2"
+                onClick={() => onLeadOpen(lead)}
+                type="button"
+              >
+                <AgendaStatusBadge nextContactAt={lead.nextContactAt} />
               </button>
 
               <div
@@ -953,6 +990,8 @@ function LeadKanbanPanel({
                     <span className="block font-semibold leading-tight">{lead.name}</span>
                     <span className="mt-1 block text-sm opacity-85">{lead.owner}</span>
                   </button>
+                  <AgendaStatusBadge nextContactAt={lead.nextContactAt} variant="kanban" />
+                  <LeadScoreBadge score={lead.score} variant="kanban" />
                 </div>
                 <div
                   className="mt-4"
@@ -1030,6 +1069,80 @@ function LeadStageBadge({
       >
         {stage}
       </div>
+    </div>
+  );
+}
+
+function LeadScoreBadge({
+  score,
+  variant = "table"
+}: {
+  score: number;
+  variant?: "table" | "kanban";
+}) {
+  const bandLabel = getLeadScoreBandLabel(score);
+  const compactLabel = formatLeadScorePercentage(score);
+  const isKanban = variant === "kanban";
+
+  return (
+    <div
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${
+        isKanban
+          ? "bg-white/14 text-white ring-white/20"
+          : "bg-cobalt/10 text-cobalt ring-cobalt/10"
+      }`}
+      title={bandLabel}
+    >
+      <span>{compactLabel}</span>
+      <span className={isKanban ? "text-white/75" : "text-cobalt/70"}>{bandLabel}</span>
+    </div>
+  );
+}
+function AgendaStatusBadge({
+  nextContactAt,
+  variant = "table"
+}: {
+  nextContactAt?: string | null;
+  variant?: "table" | "kanban";
+}) {
+  if (!nextContactAt) {
+    return (
+      <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${
+        variant === "kanban" ? "bg-white/10 text-white/60" : "bg-signal/20 text-ink/50"
+      }`}>
+        <Calendar size={12} />
+        Sem agenda
+      </div>
+    );
+  }
+
+  const date = new Date(nextContactAt);
+  const isOverdue = date < new Date();
+  
+  const formattedDate = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+
+  if (isOverdue) {
+    return (
+      <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${
+        variant === "kanban" ? "bg-red-500/20 text-red-200" : "bg-red-50 text-red-700 ring-1 ring-red-200"
+      }`}>
+        <Clock3 size={12} />
+        Atrasado: {formattedDate}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${
+      variant === "kanban" ? "bg-white/20 text-white" : "bg-lagoon/10 text-lagoon"
+    }`}>
+      <Calendar size={12} />
+      {formattedDate}
     </div>
   );
 }

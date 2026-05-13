@@ -5,8 +5,13 @@ import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { getCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
+import { getWhatsAppMessagesCountForCurrentUser } from "@/lib/whatsapp/repository.server";
+import { getOnboardingStateForCurrentUser } from "@/lib/onboarding/repository.server";
+import { getCreativeRequestsCountForCurrentUser } from "@/lib/creative-requests/repository.server";
 
 // Mocks
+vi.mock("server-only", () => ({}));
+
 vi.mock("@/lib/workspaces/context", () => ({
   requireCompletedProfile: vi.fn()
 }));
@@ -21,6 +26,18 @@ vi.mock("@/lib/campaigns/repository.server", () => ({
 
 vi.mock("@/lib/integrations/repository.server", () => ({
   getConnectedAccountsForCurrentUser: vi.fn()
+}));
+
+vi.mock("@/lib/whatsapp/repository.server", () => ({
+  getWhatsAppMessagesCountForCurrentUser: vi.fn()
+}));
+
+vi.mock("@/lib/onboarding/repository.server", () => ({
+  getOnboardingStateForCurrentUser: vi.fn()
+}));
+
+vi.mock("@/lib/creative-requests/repository.server", () => ({
+  getCreativeRequestsCountForCurrentUser: vi.fn()
 }));
 
 vi.mock("./dashboard-home", () => ({
@@ -54,6 +71,10 @@ describe('Dashboard Page (/dashboard)', () => {
       metaConnection: null,
       openAIConnection: null
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    vi.mocked(getWhatsAppMessagesCountForCurrentUser).mockResolvedValue(0);
+    vi.mocked(getOnboardingStateForCurrentUser).mockResolvedValue(null);
+    vi.mocked(getCreativeRequestsCountForCurrentUser).mockResolvedValue(0);
 
     const Page = await DashboardPage();
     render(Page);

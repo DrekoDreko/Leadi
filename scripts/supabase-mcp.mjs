@@ -12,6 +12,7 @@ const MAX_LIMIT = 100;
 
 const ALLOWED_TABLES = [
   "campaigns",
+  "meta_campaign_publication_attempts",
   "creative_requests",
   "creative_request_comments",
   "whatsapp_messages",
@@ -22,6 +23,8 @@ const ALLOWED_TABLES = [
   "meta_integrations",
   "meta_pages",
   "meta_forms",
+  "meta_ad_accounts",
+  "meta_ad_image_uploads",
   "lead_webhook_integrations",
   "lead_webhook_events",
   "lead_follow_up_events",
@@ -29,7 +32,8 @@ const ALLOWED_TABLES = [
   "workspace_members",
   "invites",
   "leads",
-  "onboarding_states"
+  "onboarding_states",
+  "system_templates"
 ];
 
 loadEnvFile(".env");

@@ -48,6 +48,8 @@ const ERROR_MAP: Record<string, string> = {
   "Nao foi possivel gerar a mensagem.": "A IA não conseguiu gerar a mensagem agora. Tente novamente em alguns segundos.",
   "Nao foi possivel gerar a campanha.": "Houve um erro ao preparar sua campanha. Revise os dados e tente novamente.",
   "Nao foi possivel anexar o arquivo.": "O arquivo não pôde ser enviado. Verifique o tamanho e o formato.",
+  "Nao foi possivel enviar a imagem para a Meta.": "Não foi possível enviar a imagem para a biblioteca da Meta agora. Verifique a conexão e tente novamente.",
+  "A conexao Meta nao possui a permissao ads_management. Reconecte a conta para liberar o upload.": "A conta Meta conectada não tem a permissão necessária para enviar imagens. Reconecte com acesso a anúncios.",
   "auth/invalid-email": "O e-mail informado parece inválido. Revise o campo e tente novamente.",
   "auth/user-not-found": "Não encontramos uma conta com este e-mail.",
   "auth/wrong-password": "Senha incorreta. Se esqueceu sua senha, use a recuperação de conta.",

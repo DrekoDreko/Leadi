@@ -4,8 +4,11 @@ import LeadsPage from './page';
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
+import { getSystemTemplates } from "@/lib/templates/repository.server";
 
 // Mocks
+vi.mock("server-only", () => ({}));
+
 vi.mock("@/lib/leads/repository.server", () => ({
   getLeadsForCurrentUser: vi.fn()
 }));
@@ -17,6 +20,10 @@ vi.mock("@/lib/billing/subscription-limits.server", () => ({
 
 vi.mock("@/lib/integrations/repository.server", () => ({
   getConnectedAccountsForCurrentUser: vi.fn()
+}));
+
+vi.mock("@/lib/templates/repository.server", () => ({
+  getSystemTemplates: vi.fn()
 }));
 
 vi.mock("./leads-workspace", () => ({
@@ -43,6 +50,8 @@ describe('Leads Page (/dashboard/leads)', () => {
       metaConnection: null,
       openAIConnection: null
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    vi.mocked(getSystemTemplates).mockResolvedValue([] as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const Page = await LeadsPage({ searchParams: Promise.resolve({}) });
     render(Page);

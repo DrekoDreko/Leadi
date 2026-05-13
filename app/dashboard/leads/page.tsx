@@ -4,6 +4,7 @@ import { LeadsWorkspace } from "./leads-workspace";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { parseLeadPaginationParams } from "@/lib/leads/repository";
 import { parseLeadUrlFilters } from "@/lib/leads/filters";
+import { getSystemTemplates } from "@/lib/templates/repository.server";
 
 type LeadsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined> & {
@@ -21,10 +22,11 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const initialLeadPanel = Array.isArray(resolvedSearchParams?.panel)
     ? resolvedSearchParams?.panel[0]
     : resolvedSearchParams?.panel;
-  const [leadState, createLeadAccess, connectedAccounts] = await Promise.all([
+  const [leadState, createLeadAccess, connectedAccounts, whatsappTemplates] = await Promise.all([
     getLeadsForCurrentUser(leadFilters, parseLeadPaginationParams(resolvedSearchParams)),
     getCurrentResourceAccess("lead_creation"),
-    getConnectedAccountsForCurrentUser()
+    getConnectedAccountsForCurrentUser(),
+    getSystemTemplates("whatsapp")
   ]);
 
   return (
@@ -35,6 +37,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       initialLeadPanel={initialLeadPanel === "message" ? "message" : "details"}
       leadFilters={leadFilters}
       leadState={leadState}
+      whatsappTemplates={whatsappTemplates}
     />
   );
 }

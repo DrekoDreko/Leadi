@@ -32,6 +32,6 @@ describe('Login Page (/login)', () => {
     const Page = await LoginPage({ searchParams: Promise.resolve({ error: 'invalid-credentials' }) });
     render(Page);
     
-    expect(screen.getByText(/Error: E-mail ou senha invalidos/i)).toBeInTheDocument();
+    expect(screen.getByText(/Error: E-mail ou senha incorretos/i)).toBeInTheDocument();
   });
 });

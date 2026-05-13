@@ -34,6 +34,17 @@ export type PaymentEventStatus = "pending" | "processed" | "failed" | "cancelled
 export type IntegrationConnectionStatus = "connected" | "disconnected" | "expired" | "pending" | "error";
 export type IntegrationProvider = "meta" | "openai";
 export type IntegrationSyncStatus = "success" | "warning" | "failed" | "error" | "running";
+export type WhatsAppDeliveryProvider = "official_meta" | "external_http";
+export type WhatsAppDeliveryStatus =
+  | "not_requested"
+  | "pending_config"
+  | "opt_in_required"
+  | "credentials_missing"
+  | "queued"
+  | "sent"
+  | "failed"
+  | "rate_limited"
+  | "blocked";
 export type WhatsAppStage = LeadStage;
 export type ProfileRole = "owner" | "admin" | "seller";
 export type WorkspaceType = "solo" | "team";
@@ -161,6 +172,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      meta_campaign_publication_attempts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          campaign_id: string;
+          connected_account_id: string | null;
+          created_by_profile_id: string;
+          publish_mode: CampaignPublishMode;
+          status: "pending" | "success" | "failed" | "skipped";
+          request_payload: Json;
+          response_payload: Json;
+          error_message: string | null;
+          meta_campaign_id: string | null;
+          meta_adset_id: string | null;
+          meta_ad_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          campaign_id: string;
+          connected_account_id?: string | null;
+          created_by_profile_id: string;
+          publish_mode: CampaignPublishMode;
+          status?: "pending" | "success" | "failed" | "skipped";
+          request_payload?: Json;
+          response_payload?: Json;
+          error_message?: string | null;
+          meta_campaign_id?: string | null;
+          meta_adset_id?: string | null;
+          meta_ad_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          campaign_id?: string;
+          connected_account_id?: string | null;
+          created_by_profile_id?: string;
+          publish_mode?: CampaignPublishMode;
+          status?: "pending" | "success" | "failed" | "skipped";
+          request_payload?: Json;
+          response_payload?: Json;
+          error_message?: string | null;
+          meta_campaign_id?: string | null;
+          meta_adset_id?: string | null;
+          meta_ad_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       creative_requests: {
         Row: {
           id: string;
@@ -207,6 +272,69 @@ export type Database = {
           priority?: CreativeRequestPriority;
           due_at?: string | null;
           files?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      meta_ad_image_uploads: {
+        Row: {
+          id: string;
+          organization_id: string;
+          connected_account_id: string;
+          meta_ad_account_id: string;
+          creative_request_id: string | null;
+          campaign_id: string | null;
+          source_filename: string;
+          source_mime_type: string;
+          source_size_bytes: number;
+          meta_image_hash: string | null;
+          meta_image_id: string | null;
+          meta_image_url: string | null;
+          meta_response: Json;
+          local_status: "pending" | "uploaded" | "failed";
+          uploaded_at: string | null;
+          last_error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          connected_account_id: string;
+          meta_ad_account_id: string;
+          creative_request_id?: string | null;
+          campaign_id?: string | null;
+          source_filename: string;
+          source_mime_type: string;
+          source_size_bytes: number;
+          meta_image_hash?: string | null;
+          meta_image_id?: string | null;
+          meta_image_url?: string | null;
+          meta_response?: Json;
+          local_status?: "pending" | "uploaded" | "failed";
+          uploaded_at?: string | null;
+          last_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          connected_account_id?: string;
+          meta_ad_account_id?: string;
+          creative_request_id?: string | null;
+          campaign_id?: string | null;
+          source_filename?: string;
+          source_mime_type?: string;
+          source_size_bytes?: number;
+          meta_image_hash?: string | null;
+          meta_image_id?: string | null;
+          meta_image_url?: string | null;
+          meta_response?: Json;
+          local_status?: "pending" | "uploaded" | "failed";
+          uploaded_at?: string | null;
+          last_error?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -269,6 +397,16 @@ export type Database = {
           compliance_notes: Json;
           input_payload: Json;
           result_payload: Json;
+          delivery_provider: WhatsAppDeliveryProvider | null;
+          delivery_status: WhatsAppDeliveryStatus;
+          delivery_attempted_at: string | null;
+          delivery_sent_at: string | null;
+          delivery_provider_message_id: string | null;
+          delivery_error_code: string | null;
+          delivery_error_message: string | null;
+          delivery_request_payload: Json;
+          delivery_response_payload: Json;
+          delivery_history: Json;
           created_at: string;
           updated_at: string;
         };
@@ -289,6 +427,16 @@ export type Database = {
           compliance_notes?: Json;
           input_payload?: Json;
           result_payload?: Json;
+          delivery_provider?: WhatsAppDeliveryProvider | null;
+          delivery_status?: WhatsAppDeliveryStatus;
+          delivery_attempted_at?: string | null;
+          delivery_sent_at?: string | null;
+          delivery_provider_message_id?: string | null;
+          delivery_error_code?: string | null;
+          delivery_error_message?: string | null;
+          delivery_request_payload?: Json;
+          delivery_response_payload?: Json;
+          delivery_history?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -309,6 +457,55 @@ export type Database = {
           compliance_notes?: Json;
           input_payload?: Json;
           result_payload?: Json;
+          delivery_provider?: WhatsAppDeliveryProvider | null;
+          delivery_status?: WhatsAppDeliveryStatus;
+          delivery_attempted_at?: string | null;
+          delivery_sent_at?: string | null;
+          delivery_provider_message_id?: string | null;
+          delivery_error_code?: string | null;
+          delivery_error_message?: string | null;
+          delivery_request_payload?: Json;
+          delivery_response_payload?: Json;
+          delivery_history?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      whatsapp_delivery_settings: {
+        Row: {
+          organization_id: string;
+          provider: WhatsAppDeliveryProvider;
+          sending_enabled: boolean;
+          opt_in_confirmed_at: string | null;
+          opt_in_confirmed_by_profile_id: string | null;
+          provider_config: Json;
+          last_configuration_check_at: string | null;
+          last_configuration_error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          provider?: WhatsAppDeliveryProvider;
+          sending_enabled?: boolean;
+          opt_in_confirmed_at?: string | null;
+          opt_in_confirmed_by_profile_id?: string | null;
+          provider_config?: Json;
+          last_configuration_check_at?: string | null;
+          last_configuration_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          provider?: WhatsAppDeliveryProvider;
+          sending_enabled?: boolean;
+          opt_in_confirmed_at?: string | null;
+          opt_in_confirmed_by_profile_id?: string | null;
+          provider_config?: Json;
+          last_configuration_check_at?: string | null;
+          last_configuration_error?: string | null;
           created_at?: string;
           updated_at?: string;
         };

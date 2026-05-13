@@ -41,6 +41,16 @@ const ENV_INTEGRATIONS = {
       "Webhook da Meta indisponivel. Configure META_APP_SECRET e META_VERIFY_TOKEN no ambiente do servidor.",
     required: ["META_APP_SECRET", "META_VERIFY_TOKEN"]
   },
+  whatsapp_meta_send: {
+    message:
+      "Envio oficial de WhatsApp indisponivel. Configure META_WHATSAPP_ACCESS_TOKEN e META_WHATSAPP_PHONE_NUMBER_ID no ambiente do servidor.",
+    required: ["META_WHATSAPP_ACCESS_TOKEN", "META_WHATSAPP_PHONE_NUMBER_ID"]
+  },
+  whatsapp_external_send: {
+    message:
+      "Envio por provedor externo indisponivel. Configure WHATSAPP_EXTERNAL_SEND_URL e WHATSAPP_EXTERNAL_API_KEY no ambiente do servidor.",
+    required: ["WHATSAPP_EXTERNAL_SEND_URL", "WHATSAPP_EXTERNAL_API_KEY"]
+  },
   meta_lead_sync: {
     message:
       "Sincronizacao de leads da Meta indisponivel. Conecte a conta Meta da empresa e configure o Supabase admin no servidor.",

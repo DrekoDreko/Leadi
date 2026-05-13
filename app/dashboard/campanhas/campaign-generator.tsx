@@ -24,6 +24,7 @@ import type {
   CampaignTextOutput
 } from "@/lib/campaigns/types";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
+import type { SystemTemplate, CampaignTemplateContent } from "@/lib/templates/types";
 
 type ComplianceQuestionsOutput = {
   questions: Array<{
@@ -104,13 +105,15 @@ type CampaignGeneratorProps = {
   initialCampaigns: CampaignHistoryItem[];
   historyMode: CampaignListState["mode"];
   historyMessage?: string;
+  systemTemplates?: SystemTemplate[];
 };
 
 export function CampaignGenerator({
   connectedAccounts,
   initialCampaigns,
   historyMessage,
-  historyMode
+  historyMode,
+  systemTemplates = []
 }: CampaignGeneratorProps) {
   const [form, setForm] = useState<FormState>(() => createInitialForm(connectedAccounts));
   const [campaign, setCampaign] = useState<CampaignTextOutput | null>(null);
@@ -120,9 +123,11 @@ export function CampaignGenerator({
   const [questionsError, setQuestionsError] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [copiedKey, setCopiedKey] = useState("");
   const [creativeFileNames, setCreativeFileNames] = useState<string[]>([]);
   const [submissionNotice, setSubmissionNotice] = useState("");
+  const [publicationNotice, setPublicationNotice] = useState("");
   const metaConnection = connectedAccounts.metaConnection;
   const openAIConnection = connectedAccounts.openAIConnection;
   const selectedMetaPage = connectedAccounts.metaPages.find(
@@ -234,6 +239,57 @@ export function CampaignGenerator({
     }
   }
 
+  async function handlePublishPausedCampaign() {
+    const latestCampaign = campaignHistory[0];
+    if (!latestCampaign) {
+      setError("Gere e salve uma campanha antes de publicar.");
+      return;
+    }
+
+    setError("");
+    setPublicationNotice("");
+    setIsPublishing(true);
+
+    try {
+      const response = await fetch("/api/campaigns/publish", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": crypto.randomUUID()
+        },
+        body: JSON.stringify({
+          campaignId: latestCampaign.id,
+          publishMode: form.publishMode
+        })
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        campaign?: CampaignHistoryItem;
+        attempt?: { status?: string };
+        error?: string;
+      } | null;
+
+      if (!response.ok || !payload?.campaign) {
+        throw new Error(payload?.error ?? "Nao foi possivel publicar a campanha.");
+      }
+
+      const publishedCampaign = payload.campaign;
+      setCampaignHistory((currentHistory) => [
+        publishedCampaign,
+        ...currentHistory.filter((item) => item.id !== publishedCampaign.id)
+      ]);
+
+      setPublicationNotice(
+        payload.attempt?.status === "skipped"
+          ? "Rascunho salvo localmente. Nenhuma chamada foi enviada para a Meta."
+          : "Campanha enviada para a Meta em modo pausado. O histórico foi atualizado."
+      );
+    } catch (requestError) {
+      setError(getFriendlyErrorMessage(requestError).message);
+    } finally {
+      setIsPublishing(false);
+    }
+  }
+
   function updateField(field: keyof FormState, value: string) {
     setForm((currentForm) => ({
       ...currentForm,
@@ -249,6 +305,19 @@ export function CampaignGenerator({
     } catch (error) {
       setError(getFriendlyErrorMessage(error, "Nao foi possivel copiar automaticamente neste navegador.").message);
     }
+  }
+
+  function applyTemplate(template: SystemTemplate) {
+    const content = template.content as CampaignTemplateContent;
+    setForm((currentForm) => ({
+      ...currentForm,
+      audience: content.audience ?? currentForm.audience,
+      offer: content.offer ?? currentForm.offer,
+      region: content.region ?? currentForm.region,
+      differentiator: content.differentiator ?? currentForm.differentiator,
+      tone: content.tone ?? currentForm.tone,
+      notes: content.notes ?? currentForm.notes
+    }));
   }
 
   const visibleCampaign = campaign ?? {
@@ -357,6 +426,12 @@ export function CampaignGenerator({
         </div>
       ) : null}
 
+      {publicationNotice ? (
+        <div className="rounded-[24px] border border-sky-200/70 bg-sky-50/80 p-4 text-sm text-sky-800">
+          {publicationNotice}
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric
           label="Campanhas salvas"
@@ -383,6 +458,36 @@ export function CampaignGenerator({
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
         <div className="min-w-0 space-y-4">
+          {systemTemplates.length > 0 && (
+            <div className="rounded-[28px] border border-white/50 bg-white/44 p-4">
+              <p className="text-sm font-medium text-cobalt">Templates prontos</p>
+              <h3 className="mt-2 text-lg font-semibold">Exemplos de campanhas</h3>
+              <p className="mt-2 text-sm leading-6 text-ink/64">
+                Use um exemplo pronto para agilizar a criação da sua campanha.
+              </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {systemTemplates.map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => applyTemplate(template)}
+                    className="flex flex-col items-start rounded-[22px] bg-white/54 p-4 text-left transition hover:bg-white/82"
+                    type="button"
+                  >
+                    <span className="rounded-full bg-cobalt/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-cobalt">
+                      {template.category}
+                    </span>
+                    <span className="mt-2 text-sm font-semibold text-ink">
+                      {template.title}
+                    </span>
+                    <span className="mt-1 text-xs text-ink/54 line-clamp-2">
+                      {template.description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <section className="glass-strong rounded-[34px] p-5 md:p-6">
             <form
               className="grid gap-4 md:grid-cols-2"
@@ -819,7 +924,23 @@ export function CampaignGenerator({
                 <p className="rounded-[20px] bg-signal/18 px-4 py-3 text-sm font-semibold text-ink">
                   Selecione uma página e uma conta de anúncio para preparar o rascunho Meta.
                 </p>
-              ) : null}
+              ) : (
+                <button
+                  className="inline-flex items-center gap-2 rounded-full bg-cobalt px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={isPublishing || !campaignHistory[0]}
+                  onClick={handlePublishPausedCampaign}
+                  type="button"
+                >
+                  {isPublishing ? (
+                    <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+                  ) : (
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  )}
+                  {form.publishMode === "draft"
+                    ? "Salvar rascunho"
+                    : "Enviar pausada para Meta"}
+                </button>
+              )}
             </div>
           </section>
 

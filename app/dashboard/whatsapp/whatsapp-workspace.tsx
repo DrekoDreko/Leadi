@@ -461,9 +461,14 @@ export function WhatsAppWorkspace({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <span className="rounded-full bg-white/62 px-3 py-1 text-xs font-semibold text-ink/58">
-                      {formatWhatsAppStage(item.stage)}
-                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full bg-white/62 px-3 py-1 text-xs font-semibold text-ink/58">
+                        {formatWhatsAppStage(item.stage)}
+                      </span>
+                      <span className="rounded-full bg-white/62 px-3 py-1 text-xs font-semibold text-ink/58">
+                        {formatDeliveryStatus(item.delivery.status)}
+                      </span>
+                    </div>
                     <h3 className="mt-3 text-sm font-semibold leading-6 text-ink/86">
                       {item.leadName}
                     </h3>
@@ -492,6 +497,9 @@ export function WhatsAppWorkspace({
                   <span className="rounded-full bg-white/62 px-3 py-1.5">{item.product}</span>
                   <span className="rounded-full bg-white/62 px-3 py-1.5">
                     {formatWhatsAppTone(item.tone)}
+                  </span>
+                  <span className="rounded-full bg-white/62 px-3 py-1.5">
+                    {formatDeliveryStatus(item.delivery.status)}
                   </span>
                   {item.leadContext ? (
                     <span className="rounded-full bg-white/62 px-3 py-1.5">{item.leadContext}</span>
@@ -583,6 +591,16 @@ function createOptimisticHistoryItem({
       objectionReply: message.objectionReply,
       complianceNotes: message.complianceNotes
     },
+    delivery: {
+      provider: null,
+      status: "not_requested",
+      attemptedAt: null,
+      sentAt: null,
+      providerMessageId: null,
+      errorCode: null,
+      errorMessage: null,
+      attempts: []
+    },
     createdAt: timestamp,
     updatedAt: timestamp
   };
@@ -650,6 +668,29 @@ function formatWhatsAppTone(tone: string) {
   const option = whatsappToneOptions.find((item) => item.prompt === tone || item.label === tone);
 
   return option?.label ?? tone;
+}
+
+function formatDeliveryStatus(status: WhatsAppHistoryItem["delivery"]["status"]) {
+  switch (status) {
+    case "sent":
+      return "Enviada";
+    case "queued":
+      return "Na fila";
+    case "pending_config":
+      return "Configuracao pendente";
+    case "opt_in_required":
+      return "Opt-in necessario";
+    case "credentials_missing":
+      return "Credenciais ausentes";
+    case "rate_limited":
+      return "Limite atingido";
+    case "blocked":
+      return "Bloqueada";
+    case "failed":
+      return "Falha";
+    default:
+      return "Nao enviada";
+  }
 }
 
 function mapLeadStage(stage: Lead["stage"] | null | undefined): WhatsAppStage {

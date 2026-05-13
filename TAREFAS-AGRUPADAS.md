@@ -45,8 +45,8 @@ Arquivo gerado a partir de `TAREFAS.md` para visualizar as tarefas por tema reco
 - [ ] **Eu:** escolher gateway inicial: Mercado Pago, Asaas ou Stripe.
 - [ ] **Eu:** definir precos finais dos planos Solo, Equipe e Operacao.
 - [ ] **Eu:** definir trial, garantia, cancelamento e limites por plano.
-- [ ] **F7.1 - Criar tabelas de planos e assinaturas**
-- [ ] **F7.4 - Bloquear ou limitar recursos conforme assinatura**
+- [x] **F7.1 - Criar tabelas de planos e assinaturas**
+- [x] **F7.4 - Bloquear ou limitar recursos conforme assinatura**
 - [ ] **F7.6 - Fazer compra teste ponta a ponta**
 
 ## Deploy, producao e URLs publicas
@@ -54,24 +54,24 @@ Arquivo gerado a partir de `TAREFAS.md` para visualizar as tarefas por tema reco
 - [ ] **Eu:** criar projeto na Vercel.
 - [ ] **Eu:** configurar dominio da LeadHealth.
 - [ ] **Eu:** configurar variaveis de ambiente de producao.
-- [ ] **F8.1 - Revisar URLs, redirects e callback de autenticacao**
-- [ ] **F8.2 - Adicionar verificacao de ambiente para producao**
+- [x] **F8.1 - Revisar URLs, redirects e callback de autenticacao**
+- [x] **F8.2 - Adicionar verificacao de ambiente para producao**
 - [ ] **F8.3 - Rodar build e lint antes do deploy**
-- [ ] **F8.4 - Preparar scripts ou instrucoes de migration**
+- [x] **F8.4 - Preparar scripts ou instrucoes de migration**
 - [ ] **F8.5 - Testar cadastro, login, leads e dashboard no dominio real**
-- [ ] **F8.6 - Configurar URLs publicas de Meta, webhooks e pagamentos**
+- [x] **F8.6 - Configurar URLs publicas de Meta, webhooks e pagamentos**
 
 ## Qualidade, seguranca e operacao
 
-- [ ] **F9.1 - Adicionar testes unitarios de normalizacao**
-- [ ] **F9.2 - Adicionar testes de API para CRUD de leads**
-- [ ] **F9.3 - Adicionar testes basicos de paginas criticas**
-- [ ] **F9.4 - Revisar RLS**
-- [ ] **F9.5 - Adicionar logs controlados para erros de API**
-- [ ] **F9.6 - Criar limites de tamanho para payloads e uploads**
+- [x] **F9.1 - Adicionar testes unitarios de normalizacao**
+- [x] **F9.2 - Adicionar testes de API para CRUD de leads**
+- [x] **F9.3 - Adicionar testes basicos de paginas criticas**
+- [x] **F9.4 - Revisar RLS**
+- [x] **F9.5 - Adicionar logs controlados para erros de API**
+- [x] **F9.6 - Criar limites de tamanho para payloads e uploads**
 - [ ] **F9.7 - Melhorar mensagens de erro para usuario final**
-- [ ] **F9.8 - Adicionar rate limit em endpoints publicos**
-- [ ] **F9.9 - Criar rotina ou orientacao de backup Supabase**
+- [x] **F9.8 - Adicionar rate limit em endpoints publicos**
+- [x] **F9.9 - Criar rotina ou orientacao de backup Supabase**
 - [ ] **F9.10 - Teste de uso como vendedor real por 1 dia**
 
 ## Juridico e LGPD
@@ -85,10 +85,10 @@ Arquivo gerado a partir de `TAREFAS.md` para visualizar as tarefas por tema reco
 - [ ] **Eu:** criar lista dos 10 primeiros usuarios beta.
 - [ ] **Eu:** definir oferta beta e preco de entrada.
 - [ ] **Eu:** gravar ou escrever onboarding simples para novos usuarios.
-- [ ] **F10.1 - Criar checklist de onboarding no dashboard**
-- [ ] **F10.2 - Criar exemplos prontos de campanhas e mensagens**
-- [ ] **F10.3 - Criar indicadores de ativacao**
-- [ ] **F10.4 - Transformar feedback beta em tarefas**
+- [x] **F10.1 - Criar checklist de onboarding no dashboard**
+- [x] **F10.2 - Criar exemplos prontos de campanhas e mensagens**
+- [x] **F10.3 - Criar indicadores de ativacao**
+- [x] **F10.4 - Transformar feedback beta em tarefas**
 
 ## Backlog futuro e evolucao do produto
 

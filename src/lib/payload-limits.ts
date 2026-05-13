@@ -2,6 +2,7 @@ export const PAYLOAD_LIMITS = {
   WEBHOOK_JSON: 1 * 1024 * 1024, // 1MB
   CSV_IMPORT: 10 * 1024 * 1024,  // 10MB (Aumentado para suportar listas maiores)
   ATTACHMENT: 20 * 1024 * 1024,  // 20MB
+  META_AD_IMAGE: 30 * 1024 * 1024, // 30MB para upload de imagem na biblioteca de anuncios da Meta
 };
 
 export type PayloadType = keyof typeof PAYLOAD_LIMITS;

@@ -387,7 +387,7 @@ Criterios de aceite:
 
 ### F10.1 - Criar checklist de onboarding no dashboard
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Crie checklist de onboarding dentro do dashboard.
@@ -414,7 +414,7 @@ Criterios de aceite:
 
 ### F10.2 - Criar exemplos prontos de campanhas e mensagens
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Crie exemplos prontos de campanhas e mensagens para plano de saude empresarial.
@@ -442,7 +442,7 @@ Criterios de aceite:
 
 ### F10.3 - Criar indicadores de ativacao
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Crie indicadores de ativacao do produto.
@@ -468,7 +468,7 @@ Criterios de aceite:
 
 ### F10.4 - Transformar feedback beta em tarefas
 
-- [ ] **Antigravity + Eu**
+- [x] **Antigravity + Eu**
 
 ```txt
 Organize feedback dos primeiros beta testers em tarefas executaveis.
@@ -499,38 +499,10 @@ Nota operacional 2026-05-06:
 - O produto ja possui base parcial para agenda dentro de leads: `next_contact_at` existe no fluxo de criacao/edicao e aparece em metricas e estados de UI.
 - A estrategia recomendada e evoluir em camadas: primeiro trocar o card mockado por dados reais, depois criar visao dedicada de agenda e, por ultimo, adicionar historico de conclusao/reagendamento.
 
-### F11.1 - Trocar agenda mockada da home por agenda real
-
-- [ ] **Antigravity**
-
-```txt
-Substitua o card "Agenda da equipe" do dashboard por dados reais.
-
-Contexto:
-- Hoje a home usa `scheduledTasks` mockado.
-- Ja existe `next_contact_at` nos leads, o que permite uma primeira versao de agenda sem criar novo modulo do zero.
-
-Objetivo:
-- Mostrar no dashboard os proximos compromissos reais da equipe ou do usuario, conforme permissao.
-
-Requisitos:
-- Remover dependencia do mock para o card da agenda na home.
-- Buscar leads com `next_contact_at` futuro e ordenar pelo horario mais proximo.
-- Respeitar o mesmo escopo de permissao dos leads: supervisor ve agenda da organizacao; vendedor ve a propria agenda.
-- Exibir data, hora, nome do lead e acao/resumo curto do proximo contato.
-- Tratar estado vazio com mensagem util e CTA para agendar um proximo contato.
-- Validar pelo MCP Supabase que os registros exibidos no card correspondem aos leads com `next_contact_at` da organizacao correta.
-
-Criterios de aceite:
-- Dashboard nao mostra mais agenda mockada.
-- Compromissos reais aparecem ordenados corretamente.
-- npm run lint passa.
-```
-
 
 ### F11.3 - Melhorar cadastro e edicao de proximo contato
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Melhore a experiencia de cadastrar e editar proximo contato dos leads.
@@ -561,7 +533,7 @@ Criterios de aceite:
 
 ### B1 - Integracao para publicar campanha pausada no Meta Ads
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Planeje e implemente a base para publicar campanha pausada no Meta Ads.
@@ -587,7 +559,7 @@ Criterios de aceite:
 
 ### B2 - Upload de imagens para Meta Marketing API
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Implemente base para upload de imagens para Meta Marketing API.
@@ -610,36 +582,9 @@ Criterios de aceite:
 - Erros da Meta sao exibidos de forma amigavel.
 ```
 
-
-
-### B4 - Kanban com drag and drop persistido
-
-- [ ] **Antigravity**
-
-```txt
-Crie pipeline visual Kanban com drag and drop persistido.
-
-Contexto:
-- O CRM precisa de movimentacao visual entre etapas.
-
-Objetivo:
-- Arrastar leads entre colunas e salvar nova etapa/ordem.
-
-Requisitos:
-- Usar biblioteca confiavel de drag and drop se fizer sentido.
-- Persistir etapa e, se houver, ordem dentro da etapa.
-- Suportar teclado ou alternativa acessivel.
-- Tratar erro revertendo movimento.
-- Conferir pelo MCP Supabase etapa/ordem persistidas apos movimentacao.
-
-Criterios de aceite:
-- Drag and drop funciona em desktop.
-- Mudancas persistem apos reload.
-```
-
 ### B5 - Integracoes com WhatsApp oficial ou provedor externo
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Planeje e implemente base para integracao com WhatsApp oficial ou provedor externo.
@@ -664,7 +609,7 @@ Criterios de aceite:
 
 ### B6 - Scoring automatico de leads
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Crie scoring automatico de leads.
@@ -689,7 +634,7 @@ Criterios de aceite:
 
 ### B7 - Relatorios de ROI por campanha, origem e vendedor
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Crie relatorios de ROI por campanha, origem e vendedor.
@@ -714,7 +659,7 @@ Criterios de aceite:
 
 ### B8 - Exportacao de leads e relatorios
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Implemente exportacao de leads e relatorios.
@@ -739,7 +684,7 @@ Criterios de aceite:
 
 ### B9 - Evoluir publicacao controlada com contas Meta conectadas
 
-- [ ] **Antigravity + Eu**
+- [x] **Antigravity + Eu**
 
 ```txt
 Ajude a decidir quando evoluir de rascunho controlado para publicacao real via Meta Marketing API.

@@ -33,9 +33,9 @@ export async function POST(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
     const body = await request.json();
-    const comment = await createLeadCommentForCurrentUser(id, body);
+    const { comment, lead } = await createLeadCommentForCurrentUser(id, body);
 
-    return NextResponse.json({ comment, mode }, { status: 201 });
+    return NextResponse.json({ comment, lead, mode }, { status: 201 });
   } catch (error) {
     console.error(error);
 

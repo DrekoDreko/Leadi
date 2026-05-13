@@ -214,6 +214,39 @@ export async function getCreativeRequestsForCurrentUser(
   }
 }
 
+export async function getCreativeRequestsCountForCurrentUser(): Promise<number> {
+  if (!isSupabaseConfigured()) {
+    return 0;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) return 0;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile) return 0;
+
+  const { count, error } = await supabase
+    .from("creative_requests")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", profile.organization_id);
+
+  if (error) {
+    console.error("Erro ao contar pedidos criativos:", error);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
 export async function createCreativeRequestForCurrentUser(
   input: CreativeRequestCreateInput
 ): Promise<CreativeRequestItem> {

@@ -12,11 +12,13 @@ import {
   whatsappToneOptions,
   type WhatsAppToneValue
 } from "@/lib/whatsapp/templates";
-import type { WhatsAppStage } from "@/lib/whatsapp/types";
+import type { WhatsAppHistoryItem, WhatsAppStage } from "@/lib/whatsapp/types";
+import type { SystemTemplate, WhatsAppTemplateContent } from "@/lib/templates/types";
 
 type LeadMessageGeneratorProps = {
   hasOpenAIConnection: boolean;
   lead: Lead;
+  systemTemplates?: SystemTemplate[];
 };
 
 type GeneratedMessage = {
@@ -28,6 +30,13 @@ type GeneratedMessage = {
 
 type WhatsAppGenerationResponse = {
   message?: GeneratedMessage;
+  savedMessage?: WhatsAppHistoryItem;
+  error?: string;
+};
+
+type WhatsAppSendResponse = {
+  updatedMessage?: WhatsAppHistoryItem;
+  configurationStatus?: "ready" | "opt_in_required" | "credentials_missing" | "not_configured";
   error?: string;
 };
 
@@ -42,15 +51,20 @@ const stageOptions: Array<{ value: WhatsAppStage; label: string }> = [
 
 export function LeadMessageGenerator({
   hasOpenAIConnection,
-  lead
+  lead,
+  systemTemplates = []
 }: LeadMessageGeneratorProps) {
   const router = useRouter();
   const [selectedStage, setSelectedStage] = useState<WhatsAppStage>(mapLeadStageToMessageStage(lead.stage));
   const [selectedTone, setSelectedTone] = useState<WhatsAppToneValue>("consultivo");
   const [generatedMessage, setGeneratedMessage] = useState<GeneratedMessage | null>(null);
+  const [savedMessage, setSavedMessage] = useState<WhatsAppHistoryItem | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const [sendError, setSendError] = useState("");
+  const [sendSuccess, setSendSuccess] = useState("");
 
   const visibleMessage = useMemo(
     () =>
@@ -103,6 +117,9 @@ export function LeadMessageGenerator({
       }
 
       setGeneratedMessage(payload.message);
+      setSavedMessage(payload.savedMessage ?? null);
+      setSendError("");
+      setSendSuccess("");
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -122,6 +139,62 @@ export function LeadMessageGenerator({
     } catch {
       setError("Nao foi possivel copiar automaticamente neste navegador.");
     }
+  }
+
+  async function handleSend() {
+    if (!savedMessage?.id) {
+      setSendError("Gere uma mensagem antes de tentar enviar.");
+      return;
+    }
+
+    setIsSending(true);
+    setSendError("");
+    setSendSuccess("");
+
+    try {
+      const response = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messageId: savedMessage.id,
+          leadId: lead.id,
+          recipientPhone: lead.phone
+        })
+      });
+      const payload = (await response.json().catch(() => null)) as WhatsAppSendResponse | null;
+
+      if (!response.ok || !payload?.updatedMessage) {
+        throw new Error(payload?.error ?? "Nao foi possivel enviar a mensagem.");
+      }
+
+      setSavedMessage(payload.updatedMessage);
+      setGeneratedMessage(payload.updatedMessage.result as GeneratedMessage);
+      setSendSuccess(
+        payload.configurationStatus === "ready"
+          ? "Mensagem enviada e historico atualizado."
+          : "Envio registrado, mas a configuracao ainda nao permite disparo real."
+      );
+    } catch (requestError) {
+      setSendError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Nao foi possivel enviar a mensagem."
+      );
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  function applyTemplate(template: SystemTemplate) {
+    const content = template.content as WhatsAppTemplateContent;
+    setGeneratedMessage({
+      openingMessage: content.openingMessage?.replace("[Nome do Lead]", lead.name) ?? "",
+      followUpMessage: content.followUpMessage ?? "",
+      objectionReply: content.objectionReply ?? "",
+      complianceNotes: ["Template pronto aplicado. Revise antes de enviar."]
+    });
   }
 
   return (
@@ -148,6 +221,39 @@ export function LeadMessageGenerator({
           {error}
         </div>
       ) : null}
+      {sendError ? (
+        <div className="mt-4 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
+          {sendError}
+        </div>
+      ) : null}
+      {sendSuccess ? (
+        <div className="mt-4 rounded-[24px] border border-emerald-200/70 bg-emerald-50/80 p-4 text-sm text-emerald-900">
+          {sendSuccess}
+        </div>
+      ) : null}
+
+      {systemTemplates.length > 0 && (
+        <div className="mt-4 rounded-[24px] border border-white/50 bg-white/44 p-4">
+          <p className="text-sm font-medium text-cobalt">Templates prontos</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {systemTemplates.map((template) => (
+              <button
+                key={template.id}
+                onClick={() => applyTemplate(template)}
+                className="flex flex-col items-start rounded-[18px] bg-white/54 p-3 text-left transition hover:bg-white/82"
+                type="button"
+              >
+                <span className="text-xs font-semibold text-ink">
+                  {template.title}
+                </span>
+                <span className="mt-1 text-[10px] text-ink/54 line-clamp-1">
+                  {template.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <label className="block space-y-2">
@@ -157,6 +263,9 @@ export function LeadMessageGenerator({
             onChange={(event) => {
               setSelectedStage(event.target.value as WhatsAppStage);
               setGeneratedMessage(null);
+              setSavedMessage(null);
+              setSendError("");
+              setSendSuccess("");
             }}
             value={selectedStage}
           >
@@ -175,6 +284,9 @@ export function LeadMessageGenerator({
             onChange={(event) => {
               setSelectedTone(event.target.value as WhatsAppToneValue);
               setGeneratedMessage(null);
+              setSavedMessage(null);
+              setSendError("");
+              setSendSuccess("");
             }}
             value={selectedTone}
           >
@@ -202,6 +314,19 @@ export function LeadMessageGenerator({
           {isGenerating ? "Gerando" : "Gerar mensagem"}
         </button>
         <button
+          className="inline-flex items-center gap-2 rounded-full border border-cobalt/22 bg-white/70 px-5 py-3 text-sm font-semibold text-cobalt transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={isGenerating || isSending || !savedMessage?.id}
+          onClick={() => void handleSend()}
+          type="button"
+        >
+          {isSending ? (
+            <Loader2 className="animate-spin" size={18} aria-hidden="true" />
+          ) : (
+            <Sparkles size={18} aria-hidden="true" />
+          )}
+          {isSending ? "Enviando" : "Enviar por WhatsApp"}
+        </button>
+        <button
           className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
             copied
               ? "bg-lagoon text-white"
@@ -218,6 +343,12 @@ export function LeadMessageGenerator({
           {copied ? "Copiado" : "Copiar mensagem"}
         </button>
       </div>
+
+      {savedMessage ? (
+        <div className="mt-3 rounded-[22px] border border-white/48 bg-white/40 px-4 py-3 text-sm text-ink/66">
+          Status de envio: {formatDeliveryStatus(savedMessage.delivery.status)}
+        </div>
+      ) : null}
 
       <div className="mt-5 grid gap-3">
         <MessageBlock label="Abertura" value={visibleMessage.openingMessage} />
@@ -266,6 +397,29 @@ function formatMessage(message: GeneratedMessage) {
     "",
     message.objectionReply
   ].join("\n");
+}
+
+function formatDeliveryStatus(status: WhatsAppHistoryItem["delivery"]["status"]) {
+  switch (status) {
+    case "sent":
+      return "Enviada";
+    case "queued":
+      return "Na fila";
+    case "pending_config":
+      return "Configuracao pendente";
+    case "opt_in_required":
+      return "Opt-in necessario";
+    case "credentials_missing":
+      return "Credenciais ausentes";
+    case "rate_limited":
+      return "Limite atingido";
+    case "blocked":
+      return "Bloqueada";
+    case "failed":
+      return "Falha";
+    default:
+      return "Nao enviada";
+  }
 }
 
 function mapLeadStageToMessageStage(stage: Lead["stage"]) {

@@ -1,4 +1,11 @@
 import type { WhatsAppMessageOutput } from "@/lib/openai";
+import type {
+  WhatsAppDeliveryProvider as DatabaseWhatsAppDeliveryProvider,
+  WhatsAppDeliveryStatus as DatabaseWhatsAppDeliveryStatus
+} from "@/lib/supabase/database.types";
+
+export type WhatsAppDeliveryProvider = DatabaseWhatsAppDeliveryProvider;
+export type WhatsAppDeliveryStatus = DatabaseWhatsAppDeliveryStatus;
 
 export type WhatsAppStage =
   | "new"
@@ -37,8 +44,68 @@ export type WhatsAppHistoryItem = {
   product: string;
   input: WhatsAppGenerationForm;
   result: WhatsAppMessageOutput;
+  delivery: WhatsAppDeliverySummary;
   createdAt: string;
   updatedAt: string;
+};
+
+export type WhatsAppDeliverySummary = {
+  provider: WhatsAppDeliveryProvider | null;
+  status: WhatsAppDeliveryStatus;
+  attemptedAt: string | null;
+  sentAt: string | null;
+  providerMessageId: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  attempts: WhatsAppDeliveryAttempt[];
+};
+
+export type WhatsAppDeliveryAttempt = {
+  id: string;
+  status: WhatsAppDeliveryStatus;
+  provider: WhatsAppDeliveryProvider | null;
+  attemptedAt: string;
+  sentAt: string | null;
+  providerMessageId: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+};
+
+export type WhatsAppDeliveryProviderKind = WhatsAppDeliveryProvider;
+
+export type WhatsAppDeliveryConfiguration = {
+  organizationId: string;
+  provider: WhatsAppDeliveryProviderKind;
+  sendingEnabled: boolean;
+  optInConfirmedAt: string | null;
+  optInConfirmedByProfileId: string | null;
+  providerConfig: Record<string, unknown>;
+  lastConfigurationCheckAt: string | null;
+  lastConfigurationError: string | null;
+  credentialsConfigured: boolean;
+  missingCredentials: string[];
+};
+
+export type WhatsAppProviderFactoryResult = {
+  provider: import("./providers/types").WhatsAppProvider | null;
+  configuration: WhatsAppDeliveryConfiguration;
+};
+
+export type WhatsAppSendRequest = {
+  messageId: string;
+  leadId?: string | null;
+  recipientPhone?: string | null;
+};
+
+export type WhatsAppSendResult = {
+  messageId: string;
+  status: WhatsAppDeliveryStatus;
+  provider: WhatsAppDeliveryProvider | null;
+  providerMessageId: string | null;
+  attemptedAt: string;
+  sentAt: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
 };
 
 export type WhatsAppListState = {

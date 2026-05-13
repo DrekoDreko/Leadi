@@ -68,6 +68,30 @@ export const ENV_VARIABLES = {
     description: "Versao da Graph API da Meta.",
     public: false
   },
+  META_WHATSAPP_ACCESS_TOKEN: {
+    description: "Token de acesso server-side para envio oficial de WhatsApp via Meta.",
+    public: false
+  },
+  META_WHATSAPP_PHONE_NUMBER_ID: {
+    description: "Phone number id da conta oficial de WhatsApp da Meta.",
+    public: false
+  },
+  META_WHATSAPP_API_VERSION: {
+    description: "Versao opcional da Graph API usada no envio oficial de WhatsApp.",
+    public: false
+  },
+  WHATSAPP_EXTERNAL_SEND_URL: {
+    description: "Endpoint server-side do provedor externo de WhatsApp.",
+    public: false
+  },
+  WHATSAPP_EXTERNAL_API_KEY: {
+    description: "Chave server-side do provedor externo de WhatsApp.",
+    public: false
+  },
+  WHATSAPP_EXTERNAL_SENDER_ID: {
+    description: "Identificador de remetente usado pelo provedor externo de WhatsApp.",
+    public: false
+  },
 } as const satisfies Record<string, EnvVariableDefinition>;
 
 export type EnvVariableName = keyof typeof ENV_VARIABLES;

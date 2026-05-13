@@ -3,6 +3,10 @@ import type { Database, Json } from "@/lib/supabase/database.types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
+  WhatsAppDeliveryAttempt,
+  WhatsAppDeliveryProvider,
+  WhatsAppDeliveryStatus,
+  WhatsAppDeliverySummary,
   WhatsAppGenerationForm,
   WhatsAppHistoryItem,
   WhatsAppListState,
@@ -182,7 +186,7 @@ function buildWhatsAppInsert(
   };
 }
 
-function mapWhatsAppRowToHistoryItem(row: WhatsAppRow): WhatsAppHistoryItem {
+export function mapWhatsAppRowToHistoryItem(row: WhatsAppRow): WhatsAppHistoryItem {
   const input = parseWhatsAppInput(row);
   const result = parseWhatsAppResult(row);
 
@@ -199,6 +203,7 @@ function mapWhatsAppRowToHistoryItem(row: WhatsAppRow): WhatsAppHistoryItem {
     product: row.product || DEFAULT_PRODUCT,
     input,
     result,
+    delivery: parseDeliverySummary(row),
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -292,6 +297,7 @@ function createMockWhatsAppHistoryItem(
     product: DEFAULT_PRODUCT,
     input: form,
     result,
+    delivery: buildMockDeliverySummary(),
     createdAt: timestamp,
     updatedAt: timestamp
   };
@@ -317,8 +323,22 @@ function createMockWhatsAppHistoryItemFromForm(
     product: form.product || DEFAULT_PRODUCT,
     input: form,
     result: message,
+    delivery: buildMockDeliverySummary(),
     createdAt: timestamp,
     updatedAt: timestamp
+  };
+}
+
+function buildMockDeliverySummary(): WhatsAppDeliverySummary {
+  return {
+    provider: null,
+    status: "not_requested",
+    attemptedAt: null,
+    sentAt: null,
+    providerMessageId: null,
+    errorCode: null,
+    errorMessage: null,
+    attempts: []
   };
 }
 
@@ -404,6 +424,74 @@ function arrayFromPayload(value: Json | null | undefined, fallback: Json | null 
 
 function stringFromPayload(value: Json | null | undefined) {
   return typeof value === "string" ? value : null;
+}
+
+function parseDeliverySummary(row: WhatsAppRow): WhatsAppDeliverySummary {
+  const attempts = parseDeliveryHistory(row.delivery_history);
+
+  return {
+    provider: row.delivery_provider ?? null,
+    status: row.delivery_status ?? "not_requested",
+    attemptedAt: row.delivery_attempted_at,
+    sentAt: row.delivery_sent_at,
+    providerMessageId: row.delivery_provider_message_id,
+    errorCode: row.delivery_error_code,
+    errorMessage: row.delivery_error_message,
+    attempts
+  };
+}
+
+function parseDeliveryHistory(value: Json | null | undefined): WhatsAppDeliveryAttempt[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item, index) => {
+      if (!isRecord(item)) {
+        return null;
+      }
+
+      const attemptedAt = stringFromPayload(item.attemptedAt) ?? new Date(0).toISOString();
+
+      return {
+        id: stringFromPayload(item.id) ?? `delivery-attempt-${index}`,
+        status: normalizeDeliveryStatus(stringFromPayload(item.status)),
+        provider: normalizeDeliveryProvider(stringFromPayload(item.provider)),
+        attemptedAt,
+        sentAt: stringFromPayload(item.sentAt),
+        providerMessageId: stringFromPayload(item.providerMessageId),
+        errorCode: stringFromPayload(item.errorCode),
+        errorMessage: stringFromPayload(item.errorMessage)
+      };
+    })
+    .filter((item): item is WhatsAppDeliveryAttempt => item !== null);
+}
+
+function normalizeDeliveryStatus(value: string | null): WhatsAppDeliveryStatus {
+  if (
+    value === "not_requested" ||
+    value === "pending_config" ||
+    value === "opt_in_required" ||
+    value === "credentials_missing" ||
+    value === "queued" ||
+    value === "sent" ||
+    value === "failed" ||
+    value === "rate_limited" ||
+    value === "blocked"
+  ) {
+    return value;
+  }
+
+  return "not_requested";
+}
+
+function normalizeDeliveryProvider(value: string | null): WhatsAppDeliveryProvider | null {
+  if (value === "official_meta" || value === "external_http") {
+    return value;
+  }
+
+  return null;
 }
 
 function isRecord(value: Json | null | undefined): value is Record<string, Json> {

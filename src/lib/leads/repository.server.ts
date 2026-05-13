@@ -22,9 +22,9 @@ import {
   normalizeLeadSource,
   normalizeLeadStage,
   normalizePhone,
-  normalizeScore,
   stringOrNull
 } from "./normalization";
+import { calculateLeadScore, type LeadScoringInput } from "./scoring";
 import {
   buildEmptyLeadAgendaMetrics,
   buildLeadPaginationMeta,
@@ -248,57 +248,22 @@ export async function getLeadsForCurrentUser(
       buildLeadAgendaMetricsFallback(profile)
     );
 
-    let query =
-      pagination.limit === null
-        ? supabase.from("leads").select("*").eq("organization_id", profile.organization_id)
-        : supabase
-            .from("leads")
-            .select("*", { count: "exact" })
-            .eq("organization_id", profile.organization_id);
+    let query = buildLeadQuery(
+      supabase
+        .from("leads")
+        .select("*", { count: "exact" })
+        .eq("organization_id", profile.organization_id),
+      profile,
+      filters
+    ).order("received_at", { ascending: false });
 
-    if (profile.role === "seller") {
-      query = query.eq("owner_profile_id", profile.id);
+    if (pagination.limit === null) {
+      query = buildLeadQuery(
+        supabase.from("leads").select("*").eq("organization_id", profile.organization_id),
+        profile,
+        filters
+      ).order("received_at", { ascending: false });
     }
-
-    const stageValue = getSupabaseStageValue(filters.stage);
-    if (stageValue) {
-      query = query.eq("stage", stageValue);
-    }
-
-    const sourceValue = getSupabaseSourceValue(filters.source);
-    if (sourceValue) {
-      query = query.eq("source", sourceValue);
-    }
-
-    if (filters.city) {
-      query = query.ilike("city", `%${filters.city}%`);
-    }
-
-    const scoreRange = getLeadScoreRange(filters.score);
-    if (scoreRange) {
-      query = query.gte("score", scoreRange.min).lte("score", scoreRange.max);
-    }
-
-    const periodStart = getLeadPeriodStart(filters.period);
-    if (periodStart) {
-      query = query.gte("received_at", periodStart.toISOString());
-    }
-
-    const searchPattern = getSupabaseLeadSearchPattern(filters.search);
-    if (searchPattern) {
-      query = query.or(
-        [
-          `name.ilike.${searchPattern}`,
-          `email.ilike.${searchPattern}`,
-          `phone.ilike.${searchPattern}`,
-          `phone_e164.ilike.${searchPattern}`,
-          `city.ilike.${searchPattern}`,
-          `company_name.ilike.${searchPattern}`
-        ].join(",")
-      );
-    }
-
-    query = query.order("received_at", { ascending: false });
 
     if (pagination.limit !== null) {
       query = query.range(pagination.offset, pagination.offset + pagination.limit - 1);
@@ -318,7 +283,9 @@ export async function getLeadsForCurrentUser(
       };
     }
 
-    const leads = (data ?? []).map((lead) => mapLeadRowToLead(lead, profile, hasMetaConnection));
+    const leads = ((data ?? []) as LeadRow[]).map((lead) =>
+      mapLeadRowToLead(lead, profile, hasMetaConnection)
+    );
     const total = pagination.limit === null ? leads.length : count ?? pagination.offset + leads.length;
 
     return {
@@ -340,6 +307,77 @@ export async function getLeadsForCurrentUser(
       message: "Nao foi possivel carregar os leads."
     };
   }
+}
+
+export async function getLeadExportRowsForCurrentUser(
+  filters: LeadUrlFilters = defaultLeadUrlFilters,
+  sellerProfileId: string | null = null
+): Promise<Lead[]> {
+  if (!isSupabaseConfigured()) {
+    return mockLeads.filter((lead) => applyLeadUrlFilters(lead, filters));
+  }
+
+  const profile = await getCurrentProfile();
+  const hasMetaConnection = Boolean(
+    await getMetaConnectionForOrganization(profile.organization_id)
+  );
+  const supabase = await createSupabaseServerClient();
+  const exportProfiles = await loadLeadExportProfiles(supabase, profile.organization_id);
+  const query = buildLeadQuery(
+    supabase.from("leads").select("*").eq("organization_id", profile.organization_id),
+    profile,
+    filters,
+    sellerProfileId
+  ).order("received_at", { ascending: false });
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return ((data ?? []) as LeadRow[]).map((lead) =>
+    mapLeadRowToExportLead(lead, profile, exportProfiles, hasMetaConnection)
+  );
+}
+
+export async function getLeadsCountForCurrentUser(): Promise<number> {
+  if (!isSupabaseConfigured()) {
+    return mockLeads.length;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) return 0;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, organization_id, role")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile) return 0;
+
+  let query = supabase
+    .from("leads")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", profile.organization_id);
+
+  if (profile.role === "seller") {
+    query = query.eq("owner_profile_id", profile.id);
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    console.error("Erro ao contar leads:", error);
+    return 0;
+  }
+
+  return count ?? 0;
 }
 
 export async function createLeadForCurrentUser(input: LeadCreateInput): Promise<LeadCreationResult> {
@@ -478,8 +516,8 @@ export async function updateLeadForCurrentUser(id: string, input: LeadCreateInpu
   const hasMetaConnection = Boolean(
     await getMetaConnectionForOrganization(profile.organization_id)
   );
-  const payload = buildLeadUpdate(input);
   const existingLead = await getLeadForMutation(id, profile.organization_id);
+  const payload = buildLeadUpdate(existingLead, input);
 
   assertCanManageLead(profile, existingLead, "editar", hasMetaConnection);
   assertCanApplyLeadUpdate(profile, payload, hasMetaConnection);
@@ -561,7 +599,7 @@ export async function listLeadCommentsForCurrentUser(id: string): Promise<LeadCo
 export async function createLeadCommentForCurrentUser(
   id: string,
   input: { body?: unknown }
-): Promise<LeadComment> {
+): Promise<{ comment: LeadComment; lead: Lead }> {
   const body = normalizeLeadCommentBody(input.body);
 
   if (!isSupabaseConfigured()) {
@@ -577,7 +615,11 @@ export async function createLeadCommentForCurrentUser(
     };
 
     mockLeadComments.push(comment);
-    return comment;
+
+    return {
+      comment,
+      lead: updateMockLeadCommentLead(id, body)
+    };
   }
 
   const profile = await getCurrentProfile();
@@ -586,9 +628,30 @@ export async function createLeadCommentForCurrentUser(
   assertCanAccessLead(profile, lead, "comentar");
 
   const supabase = await createSupabaseServerClient();
+  const updatedInteraction = buildLeadInteractionSummary("comment", body);
+  const { data: updatedLeadRow, error: updateError } = await supabase
+    .from("leads")
+    .update({
+      last_interaction: updatedInteraction,
+      score: calculateLeadScore(
+        buildLeadScoreInput({
+          ...lead,
+          last_interaction: updatedInteraction
+        })
+      ).score
+    })
+    .eq("id", lead.id)
+    .eq("organization_id", profile.organization_id)
+    .select("*")
+    .single();
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
   const { data, error } = await supabase
     .from("lead_comments")
-    .insert(buildLeadCommentInsert(lead, profile, body))
+    .insert(buildLeadCommentInsert(updatedLeadRow, profile, body))
     .select("*")
     .single();
 
@@ -596,7 +659,10 @@ export async function createLeadCommentForCurrentUser(
     throw new Error(error.message);
   }
 
-  return mapLeadCommentRowToItem(data);
+  return {
+    comment: mapLeadCommentRowToItem(data),
+    lead: mapLeadRowToLead(updatedLeadRow, profile)
+  };
 }
 
 export async function listLeadFollowUpEventsForCurrentUser(id: string): Promise<LeadFollowUpEvent[]> {
@@ -635,7 +701,7 @@ export async function createLeadFollowUpEventForCurrentUser(
 
   if (!isSupabaseConfigured()) {
     const event = createMockLeadFollowUpEvent(id, eventType, input.next_contact_at, note);
-    const lead = updateMockLeadFollowUpLead(id, event.nextContactAt);
+    const lead = updateMockLeadFollowUpLead(id, event.nextContactAt, eventType, note);
 
     mockLeadFollowUpEvents.unshift(event);
 
@@ -659,10 +725,23 @@ export async function createLeadFollowUpEventForCurrentUser(
   }
 
   const supabase = await createSupabaseServerClient();
+  const followUpSummary = buildLeadInteractionSummary(
+    eventType,
+    note,
+    nextContactAt ?? previousNextContactAt
+  );
   const { data: updatedLeadRow, error: updateError } = await supabase
     .from("leads")
     .update({
-      next_contact_at: eventType === "rescheduled" ? nextContactAt : null
+      next_contact_at: eventType === "rescheduled" ? nextContactAt : null,
+      last_interaction: followUpSummary,
+      score: calculateLeadScore(
+        buildLeadScoreInput({
+          ...lead,
+          next_contact_at: eventType === "rescheduled" ? nextContactAt : null,
+          last_interaction: followUpSummary
+        })
+      ).score
     })
     .eq("id", id)
     .eq("organization_id", profile.organization_id)
@@ -971,33 +1050,14 @@ function createMockLeadFollowUpEvent(
 
 function updateMockLeadFollowUpLead(
   id: string,
-  nextContactAt: string | null
+  nextContactAt: string | null,
+  eventType: LeadFollowUpEvent["eventType"],
+  note: string | null
 ): Lead {
-  const existingLead = mockLeads.find((lead) => lead.id === id);
-  const fallbackLead = createMockLead({
-    name: "Lead sem nome",
-    next_contact_at: nextContactAt
+  return updateMockLead(id, {
+    next_contact_at: nextContactAt,
+    last_interaction: buildLeadInteractionSummary(eventType, note, nextContactAt)
   });
-  const updatedLead = existingLead
-    ? {
-        ...existingLead,
-        nextContactAt,
-        nextContact: nextContactAt ? formatNextContact(nextContactAt) : "A definir"
-      }
-    : {
-        ...fallbackLead,
-        id,
-        nextContactAt,
-        nextContact: nextContactAt ? formatNextContact(nextContactAt) : "A definir"
-      };
-
-  const leadIndex = mockLeads.findIndex((lead) => lead.id === id);
-
-  if (leadIndex >= 0) {
-    mockLeads[leadIndex] = updatedLead;
-  }
-
-  return updatedLead;
 }
 
 async function getLeadForMutation(id: string, organizationId: string) {
@@ -1041,6 +1101,90 @@ async function getCurrentProfile() {
   }
 
   return profile;
+}
+
+function buildLeadQuery(
+  query: ReturnType<ServerClient["from"]>,
+  profile: ProfileRow,
+  filters: LeadUrlFilters,
+  sellerProfileId: string | null = null
+) {
+  const ownerProfileId = resolveLeadOwnerProfileId(profile, sellerProfileId);
+
+  if (ownerProfileId) {
+    query = query.eq("owner_profile_id", ownerProfileId);
+  }
+
+  const stageValue = getSupabaseStageValue(filters.stage);
+  if (stageValue) {
+    query = query.eq("stage", stageValue);
+  }
+
+  const sourceValue = getSupabaseSourceValue(filters.source);
+  if (sourceValue) {
+    query = query.eq("source", sourceValue);
+  }
+
+  if (filters.city) {
+    query = query.ilike("city", `%${filters.city}%`);
+  }
+
+  const scoreRange = getLeadScoreRange(filters.score);
+  if (scoreRange) {
+    query = query.gte("score", scoreRange.min).lte("score", scoreRange.max);
+  }
+
+  const periodStart = getLeadPeriodStart(filters.period);
+  if (periodStart) {
+    query = query.gte("received_at", periodStart.toISOString());
+  }
+
+  const searchPattern = getSupabaseLeadSearchPattern(filters.search);
+  if (searchPattern) {
+    query = query.or(
+      [
+        `name.ilike.${searchPattern}`,
+        `email.ilike.${searchPattern}`,
+        `phone.ilike.${searchPattern}`,
+        `phone_e164.ilike.${searchPattern}`,
+        `city.ilike.${searchPattern}`,
+        `company_name.ilike.${searchPattern}`
+      ].join(",")
+    );
+  }
+
+  return query;
+}
+
+function resolveLeadOwnerProfileId(profile: ProfileRow, sellerProfileId: string | null) {
+  if (profile.role === "seller") {
+    return profile.id;
+  }
+
+  if (!sellerProfileId || sellerProfileId === "all") {
+    return null;
+  }
+
+  return sellerProfileId;
+}
+
+async function loadLeadExportProfiles(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  organizationId: string
+) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, role, organization_id")
+    .eq("organization_id", organizationId)
+    .in("role", ["owner", "admin", "seller"]);
+
+  if (error || !data) {
+    return new Map<string, ProfileRow>();
+  }
+
+  return new Map<string, ProfileRow>(
+    (data as ProfileRow[]).map((profile) => [profile.id, profile])
+  );
 }
 
 async function resolveWebhookLeadProfile(
@@ -1289,6 +1433,20 @@ function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInser
   const name = getRequiredLeadName(input.name);
   const phone = normalizePhone(input.phone);
   const rawPayload = toJson(input.raw_payload);
+  const scoreInput = buildLeadScoreInput({
+    stage: normalizeLeadStage(input.stage),
+    source: normalizeLeadSource(input.source),
+    email: normalizeEmail(input.email),
+    phone: phone.e164 ?? phone.display,
+    city: stringOrNull(input.city),
+    companyName: stringOrNull(input.company_name),
+    livesCount: normalizeInteger(input.lives_count),
+    budget: stringOrNull(input.budget),
+    interest: stringOrNull(input.interest),
+    lastInteraction: stringOrNull(input.last_interaction),
+    notes: stringOrNull(input.notes),
+    nextContactAt: stringOrNull(input.next_contact_at)
+  });
 
   return {
     organization_id: profile.organization_id,
@@ -1302,7 +1460,7 @@ function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInser
     lives_count: normalizeInteger(input.lives_count),
     stage: normalizeLeadStage(input.stage),
     source: normalizeLeadSource(input.source),
-    score: normalizeScore(input.score),
+    score: calculateLeadScore(scoreInput).score,
     next_contact_at: stringOrNull(input.next_contact_at),
     budget: stringOrNull(input.budget),
     interest: stringOrNull(input.interest),
@@ -1348,6 +1506,21 @@ function createMockLead(input: LeadCreateInput): Lead {
   const source = normalizeLeadSource(input.source);
   const nextContactAt = stringOrNull(input.next_contact_at);
   const now = new Date();
+  const scoreInput = buildLeadScoreInput({
+    stage,
+    source,
+    email,
+    phone: phone.e164 ?? phone.display,
+    city: stringOrNull(input.city),
+    companyName: stringOrNull(input.company_name),
+    livesCount: normalizeInteger(input.lives_count),
+    budget: stringOrNull(input.budget),
+    interest: stringOrNull(input.interest),
+    lastInteraction: stringOrNull(input.last_interaction),
+    notes: stringOrNull(input.notes),
+    nextContactAt,
+    receivedAt: now.toISOString()
+  });
 
   return {
     id: `mock-${now.getTime()}`,
@@ -1358,7 +1531,7 @@ function createMockLead(input: LeadCreateInput): Lead {
     stage: stageLabels[stage],
     nextContact: formatNextContact(nextContactAt),
     nextContactAt,
-    score: normalizeScore(input.score),
+    score: calculateLeadScore(scoreInput).score,
     source: sourceLabels[source],
     phone: phone.display ?? "Sem telefone",
     email: email ?? "Sem email",
@@ -1393,8 +1566,7 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
   const livesCount =
     input.lives_count === undefined ? existingLead?.livesCount : normalizeInteger(input.lives_count);
   const now = new Date();
-
-  return {
+  const updatedLeadBase = {
     id,
     name:
       input.name === undefined
@@ -1409,7 +1581,6 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
         ? existingLead?.nextContact ?? "A definir"
         : formatNextContact(input.next_contact_at),
     nextContactAt,
-    score: input.score === undefined ? existingLead?.score ?? 50 : normalizeScore(input.score),
     source: source ? sourceLabels[source] : existingLead?.source ?? "Cadastro manual",
     phone:
       input.phone === undefined
@@ -1467,6 +1638,32 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
         : stringOrNull(input.meta_connected_account_id),
     receivedAt: existingLead?.receivedAt ?? now.toISOString()
   };
+  const scoreInput = buildLeadScoreInput({
+    stage: stage ? stage : existingLead?.stage,
+    source: source ? source : existingLead?.source,
+    email: updatedLeadBase.email === "Sem email" ? null : updatedLeadBase.email,
+    phone: updatedLeadBase.phone === "Sem telefone" ? null : updatedLeadBase.phone,
+    city: updatedLeadBase.city,
+    companyName: updatedLeadBase.companyName,
+    livesCount: updatedLeadBase.livesCount,
+    budget: updatedLeadBase.budget === "A qualificar" ? null : updatedLeadBase.budget,
+    interest:
+      updatedLeadBase.interest === "Interesse ainda nao qualificado"
+        ? null
+        : updatedLeadBase.interest,
+    lastInteraction:
+      updatedLeadBase.lastInteraction === "Lead atualizado no modo demonstracao."
+        ? null
+        : updatedLeadBase.lastInteraction,
+    notes: updatedLeadBase.notes === "Sem observacoes registradas." ? null : updatedLeadBase.notes,
+    nextContactAt: updatedLeadBase.nextContactAt,
+    receivedAt: updatedLeadBase.receivedAt
+  });
+  const updatedLead = {
+    ...updatedLeadBase,
+    score: calculateLeadScore(scoreInput).score
+  };
+  return updatedLead;
 }
 
 function getRequiredLeadName(value: unknown) {
@@ -1490,9 +1687,32 @@ function formatNextContact(value: unknown) {
   return Number.isNaN(date.getTime()) ? nextContact : contactFormatter.format(date);
 }
 
-function buildLeadUpdate(input: LeadCreateInput): Database["public"]["Tables"]["leads"]["Update"] {
+function buildLeadUpdate(existingLead: LeadRow, input: LeadCreateInput): Database["public"]["Tables"]["leads"]["Update"] {
   const phone = normalizePhone(input.phone);
   const rawPayload = toJson(input.raw_payload);
+  const mergedScoreInput = buildLeadScoreInput({
+    stage: input.stage === undefined ? existingLead.stage : normalizeLeadStage(input.stage),
+    source: input.source === undefined ? existingLead.source : normalizeLeadSource(input.source),
+    email:
+      input.email === undefined ? existingLead.email : normalizeEmail(input.email),
+    phone:
+      input.phone === undefined
+        ? existingLead.phone_e164 ?? existingLead.phone
+        : phone.e164 ?? phone.display,
+    city: input.city === undefined ? existingLead.city : stringOrNull(input.city),
+    companyName:
+      input.company_name === undefined ? existingLead.company_name : stringOrNull(input.company_name),
+    livesCount:
+      input.lives_count === undefined ? existingLead.lives_count : normalizeInteger(input.lives_count),
+    budget: input.budget === undefined ? existingLead.budget : stringOrNull(input.budget),
+    interest: input.interest === undefined ? existingLead.interest : stringOrNull(input.interest),
+    lastInteraction:
+      input.last_interaction === undefined ? existingLead.last_interaction : stringOrNull(input.last_interaction),
+    notes: input.notes === undefined ? existingLead.notes : stringOrNull(input.notes),
+    nextContactAt:
+      input.next_contact_at === undefined ? existingLead.next_contact_at : stringOrNull(input.next_contact_at),
+    receivedAt: existingLead.received_at
+  });
 
   return removeUndefinedValues({
     name: stringOrNull(input.name) ?? undefined,
@@ -1504,7 +1724,7 @@ function buildLeadUpdate(input: LeadCreateInput): Database["public"]["Tables"]["
     lives_count: input.lives_count === undefined ? undefined : normalizeInteger(input.lives_count),
     stage: input.stage === undefined ? undefined : normalizeLeadStage(input.stage),
     source: input.source === undefined ? undefined : normalizeLeadSource(input.source),
-    score: input.score === undefined ? undefined : normalizeScore(input.score),
+    score: calculateLeadScore(mergedScoreInput).score,
     next_contact_at:
       input.next_contact_at === undefined ? undefined : stringOrNull(input.next_contact_at),
     budget: input.budget === undefined ? undefined : stringOrNull(input.budget),
@@ -1569,6 +1789,75 @@ function mapLeadRowToLead(
     metaConnectedAccountId: row.meta_connected_account_id,
     receivedAt: row.received_at
   };
+}
+
+function buildLeadScoreInput(input: {
+  stage?: string | null;
+  source?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  companyName?: string | null;
+  company_name?: string | null;
+  livesCount?: number | null;
+  lives_count?: number | null;
+  budget?: string | null;
+  interest?: string | null;
+  lastInteraction?: string | null;
+  last_interaction?: string | null;
+  notes?: string | null;
+  nextContactAt?: string | null;
+  next_contact_at?: string | null;
+  receivedAt?: string | null;
+  received_at?: string | null;
+}): LeadScoringInput {
+  return {
+    stage: input.stage ?? null,
+    source: input.source ?? null,
+    email: input.email ?? null,
+    phone: input.phone ?? null,
+    city: input.city ?? null,
+    companyName: input.companyName ?? input.company_name ?? null,
+    livesCount: input.livesCount ?? input.lives_count ?? null,
+    budget: input.budget ?? null,
+    interest: input.interest ?? null,
+    lastInteraction: input.lastInteraction ?? input.last_interaction ?? null,
+    notes: input.notes ?? null,
+    nextContactAt: input.nextContactAt ?? input.next_contact_at ?? null,
+    receivedAt: input.receivedAt ?? input.received_at ?? null
+  };
+}
+
+function updateMockLeadCommentLead(id: string, commentBody: string) {
+  return updateMockLead(id, {
+    last_interaction: buildLeadInteractionSummary("comment", commentBody)
+  });
+}
+
+function buildLeadInteractionSummary(
+  type: "comment" | LeadFollowUpEvent["eventType"],
+  body?: string | null,
+  nextContactAt?: string | null
+) {
+  if (type === "comment") {
+    return body ? `Comentário: ${body.slice(0, 120)}` : "Comentário registrado.";
+  }
+
+  if (type === "rescheduled") {
+    return nextContactAt
+      ? `Follow-up reagendado para ${formatNextContact(nextContactAt)}`
+      : "Follow-up reagendado.";
+  }
+
+  if (type === "completed") {
+    return body ? `Follow-up concluído. ${body.slice(0, 120)}` : "Follow-up concluído.";
+  }
+
+  if (type === "cancelled") {
+    return body ? `Follow-up cancelado. ${body.slice(0, 120)}` : "Follow-up cancelado.";
+  }
+
+  return body ? `Follow-up não realizado. ${body.slice(0, 120)}` : "Follow-up não realizado.";
 }
 
 async function getLeadAgendaMetricsForProfile(
@@ -1739,6 +2028,24 @@ function getLeadOwnerLabel(row: LeadRow, profile?: ProfileRow) {
   }
 
   return "Equipe";
+}
+
+function mapLeadRowToExportLead(
+  row: LeadRow,
+  currentProfile: ProfileRow,
+  exportProfiles: Map<string, ProfileRow>,
+  hasMetaConnection = false
+): Lead {
+  const lead = mapLeadRowToLead(row, currentProfile, hasMetaConnection);
+  const ownerProfile = row.owner_profile_id ? exportProfiles.get(row.owner_profile_id) : null;
+
+  return {
+    ...lead,
+    owner:
+      ownerProfile?.full_name?.trim() ||
+      ownerProfile?.email?.trim() ||
+      (row.owner_profile_id === currentProfile.id ? currentProfile.full_name ?? "Voce" : "Equipe")
+  };
 }
 
 function normalizeInteger(value: unknown) {
