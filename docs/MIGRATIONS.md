@@ -3,7 +3,9 @@
 Este documento descreve as práticas recomendadas, o fluxo de aplicação e a ordem das migrations do banco de dados (Supabase) para este projeto. O objetivo é reduzir erros manuais durante o deploy em produção e garantir um processo claro e rastreável.
 
 ## ⚠️ AVISO IMPORTANTE SOBRE PRODUÇÃO
-**Sempre realize um backup completo do banco de dados antes de executar qualquer migration ou comando destrutivo em produção.**
+**Sempre realize um backup completo do banco de dados antes de executar qualquer migration ou comando destrutivo em produção.** 
+Veja o guia detalhado em: 👉 **[Orientação de Backup](./BACKUP.md)**
+
 Qualquer alteração de schema deve ser revisada e preferencialmente testada em ambiente de desenvolvimento (Local ou Staging).
 
 ---

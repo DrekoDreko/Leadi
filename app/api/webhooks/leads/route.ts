@@ -12,6 +12,7 @@ import type { LeadSource } from "@/lib/supabase/database.types";
 
 import { logger } from "@/lib/logger";
 import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
+import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
 
 const safeWebhookLeadSources = new Set<LeadSource>(["make_zapier", "api"]);
 
@@ -20,10 +21,26 @@ export async function POST(request: Request) {
   let webhookAuth: LeadWebhookAuthContext | undefined;
 
   try {
+    // 1. Rate Limit por IP (proteção básica contra flood)
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    assertRateLimit({
+      key: `ip:${ip}`,
+      limit: 100,
+      windowMs: 60 * 1000 // 100 req/min por IP
+    });
+
     assertPayloadSize(request, "WEBHOOK_JSON");
     assertJsonRequest(request);
     body = await request.json();
     webhookAuth = await authenticateLeadWebhookRequest(request);
+
+    // 2. Rate Limit por Integração (proteção específica)
+    assertRateLimit({
+      key: `int:${webhookAuth.integrationId}`,
+      limit: 30,
+      windowMs: 10 * 1000 // 30 req/10s por integração (acomoda bursts)
+    });
+
     const result = await createLeadFromWebhook(
       normalizeWebhookLeadPayload(body, webhookAuth.organizationId)
     );
@@ -279,7 +296,11 @@ function getWebhookLeadErrorMessage(error: unknown) {
 }
 
 function getWebhookLeadErrorStatus(error: unknown) {
-  if (error instanceof BillingResourceAccessError || error instanceof PayloadTooLargeError) {
+  if (
+    error instanceof BillingResourceAccessError ||
+    error instanceof PayloadTooLargeError ||
+    error instanceof RateLimitError
+  ) {
     return error.status;
   }
 

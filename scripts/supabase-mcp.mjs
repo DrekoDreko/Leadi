@@ -28,7 +28,8 @@ const ALLOWED_TABLES = [
   "profiles",
   "workspace_members",
   "invites",
-  "leads"
+  "leads",
+  "onboarding_states"
 ];
 
 loadEnvFile(".env");

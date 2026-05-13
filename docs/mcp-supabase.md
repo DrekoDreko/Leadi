@@ -43,7 +43,7 @@ Exemplo de configuração:
 - `supabase_update`: atualiza linhas, sempre exigindo ao menos um filtro.
 - `supabase_delete`: remove linhas, sempre exigindo filtro e `confirm: "DELETE"`.
 
-Tabelas liberadas: `campaigns`, `creative_requests`, `creative_request_comments`, `whatsapp_messages`, `plans`, `subscriptions`, `payment_events`, `organizations`, `meta_integrations`, `meta_pages`, `meta_forms`, `meta_ad_accounts`, `openai_connections`, `integration_sync_logs`, `lead_webhook_integrations`, `lead_webhook_events`, `lead_follow_up_events`, `profiles`, `workspace_members`, `invites`, `leads`.
+Tabelas liberadas: `campaigns`, `creative_requests`, `creative_request_comments`, `whatsapp_messages`, `plans`, `subscriptions`, `payment_events`, `organizations`, `meta_integrations`, `meta_pages`, `meta_forms`, `meta_ad_accounts`, `openai_connections`, `integration_sync_logs`, `lead_webhook_integrations`, `lead_webhook_events`, `lead_follow_up_events`, `profiles`, `workspace_members`, `invites`, `leads`, `onboarding_states`.
 
 ## Billing
 

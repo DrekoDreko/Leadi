@@ -12,6 +12,7 @@ import {
 
 import { logger } from "@/lib/logger";
 import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
+import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
   try {
@@ -47,6 +48,14 @@ export async function POST(request: Request) {
   const safeHeaders = getMetaWebhookSafeHeaders(request);
 
   try {
+    // Rate Limit por IP
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    assertRateLimit({
+      key: `meta-ip:${ip}`,
+      limit: 150, // Um pouco mais generoso para Meta
+      windowMs: 60 * 1000
+    });
+
     requireIntegrationEnv("meta_webhook");
     assertPayloadSize(request, "WEBHOOK_JSON");
     assertJsonRequest(request);
@@ -162,7 +171,11 @@ function assertRawBody(rawBody: string) {
 }
 
 function getMetaWebhookErrorStatus(error: unknown) {
-  if (error instanceof BillingResourceAccessError || error instanceof PayloadTooLargeError) {
+  if (
+    error instanceof BillingResourceAccessError ||
+    error instanceof PayloadTooLargeError ||
+    error instanceof RateLimitError
+  ) {
     return error.status;
   }
 

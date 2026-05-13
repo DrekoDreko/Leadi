@@ -837,20 +837,10 @@ export function LeadDetailsPopup({
                 />
               </LeadField>
 
-              <LeadField error={errors.stage} label="Etapa">
-                <select
-                  aria-invalid={Boolean(errors.stage)}
-                  className={fieldClass(Boolean(errors.stage))}
-                  disabled={isSubmitting}
-                  onChange={(event) => updateField("stage", event.target.value)}
-                  value={formValues.stage}
-                >
-                  {stageOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+              <LeadField label="Etapa">
+                <div className="liquid-input flex items-center bg-white/40 text-sm font-medium opacity-70">
+                  {activeLead.stage}
+                </div>
               </LeadField>
 
               <LeadField error={errors.budget} label="Orçamento">

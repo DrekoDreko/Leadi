@@ -14,6 +14,9 @@ import {
 import { LeadDetailsPopup } from "@/components/dashboard/lead-details-popup";
 import { DashboardRemindersCalendar } from "@/components/dashboard/dashboard-reminders-calendar";
 import { buildAgendaEntries, type AgendaEntry } from "@/lib/leads/agenda";
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
+import { dismissOnboardingChecklist, toggleOnboardingStep } from "./onboarding-actions";
+import type { OnboardingState } from "@/lib/onboarding/repository.server";
 
 type DashboardHomeProps = {
   leads?: Lead[];
@@ -24,6 +27,8 @@ type DashboardHomeProps = {
   campaignsCount?: number;
   hasMetaConnection?: boolean;
   hasOpenAIConnection?: boolean;
+  whatsappMessagesCount?: number;
+  onboardingState?: OnboardingState | null;
 };
 
 export function DashboardHome({
@@ -31,7 +36,9 @@ export function DashboardHome({
   preview = false,
   campaignsCount = 0,
   hasMetaConnection = false,
-  hasOpenAIConnection = false
+  hasOpenAIConnection = false,
+  whatsappMessagesCount = 0,
+  onboardingState = null
 }: DashboardHomeProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const metrics = preview
@@ -42,6 +49,39 @@ export function DashboardHome({
   const funnelHref = preview ? "/login" : "/dashboard/funil";
   const anunciosHref = preview ? "/login" : "/dashboard/anuncios";
   const agendaCards = buildAgendaEntries(leads);
+
+  const onboardingSteps = [
+    {
+      id: "create-lead",
+      title: "Crie seu primeiro lead",
+      description: "Cadastre manualmente ou importe um lead para começar a gerenciar sua carteira.",
+      href: "/dashboard/leads",
+      isCompleted: leads.length > 0 || onboardingState?.completedSteps.includes("create-lead") || false
+    },
+    {
+      id: "generate-campaign",
+      title: "Gere uma campanha",
+      description: "Use nossa IA para criar textos de anúncios focados em alta conversão.",
+      href: "/dashboard/criacoes/campanhas",
+      isCompleted: campaignsCount > 0 || onboardingState?.completedSteps.includes("generate-campaign") || false
+    },
+    {
+      id: "copy-message",
+      title: "Copie uma mensagem",
+      description: "Gere e copie uma mensagem personalizada para abordar seus novos leads.",
+      href: "/dashboard/criacoes/whatsapp",
+      isCompleted: whatsappMessagesCount > 0 || onboardingState?.completedSteps.includes("copy-message") || false
+    },
+    {
+      id: "configure-integration",
+      title: "Configure integrações",
+      description: "Conecte sua conta Meta Ads ou OpenAI para automatizar processos.",
+      href: "/dashboard/conexoes",
+      isCompleted: hasMetaConnection || hasOpenAIConnection || onboardingState?.completedSteps.includes("configure-integration") || false
+    }
+  ];
+
+  const showOnboarding = onboardingState && !onboardingState.dismissedAt && !preview;
 
   return (
     <div className="space-y-4">
@@ -58,6 +98,16 @@ export function DashboardHome({
           <ArrowUpRight size={18} aria-hidden="true" />
         </Link>
       </PageHeading>
+
+      {showOnboarding && (
+        <OnboardingChecklist
+          steps={onboardingSteps}
+          onDismiss={dismissOnboardingChecklist}
+          onToggleStep={(stepId, completed) => 
+            toggleOnboardingStep(stepId, completed, onboardingState?.completedSteps || [])
+          }
+        />
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Metric label="Leads ativos" value={metrics.activeLeads} note={metrics.totalNote} tone="blue" />

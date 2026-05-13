@@ -80,11 +80,6 @@ export function LeadsWorkspace({
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
   const [createFeedback, setCreateFeedback] = useState<string | null>(null);
-  const [stageFeedback, setStageFeedback] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
-  const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState(leadFilters.search);
   const [draftLeadFilters, setDraftLeadFilters] = useState(leadFilters);
   const [pagination, setPagination] = useState(leadState.pagination);
@@ -294,83 +289,6 @@ export function LeadsWorkspace({
     }
   }
 
-  async function handleLeadStageChange(lead: Lead, nextStage: LeadStageValue) {
-    const nextStageLabel = getLeadStageLabel(nextStage);
-
-    if (lead.stage === nextStageLabel || updatingLeadId === lead.id) {
-      return;
-    }
-
-    if (leadState.mode === "not-configured" || leadState.mode === "mock") {
-      const updatedLead = { ...lead, stage: nextStageLabel };
-      setLeads((currentLeads) =>
-        currentLeads.map((currentLead) => (currentLead.id === lead.id ? updatedLead : currentLead))
-      );
-      setSelectedLead((currentLead) => (currentLead?.id === lead.id ? updatedLead : currentLead));
-      setStageFeedback({
-        type: "success",
-        message: `${lead.name} mudou de etapa no modo demonstracao.`
-      });
-      return;
-    }
-
-    const previousStage = lead.stage;
-    setUpdatingLeadId(lead.id);
-    setStageFeedback(null);
-
-    setLeads((currentLeads) =>
-      currentLeads.map((currentLead) =>
-        currentLead.id === lead.id ? { ...currentLead, stage: nextStageLabel } : currentLead
-      )
-    );
-
-    setSelectedLead((currentLead) =>
-      currentLead?.id === lead.id ? { ...currentLead, stage: nextStageLabel } : currentLead
-    );
-
-    try {
-      const response = await fetch(`/api/leads/${encodeURIComponent(lead.id)}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ stage: nextStage })
-      });
-      const data = await parseLeadStageUpdateResponse(response);
-
-      if (!response.ok || !data.lead) {
-        throw new Error(getLeadStageUpdateErrorMessage(data.error));
-      }
-
-      const updatedLead = data.lead;
-      setLeads((currentLeads) =>
-        currentLeads.map((currentLead) => (currentLead.id === lead.id ? updatedLead : currentLead))
-      );
-      setSelectedLead((currentLead) => (currentLead?.id === lead.id ? updatedLead : currentLead));
-      setStageFeedback({
-        type: "success",
-        message:
-          data.mode === "not-configured"
-            ? `${lead.name} mudou de etapa no modo demonstracao.`
-            : `${lead.name} mudou de etapa com sucesso.`
-      });
-    } catch (error) {
-      setLeads((currentLeads) =>
-        currentLeads.map((currentLead) =>
-          currentLead.id === lead.id ? { ...currentLead, stage: previousStage } : currentLead
-        )
-      );
-      setSelectedLead((currentLead) =>
-        currentLead?.id === lead.id ? { ...currentLead, stage: previousStage } : currentLead
-      );
-      setStageFeedback({
-        type: "error",
-        message: getFriendlyErrorMessage(error).message
-      });
-    } finally {
-      setUpdatingLeadId(null);
-    }
-  }
 
   return (
     <div className="space-y-4">
@@ -401,21 +319,6 @@ export function LeadsWorkspace({
         </p>
       )}
 
-      {stageFeedback && (
-        <p
-          aria-live="polite"
-          className={`flex items-center gap-2 rounded-[24px] px-5 py-3 text-sm font-medium text-ink ${
-            stageFeedback.type === "success" ? "bg-lagoon/16" : "bg-signal/30"
-          }`}
-        >
-          {stageFeedback.type === "success" ? (
-            <CheckCircle2 className="shrink-0 text-lagoon" size={18} aria-hidden="true" />
-          ) : (
-            <AlertCircle className="shrink-0 text-ink" size={18} aria-hidden="true" />
-          )}
-          {stageFeedback.message}
-        </p>
-      )}
 
       {isErrorState ? (
         <LeadWorkspaceErrorState message={leadState.message} onRetry={handleRefresh} />
@@ -461,18 +364,14 @@ export function LeadsWorkspace({
                     leads={visibleLeads}
                     hasActiveFilters={hasActiveFilters}
                     onSearchChange={setSearchTerm}
+                    searchTerm={searchTerm}
                     onOpenFilters={openFilterPopup}
                     onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
                     onLeadOpen={openLeadDetails}
-                    onLeadStageChange={handleLeadStageChange}
-                    updatingLeadId={updatingLeadId}
-                    searchTerm={searchTerm}
                   />
                   <LeadKanbanPanel
                     columns={kanbanColumns}
                     onLeadOpen={openLeadDetails}
-                    onLeadStageChange={handleLeadStageChange}
-                    updatingLeadId={updatingLeadId}
                   />
                 </div>
               </section>
@@ -884,9 +783,7 @@ function LeadTablePanel({
   searchTerm,
   onOpenFilters,
   onCreateOpen,
-  onLeadOpen,
-  onLeadStageChange,
-  updatingLeadId
+  onLeadOpen
 }: {
   leads: Lead[];
   hasActiveFilters: boolean;
@@ -895,8 +792,6 @@ function LeadTablePanel({
   onOpenFilters: () => void;
   onCreateOpen?: () => void;
   onLeadOpen: (lead: Lead) => void;
-  onLeadStageChange: (lead: Lead, nextStage: LeadStageValue) => void;
-  updatingLeadId: string | null;
 }) {
   return (
     <section className="glass-strong flex h-full flex-col rounded-[34px] p-5">
@@ -952,8 +847,6 @@ function LeadTablePanel({
         </div>
 
         {leads.map((lead) => {
-          const isUpdating = updatingLeadId === lead.id;
-
           return (
             <article
               className="grid gap-3 border-b border-ink/8 px-5 py-4 text-left transition hover:bg-white/34 last:border-0 md:grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px_44px] md:items-center"
@@ -997,10 +890,8 @@ function LeadTablePanel({
                 onClick={(event) => event.stopPropagation()}
                 onKeyDown={(event) => event.stopPropagation()}
               >
-                <LeadStageSelect
-                  lead={lead}
-                  onChange={onLeadStageChange}
-                  pending={isUpdating}
+                <LeadStageBadge
+                  stage={lead.stage}
                   variant="table"
                 />
               </div>
@@ -1023,14 +914,10 @@ function LeadTablePanel({
 
 function LeadKanbanPanel({
   columns,
-  onLeadOpen,
-  onLeadStageChange,
-  updatingLeadId
+  onLeadOpen
 }: {
   columns: ReturnType<typeof buildKanbanColumns>;
   onLeadOpen: (lead: Lead) => void;
-  onLeadStageChange: (lead: Lead, nextStage: LeadStageValue) => void;
-  updatingLeadId: string | null;
 }) {
   return (
     <section className="glass rounded-[34px] p-5 h-full">
@@ -1078,10 +965,8 @@ function LeadKanbanPanel({
                   onClick={(event) => event.stopPropagation()}
                   onKeyDown={(event) => event.stopPropagation()}
                 >
-                  <LeadStageSelect
-                    lead={lead}
-                    onChange={onLeadStageChange}
-                    pending={updatingLeadId === lead.id}
+                  <LeadStageBadge
+                    stage={lead.stage}
                     variant="kanban"
                   />
                 </div>
@@ -1145,61 +1030,33 @@ function getLeadStageUpdateErrorMessage(error?: string) {
   return error;
 }
 
-function LeadStageSelect({
-  lead,
-  onChange,
-  pending,
+function LeadStageBadge({
+  stage,
   variant
 }: {
-  lead: Lead;
-  onChange: (lead: Lead, nextStage: LeadStageValue) => void;
-  pending: boolean;
+  stage: string;
   variant: "table" | "kanban";
 }) {
-  const currentValue = getLeadStageValue(lead.stage) ?? "new";
   const isKanban = variant === "kanban";
-  const canEditLead = lead.canEdit ?? true;
-  const isDisabled = pending || !canEditLead;
 
   return (
-    <label className={`block ${isKanban ? "w-full" : "w-full max-w-[220px]"}`}>
+    <div className={`block ${isKanban ? "w-full" : "w-full max-w-[220px]"}`}>
       <span
-        className={`mb-2 block text-xs font-semibold uppercase tracking-[0.16em] ${
-          isKanban ? "text-white/82" : "text-ink/52"
+        className={`mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] ${
+          isKanban ? "text-white/70" : "text-ink/40"
         }`}
       >
         Etapa
       </span>
-      <div className="relative">
-        <select
-          aria-label={`Mover etapa de ${lead.name}`}
-          aria-busy={pending}
-          className={`liquid-input appearance-none py-2.5 pl-3 pr-9 text-xs font-semibold ${
-            isKanban ? "bg-white/70" : "bg-white/62"
-          }`}
-          disabled={isDisabled}
-          title={
-            canEditLead
-              ? undefined
-              : "Sem permissao para alterar a etapa deste lead."
-          }
-          onChange={(event) => onChange(lead, event.target.value as LeadStageValue)}
-          value={currentValue}
-        >
-          {leadStageOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        {pending ? (
-          <Loader2
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-ink/42"
-            size={14}
-            aria-hidden="true"
-          />
-        ) : null}
+      <div
+        className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold ring-1 ring-inset ${
+          isKanban
+            ? "bg-white/10 text-white ring-white/20"
+            : "bg-white/80 text-ink ring-black/5 shadow-sm"
+        }`}
+      >
+        {stage}
       </div>
-    </label>
+    </div>
   );
 }

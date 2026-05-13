@@ -146,64 +146,60 @@ export function DashboardRemindersCalendar() {
           <CalendarDays size={20} aria-hidden="true" />
         </div>
 
-        <div className="mb-4 flex items-center justify-between">
-          <button
-            className="icon-button"
-            onClick={() => setCurrentMonth((current) => addMonths(current, -1))}
-            type="button"
-            title="Mes anterior"
-          >
-            <ChevronLeft size={18} aria-hidden="true" />
-          </button>
-          <p className="text-sm font-semibold capitalize text-ink/72">
+        <div className="mb-6 flex items-center justify-center border-y border-ink/5 py-3">
+          <p className="text-sm font-bold uppercase tracking-widest text-cobalt">
             {calendarFormatter.format(currentMonth)}
           </p>
-          <button
-            className="icon-button"
-            onClick={() => setCurrentMonth((current) => addMonths(current, 1))}
-            type="button"
-            title="Proximo mes"
-          >
-            <ChevronRight size={18} aria-hidden="true" />
-          </button>
         </div>
 
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1">
           {calendarDays.weekdays.map((weekday) => (
             <span
-              className="text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-ink/42"
+              className="mb-1 text-center text-[10px] font-bold uppercase tracking-widest text-ink/30"
               key={weekday}
             >
               {weekday}
             </span>
           ))}
 
-          {calendarDays.days.map((day) => {
+          {calendarDays.days.map((day, index) => {
             const dayKey = toDateKey(day.date);
             const dayReminders = reminders.filter((reminder) => reminder.date === dayKey);
             const isCurrentMonth = day.inCurrentMonth;
             const isToday = dayKey === toDateKey(new Date());
 
+            if (!isCurrentMonth) {
+              return <div key={`empty-${index}`} className="h-full w-full" />;
+            }
+
             return (
               <button
-                className={`min-h-[64px] rounded-[20px] border px-2 py-2 text-left transition ${
-                  isCurrentMonth
-                    ? "border-white/48 bg-white/42 hover:bg-white/60"
-                    : "border-white/28 bg-white/22 text-ink/34"
-                } ${isToday ? "ring-2 ring-cobalt/28" : ""}`}
+                className={`relative flex aspect-square flex-col items-center justify-center rounded-2xl border transition-all duration-200 ${
+                  isToday
+                    ? "border-cobalt/40 bg-cobalt/5 text-cobalt shadow-sm"
+                    : "border-white/40 bg-white/30 hover:border-cobalt/20 hover:bg-white/50"
+                }`}
                 key={dayKey}
                 onClick={() => openDate(dayKey)}
                 type="button"
               >
-                <span className="block text-sm font-semibold">{day.date.getDate()}</span>
-                {dayReminders.length ? (
-                  <span className="mt-3 inline-flex rounded-full bg-lagoon px-2 py-1 text-[11px] font-semibold text-white">
-                    {dayReminders.length} lembrete{dayReminders.length > 1 ? "s" : ""}
-                  </span>
-                ) : (
-                  <span className="mt-3 inline-flex rounded-full bg-white/62 px-2 py-1 text-[11px] font-semibold text-ink/46">
-                    abrir
-                  </span>
+                <span className={`text-sm font-semibold ${isToday ? "text-cobalt" : "text-ink/80"}`}>
+                  {day.date.getDate()}
+                </span>
+                
+                {dayReminders.length > 0 && (
+                  <div className="absolute bottom-2 flex gap-0.5">
+                    {dayReminders.slice(0, 3).map((_, i) => (
+                      <span key={i} className="h-1 w-1 rounded-full bg-cobalt" />
+                    ))}
+                    {dayReminders.length > 3 && (
+                      <span className="h-1 w-1 rounded-full bg-cobalt/40" />
+                    )}
+                  </div>
+                )}
+
+                {isToday && (
+                  <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-cobalt shadow-[0_0_8px_rgba(79,70,229,0.6)]" />
                 )}
               </button>
             );

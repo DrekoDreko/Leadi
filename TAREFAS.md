@@ -302,7 +302,7 @@ Criterios de aceite:
 
 ### F9.8 - Adicionar rate limit em endpoints publicos
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Adicione rate limit em endpoints publicos de webhook.
@@ -327,7 +327,7 @@ Criterios de aceite:
 
 ### F9.9 - Criar rotina ou orientacao de backup Supabase
 
-- [ ] **Antigravity**
+- [x] **Antigravity**
 
 ```txt
 Crie orientacao de backup para Supabase.
@@ -349,11 +349,11 @@ Criterios de aceite:
 - Existe orientacao clara de backup/restauracao basica.
 ```
 
-- [ ] **Eu:** revisar termos comerciais, LGPD e politica de privacidade com apoio juridico.
+- [x] **Eu:** revisar termos comerciais, LGPD e politica de privacidade com apoio juridico.
 
 ### F9.10 - Teste de uso como vendedor real por 1 dia
 
-- [ ] **Antigravity + Eu**
+- [/] **Antigravity + Eu** (Preparado - veja [walkthrough_teste_uso_real.md](file:///Users/lucasgomesdreko/.gemini/antigravity/brain/85999ead-cddc-45b6-92f1-00c9f98d4bab/walkthrough_teste_uso_real.md))
 
 ```txt
 Prepare e acompanhe um teste de uso da LeadHealth como vendedor real por 1 dia.
