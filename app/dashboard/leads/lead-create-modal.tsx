@@ -6,7 +6,6 @@ import { SubscriptionAccessBanner } from "@/components/billing/subscription-acce
 import type { Lead } from "@/data/mock";
 import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import type { LeadDataMode } from "@/lib/leads/repository";
-import { leadStageOptions } from "@/lib/leads/stages";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 
 type LeadCreateModalProps = {

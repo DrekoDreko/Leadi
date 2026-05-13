@@ -31,12 +31,6 @@ import {
   type LeadUrlFilters
 } from "@/lib/leads/filters";
 import {
-  getLeadStageLabel,
-  getLeadStageValue,
-  leadStageOptions,
-  type LeadStageValue
-} from "@/lib/leads/stages";
-import {
   DEFAULT_LEAD_PAGE_SIZE,
   type LeadDataMode,
   type LeadDataState,
@@ -1008,27 +1002,6 @@ function buildKanbanColumns(leads: Lead[]) {
   ];
 }
 
-type LeadStageUpdateResponse = {
-  lead?: Lead;
-  error?: string;
-  mode?: LeadDataMode;
-};
-
-async function parseLeadStageUpdateResponse(response: Response): Promise<LeadStageUpdateResponse> {
-  try {
-    return (await response.json()) as LeadStageUpdateResponse;
-  } catch {
-    return {};
-  }
-}
-
-function getLeadStageUpdateErrorMessage(error?: string) {
-  if (!error) {
-    return "Nao foi possivel atualizar a etapa do lead. Tente novamente.";
-  }
-
-  return error;
-}
 
 function LeadStageBadge({
   stage,

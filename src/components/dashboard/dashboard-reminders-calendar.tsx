@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   Flag,
   Plus,
@@ -42,7 +40,7 @@ const weekdayFormatter = new Intl.DateTimeFormat("pt-BR", {
 const STORAGE_KEY = "leadhealth-dashboard-reminders";
 
 export function DashboardRemindersCalendar() {
-  const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
+  const [currentMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [reminders, setReminders] = useState<DashboardReminder[]>([]);
   const [title, setTitle] = useState("");
@@ -374,10 +372,6 @@ function buildCalendarDays(currentMonth: Date) {
 
 function startOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function addMonths(date: Date, amount: number) {
-  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
 }
 
 function toDateKey(date: Date) {
