@@ -73,7 +73,8 @@ O ambiente local é destinado apenas para desenvolvimento, scripts administrativ
 - `/dashboard/campanhas`: Gerador de campanhas e Biblioteca
 - `/dashboard/whatsapp`: Gerador de mensagens
 - `/dashboard/empresa`: Gestão de integrações (Meta, OpenAI)
-- `/dashboard/perfil`: Configurações, Token de Webhook e Logs de Eventos
+- `/dashboard/perfil`: Configurações gerais e card-resumo do Webhook de Leads
+- `/dashboard/integracoes/webhook-leads`: Configuração técnica do webhook, token e logs
 
 ## APIs Disponíveis
 

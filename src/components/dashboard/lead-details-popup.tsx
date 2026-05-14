@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   AlertTriangle,
+  Archive,
   CheckCircle2,
   Clock3,
   Edit3,
@@ -24,7 +25,7 @@ import type { SystemTemplate } from "@/lib/templates/types";
 type LeadUpdateMode = "supabase" | "mock" | "not-configured" | "unauthenticated" | "error";
 
 type LeadDetailsPopupProps = {
-  hasOpenAIConnection?: boolean;
+  aiBalance?: number;
   initialPanel?: "details" | "message";
   lead: Lead | null;
   messageGeneratorEnabled?: boolean;
@@ -94,7 +95,7 @@ const emptyDisplayValues = new Set([
 ]);
 
 export function LeadDetailsPopup({
-  hasOpenAIConnection = false,
+  aiBalance = 0,
   initialPanel = "details",
   lead,
   messageGeneratorEnabled = false,
@@ -369,7 +370,7 @@ export function LeadDetailsPopup({
       setDeleteError(
         error instanceof Error
           ? error.message
-          : "Nao foi possivel excluir o lead. Tente novamente em instantes."
+          : "Nao foi possivel arquivar o lead. Tente novamente em instantes."
       );
     } finally {
       if (!deleted) {
@@ -473,13 +474,13 @@ export function LeadDetailsPopup({
             {!isEditing && onDeleted && (
               <button
                 aria-expanded={isConfirmingDelete}
-                className="icon-button border-red-200/80 bg-red-50/80 text-red-700 hover:bg-red-100/90"
+                className="icon-button border-amber-200/80 bg-amber-50/80 text-amber-700 hover:bg-amber-100/90"
                 disabled={isDeleting}
                 onClick={startDelete}
                 type="button"
-                title="Excluir lead"
+                title="Arquivar lead"
               >
-                <Trash2 size={18} aria-hidden="true" />
+                <Archive size={18} aria-hidden="true" />
               </button>
             )}
             {!isEditing && (
@@ -554,7 +555,7 @@ export function LeadDetailsPopup({
             <span className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
               <span>
-                {deleteError ?? "Confirme a exclusao deste lead. Essa acao remove o registro do CRM real."}
+                {deleteError ?? "Confirme o arquivamento deste lead. Ele sera movido para a lista de arquivados."}
               </span>
             </span>
             <span className="flex shrink-0 gap-2">
@@ -567,13 +568,13 @@ export function LeadDetailsPopup({
                 Cancelar
               </button>
               <button
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-red-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-70"
                 disabled={isDeleting}
                 onClick={handleDeleteConfirmed}
                 type="button"
               >
                 {isDeleting && <Loader2 className="animate-spin" size={15} aria-hidden="true" />}
-                {isDeleting ? "Excluindo..." : "Confirmar exclusao"}
+                {isDeleting ? "Arquivando..." : "Confirmar arquivamento"}
               </button>
             </span>
           </div>
@@ -757,7 +758,7 @@ export function LeadDetailsPopup({
         ) : activePanel === "message" && messageGeneratorEnabled ? (
           <div className="pt-5">
             <LeadMessageGenerator
-              hasOpenAIConnection={hasOpenAIConnection}
+              aiBalance={aiBalance}
               lead={lead}
               systemTemplates={whatsappTemplates}
             />
@@ -916,19 +917,19 @@ export function LeadDetailsPopup({
                   className="rounded-[28px] border border-red-200/80 bg-red-50/80 p-5"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
-                      <AlertTriangle size={18} aria-hidden="true" />
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                      <Archive size={18} aria-hidden="true" />
                     </span>
                     <div>
-                      <p className="text-sm text-red-700/72">Zona sensível</p>
-                      <h3 className="font-semibold text-ink">Excluir lead</h3>
+                      <p className="text-sm text-amber-700/72">Zona sensível</p>
+                      <h3 className="font-semibold text-ink">Arquivar lead</h3>
                     </div>
                   </div>
 
                   {isConfirmingDelete ? (
                     <div className="mt-4 space-y-4">
                       <p className="text-sm leading-6 text-ink/68">
-                        Confirme para remover {activeLead.name} do CRM. Essa ação nao pode ser desfeita.
+                        Confirme para mover {activeLead.name} para os arquivados.
                       </p>
                       {deleteError && (
                         <p
@@ -949,7 +950,7 @@ export function LeadDetailsPopup({
                           Cancelar
                         </button>
                         <button
-                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-red-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70"
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-70"
                           disabled={isDeleting}
                           onClick={handleDeleteConfirmed}
                           type="button"
@@ -957,9 +958,9 @@ export function LeadDetailsPopup({
                           {isDeleting ? (
                             <Loader2 className="animate-spin" size={18} aria-hidden="true" />
                           ) : (
-                            <Trash2 size={18} aria-hidden="true" />
+                            <Archive size={18} aria-hidden="true" />
                           )}
-                          {isDeleting ? "Excluindo..." : "Excluir definitivamente"}
+                          {isDeleting ? "Arquivando..." : "Arquivar lead"}
                         </button>
                       </div>
                     </div>
@@ -1104,7 +1105,7 @@ function getFriendlyUpdateError(error?: string) {
   }
 
   if (error.includes("Usuario nao autenticado") || error.includes("sessao expirou")) {
-    return "Sua sessao expirou. Entre novamente para editar leads.";
+    return "Sua sessao expirou. Entre novamente para editar ou arquivar leads.";
   }
 
   if (error.includes("Nome do lead")) {
@@ -1120,7 +1121,7 @@ function getFriendlyUpdateError(error?: string) {
 
 function getFriendlyDeleteError(error?: string) {
   if (!error) {
-    return "Nao foi possivel excluir o lead agora.";
+    return "Nao foi possivel arquivar o lead agora.";
   }
 
   if (error.includes("Usuario nao autenticado") || error.includes("sessao expirou")) {

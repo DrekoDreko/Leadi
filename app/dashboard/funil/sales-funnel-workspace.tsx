@@ -85,9 +85,11 @@ const stageToneByValue: Record<LeadStageValue, StageTone> = {
 };
 
 export function SalesFunnelWorkspace({
+  aiBalance,
   createLeadAccess,
   leadState
 }: {
+  aiBalance: number;
   createLeadAccess: ResourceAccessSummary;
   leadState: LeadDataState;
 }) {
@@ -538,6 +540,7 @@ export function SalesFunnelWorkspace({
         open={isCreateOpen}
       />
       <LeadDetailsPopup
+        aiBalance={aiBalance}
         lead={selectedLead}
         onClose={() => setSelectedLead(null)}
         onDeleted={selectedLeadCanDelete ? handleLeadDeleted : undefined}

@@ -32,8 +32,12 @@ function getCreateDashboardReminderErrorMessage(error: unknown) {
     message.includes("Informe um horario valido") ||
     message.includes("Escolha um horario futuro") ||
     message.includes("Escolha quando voce quer ser lembrado") ||
+    message.includes("Escolha uma opcao valida para o lembrete") ||
+    message.includes("Informe um horario em 24 horas") ||
     message.includes("Use um horario manual") ||
-    message.includes("Nao foi possivel identificar o horario")
+    message.includes("Nao foi possivel identificar o horario") ||
+    message.includes("A tabela de lembretes ainda nao foi criada") ||
+    message.includes("Seu perfil nao esta vinculado a uma organizacao")
   ) {
     return message;
   }

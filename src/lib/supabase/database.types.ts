@@ -771,6 +771,111 @@ export type Database = {
         };
         Relationships: [];
       };
+      org_ai_balances: {
+        Row: {
+          org_id: string;
+          available_credits: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          org_id: string;
+          available_credits?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          org_id?: string;
+          available_credits?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      ai_credit_ledger: {
+        Row: {
+          id: string;
+          org_id: string;
+          user_id: string | null;
+          type: "purchase" | "monthly_grant" | "usage" | "refund" | "adjustment";
+          credits: number;
+          description: string | null;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          user_id?: string | null;
+          type: "purchase" | "monthly_grant" | "usage" | "refund" | "adjustment";
+          credits: number;
+          description?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          user_id?: string | null;
+          type?: "purchase" | "monthly_grant" | "usage" | "refund" | "adjustment";
+          credits?: number;
+          description?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      ai_usage_events: {
+        Row: {
+          id: string;
+          org_id: string;
+          user_id: string | null;
+          feature: string;
+          model: string | null;
+          input_tokens: number | null;
+          output_tokens: number | null;
+          total_tokens: number | null;
+          estimated_cost: number | null;
+          credits_charged: number;
+          status: "success" | "failed" | "refunded";
+          error_message: string | null;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          user_id?: string | null;
+          feature: string;
+          model?: string | null;
+          input_tokens?: number | null;
+          output_tokens?: number | null;
+          total_tokens?: number | null;
+          estimated_cost?: number | null;
+          credits_charged: number;
+          status: "success" | "failed" | "refunded";
+          error_message?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          user_id?: string | null;
+          feature?: string;
+          model?: string | null;
+          input_tokens?: number | null;
+          output_tokens?: number | null;
+          total_tokens?: number | null;
+          estimated_cost?: number | null;
+          credits_charged?: number;
+          status?: "success" | "failed" | "refunded";
+          error_message?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       openai_connections: {
         Row: {
           id: string;
@@ -1073,6 +1178,7 @@ export type Database = {
           meta_ad_id: string | null;
           meta_connected_account_id: string | null;
           import_batch_id: string | null;
+          archived_at: string | null;
           raw_payload: Json;
           received_at: string;
           created_at: string;
@@ -1106,6 +1212,7 @@ export type Database = {
           meta_ad_id?: string | null;
           meta_connected_account_id?: string | null;
           import_batch_id?: string | null;
+          archived_at?: string | null;
           raw_payload?: Json;
           received_at?: string;
           created_at?: string;
@@ -1139,6 +1246,7 @@ export type Database = {
           meta_ad_id?: string | null;
           meta_connected_account_id?: string | null;
           import_batch_id?: string | null;
+          archived_at?: string | null;
           raw_payload?: Json;
           received_at?: string;
           created_at?: string;

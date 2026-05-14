@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
+import { AiCreditsError, runAiActionWithCredits } from "@/lib/ai/credits";
 import {
   generateComplianceQuestions,
   LeadHealthOpenAIError,
   type ComplianceQuestionsInput,
   type ComplianceQuestionsOutput
 } from "@/lib/openai";
-import { resolveOpenAIKeyForOrganization } from "@/lib/integrations/repository.server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 
 type QuestionsRequestBody = {
@@ -53,28 +53,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
 
-    const openAIKey = await resolveOpenAIKeyForOrganization(billingContext.organizationId);
-
-    if (!openAIKey) {
-      return NextResponse.json(
-        {
-          error:
-            "Conecte sua chave OpenAI no Perfil para gerar perguntas com IA usando a conta da sua organizacao."
-        },
-        { status: 400 }
-      );
-    }
-
-    const result = await generateComplianceQuestions({
-      ...input,
-      objective: `${input.objective ?? ""}; Corretora responsavel: ${billingContext.brokerageName}`
-    }, { apiKey: openAIKey });
+    const { result, remainingCredits } = await runAiActionWithCredits({
+      orgId: billingContext.organizationId,
+      userId: billingContext.profileId,
+      feature: "generate_creative_brief",
+      description: "Geracao de perguntas de campanha com IA",
+      metadata: {
+        route: "campaigns/questions",
+        hasDifferentiator: Boolean(input.differentiator)
+      },
+      generate: (apiKey) =>
+        generateComplianceQuestions(
+          {
+            ...input,
+            objective: `${input.objective ?? ""}; Corretora responsavel: ${billingContext.brokerageName}`
+          },
+          { apiKey }
+        )
+    });
 
     return NextResponse.json({
       questions: {
         ...result,
         questions: result.questions.map(reviewQuestionLocally)
-      }
+      },
+      aiBalance: remainingCredits
     });
   } catch (error) {
     const { message, status } = getQuestionsError(error);
@@ -134,10 +137,17 @@ function reviewQuestionLocally(question: ComplianceQuestion): ComplianceQuestion
 }
 
 function getQuestionsError(error: unknown) {
+  if (error instanceof AiCreditsError) {
+    return {
+      message: error.message,
+      status: 400
+    };
+  }
+
   if (error instanceof LeadHealthOpenAIError) {
     return {
       message: error.message,
-      status: error.code === "missing_api_key" ? 400 : 502
+      status: error.code === "missing_api_key" ? 503 : 502
     };
   }
 

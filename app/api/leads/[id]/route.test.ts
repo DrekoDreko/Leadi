@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PATCH, DELETE } from './route';
-import { updateLeadForCurrentUser, deleteLeadForCurrentUser } from '@/lib/leads/repository.server';
+import { updateLeadForCurrentUser, archiveLeadForCurrentUser } from '@/lib/leads/repository.server';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 
 // Mocks
 vi.mock('@/lib/leads/repository.server', () => ({
   updateLeadForCurrentUser: vi.fn(),
-  deleteLeadForCurrentUser: vi.fn()
+  archiveLeadForCurrentUser: vi.fn()
 }));
 
 vi.mock('@/lib/supabase/config', () => ({
@@ -60,7 +60,7 @@ describe('Leads API - /api/leads/[id]', () => {
   describe('DELETE', () => {
     it('exclui um lead com sucesso', async () => {
       vi.mocked(isSupabaseConfigured).mockReturnValue(true);
-      vi.mocked(deleteLeadForCurrentUser).mockResolvedValue(undefined);
+      vi.mocked(archiveLeadForCurrentUser).mockResolvedValue(undefined);
 
       const request = new Request('http://localhost:3000/api/leads/123', {
         method: 'DELETE'
@@ -73,12 +73,12 @@ describe('Leads API - /api/leads/[id]', () => {
       expect(response.status).toBe(200);
       expect(data.ok).toBe(true);
       expect(data.mode).toBe('supabase');
-      expect(deleteLeadForCurrentUser).toHaveBeenCalledWith('123');
+      expect(archiveLeadForCurrentUser).toHaveBeenCalledWith('123');
     });
 
     it('retorna erro quando o lead nao e encontrado', async () => {
       vi.mocked(isSupabaseConfigured).mockReturnValue(true);
-      vi.mocked(deleteLeadForCurrentUser).mockRejectedValue(new Error('Lead nao encontrado'));
+      vi.mocked(archiveLeadForCurrentUser).mockRejectedValue(new Error('Lead nao encontrado'));
 
       const request = new Request('http://localhost:3000/api/leads/123', {
         method: 'DELETE'
@@ -89,7 +89,7 @@ describe('Leads API - /api/leads/[id]', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Lead nao encontrado ou ja removido.');
+      expect(data.error).toBe('Lead nao encontrado ou ja arquivado.');
     });
   });
 });

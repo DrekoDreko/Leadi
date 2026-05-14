@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Bell, Plus, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Bell, LogOut, Plus, Search } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { BrandMark } from "@/components/brand-mark";
 import { getDashboardNavItems } from "@/lib/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { SubscriptionNotice } from "@/lib/billing/subscription-limits.server";
 import type { DashboardNavVariant } from "@/lib/workspaces/context";
 
@@ -25,6 +26,8 @@ export function DashboardShell({
   workspaceName?: string;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createSupabaseBrowserClient();
   const primaryNavItems = getDashboardNavItems(navVariant);
   const currentPath = pathname ?? "";
   const isFunnelPage = currentPath === "/dashboard/funil";
@@ -42,6 +45,11 @@ export function DashboardShell({
       : currentPath === href || currentPath.startsWith(`${href}/`);
   };
   const creationActive = isActive(creationHref);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   return (
     <main className="min-h-screen px-4 py-4 lg:px-6">
@@ -115,12 +123,14 @@ export function DashboardShell({
               <button className="icon-button" type="button" title="Notificações">
                 <Bell size={18} aria-hidden="true" />
               </button>
-              <Link
-                className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
-                href={preview ? "/login" : profileHref}
+              <button
+                className="icon-button"
+                onClick={handleLogout}
+                title="Sair da conta"
+                type="button"
               >
-                {preview ? "Entrar" : displayName}
-              </Link>
+                <LogOut size={18} aria-hidden="true" />
+              </button>
             </div>
           </header>
 

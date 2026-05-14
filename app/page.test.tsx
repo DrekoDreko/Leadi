@@ -15,14 +15,19 @@ describe('Landing Page (/)', () => {
   it('renderiza o titulo principal', async () => {
     render(<Home />);
     
-    expect(screen.getByText(/LeadHealth/i)).toBeInTheDocument();
-    expect(screen.getByText(/CRM \+ IA para corretores de plano de saúde empresarial/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: /Leads do Meta organizados em um CRM feito para vender plano de saúde empresarial/i
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText(/CRM \+ IA para plano de saúde empresarial/i)).toBeInTheDocument();
   });
 
   it('contem links para as paginas principais', async () => {
     render(<Home />);
     
-    const loginLink = screen.getByRole('link', { name: /Entrar/i });
+    const loginLink = screen.getByRole('link', { name: /^Entrar$/ });
     expect(loginLink).toHaveAttribute('href', '/login');
 
     const pricingLink = screen.getAllByRole('link', { name: /Planos|Ver planos/i });

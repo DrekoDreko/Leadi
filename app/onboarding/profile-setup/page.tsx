@@ -58,13 +58,12 @@ export default async function ProfileSetupPage({
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-cobalt text-white">
                   <UserRoundCheck size={21} aria-hidden="true" />
                 </span>
-                <span className="mt-6 block text-2xl font-semibold">Sou owner individual</span>
+                <span className="mt-6 block text-2xl font-semibold">Corretor</span>
                 <span className="mt-3 block leading-7 text-ink/62">
-                  Vou trabalhar minha propria carteira de leads, campanhas, mensagens,
-                  compliance, pedidos e importacoes como dona da operacao.
+                  Você vende fora de uma corretora ou tem uma corretora individual.
                 </span>
                 <span className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white">
-                  Continuar como owner
+                  Continuar como corretor
                 </span>
               </button>
             </form>
@@ -78,13 +77,13 @@ export default async function ProfileSetupPage({
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-lagoon text-white">
                   <BriefcaseBusiness size={21} aria-hidden="true" />
                 </span>
-                <span className="mt-6 block text-2xl font-semibold">Sou owner de equipe</span>
+                <span className="mt-6 block text-2xl font-semibold">Supervisor</span>
                 <span className="mt-3 block leading-7 text-ink/62">
-                  Vou criar um workspace de equipe para convidar admins e vendedores,
-                  acompanhar leads e organizar a operacao comercial.
+                  Você é supervisor de equipe numa corretora ou possui uma corretora com
+                  mais vendedores.
                 </span>
                 <span className="mt-6 inline-flex rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white">
-                  Configurar equipe
+                  Configurar supervisão
                 </span>
               </button>
             </form>

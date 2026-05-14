@@ -1,10 +1,11 @@
 import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
-import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
+import { getAiBalance } from "@/lib/ai/credits";
 import { LeadsWorkspace } from "./leads-workspace";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { parseLeadPaginationParams } from "@/lib/leads/repository";
 import { parseLeadUrlFilters } from "@/lib/leads/filters";
 import { getSystemTemplates } from "@/lib/templates/repository.server";
+import { requireCompletedProfile } from "@/lib/workspaces/context";
 
 type LeadsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined> & {
@@ -14,6 +15,7 @@ type LeadsPageProps = {
 };
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
+  const context = await requireCompletedProfile();
   const resolvedSearchParams = await searchParams;
   const leadFilters = parseLeadUrlFilters(resolvedSearchParams);
   const initialLeadId = Array.isArray(resolvedSearchParams?.lead)
@@ -22,17 +24,17 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const initialLeadPanel = Array.isArray(resolvedSearchParams?.panel)
     ? resolvedSearchParams?.panel[0]
     : resolvedSearchParams?.panel;
-  const [leadState, createLeadAccess, connectedAccounts, whatsappTemplates] = await Promise.all([
+  const [leadState, createLeadAccess, whatsappTemplates, aiBalance] = await Promise.all([
     getLeadsForCurrentUser(leadFilters, parseLeadPaginationParams(resolvedSearchParams)),
     getCurrentResourceAccess("lead_creation"),
-    getConnectedAccountsForCurrentUser(),
-    getSystemTemplates("whatsapp")
+    getSystemTemplates("whatsapp"),
+    getAiBalance(context.workspace?.id ?? "")
   ]);
 
   return (
     <LeadsWorkspace
       createLeadAccess={createLeadAccess}
-      hasOpenAIConnection={Boolean(connectedAccounts.openAIConnection)}
+      aiBalance={aiBalance}
       initialLeadId={initialLeadId ?? null}
       initialLeadPanel={initialLeadPanel === "message" ? "message" : "details"}
       leadFilters={leadFilters}

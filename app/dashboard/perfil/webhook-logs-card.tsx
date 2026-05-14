@@ -38,7 +38,7 @@ export function WebhookLogsCard({
   }, [isAutoRefreshEnabled, isSupabaseMode, router, startRefreshTransition]);
 
   return (
-    <section className="glass-strong rounded-[34px] p-6">
+    <section className="glass-strong rounded-[34px] p-6 scroll-mt-6" id="logs">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-cobalt">Webhook de leads</p>
@@ -48,18 +48,18 @@ export function WebhookLogsCard({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <a className={getWebhookFilterClass(filter, "all")} href="/dashboard/perfil">
+          <a className={getWebhookFilterClass(filter, "all")} href="/dashboard/integracoes/webhook-leads#logs">
             Todos
           </a>
           <a
             className={getWebhookFilterClass(filter, "processed")}
-            href="/dashboard/perfil?webhookStatus=processed"
+            href="/dashboard/integracoes/webhook-leads?webhookStatus=processed#logs"
           >
             Sucesso
           </a>
           <a
             className={getWebhookFilterClass(filter, "failed")}
-            href="/dashboard/perfil?webhookStatus=failed"
+            href="/dashboard/integracoes/webhook-leads?webhookStatus=failed#logs"
           >
             Erro
           </a>
@@ -82,7 +82,7 @@ export function WebhookLogsCard({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/40 bg-white/34 px-4 py-3 text-sm text-ink/66">
         <p>
           {isSupabaseMode
-            ? "Atualizacao automatica a cada 15 segundos para acompanhar o teste quase em tempo real."
+            ? "Atualização automática a cada 15 segundos para acompanhar o teste quase em tempo real."
             : "Configure o Supabase para visualizar logs reais de webhook."}
         </p>
         {isSupabaseMode ? (
@@ -98,10 +98,15 @@ export function WebhookLogsCard({
         ) : null}
       </div>
 
-      {!isSupabaseMode ? null : logs.length === 0 ? (
-        <p className="mt-5 rounded-[22px] border border-white/40 bg-white/34 px-4 py-3 text-sm text-ink/66">
-          Nenhum log encontrado para este filtro.
-        </p>
+      {logs.length === 0 ? (
+        <div className="mt-5 rounded-[22px] border border-white/40 bg-white/34 px-4 py-3 text-sm text-ink/66">
+          <p>Nenhum log encontrado para este filtro.</p>
+          <p className="mt-2 text-xs leading-5 text-ink/52">
+            {isSupabaseMode
+              ? "Assim que um lead for enviado, os eventos mais recentes aparecem aqui para ajudar na validação."
+              : "Configure o Supabase para visualizar os eventos reais capturados pelo webhook."}
+          </p>
+        </div>
       ) : (
         <div className="mt-5 overflow-x-auto">
           <table className="min-w-full text-sm">

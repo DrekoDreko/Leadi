@@ -6,8 +6,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
-  ArrowUpRight,
   ChevronRight,
+  Archive,
   Download,
   Filter,
   Inbox,
@@ -45,26 +45,29 @@ const filterKeys: Array<keyof LeadUrlFilters> = [
   "source",
   "city",
   "period",
-  "search"
+  "search",
+  "archived"
 ];
 const paginationQueryKeys = ["limit", "offset"];
 
 export function LeadsWorkspace({
   createLeadAccess,
-  hasOpenAIConnection,
+  aiBalance,
   initialLeadId,
   initialLeadPanel,
   leadFilters,
   leadState,
-  whatsappTemplates = []
+  whatsappTemplates = [],
+  title = "Leads"
 }: {
   createLeadAccess: ResourceAccessSummary;
-  hasOpenAIConnection: boolean;
+  aiBalance: number;
   initialLeadId: string | null;
   initialLeadPanel: "details" | "message";
   leadFilters: LeadUrlFilters;
   leadState: LeadDataState;
   whatsappTemplates?: SystemTemplate[];
+  title?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -88,7 +91,6 @@ export function LeadsWorkspace({
   const isErrorState = leadState.mode === "error" || leadState.mode === "unauthenticated";
   const isEmptyWithoutFilters = !isErrorState && leads.length === 0 && !hasActiveFilters;
   const isEmptyWithFilters = !isErrorState && hasActiveFilters && leads.length === 0;
-  const kanbanColumns = buildKanbanColumns(visibleLeads);
   const newLeads = visibleLeads.filter((lead) => lead.stage === "Novo lead").length;
   const qualifiedLeads = visibleLeads.filter((lead) => lead.stage === "Qualificação").length;
   const proposalLeads = visibleLeads.filter((lead) => lead.stage === "Proposta").length;
@@ -106,7 +108,7 @@ export function LeadsWorkspace({
       if (isDefaultLeadUrlFilterValue(key, value)) {
         nextSearchParams.delete(key);
       } else {
-        nextSearchParams.set(key, value);
+        nextSearchParams.set(key, String(value));
       }
     }
 
@@ -291,7 +293,7 @@ export function LeadsWorkspace({
     <div className="space-y-4">
       <PageHeading
         eyebrow="CRM"
-        title="Leads"
+        title={title}
         description="Lista dedicada para qualificar contatos, acompanhar responsáveis e priorizar próximos passos."
       >
         <Link
@@ -373,10 +375,10 @@ export function LeadsWorkspace({
                     onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
                     onLeadOpen={openLeadDetails}
                   />
-                  <LeadKanbanPanel
-                    columns={kanbanColumns}
-                    onLeadOpen={openLeadDetails}
-                  />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <SalesFunnelGateway />
+                    <ArchivedLeadsGateway />
+                  </div>
                 </div>
               </section>
               <LeadPaginationControls
@@ -399,7 +401,7 @@ export function LeadsWorkspace({
         open={isCreateOpen}
       />
       <LeadDetailsPopup
-        hasOpenAIConnection={hasOpenAIConnection}
+        aiBalance={aiBalance}
         initialPanel={selectedLeadPanel}
         lead={selectedLead}
         messageGeneratorEnabled
@@ -762,6 +764,91 @@ function LeadWorkspaceEmptyState({
   );
 }
 
+function SalesFunnelGateway() {
+  return (
+    <Link
+      href="/dashboard/funil"
+      className="group relative flex flex-col overflow-hidden rounded-[34px] border border-white/40 bg-white/40 p-1 transition-all hover:border-cobalt/30 hover:bg-white/60 hover:shadow-2xl hover:shadow-cobalt/10 sm:flex-row sm:items-center sm:gap-8"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden rounded-[30px] sm:aspect-square sm:w-[280px] sm:shrink-0">
+        <img
+          src="/assets/kanban-animation.png"
+          alt="Funil de vendas"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-tr from-cobalt/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+        
+        {/* Animated Hand/Cursor simulation */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:translate-x-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-4 ring-cobalt/10">
+            <div className="h-4 w-4 rounded-sm bg-cobalt animate-pulse" />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col justify-center p-6 sm:p-4">
+        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-cobalt/60">
+          <div className="h-1.5 w-1.5 rounded-full bg-cobalt animate-pulse" />
+          Gestão Visual
+        </div>
+        <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          Acessar funil de vendas
+        </h2>
+        <p className="mt-4 max-w-md text-lg leading-relaxed text-ink/60">
+          Visualize seus leads em um quadro Kanban interativo. Arraste e solte para mover contatos entre as etapas de venda.
+        </p>
+        
+        <div className="mt-8 flex items-center gap-3 text-sm font-bold text-cobalt">
+          Explorar Funil 
+          <ChevronRight className="transition-transform group-hover:translate-x-1" size={18} />
+        </div>
+      </div>
+
+      {/* Decorative element */}
+      <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-cobalt/5 blur-3xl transition-colors group-hover:bg-cobalt/10" />
+    </Link>
+  );
+}
+
+function ArchivedLeadsGateway() {
+  return (
+    <Link
+      href="/dashboard/leads/arquivados"
+      className="group relative flex flex-col overflow-hidden rounded-[34px] border border-white/40 bg-white/40 p-1 transition-all hover:border-amber-500/30 hover:bg-white/60 hover:shadow-2xl hover:shadow-amber-500/10"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden rounded-[30px] sm:aspect-video sm:w-full">
+        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-50 to-amber-100/50">
+          <Archive
+            className="text-amber-500/40 transition-transform duration-700 group-hover:scale-110 group-hover:rotate-3"
+            size={80}
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      </div>
+
+      <div className="flex flex-col justify-center p-6">
+        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-600/70">
+          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+          Histórico
+        </div>
+        <h2 className="mt-3 text-2xl font-bold tracking-tight text-ink">
+          Leads arquivados
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-ink/60">
+          Acesse a lista de leads que foram removidos do fluxo principal para manter sua organização limpa.
+        </p>
+        
+        <div className="mt-6 flex items-center gap-3 text-sm font-bold text-amber-600">
+          Ver Arquivados 
+          <ChevronRight className="transition-transform group-hover:translate-x-1" size={18} />
+        </div>
+      </div>
+
+      <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-amber-500/5 blur-3xl transition-colors group-hover:bg-amber-500/10" />
+    </Link>
+  );
+}
+
 function LeadTablePanel({
   leads,
   hasActiveFilters,
@@ -898,100 +985,9 @@ function LeadTablePanel({
   );
 }
 
-function LeadKanbanPanel({
-  columns,
-  onLeadOpen
-}: {
-  columns: ReturnType<typeof buildKanbanColumns>;
-  onLeadOpen: (lead: Lead) => void;
-}) {
-  return (
-    <section className="glass rounded-[34px] p-5 h-full">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-ink/54">Kanban</p>
-          <h2 className="text-2xl font-semibold">Funil de vendas</h2>
-        </div>
-        <Link
-          className="icon-button"
-          href="/dashboard/funil"
-          title="Visualizar todo o funil"
-        >
-          <ArrowUpRight size={18} aria-hidden="true" />
-        </Link>
-      </div>
 
-      <div className="grid gap-3 xl:grid-cols-4">
-        {columns.map((column) => (
-          <div className="rounded-[28px] bg-white/34 p-3" key={column.title}>
-            <div className="mb-3 flex items-center justify-between gap-2 px-1">
-              <span className="text-sm font-semibold">{column.title}</span>
-              <span className="rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold">
-                {column.cards.length}
-              </span>
-            </div>
-
-            {column.cards.map((lead) => (
-              <article
-                className={`${column.color} flex w-full flex-col justify-between rounded-[24px] p-4 text-left shadow-soft transition hover:-translate-y-0.5`}
-                key={lead.id}
-              >
-                <div className="space-y-3">
-                  <button
-                    className="block text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50"
-                    onClick={() => onLeadOpen(lead)}
-                    type="button"
-                  >
-                    <span className="block font-semibold leading-tight">{lead.name}</span>
-                    <span className="mt-1 block text-sm opacity-85">{lead.owner}</span>
-                  </button>
-                </div>
-                <div
-                  className="mt-4"
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                >
-                  <LeadStageBadge
-                    stage={lead.stage}
-                    variant="kanban"
-                  />
-                </div>
-              </article>
-            ))}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function isDefaultLeadUrlFilterValue(key: keyof LeadUrlFilters, value: string) {
+function isDefaultLeadUrlFilterValue(key: keyof LeadUrlFilters, value: string | boolean) {
   return value === defaultLeadUrlFilters[key];
-}
-
-function buildKanbanColumns(leads: Lead[]) {
-  return [
-    {
-      title: "Novo lead",
-      color: "bg-cobalt text-white",
-      cards: leads.filter((lead) => lead.stage === "Novo lead")
-    },
-    {
-      title: "Qualificação",
-      color: "bg-lagoon text-white",
-      cards: leads.filter((lead) => lead.stage === "Qualificação")
-    },
-    {
-      title: "Proposta",
-      color: "bg-signal text-ink",
-      cards: leads.filter((lead) => lead.stage === "Proposta")
-    },
-    {
-      title: "Negociação",
-      color: "bg-ink text-white",
-      cards: leads.filter((lead) => lead.stage === "Negociação")
-    }
-  ];
 }
 
 

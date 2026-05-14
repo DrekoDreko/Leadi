@@ -79,7 +79,10 @@ describe("RemindersCalendarCard", () => {
     fireEvent.change(screen.getByLabelText("Do que voce quer ser lembrado"), {
       target: { value: "Confirmar campanha" }
     });
-    fireEvent.change(screen.getByLabelText("Ou defina o horario (24 horas)"), {
+    fireEvent.change(screen.getByLabelText("Atalho rapido"), {
+      target: { value: "custom" }
+    });
+    fireEvent.change(screen.getByLabelText("Horario do lembrete (24 horas)"), {
       target: { value: futureTime }
     });
     fireEvent.click(screen.getByRole("button", { name: "Salvar lembrete" }));
@@ -104,7 +107,10 @@ describe("RemindersCalendarCard", () => {
     fireEvent.change(screen.getByLabelText("Do que voce quer ser lembrado"), {
       target: { value: "Retornar para cliente" }
     });
-    fireEvent.change(screen.getByLabelText("Ou defina o horario (24 horas)"), {
+    fireEvent.change(screen.getByLabelText("Atalho rapido"), {
+      target: { value: "custom" }
+    });
+    fireEvent.change(screen.getByLabelText("Horario do lembrete (24 horas)"), {
       target: { value: pastTime }
     });
     fireEvent.click(screen.getByRole("button", { name: "Salvar lembrete" }));
@@ -137,7 +143,7 @@ describe("RemindersCalendarCard", () => {
       target: { value: "Aprovar arte" }
     });
     fireEvent.click(screen.getByRole("button", { name: "Salvar lembrete" }));
-    expect(screen.getByText("Informe um horario em 24 horas para lembretes em outros dias.")).toBeInTheDocument();
+    expect(screen.getByText("Informe um horario em 24 horas para o lembrete.")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Horario do lembrete (24 horas)"), {
       target: { value: "09:30" }

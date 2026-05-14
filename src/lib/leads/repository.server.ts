@@ -30,6 +30,8 @@ import {
   type LeadPaginationOptions
 } from "./repository";
 
+import { isWorkspaceManagerRole } from "@/lib/workspaces/permissions";
+
 type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
 type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 type LeadCommentRow = Database["public"]["Tables"]["lead_comments"]["Row"];
@@ -133,7 +135,11 @@ export async function getLeadsForCurrentUser(
 
   try {
     if (!isSupabaseConfigured()) {
-      const filteredLeads = mockLeads.filter((lead) => applyLeadUrlFilters(lead, filters));
+      const filteredLeads = mockLeads.filter((lead) => {
+        const matchesFilters = applyLeadUrlFilters(lead, filters);
+        const matchesArchived = filters.archived ? lead.archivedAt !== null : lead.archivedAt === null;
+        return matchesFilters && matchesArchived;
+      });
       const paginatedLeads = paginateLeads(filteredLeads, pagination);
 
       return {
@@ -180,7 +186,7 @@ export async function getLeadsForCurrentUser(
         canDeleteLeads: false,
         canCreateMetaAdsLeads: false,
         pagination: buildLeadPaginationMeta(pagination, 0, 0),
-        message: "Nao foi possivel carregar os leads."
+        message: "Nao foi possivel carregar os leads"
       };
     }
 
@@ -188,37 +194,37 @@ export async function getLeadsForCurrentUser(
       await getMetaConnectionForOrganization(profile.organization_id)
     );
 
-    let query = buildLeadQuery(
-      supabase
-        .from("leads")
-        .select("*", { count: "exact" })
-        .eq("organization_id", profile.organization_id),
+    let { data, error, count } = await runLeadListQuery({
+      supabase,
       profile,
-      filters
-    ).order("received_at", { ascending: false });
+      filters,
+      pagination,
+      includeArchivedFilter: true
+    });
 
-    if (pagination.limit === null) {
-      query = buildLeadQuery(
-        supabase.from("leads").select("*").eq("organization_id", profile.organization_id),
+    if (error && isMissingArchivedAtColumnError(error)) {
+      console.warn(
+        "[getLeadsForCurrentUser] archived_at column missing, retrying without archived filter."
+      );
+
+      ({ data, error, count } = await runLeadListQuery({
+        supabase,
         profile,
-        filters
-      ).order("received_at", { ascending: false });
+        filters,
+        pagination,
+        includeArchivedFilter: false
+      }));
     }
-
-    if (pagination.limit !== null) {
-      query = query.range(pagination.offset, pagination.offset + pagination.limit - 1);
-    }
-
-    const { data, error, count } = await query;
 
     if (error) {
+      console.error("[getLeadsForCurrentUser] Supabase query error:", error);
       return {
         leads: [],
         mode: "error",
         canDeleteLeads: false,
         canCreateMetaAdsLeads: hasMetaConnection,
         pagination: buildLeadPaginationMeta(pagination, 0, 0),
-        message: "Nao foi possivel carregar os leads."
+        message: "Nao foi possivel carregar os leads"
       };
     }
 
@@ -234,14 +240,15 @@ export async function getLeadsForCurrentUser(
       canCreateMetaAdsLeads: hasMetaConnection,
       pagination: buildLeadPaginationMeta(pagination, total, leads.length)
     };
-  } catch {
+  } catch (err) {
+    console.error("[getLeadsForCurrentUser] Unexpected error:", err);
     return {
       leads: [],
       mode: "error",
       canDeleteLeads: false,
       canCreateMetaAdsLeads: false,
       pagination: buildLeadPaginationMeta(pagination, 0, 0),
-      message: "Nao foi possivel carregar os leads."
+      message: "Nao foi possivel carregar os leads"
     };
   }
 }
@@ -475,8 +482,12 @@ export async function updateLeadForCurrentUser(id: string, input: LeadCreateInpu
   return mapLeadRowToLead(data, profile);
 }
 
-export async function deleteLeadForCurrentUser(id: string) {
+export async function archiveLeadForCurrentUser(id: string) {
   if (!isSupabaseConfigured()) {
+    const lead = mockLeads.find(l => l.id === id);
+    if (lead) {
+      lead.archivedAt = new Date().toISOString();
+    }
     return;
   }
 
@@ -486,12 +497,12 @@ export async function deleteLeadForCurrentUser(id: string) {
   );
   const existingLead = await getLeadForMutation(id, profile.organization_id);
 
-  assertCanManageLead(profile, existingLead, "excluir", hasMetaConnection);
+  assertCanManageLead(profile, existingLead, "arquivar", hasMetaConnection);
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("leads")
-    .delete()
+    .update({ archived_at: new Date().toISOString() })
     .eq("id", id)
     .eq("organization_id", profile.organization_id)
     .select("id")
@@ -505,6 +516,8 @@ export async function deleteLeadForCurrentUser(id: string) {
     throw new Error("Lead nao encontrado.");
   }
 }
+
+export const deleteLeadForCurrentUser = archiveLeadForCurrentUser;
 
 export async function listLeadCommentsForCurrentUser(id: string): Promise<LeadComment[]> {
   if (!isSupabaseConfigured()) {
@@ -792,7 +805,7 @@ function buildLeadQuery(
 ) {
   const ownerProfileId = resolveLeadOwnerProfileId(profile, sellerProfileId);
 
-  if (ownerProfileId) {
+  if (ownerProfileId && !isWorkspaceManagerRole(profile.role)) {
     query = query.eq("owner_profile_id", ownerProfileId);
   }
 
@@ -830,6 +843,59 @@ function buildLeadQuery(
   }
 
   return query;
+}
+
+async function runLeadListQuery(input: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  profile: ProfileRow;
+  filters: LeadUrlFilters;
+  pagination: ReturnType<typeof normalizeLeadPaginationOptions>;
+  includeArchivedFilter: boolean;
+}) {
+  let query = buildLeadQuery(
+    input.supabase.from("leads").select("*", { count: "exact" }).eq("organization_id", input.profile.organization_id),
+    input.profile,
+    input.filters
+  );
+
+  if (input.includeArchivedFilter) {
+    query = applyArchivedLeadFilter(query, input.filters.archived);
+  }
+
+  query = query.order("received_at", { ascending: false });
+
+  if (input.pagination.limit === null) {
+    query = buildLeadQuery(
+      input.supabase.from("leads").select("*").eq("organization_id", input.profile.organization_id),
+      input.profile,
+      input.filters
+    );
+
+    if (input.includeArchivedFilter) {
+      query = applyArchivedLeadFilter(query, input.filters.archived);
+    }
+
+    query = query.order("received_at", { ascending: false });
+  }
+
+  if (input.pagination.limit !== null) {
+    query = query.range(input.pagination.offset, input.pagination.offset + input.pagination.limit - 1);
+  }
+
+  return query;
+}
+
+function applyArchivedLeadFilter(
+  query: ReturnType<ServerClient["from"]>,
+  archived: boolean
+) {
+  return archived ? query.not("archived_at", "is", null) : query.is("archived_at", null);
+}
+
+function isMissingArchivedAtColumnError(error: { code?: string; message?: string }) {
+  const message = error.message?.toLowerCase() ?? "";
+
+  return error.code === "42703" && message.includes("archived_at");
 }
 
 function resolveLeadOwnerProfileId(profile: ProfileRow, sellerProfileId: string | null) {
@@ -1006,7 +1072,7 @@ function isMetaLeadUniqueViolation(error: { code?: string; message?: string }) {
 }
 
 function canDeleteOrganizationLeads(profile: ProfileRow) {
-  return profile.role === "owner" || profile.role === "admin";
+  return isWorkspaceManagerRole(profile.role);
 }
 
 function canManageLead(
@@ -1015,8 +1081,7 @@ function canManageLead(
   hasMetaConnection = false
 ) {
   return (
-    profile.role === "owner" ||
-    profile.role === "admin" ||
+    isWorkspaceManagerRole(profile.role) ||
     (lead.owner_profile_id === profile.id &&
       (lead.source !== "meta_lead_ads" || hasMetaConnection))
   );
@@ -1027,7 +1092,7 @@ function assertCanCreateLead(
   payload: LeadInsert,
   hasMetaConnection: boolean
 ) {
-  if (profile.role === "owner" || profile.role === "admin") {
+  if (isWorkspaceManagerRole(profile.role)) {
     return;
   }
 
@@ -1068,7 +1133,7 @@ function assertCanManageLead(
 }
 
 function assertCanAccessLead(profile: ProfileRow, lead: LeadRow, action: "visualizar" | "comentar") {
-  if (profile.role === "owner" || profile.role === "admin") {
+  if (isWorkspaceManagerRole(profile.role)) {
     return;
   }
 
@@ -1356,7 +1421,8 @@ function mapLeadRowToLead(
     metaFormId: row.meta_form_id,
     metaPageId: row.meta_page_id,
     metaConnectedAccountId: row.meta_connected_account_id,
-    receivedAt: row.received_at
+    receivedAt: row.received_at,
+    archivedAt: row.archived_at
   };
 }
 

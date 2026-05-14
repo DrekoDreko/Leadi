@@ -25,7 +25,7 @@ Painel do App Review e configurações de produtos Meta:
 ## ⚡ Webhook de Leads Externos (Make, Zapier, RD, etc.)
 - **URL de Disparo:** `https://leadhealth.vercel.app/api/webhooks/leads`
 - **Método:** `POST`
-- *(Lembre-se de enviar o token de autenticação gerado na aba "Perfil" no header `Authorization: Bearer <token>` ou `x-leadhealth-token: <token>`)*
+- *(Lembre-se de enviar o token de autenticação gerado na tela `/dashboard/integracoes/webhook-leads` no header `Authorization: Bearer <token>` ou `x-leadhealth-token: <token>`.)*
 
 ## 💳 Mercado Pago (Cobranças/Assinaturas)
 - **Webhook URL:** `https://leadhealth.vercel.app/api/billing/webhooks/mercadopago`

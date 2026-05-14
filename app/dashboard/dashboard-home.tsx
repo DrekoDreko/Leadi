@@ -21,10 +21,9 @@ type DashboardHomeProps = {
   leads?: Lead[];
   preview?: boolean;
   showCreateTeamCard?: boolean;
+  aiBalance?: number;
   creditBalance?: number;
   campaignsCount?: number;
-  hasMetaConnection?: boolean;
-  hasOpenAIConnection?: boolean;
   whatsappMessagesCount?: number;
   creativeRequestsCount?: number;
   onboardingState?: OnboardingState | null;
@@ -34,9 +33,8 @@ type DashboardHomeProps = {
 export function DashboardHome({
   leads = mockLeads,
   preview = false,
+  aiBalance = 0,
   campaignsCount = 0,
-  hasMetaConnection = false,
-  hasOpenAIConnection = false,
   whatsappMessagesCount = 0,
   creativeRequestsCount = 0,
   onboardingState = null,
@@ -45,7 +43,7 @@ export function DashboardHome({
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const metrics = preview
     ? getPreviewMetrics()
-    : getDashboardMetrics(leads, campaignsCount, hasMetaConnection, hasOpenAIConnection);
+    : getDashboardMetrics(leads, campaignsCount, aiBalance);
   const relatoriosHref = preview ? "/login" : "/dashboard/relatorios";
   const campaignHref = preview ? "/login" : "/dashboard/criacoes/campanhas";
   const funnelHref = preview ? "/login" : "/dashboard/funil";
@@ -116,7 +114,7 @@ export function DashboardHome({
         <Metric label="Propostas" value={metrics.proposals} note={metrics.proposalsNote} tone="yellow" />
         <Metric label="Vendas" value={metrics.sales} note={metrics.salesNote} tone="teal" />
         <Metric label="Anuncios" value={metrics.campaigns} note={metrics.campaignsNote} tone="dark" />
-        <Metric label="Conexoes" value={metrics.connections} note={metrics.connectionsNote} tone="blue" />
+        <Metric label="Saldo de IA" value={metrics.aiBalance} note={metrics.aiBalanceNote} tone="blue" />
       </div>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-stretch">
@@ -229,7 +227,7 @@ export function DashboardHome({
         </aside>
       </section>
 
-      <LeadDetailsPopup lead={selectedLead} onClose={() => setSelectedLead(null)} />
+      <LeadDetailsPopup aiBalance={aiBalance} lead={selectedLead} onClose={() => setSelectedLead(null)} />
     </div>
   );
 }
@@ -237,30 +235,26 @@ export function DashboardHome({
 function getDashboardMetrics(
   leads: Lead[],
   campaignsCount: number,
-  hasMetaConnection: boolean,
-  hasOpenAIConnection: boolean
+  aiBalance: number
 ) {
   const activeLeads = leads.filter((lead) => !["Venda", "Perdido"].includes(lead.stage)).length;
   const proposals = leads.filter((lead) => lead.stage === "Proposta").length;
   const sales = leads.filter((lead) => lead.stage === "Venda").length;
-  const connections = Number(hasMetaConnection) + Number(hasOpenAIConnection);
 
   return {
     activeLeads: String(activeLeads),
     proposals: String(proposals),
     sales: String(sales),
     campaigns: String(campaignsCount),
-    connections: String(connections),
     totalNote: `${leads.length} leads no CRM`,
     proposalsNote: `${proposals} em proposta`,
     salesNote: `${sales} vendas`,
     campaignsNote: campaignsCount > 0 ? "historico ativo" : "sem criacoes ainda",
-    connectionsNote:
-      connections === 2
-        ? "Meta e OpenAI conectadas"
-        : connections === 1
-          ? "1 conta conectada"
-          : "conecte suas contas"
+    aiBalance: String(aiBalance),
+    aiBalanceNote:
+      aiBalance > 0
+        ? `${aiBalance.toLocaleString("pt-BR")} créditos de IA disponíveis`
+        : "seu saldo de IA acabou"
   };
 }
 
@@ -270,11 +264,11 @@ function getPreviewMetrics() {
     proposals: "31",
     sales: "12",
     campaigns: "9",
-    connections: "2",
+    aiBalance: "48",
     totalNote: "+18% no mes",
     proposalsNote: "+6 hoje",
     salesNote: "R$ 84k pipeline",
     campaignsNote: "anuncios ativos",
-    connectionsNote: "demo conectado"
+    aiBalanceNote: "saldo demo de IA"
   };
 }

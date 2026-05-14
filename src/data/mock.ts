@@ -46,6 +46,7 @@ export type Lead = {
   metaPageId?: string | null;
   metaConnectedAccountId?: string | null;
   receivedAt?: string | null;
+  archivedAt?: string | null;
 };
 
 export const leads: Lead[] = [

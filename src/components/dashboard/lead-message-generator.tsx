@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Copy, Loader2, Sparkles } from "lucide-react";
 import type { Lead } from "@/data/mock";
+import { getAiCreditCost } from "@/lib/ai/credit-costs";
 import {
   buildFallbackWhatsAppMessage,
   buildWhatsAppStageObjective,
@@ -16,7 +16,7 @@ import type { WhatsAppHistoryItem, WhatsAppStage } from "@/lib/whatsapp/types";
 import type { SystemTemplate, WhatsAppTemplateContent } from "@/lib/templates/types";
 
 type LeadMessageGeneratorProps = {
-  hasOpenAIConnection: boolean;
+  aiBalance: number;
   lead: Lead;
   systemTemplates?: SystemTemplate[];
 };
@@ -31,6 +31,7 @@ type GeneratedMessage = {
 type WhatsAppGenerationResponse = {
   message?: GeneratedMessage;
   savedMessage?: WhatsAppHistoryItem;
+  aiBalance?: number;
   error?: string;
 };
 
@@ -50,11 +51,12 @@ const stageOptions: Array<{ value: WhatsAppStage; label: string }> = [
 ];
 
 export function LeadMessageGenerator({
-  hasOpenAIConnection,
+  aiBalance,
   lead,
   systemTemplates = []
 }: LeadMessageGeneratorProps) {
-  const router = useRouter();
+  const messageCost = getAiCreditCost("generate_whatsapp_message");
+  const [currentAiBalance, setCurrentAiBalance] = useState(aiBalance);
   const [selectedStage, setSelectedStage] = useState<WhatsAppStage>(mapLeadStageToMessageStage(lead.stage));
   const [selectedTone, setSelectedTone] = useState<WhatsAppToneValue>("consultivo");
   const [generatedMessage, setGeneratedMessage] = useState<GeneratedMessage | null>(null);
@@ -65,6 +67,10 @@ export function LeadMessageGenerator({
   const [error, setError] = useState("");
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState("");
+
+  useEffect(() => {
+    setCurrentAiBalance(aiBalance);
+  }, [aiBalance]);
 
   const visibleMessage = useMemo(
     () =>
@@ -85,8 +91,8 @@ export function LeadMessageGenerator({
   );
 
   async function handleGenerate() {
-    if (!hasOpenAIConnection) {
-      router.push("/dashboard/perfil?section=empresa&highlight=openai");
+    if (currentAiBalance < messageCost) {
+      setError("Você não possui créditos de IA suficientes para executar esta ação.");
       return;
     }
 
@@ -118,6 +124,9 @@ export function LeadMessageGenerator({
 
       setGeneratedMessage(payload.message);
       setSavedMessage(payload.savedMessage ?? null);
+      if (typeof payload.aiBalance === "number") {
+        setCurrentAiBalance(payload.aiBalance);
+      }
       setSendError("");
       setSendSuccess("");
     } catch (requestError) {
@@ -204,15 +213,16 @@ export function LeadMessageGenerator({
           <p className="text-sm font-medium text-cobalt">Gerar mensagem</p>
           <h3 className="mt-2 text-xl font-semibold">WhatsApp do lead</h3>
           <p className="mt-2 text-sm leading-6 text-ink/62">
-            Escolha a etapa da conversa e o tom desejado. Se a conta OpenAI da empresa nao estiver conectada, o Perfil sera destacado para configuracao.
+            Escolha a etapa da conversa e o tom desejado. A geração consome Créditos de IA da plataforma.
           </p>
         </div>
         <Sparkles className="text-lagoon" size={20} aria-hidden="true" />
       </div>
 
-      {!hasOpenAIConnection ? (
+      {currentAiBalance < messageCost ? (
         <div className="mt-4 rounded-[24px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
-          Conecte a OpenAI no Perfil para gerar mensagens com IA usando a conta do cliente.
+          Você não possui créditos de IA suficientes para executar esta ação. Adicione créditos
+          ou atualize seu plano para continuar.
         </div>
       ) : null}
 
@@ -302,7 +312,7 @@ export function LeadMessageGenerator({
       <div className="mt-5 flex flex-wrap gap-2">
         <button
           className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={isGenerating}
+          disabled={isGenerating || currentAiBalance < messageCost}
           onClick={() => void handleGenerate()}
           type="button"
         >

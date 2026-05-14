@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import {
-  deleteLeadForCurrentUser,
+  archiveLeadForCurrentUser,
   updateLeadForCurrentUser,
   type LeadCreateInput
 } from "@/lib/leads/repository.server";
@@ -48,7 +48,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   try {
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
-    await deleteLeadForCurrentUser(id);
+    await archiveLeadForCurrentUser(id);
 
     return NextResponse.json({ ok: true, mode });
   } catch (error) {
@@ -105,7 +105,7 @@ function getDeleteLeadErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {
-    return "Sua sessao expirou. Entre novamente para excluir leads.";
+    return "Sua sessao expirou. Entre novamente para arquivar leads.";
   }
 
   if (message.includes("Perfil nao encontrado")) {
@@ -113,22 +113,22 @@ function getDeleteLeadErrorMessage(error: unknown) {
   }
 
   if (message.includes("Lead nao encontrado")) {
-    return "Lead nao encontrado ou ja removido.";
+    return "Lead nao encontrado ou ja arquivado.";
   }
 
   if (message.includes("Conecte uma conta Meta ativa")) {
-    return "Conecte uma conta Meta ativa para excluir leads dessa origem.";
+    return "Conecte uma conta Meta ativa para arquivar leads dessa origem.";
   }
 
   if (message.includes("Sem permissao")) {
-    return "Voce so pode excluir leads adicionados por voce.";
+    return "Voce so pode arquivar leads adicionados por voce.";
   }
 
   if (message.includes("Supabase nao configurado")) {
-    return "Supabase ainda nao configurado. A exclusao exige a base real configurada.";
+    return "Supabase ainda nao configurado. O arquivamento exige a base real configurada.";
   }
 
-  return "Nao foi possivel remover o lead. Tente novamente em instantes.";
+  return "Nao foi possivel arquivar o lead. Tente novamente em instantes.";
 }
 
 function getLeadMutationErrorStatus(error: unknown) {

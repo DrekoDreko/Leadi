@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -16,6 +16,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { campaignDraft } from "@/data/mock";
+import { getAiCreditCost } from "@/lib/ai/credit-costs";
 import { Metric, PageHeading } from "@/components/dashboard/widgets";
 import type { ConnectedAccountsState } from "@/lib/integrations/types";
 import type {
@@ -101,6 +102,7 @@ const campaignHistoryDateFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 type CampaignGeneratorProps = {
+  aiBalance: number;
   connectedAccounts: ConnectedAccountsState;
   initialCampaigns: CampaignHistoryItem[];
   historyMode: CampaignListState["mode"];
@@ -109,6 +111,7 @@ type CampaignGeneratorProps = {
 };
 
 export function CampaignGenerator({
+  aiBalance,
   connectedAccounts,
   initialCampaigns,
   historyMessage,
@@ -116,6 +119,7 @@ export function CampaignGenerator({
   systemTemplates = []
 }: CampaignGeneratorProps) {
   const [form, setForm] = useState<FormState>(() => createInitialForm(connectedAccounts));
+  const [currentAiBalance, setCurrentAiBalance] = useState(aiBalance);
   const [campaign, setCampaign] = useState<CampaignTextOutput | null>(null);
   const [campaignHistory, setCampaignHistory] = useState<CampaignHistoryItem[]>(initialCampaigns);
   const [questions, setQuestions] = useState<ComplianceQuestionsOutput | null>(null);
@@ -129,7 +133,8 @@ export function CampaignGenerator({
   const [submissionNotice, setSubmissionNotice] = useState("");
   const [publicationNotice, setPublicationNotice] = useState("");
   const metaConnection = connectedAccounts.metaConnection;
-  const openAIConnection = connectedAccounts.openAIConnection;
+  const campaignCost = getAiCreditCost("generate_campaign_plan");
+  const briefCost = getAiCreditCost("generate_creative_brief");
   const selectedMetaPage = connectedAccounts.metaPages.find(
     (page) => page.metaPageId === form.metaPageId
   );
@@ -145,6 +150,10 @@ export function CampaignGenerator({
     hasMinimumMetaAssets,
     form
   });
+
+  useEffect(() => {
+    setCurrentAiBalance(aiBalance);
+  }, [aiBalance]);
 
   const campaignTags = useMemo(
     () =>
@@ -162,6 +171,12 @@ export function CampaignGenerator({
     event.preventDefault();
     setError("");
     setSubmissionNotice("");
+
+    if (currentAiBalance < campaignCost) {
+      setError("Você não possui créditos de IA suficientes para executar esta ação.");
+      return;
+    }
+
     setIsGenerating(true);
 
     try {
@@ -179,6 +194,7 @@ export function CampaignGenerator({
       const payload = (await response.json().catch(() => null)) as {
         campaign?: CampaignTextOutput;
         savedCampaign?: CampaignHistoryItem;
+        aiBalance?: number;
         error?: string;
       } | null;
 
@@ -194,6 +210,9 @@ export function CampaignGenerator({
           ...currentHistory.filter((item) => item.id !== savedCampaign.id)
         ]);
       }
+      if (typeof payload.aiBalance === "number") {
+        setCurrentAiBalance(payload.aiBalance);
+      }
       setSubmissionNotice(
         "Recebemos a solicitacao. Retornaremos com o valor e o andamento da campanha na area Validador de campanha."
       );
@@ -206,6 +225,12 @@ export function CampaignGenerator({
 
   async function handleGenerateQuestions() {
     setQuestionsError("");
+
+    if (currentAiBalance < briefCost) {
+      setQuestionsError("Você não possui créditos de IA suficientes para executar esta ação.");
+      return;
+    }
+
     setIsGeneratingQuestions(true);
 
     try {
@@ -224,6 +249,7 @@ export function CampaignGenerator({
       });
       const payload = (await response.json().catch(() => null)) as {
         questions?: ComplianceQuestionsOutput;
+        aiBalance?: number;
         error?: string;
       } | null;
 
@@ -232,6 +258,9 @@ export function CampaignGenerator({
       }
 
       setQuestions(payload.questions);
+      if (typeof payload.aiBalance === "number") {
+        setCurrentAiBalance(payload.aiBalance);
+      }
     } catch (requestError) {
       setQuestionsError(getFriendlyErrorMessage(requestError).message);
     } finally {
@@ -390,7 +419,7 @@ export function CampaignGenerator({
       >
         <button
           className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={isGenerating || !openAIConnection}
+          disabled={isGenerating || currentAiBalance < campaignCost}
           form="campaign-generator-form"
           type="submit"
         >
@@ -407,16 +436,17 @@ export function CampaignGenerator({
         </button>
       </PageHeading>
 
-      {!openAIConnection ? (
+      {currentAiBalance < campaignCost ? (
         <div className="rounded-[26px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
-          Conecte sua chave OpenAI em{" "}
+          Você não possui créditos de IA suficientes para executar esta ação. Adicione créditos
+          ou atualize seu plano em{" "}
           <Link
             className="font-semibold text-cobalt underline underline-offset-4"
-            href="/dashboard/perfil?section=empresa&highlight=openai"
+            href="/dashboard/creditos"
           >
-            Perfil
+            Créditos de IA
           </Link>{" "}
-          para gerar campanhas, mensagens e perguntas usando a conta da sua organização.
+          para continuar gerando campanhas, mensagens e perguntas.
         </div>
       ) : null}
 
@@ -521,8 +551,12 @@ export function CampaignGenerator({
                       value={metaConnection.metaUserName ?? "Conta conectada"}
                     />
                     <DetailTile
-                      label="OpenAI"
-                      value={openAIConnection?.keyPreview ?? "Cadastre a chave da empresa"}
+                      label="Saldo de IA"
+                      value={
+                        currentAiBalance > 0
+                          ? `${currentAiBalance.toLocaleString("pt-BR")} créditos`
+                          : "Sem saldo"
+                      }
                     />
                     <label className="space-y-2">
                       <span className="text-sm font-semibold text-ink/62">Pagina Meta</span>
@@ -820,7 +854,7 @@ export function CampaignGenerator({
               </div>
               <button
                 className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={isGeneratingQuestions || !openAIConnection}
+                disabled={isGeneratingQuestions || currentAiBalance < briefCost}
                 onClick={handleGenerateQuestions}
                 type="button"
               >

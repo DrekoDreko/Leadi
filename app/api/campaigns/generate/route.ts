@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { EnvValidationError } from "@/lib/env/server";
 import { containsSensitiveCompliancePattern } from "@/lib/openai/compliance-guardrails";
+import { AiCreditsError, runAiActionWithCredits } from "@/lib/ai/credits";
 import {
   generateCampaignText,
   LeadHealthOpenAIError,
   type CampaignTextInput
 } from "@/lib/openai";
 import {
-  getMetaConnectionForOrganization,
-  resolveOpenAIKeyForOrganization
+  getMetaConnectionForOrganization
 } from "@/lib/integrations/repository.server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import { saveCampaignForCurrentUser } from "@/lib/campaigns/repository.server";
@@ -68,22 +68,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
 
-    const [metaConnection, openAiKey] = await Promise.all([
-      getMetaConnectionForOrganization(billingContext.organizationId),
-      resolveOpenAIKeyForOrganization(billingContext.organizationId)
-    ]);
+    const metaConnection = await getMetaConnectionForOrganization(billingContext.organizationId);
     const input = parseCampaignRequest(body, metaConnection?.id ?? null);
-
-    if (!openAiKey) {
-      return NextResponse.json(
-        {
-          error:
-            "Conecte sua chave OpenAI no Perfil para gerar campanhas com IA usando a conta da sua organizacao."
-        },
-        { status: 400 }
-      );
-    }
-
     const { differentiator, ...campaignInput } = input;
     const localNotes = getLocalComplianceNotes([
       campaignInput.audience,
@@ -92,52 +78,76 @@ export async function POST(request: Request) {
       campaignInput.tone ?? "",
       ...(campaignInput.constraints ?? [])
     ]);
-    const campaign = await generateCampaignText({
-      audience: campaignInput.audience,
-      product: campaignInput.product,
-      brokerageName: billingContext.brokerageName,
-      objective: campaignInput.objective,
-      offer: campaignInput.offer,
-      region: campaignInput.region,
-      channel: campaignInput.channel,
-      tone: campaignInput.tone,
-      constraints: [...(campaignInput.constraints ?? []), ...localNotes]
-    }, { apiKey: openAiKey });
+    const { result: campaign, remainingCredits } = await runAiActionWithCredits({
+      orgId: billingContext.organizationId,
+      userId: billingContext.profileId,
+      feature: "generate_campaign_plan",
+      description: "Geracao de campanha com IA",
+      metadata: {
+        route: "campaigns/generate",
+        hasCreativeBrief: Boolean(input.creativeBrief),
+        hasCreativeAsset: Boolean(input.creativeAssetType),
+        hasMetaAssets: Boolean(input.metaPageId && input.metaAdAccountId)
+      },
+      generate: (apiKey) =>
+        generateCampaignText(
+          {
+            audience: campaignInput.audience,
+            product: campaignInput.product,
+            brokerageName: billingContext.brokerageName,
+            objective: campaignInput.objective,
+            offer: campaignInput.offer,
+            region: campaignInput.region,
+            channel: campaignInput.channel,
+            tone: campaignInput.tone,
+            constraints: [...(campaignInput.constraints ?? []), ...localNotes]
+          },
+          { apiKey }
+        )
+    });
     const persistedCampaign = {
       ...campaign,
       complianceNotes: [...localNotes, ...campaign.complianceNotes]
     };
-    const savedCampaign = await saveCampaignForCurrentUser({
-      form: {
-        brokerageName: billingContext.brokerageName,
-        audience: campaignInput.audience,
-        offer: campaignInput.offer ?? "",
-        region: campaignInput.region ?? "",
-        differentiator,
-        notes: input.notes ?? "",
-        tone: campaignInput.tone ?? "",
-        creativeAssetType: input.creativeAssetType,
-        creativeBrief: input.creativeBrief,
-        creativeRequestMode: input.creativeRequestMode,
-        creativeFileNames: input.creativeFileNames,
-        connectedAccountId: input.connectedAccountId,
-        metaPageId: input.metaPageId,
-        metaAdAccountId: input.metaAdAccountId,
-        metaLeadFormId: input.metaLeadFormId,
-        publishMode: input.publishMode,
-        publicationStatus: input.publicationStatus,
-        metaCampaignId: input.metaCampaignId,
-        metaAdSetId: input.metaAdSetId,
-        metaAdId: input.metaAdId
-      },
-      campaign: persistedCampaign
-    });
+    let savedCampaign = null;
+
+    try {
+      savedCampaign = await saveCampaignForCurrentUser({
+        form: {
+          brokerageName: billingContext.brokerageName,
+          audience: campaignInput.audience,
+          offer: campaignInput.offer ?? "",
+          region: campaignInput.region ?? "",
+          differentiator,
+          notes: input.notes ?? "",
+          tone: campaignInput.tone ?? "",
+          creativeAssetType: input.creativeAssetType,
+          creativeBrief: input.creativeBrief,
+          creativeRequestMode: input.creativeRequestMode,
+          creativeFileNames: input.creativeFileNames,
+          connectedAccountId: input.connectedAccountId,
+          metaPageId: input.metaPageId,
+          metaAdAccountId: input.metaAdAccountId,
+          metaLeadFormId: input.metaLeadFormId,
+          publishMode: input.publishMode,
+          publicationStatus: input.publicationStatus,
+          metaCampaignId: input.metaCampaignId,
+          metaAdSetId: input.metaAdSetId,
+          metaAdId: input.metaAdId
+        },
+        campaign: persistedCampaign
+      });
+    } catch (saveError) {
+      console.error("Nao foi possivel salvar a campanha gerada.", saveError);
+    }
+
     const creativeRequest = await maybeCreateCreativeRequest(input, persistedCampaign);
 
     return NextResponse.json({
       campaign: persistedCampaign,
       creativeRequest,
-      savedCampaign
+      savedCampaign,
+      aiBalance: remainingCredits
     });
   } catch (error) {
     const { message, status } = getCampaignError(error);
@@ -296,7 +306,14 @@ function getCampaignError(error: unknown) {
   if (error instanceof LeadHealthOpenAIError) {
     return {
       message: error.message,
-      status: error.code === "missing_api_key" ? 400 : 502
+      status: error.code === "missing_api_key" ? 503 : 502
+    };
+  }
+
+  if (error instanceof AiCreditsError) {
+    return {
+      message: error.message,
+      status: 400
     };
   }
 

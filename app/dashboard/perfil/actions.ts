@@ -74,6 +74,7 @@ export async function updateBrokerageNameAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/perfil");
+  revalidatePath("/dashboard/integracoes/webhook-leads");
   revalidatePath("/dashboard/leads");
   revalidatePath("/dashboard/criacoes/campanhas");
   revalidatePath("/dashboard/anuncios");
@@ -178,6 +179,7 @@ export async function createLeadWebhookTokenAction(
   }
 
   revalidatePath("/dashboard/perfil");
+  revalidatePath("/dashboard/integracoes/webhook-leads");
 
   return {
     error: null,

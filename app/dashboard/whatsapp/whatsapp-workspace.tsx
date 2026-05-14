@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -12,6 +12,7 @@ import {
   Send,
   Sparkles
 } from "lucide-react";
+import { getAiCreditCost } from "@/lib/ai/credit-costs";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { Metric, PageHeading } from "@/components/dashboard/widgets";
 import type { Lead } from "@/data/mock";
@@ -42,6 +43,7 @@ type WhatsAppMessage = {
 type WhatsAppGenerationResponse = {
   message?: WhatsAppMessage;
   savedMessage?: WhatsAppHistoryItem;
+  aiBalance?: number;
   error?: string;
 };
 
@@ -53,7 +55,7 @@ export function WhatsAppWorkspace({
   historyMessage,
   brokerageName,
   generateAccess,
-  hasOpenAIConnection
+  aiBalance
 }: {
   leads: Lead[];
   initialLeadId: string | null;
@@ -62,7 +64,7 @@ export function WhatsAppWorkspace({
   historyMessage?: string;
   brokerageName: string;
   generateAccess: ResourceAccessSummary;
-  hasOpenAIConnection: boolean;
+  aiBalance: number;
 }) {
   const [selectedLeadId, setSelectedLeadId] = useState(initialLeadId ?? leads[0]?.id ?? null);
   const [selectedStage, setSelectedStage] = useState<WhatsAppStage>(() =>
@@ -72,10 +74,16 @@ export function WhatsAppWorkspace({
   );
   const [selectedTone, setSelectedTone] = useState<WhatsAppToneValue>("consultivo");
   const [messageHistory, setMessageHistory] = useState(initialMessages);
+  const [currentAiBalance, setCurrentAiBalance] = useState(aiBalance);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
   const selectedTonePrompt = getWhatsAppTonePrompt(selectedTone);
+  const messageCost = getAiCreditCost("generate_whatsapp_message");
+
+  useEffect(() => {
+    setCurrentAiBalance(aiBalance);
+  }, [aiBalance]);
 
   const selectedLead = useMemo(
     () => leads.find((lead) => lead.id === selectedLeadId) ?? leads[0] ?? null,
@@ -107,6 +115,11 @@ export function WhatsAppWorkspace({
 
   async function generateMessage() {
     if (!selectedLead) return;
+
+    if (currentAiBalance < messageCost) {
+      setError("Você não possui créditos de IA suficientes para executar esta ação.");
+      return;
+    }
 
     setError("");
     setIsGenerating(true);
@@ -149,6 +162,9 @@ export function WhatsAppWorkspace({
         nextHistoryItem,
         ...current.filter((item) => item.id !== nextHistoryItem.id)
       ]);
+      if (typeof payload.aiBalance === "number") {
+        setCurrentAiBalance(payload.aiBalance);
+      }
     } catch (requestError) {
       setError(getFriendlyErrorMessage(requestError).message);
     } finally {
@@ -189,7 +205,7 @@ export function WhatsAppWorkspace({
         {selectedLead ? (
           <button
             className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={isGenerating || !generateAccess.allowed || !hasOpenAIConnection}
+            disabled={isGenerating || !generateAccess.allowed || currentAiBalance < messageCost}
             onClick={generateMessage}
             type="button"
           >
@@ -212,13 +228,14 @@ export function WhatsAppWorkspace({
       </PageHeading>
 
       {!generateAccess.allowed ? <SubscriptionAccessBanner notice={generateAccess} /> : null}
-      {!hasOpenAIConnection ? (
+      {currentAiBalance < messageCost ? (
         <div className="rounded-[26px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
-          Conecte sua chave OpenAI em{" "}
-          <Link className="font-semibold text-cobalt underline underline-offset-4" href="/dashboard/perfil?section=empresa&highlight=openai">
-            Empresa
+          Você não possui créditos de IA suficientes para executar esta ação. Adicione créditos
+          ou atualize seu plano em{" "}
+          <Link className="font-semibold text-cobalt underline underline-offset-4" href="/dashboard/creditos">
+            Créditos de IA
           </Link>{" "}
-          para gerar mensagens com IA usando a conta da sua organização.
+          para continuar gerando mensagens com IA.
         </div>
       ) : null}
 
@@ -385,7 +402,7 @@ export function WhatsAppWorkspace({
                 <div className="mt-5 flex flex-wrap gap-2">
                   <button
                     className="inline-flex items-center gap-2 rounded-full bg-cobalt px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-                    disabled={isGenerating || !hasOpenAIConnection}
+                    disabled={isGenerating || currentAiBalance < messageCost}
                     onClick={generateMessage}
                     type="button"
                   >

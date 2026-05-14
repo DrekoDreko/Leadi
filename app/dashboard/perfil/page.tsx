@@ -1,30 +1,21 @@
 import Link from "next/link";
-import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
   BriefcaseBusiness,
   Building2,
-  KeyRound,
   Link2,
   RefreshCw,
   Settings,
   ShieldCheck,
-  Sparkles,
-  Unplug,
-  UserPlus,
-  UsersRound
+  Unplug
 } from "lucide-react";
+import { AiCreditsPanel, OpenAIComingSoonCard } from "@/components/dashboard/ai-credits-panel";
 import { PageHeading } from "@/components/dashboard/widgets";
-import {
-  listLeadWebhookLogsByOrganization,
-  type WebhookLogFilter
-} from "@/lib/leads/webhook-events.repository";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
+import { getAiBalance } from "@/lib/ai/credits";
 import { updateBrokerageNameAction } from "./actions";
-import { WebhookLogsCard } from "./webhook-logs-card";
-import { WebhookSetupCard } from "./webhook-setup-card";
-import { getSiteUrl } from "@/lib/site/config";
 
 const PROFILE_COMPANY_SECTION_HREF = "/dashboard/perfil?section=empresa";
 
@@ -40,20 +31,10 @@ const brokerageFeedbackMessages: Record<string, string> = {
 const integrationFeedbackMessages: Record<string, string> = {
   connected: "Conta Meta conectada com sucesso.",
   disconnected: "Conta Meta desconectada com sucesso.",
-  saved: "Chave OpenAI salva com sucesso.",
-  tested: "Conexao OpenAI validada com sucesso.",
-  removed: "Chave OpenAI removida com sucesso.",
+  coming_soon: "A conta OpenAI própria está em breve. Hoje as gerações usam os Créditos de IA da plataforma.",
   success: "Sincronizacao concluida com sucesso.",
   partial: "Sincronizacao concluida com avisos.",
   error: "Nao foi possivel concluir a atualizacao das contas conectadas."
-};
-
-const statusLabels: Record<string, string> = {
-  connected: "Conectada",
-  disconnected: "Desconectada",
-  error: "Com erro",
-  expired: "Expirada",
-  pending: "Pendente"
 };
 
 export default async function PerfilPage({
@@ -71,6 +52,17 @@ export default async function PerfilPage({
 }) {
   const context = await requireCompletedProfile();
   const params = await searchParams;
+
+  if (params?.webhookStatus) {
+    const normalizedWebhookStatus = normalizeWebhookStatusFilter(params.webhookStatus);
+    const webhookQuery =
+      normalizedWebhookStatus === "all"
+        ? ""
+        : `?webhookStatus=${encodeURIComponent(normalizedWebhookStatus)}`;
+
+    redirect(`/dashboard/integracoes/webhook-leads${webhookQuery}#logs`);
+  }
+
   const brokerageFeedback = params?.brokerage
     ? brokerageFeedbackMessages[params.brokerage] ?? null
     : null;
@@ -80,17 +72,8 @@ export default async function PerfilPage({
     (params?.sync && integrationFeedbackMessages[params.sync]) ||
     null;
   const canEditBrokerageName = context.isManager || context.isSoloOwner;
-  const canManageWebhookToken = context.isManager || context.isSoloOwner;
-  const webhookFilter = normalizeWebhookStatusFilter(params?.webhookStatus);
-  const webhookLogs =
-    context.mode === "supabase" && context.workspace
-      ? await listLeadWebhookLogsByOrganization({
-          organizationId: context.workspace.id,
-          filter: webhookFilter
-        })
-      : [];
-  const webhookUrl = await getLeadWebhookUrl();
   const connectedAccounts = await getConnectedAccountsForCurrentUser();
+  const aiBalance = await getAiBalance(context.workspace?.id ?? "");
   const isCompanySectionFocused = params?.section === "empresa";
   const highlightOpenAI = params?.highlight === "openai";
   const companyMessage = integrationFeedback ?? connectedAccounts.message ?? null;
@@ -100,7 +83,7 @@ export default async function PerfilPage({
       <PageHeading
         eyebrow="Perfil"
         title="Configuracoes"
-        description="Dados do usuario, nome comercial, empresa e contas conectadas em um unico lugar para a operacao ficar mais organizada."
+        description="Dados do usuario, nome comercial, créditos de IA e operação da empresa em um unico lugar para manter a conta organizada."
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
           <Settings size={18} aria-hidden="true" />
@@ -134,14 +117,12 @@ export default async function PerfilPage({
         </article>
 
         <article className="glass rounded-[34px] p-6">
-          <p className="text-sm font-medium text-cobalt">OpenAI</p>
-          <h2 className="mt-2 text-2xl font-semibold">
-            {connectedAccounts.openAIConnection
-              ? statusLabels[connectedAccounts.openAIConnection.status] ?? "Conectada"
-              : "Pendente"}
-          </h2>
+          <p className="text-sm font-medium text-cobalt">Créditos de IA</p>
+          <h2 className="mt-2 text-2xl font-semibold">{aiBalance.toLocaleString("pt-BR")}</h2>
           <p className="mt-3 text-sm text-ink/58">
-            {connectedAccounts.openAIConnection?.keyPreview ?? "Cadastre a chave da empresa"}
+            {aiBalance > 0
+              ? `Você possui ${aiBalance.toLocaleString("pt-BR")} créditos de IA disponíveis.`
+              : "Seu saldo de IA acabou. Adicione créditos ou atualize seu plano para continuar usando recursos de IA."}
           </p>
         </article>
       </section>
@@ -172,7 +153,10 @@ export default async function PerfilPage({
         </div>
 
         {canEditBrokerageName ? (
-          <form action={updateBrokerageNameAction} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+          <form
+            action={updateBrokerageNameAction}
+            className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+          >
             <input
               className="liquid-input"
               defaultValue={context.brokerageName}
@@ -191,9 +175,15 @@ export default async function PerfilPage({
           </form>
         ) : (
           <div className="rounded-[24px] border border-white/44 bg-white/36 p-4 text-sm leading-6 text-ink/64">
-            Voce esta em uma equipe. O owner ou os admins configuram o nome comercial usado no contato com clientes.
+            Voce esta em uma equipe. O owner ou os admins configuram o nome comercial usado no
+            contato com clientes.
           </div>
         )}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <AiCreditsPanel balance={aiBalance} />
+        <OpenAIComingSoonCard highlight={highlightOpenAI} />
       </section>
 
       <section
@@ -209,7 +199,8 @@ export default async function PerfilPage({
             <p className="text-sm font-medium text-cobalt">Empresa e contas conectadas</p>
             <h2 className="mt-2 text-2xl font-semibold">Operacao da conta</h2>
             <p className="mt-3 text-sm leading-7 text-ink/62">
-              Aqui ficam os dados da empresa, as conexoes de Meta/OpenAI e a base para futuras integracoes com Facebook e Instagram.
+              Aqui ficam os dados da empresa e o estado das contas que sustentam a operação,
+              principalmente Meta e a futura conta OpenAI própria.
             </p>
           </div>
           <span className="inline-flex items-center gap-2 rounded-full bg-white/60 px-4 py-2 text-sm font-semibold text-ink">
@@ -219,229 +210,106 @@ export default async function PerfilPage({
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <div className="space-y-4">
-            <article className="rounded-[28px] bg-white/46 p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-cobalt">Meta</p>
-                  <h3 className="mt-2 text-xl font-semibold">Conta conectada</h3>
-                  <p className="mt-2 text-sm leading-6 text-ink/62">
-                    Conecte a conta Meta da empresa para importar paginas, formularios e preparar campanhas com os ativos autorizados.
-                  </p>
-                </div>
-                <Link2 size={20} aria-hidden="true" />
+          <article className="rounded-[28px] bg-white/46 p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-cobalt">Meta</p>
+                <h3 className="mt-2 text-xl font-semibold">Conta conectada</h3>
+                <p className="mt-2 text-sm leading-6 text-ink/62">
+                  Conecte a conta Meta da empresa para importar paginas, formularios e preparar
+                  campanhas com os ativos autorizados.
+                </p>
               </div>
+              <Link2 size={20} aria-hidden="true" />
+            </div>
 
-              <div className="mt-5 grid gap-3 md:grid-cols-3">
-                <InfoTile
-                  label="Status"
-                  value={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
-                />
-                <InfoTile
-                  label="Paginas"
-                  value={String(connectedAccounts.metaPages.length)}
-                />
-                <InfoTile
-                  label="Formularios"
-                  value={String(connectedAccounts.metaLeadForms.length)}
-                />
-              </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <InfoTile
+                label="Status"
+                value={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
+              />
+              <InfoTile label="Paginas" value={String(connectedAccounts.metaPages.length)} />
+              <InfoTile
+                label="Formularios"
+                value={String(connectedAccounts.metaLeadForms.length)}
+              />
+            </div>
 
-              <div className="mt-5 flex flex-wrap gap-2">
-                {connectedAccounts.canManageConnections ? (
-                  <>
-                    <Link
-                      className={`inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white ${
-                        connectedAccounts.metaConnection ? "bg-cobalt" : "bg-ink"
-                      }`}
-                      href={`/api/integrations/meta/connect?returnTo=${encodeURIComponent(PROFILE_COMPANY_SECTION_HREF)}`}
-                    >
-                      {connectedAccounts.metaConnection ? "Reconectar Meta" : "Conectar Meta"}
-                      <ArrowUpRight size={18} aria-hidden="true" />
-                    </Link>
-                    <form action="/api/integrations/meta/sync" method="post">
-                      <input name="returnTo" type="hidden" value={PROFILE_COMPANY_SECTION_HREF} />
-                      <button
-                        className="inline-flex items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/80"
-                        type="submit"
-                      >
-                        <RefreshCw size={18} aria-hidden="true" />
-                        Sincronizar ativos
-                      </button>
-                    </form>
-                    {connectedAccounts.metaConnection ? (
-                      <form action="/api/integrations/meta/disconnect" method="post">
-                        <input name="returnTo" type="hidden" value={PROFILE_COMPANY_SECTION_HREF} />
-                        <button
-                          className="inline-flex items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/80"
-                          type="submit"
-                        >
-                          <Unplug size={18} aria-hidden="true" />
-                          Desconectar
-                        </button>
-                      </form>
-                    ) : null}
-                  </>
-                ) : (
-                  <span className="rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink/62">
-                    Apenas owner e admins podem mudar conexoes.
-                  </span>
-                )}
-              </div>
-            </article>
-
-            <article className={`rounded-[28px] bg-white/46 p-5 ${highlightOpenAI ? "ring-2 ring-lagoon/28" : ""}`}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-cobalt">OpenAI / API Key</p>
-                  <h3 className="mt-2 text-xl font-semibold">Conta do cliente</h3>
-                  <p className="mt-2 text-sm leading-6 text-ink/62">
-                    O cliente usa a propria chave OpenAI para gerar mensagens e campanhas. Nao ha compra de creditos nesta fase.
-                  </p>
-                </div>
-                <KeyRound size={20} aria-hidden="true" />
-              </div>
-
-              <div className="mt-5 grid gap-3 md:grid-cols-3">
-                <InfoTile
-                  label="Status"
-                  value={
-                    connectedAccounts.openAIConnection
-                      ? statusLabels[connectedAccounts.openAIConnection.status] ?? "Conectada"
-                      : "Pendente"
-                  }
-                />
-                <InfoTile
-                  label="Chave"
-                  value={connectedAccounts.openAIConnection?.keyPreview ?? "Nao cadastrada"}
-                />
-                <InfoTile
-                  label="Modo"
-                  value="Conta do cliente"
-                />
-              </div>
-
+            <div className="mt-5 flex flex-wrap gap-2">
               {connectedAccounts.canManageConnections ? (
-                <div className="mt-5 space-y-3">
-                  <form action="/api/integrations/openai/save" className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]" method="post">
-                    <input name="returnTo" type="hidden" value={PROFILE_COMPANY_SECTION_HREF} />
-                    <input
-                      className="liquid-input"
-                      name="apiKey"
-                      placeholder="sk-..."
-                      type="password"
-                    />
-                    <button
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
-                      type="submit"
-                    >
-                      <Sparkles size={18} aria-hidden="true" />
-                      {connectedAccounts.openAIConnection ? "Atualizar chave" : "Salvar chave"}
-                    </button>
-                  </form>
-
-                  <div className="flex flex-wrap gap-2">
-                    <form action="/api/integrations/openai/test" method="post">
-                      <input name="returnTo" type="hidden" value={PROFILE_COMPANY_SECTION_HREF} />
-                      <button
-                        className="inline-flex items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/80"
-                        type="submit"
-                      >
-                        <ShieldCheck size={18} aria-hidden="true" />
-                        Testar conexao
-                      </button>
-                    </form>
-                    {connectedAccounts.openAIConnection ? (
-                      <form action="/api/integrations/openai/disconnect" method="post">
-                        <input name="returnTo" type="hidden" value={PROFILE_COMPANY_SECTION_HREF} />
-                        <button
-                          className="inline-flex items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/80"
-                          type="submit"
-                        >
-                          <Unplug size={18} aria-hidden="true" />
-                          Remover chave
-                        </button>
-                      </form>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-5 rounded-[24px] bg-white/50 p-4 text-sm leading-6 text-ink/64">
-                  Apenas owner e admins podem salvar a chave OpenAI da empresa.
-                </div>
-              )}
-            </article>
-          </div>
-
-          <div className="space-y-4">
-            <article className="rounded-[28px] bg-white/46 p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-cobalt">Integracoes futuras</p>
-                  <h3 className="mt-2 text-xl font-semibold">Meta, Facebook e Instagram</h3>
-                </div>
-                <ShieldCheck size={20} aria-hidden="true" />
-              </div>
-              <div className="mt-4 space-y-3">
-                {[
-                  "Facebook e Instagram vao usar a base de permissoes da Meta conectada aqui.",
-                  "As contas conectadas passam a ser a origem de anuncios, formularios e futuras automacoes.",
-                  "O perfil empresa concentra as configuracoes da operacao sem espalhar botoes no menu."
-                ].map((item) => (
-                  <div className="rounded-[22px] bg-white/60 px-4 py-3 text-sm leading-6 text-ink/64" key={item}>
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </article>
-
-            <article className="rounded-[28px] bg-white/46 p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-cobalt">Equipe</p>
-                  <h3 className="mt-2 text-xl font-semibold">Convidar para a equipe</h3>
-                  <p className="mt-2 text-sm leading-6 text-ink/62">
-                    Em breve o supervisor podera gerar um link para convidar vendedores que entram automaticamente no modo simples da empresa.
-                  </p>
-                </div>
-                <UsersRound size={20} aria-hidden="true" />
-              </div>
-
-              <div className="mt-5 flex flex-wrap gap-2">
-                <button
-                  className="inline-flex items-center gap-2 rounded-full bg-ink/10 px-4 py-3 text-sm font-semibold text-ink/62"
-                  disabled
-                  type="button"
-                >
-                  <UserPlus size={18} aria-hidden="true" />
-                  Em breve
-                </button>
-                {(context.isManager || context.isSoloOwner) ? (
+                <>
                   <Link
-                    className="inline-flex items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/80"
-                    href="/team/setup"
+                    className={`inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white ${
+                      connectedAccounts.metaConnection ? "bg-cobalt" : "bg-ink"
+                    }`}
+                    href={`/api/integrations/meta/connect?returnTo=${encodeURIComponent(PROFILE_COMPANY_SECTION_HREF)}`}
                   >
-                    Ver equipe atual
+                    {connectedAccounts.metaConnection ? "Reconectar Meta" : "Conectar Meta"}
                     <ArrowUpRight size={18} aria-hidden="true" />
                   </Link>
-                ) : null}
+                  <form action="/api/integrations/meta/sync" method="post">
+                    <input name="returnTo" type="hidden" value={PROFILE_COMPANY_SECTION_HREF} />
+                    <button
+                      className="inline-flex items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/80"
+                      type="submit"
+                    >
+                      <RefreshCw size={18} aria-hidden="true" />
+                      Sincronizar ativos
+                    </button>
+                  </form>
+                  {connectedAccounts.metaConnection ? (
+                    <form action="/api/integrations/meta/disconnect" method="post">
+                      <input name="returnTo" type="hidden" value={PROFILE_COMPANY_SECTION_HREF} />
+                      <button
+                        className="inline-flex items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/80"
+                        type="submit"
+                      >
+                        <Unplug size={18} aria-hidden="true" />
+                        Desconectar
+                      </button>
+                    </form>
+                  ) : null}
+                </>
+              ) : (
+                <span className="rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink/62">
+                  Apenas owner e admins podem mudar conexoes.
+                </span>
+              )}
+            </div>
+          </article>
+
+          <article className="rounded-[28px] bg-white/46 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-cobalt">Operação da conta</p>
+                <h3 className="mt-2 text-xl font-semibold">Empresa e conexões principais</h3>
               </div>
-            </article>
-          </div>
+              <ShieldCheck size={20} aria-hidden="true" />
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              <InfoTile label="Empresa" value={context.workspaceName} />
+              <InfoTile
+                label="Meta"
+                value={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
+              />
+              <InfoTile
+                label="OpenAI"
+                value={
+                  connectedAccounts.openAIConnection
+                    ? formatOpenAIStatus(connectedAccounts.openAIConnection.status)
+                    : "Em breve"
+                }
+              />
+            </div>
+
+            <p className="mt-5 text-sm leading-6 text-ink/64">
+              O perfil concentra o nome da empresa, a conexão com Meta e o andamento da conta
+              OpenAI para manter a operação centralizada.
+            </p>
+          </article>
         </div>
       </section>
-
-      <WebhookSetupCard
-        canManageToken={canManageWebhookToken}
-        isSupabaseMode={context.mode === "supabase"}
-        webhookUrl={webhookUrl}
-      />
-
-      <WebhookLogsCard
-        filter={webhookFilter}
-        isSupabaseMode={context.mode === "supabase"}
-        logs={webhookLogs}
-      />
     </div>
   );
 }
@@ -455,18 +323,22 @@ function InfoTile({ label, value }: { label: string; value: string }) {
   );
 }
 
-async function getLeadWebhookUrl() {
-  const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
-
-  if (!host) {
-    return `${getSiteUrl()}/api/webhooks/leads`;
-  }
-
-  return `${protocol}://${host}/api/webhooks/leads`;
+function normalizeWebhookStatusFilter(value?: string) {
+  return value === "processed" || value === "failed" ? value : "all";
 }
 
-function normalizeWebhookStatusFilter(value?: string): WebhookLogFilter {
-  return value === "processed" || value === "failed" ? value : "all";
+function formatOpenAIStatus(status: string) {
+  switch (status) {
+    case "connected":
+      return "Conectada";
+    case "disconnected":
+      return "Desconectada";
+    case "expired":
+      return "Expirada";
+    case "error":
+      return "Com erro";
+    case "pending":
+    default:
+      return "Pendente";
+  }
 }
