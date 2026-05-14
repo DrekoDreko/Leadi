@@ -178,6 +178,11 @@ export function LeadCreateModal({
             ? "Lead criado no modo demonstracao. Configure o Supabase para salvar dados reais."
             : "Lead criado e salvo no CRM."
       });
+
+      // Close modal after success
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error) {
       setStatus({
         type: "error",
