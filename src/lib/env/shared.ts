@@ -136,3 +136,17 @@ export function validateProductionCoreEnv(source: NodeJS.ProcessEnv = process.en
     ].join(" ")
   );
 }
+
+export function shouldValidateProductionCoreEnv(source: NodeJS.ProcessEnv = process.env) {
+  if (source.SKIP_ENV_VALIDATION === "1") {
+    return false;
+  }
+
+  // Vercel preview builds run with NODE_ENV=production too, but they should not
+  // be blocked by production-only env checks.
+  if (source.VERCEL_ENV === "preview") {
+    return false;
+  }
+
+  return source.NODE_ENV === "production";
+}

@@ -1118,7 +1118,7 @@ function assertCanApplyLeadUpdate(
 function assertCanManageLead(
   profile: ProfileRow,
   lead: LeadRow,
-  action: "editar" | "excluir",
+  action: "editar" | "excluir" | "arquivar",
   hasMetaConnection: boolean
 ) {
   if (canManageLead(profile, lead, hasMetaConnection)) {

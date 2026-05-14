@@ -1540,6 +1540,20 @@ export type Database = {
           created_at: string;
         }[];
       };
+      apply_ai_credit_change: {
+        Args: {
+          target_org_id: string;
+          amount: number;
+          p_type: string;
+          p_user_id?: string | null;
+          p_description?: string | null;
+          p_metadata?: Json | null;
+        };
+        Returns: {
+          new_balance: number;
+          ledger_id: string;
+        }[];
+      };
       current_profile_id: {
         Args: Record<PropertyKey, never>;
         Returns: string;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, CheckCircle2, Clock3, Loader2, X } from "lucide-react";
-import type { DashboardReminderItem } from "@/lib/dashboard-reminders/types";
+import type { DashboardReminderItem, DashboardReminderPreset } from "@/lib/dashboard-reminders/types";
 
 type ReminderCreateResponse = {
   reminder?: DashboardReminderItem;

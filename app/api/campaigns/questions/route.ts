@@ -46,6 +46,7 @@ const PROHIBITED_QUESTION_PATTERNS = [
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as QuestionsRequestBody;
+    const hasDifferentiator = Boolean(getOptionalString(body.differentiator));
     const input = parseQuestionsRequest(body);
     const billingContext = await getBillingAuthContext();
 
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
       description: "Geracao de perguntas de campanha com IA",
       metadata: {
         route: "campaigns/questions",
-        hasDifferentiator: Boolean(input.differentiator)
+        hasDifferentiator
       },
       generate: (apiKey) =>
         generateComplianceQuestions(
