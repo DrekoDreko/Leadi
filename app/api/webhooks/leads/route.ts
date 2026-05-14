@@ -161,9 +161,6 @@ function normalizeWebhookLeadPayload(body: unknown, organizationId: string) {
       ]),
     stage: getField(leadPayload, ["stage", "etapa", "status"]),
     source: getWebhookLeadSource(leadPayload, body),
-    score: getField(leadPayload, ["score", "pontuacao"]),
-    next_contact_at:
-      getTextField(leadPayload, ["next_contact_at", "nextContactAt", "proximo_contato"]),
     budget: getTextField(leadPayload, ["budget", "orcamento", "valor", "investimento"]),
     interest: getTextField(leadPayload, ["interest", "interesse", "produto", "plano"]),
     last_interaction:

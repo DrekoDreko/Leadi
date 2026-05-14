@@ -7,7 +7,6 @@ import {
   UserPlus,
   WalletCards
 } from "lucide-react";
-import { calculateLeadScore, type LeadScoringInput } from "@/lib/leads/scoring";
 
 export const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -28,8 +27,6 @@ export type Lead = {
   canEdit?: boolean;
   canDelete?: boolean;
   stage: string;
-  nextContact: string;
-  score: number;
   source: string;
   phone: string;
   email: string;
@@ -49,26 +46,7 @@ export type Lead = {
   metaPageId?: string | null;
   metaConnectedAccountId?: string | null;
   receivedAt?: string | null;
-  nextContactAt?: string | null;
 };
-
-function demoLeadScore(input: LeadScoringInput) {
-  return calculateLeadScore({
-    stage: input.stage,
-    source: input.source,
-    email: input.email,
-    phone: input.phone,
-    city: input.city,
-    companyName: input.companyName,
-    livesCount: input.livesCount ?? null,
-    budget: input.budget,
-    interest: input.interest,
-    lastInteraction: input.lastInteraction,
-    notes: input.notes,
-    nextContactAt: input.nextContactAt,
-    receivedAt: input.receivedAt
-  }).score;
-}
 
 export const leads: Lead[] = [
   {
@@ -76,22 +54,6 @@ export const leads: Lead[] = [
     name: "Marina Azevedo",
     owner: "Lucas",
     stage: "Novo lead",
-    nextContact: "Hoje, 15:30",
-    score: demoLeadScore({
-      stage: "Novo lead",
-      source: "Meta Lead Form",
-      phone: "(19) 98842-1042",
-      email: "marina@azevedoclinica.com.br",
-      city: "Campinas",
-      companyName: "Azevedo Clinica",
-      livesCount: 48,
-      budget: "R$ 18k/mês",
-      interest: "Plano empresarial com coparticipação",
-      lastInteraction: "Solicitou comparação entre duas operadoras e pediu retorno no fim da tarde.",
-      notes: "Lead em expansão, decisora direta e com urgência para fechar ainda este mês.",
-      nextContactAt: "2026-04-27T15:30:00-03:00",
-      receivedAt: "2026-04-27T15:30:00-03:00"
-    }),
     source: "Meta Lead Form",
     phone: "(19) 98842-1042",
     email: "marina@azevedoclinica.com.br",
@@ -115,22 +77,6 @@ export const leads: Lead[] = [
     name: "Renato Carvalho",
     owner: "Bia",
     stage: "Qualificação",
-    nextContact: "Amanhã, 10:00",
-    score: demoLeadScore({
-      stage: "Qualificação",
-      source: "CSV importado",
-      phone: "(11) 97620-1039",
-      email: "renato@rcengenharia.com.br",
-      city: "Sao Paulo",
-      companyName: "RC Engenharia",
-      livesCount: 32,
-      budget: "R$ 6k/mês",
-      interest: "Revisão de alternativas para o plano atual",
-      lastInteraction: "Respondeu ao WhatsApp com faixa de vidas e pediu simulação objetiva sem odontológico.",
-      notes: "Lead sensível a investimento. Vale abrir comparando faixa, rede e próximos passos.",
-      nextContactAt: "2026-04-26T10:00:00-03:00",
-      receivedAt: "2026-04-26T10:00:00-03:00"
-    }),
     source: "CSV importado",
     phone: "(11) 97620-1039",
     email: "renato@rcengenharia.com.br",
@@ -149,22 +95,6 @@ export const leads: Lead[] = [
     name: "Paula Mendes",
     owner: "Lucas",
     stage: "Proposta",
-    nextContact: "Qui, 09:15",
-    score: demoLeadScore({
-      stage: "Proposta",
-      source: "Cadastro manual",
-      phone: "(13) 99110-1031",
-      email: "paula@mendesstudio.com.br",
-      city: "Santos",
-      companyName: "Mendes Studio",
-      livesCount: 11,
-      budget: "R$ 2.8k/mês",
-      interest: "Primeiro plano empresarial para equipe pequena",
-      lastInteraction: "Recebeu a proposta inicial e quer entender carência para novas vidas.",
-      notes: "Precisa de orientação simples. Enviar resumo visual com coberturas e próximos passos.",
-      nextContactAt: "2026-04-24T09:15:00-03:00",
-      receivedAt: "2026-04-24T09:15:00-03:00"
-    }),
     source: "Cadastro manual",
     phone: "(13) 99110-1031",
     email: "paula@mendesstudio.com.br",
@@ -183,22 +113,6 @@ export const leads: Lead[] = [
     name: "Fábio Lins",
     owner: "Nina",
     stage: "Negociação",
-    nextContact: "Sex, 16:00",
-    score: demoLeadScore({
-      stage: "Negociação",
-      source: "Meta Lead Form",
-      phone: "(15) 98132-1028",
-      email: "fabio@linslogistica.com.br",
-      city: "Sorocaba",
-      companyName: "Lins Logistica",
-      livesCount: 126,
-      budget: "R$ 42k/mês",
-      interest: "Migração de contrato com maior rede hospitalar",
-      lastInteraction: "Comparou proposta final com contrato atual e pediu ajuste para diretoria.",
-      notes: "Alto potencial. Preparar argumento de rede credenciada e risco de reajuste.",
-      nextContactAt: "2026-04-23T16:00:00-03:00",
-      receivedAt: "2026-04-23T16:00:00-03:00"
-    }),
     source: "Meta Lead Form",
     phone: "(15) 98132-1028",
     email: "fabio@linslogistica.com.br",
@@ -257,10 +171,3 @@ export const campaignDraft = {
     "ME"
   ]
 };
-
-export const scheduledTasks = [
-  { day: "27", label: "Revisar CSV", type: "blue" },
-  { day: "28", label: "Ligar Marina", type: "yellow" },
-  { day: "29", label: "Enviar proposta", type: "teal" },
-  { day: "30", label: "Briefing criativo", type: "dark" }
-];

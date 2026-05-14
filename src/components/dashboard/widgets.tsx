@@ -12,7 +12,6 @@ import {
   Upload
 } from "lucide-react";
 import { kanbanColumns, leads, type Lead } from "@/data/mock";
-import type { LeadAgendaMetrics } from "@/lib/leads/repository";
 
 type MetricTone = "blue" | "yellow" | "teal" | "dark";
 
@@ -69,48 +68,6 @@ export function Metric({
         </span>
       </div>
     </article>
-  );
-}
-
-export function OperationalAgendaMetrics({
-  metrics
-}: {
-  metrics: LeadAgendaMetrics;
-}) {
-  return (
-    <section className="glass-strong rounded-[34px] p-5 md:p-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="max-w-3xl">
-          <p className="text-sm font-medium text-cobalt">Indicadores operacionais</p>
-          <h2 className="mt-2 text-2xl font-semibold md:text-3xl">Qualidade da agenda comercial</h2>
-          <p className="mt-2 leading-7 text-ink/62">{metrics.scopeDescription}</p>
-        </div>
-        <span className="w-fit rounded-full bg-white/60 px-3 py-1.5 text-xs font-semibold text-ink/68">
-          {metrics.scopeLabel}
-        </span>
-      </div>
-
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        <Metric
-          label="Sem agenda"
-          value={String(metrics.noAgenda)}
-          note="sem próximo contato"
-          tone="dark"
-        />
-        <Metric
-          label="Follow-ups atrasados"
-          value={String(metrics.overdueFollowUps)}
-          note="já venceram"
-          tone="yellow"
-        />
-        <Metric
-          label="Compromissos de hoje"
-          value={String(metrics.todayCommitments)}
-          note="restantes no dia"
-          tone="teal"
-        />
-      </div>
-    </section>
   );
 }
 
@@ -247,19 +204,21 @@ export function KanbanBoard({
                 Sem leads nesta etapa.
               </div>
             )}
-            {column.cards.map((lead) => (
-              <button
-                className={`${column.color} flex w-full flex-col justify-between rounded-[24px] p-4 text-left shadow-soft transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50`}
-                key={lead.id}
-                onClick={() => onLeadOpen(lead)}
-                type="button"
-              >
-                <div className="space-y-3">
-                  <h3 className="font-semibold leading-tight">{lead.name}</h3>
-                  <p className="text-sm opacity-85">{lead.owner}</p>
-                </div>
-              </button>
-            ))}
+            <div className="flex flex-col gap-2">
+              {column.cards.map((lead) => (
+                <button
+                  className={`${column.color} flex w-full flex-col justify-between rounded-[24px] p-4 text-left shadow-soft transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50`}
+                  key={lead.id}
+                  onClick={() => onLeadOpen(lead)}
+                  type="button"
+                >
+                  <div className="space-y-3">
+                    <h3 className="font-semibold leading-tight">{lead.name}</h3>
+                    <p className="text-sm opacity-85">{lead.owner}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         ))}
       </div>

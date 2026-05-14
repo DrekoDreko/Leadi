@@ -2,34 +2,33 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Palette, ShieldCheck, Sparkles } from "lucide-react";
 import { leads as mockLeads, type Lead } from "@/data/mock";
 import {
   KanbanBoard,
   LeadTable,
   Metric,
-  PageHeading,
-  SuggestedCampaignPanel
+  PageHeading
 } from "@/components/dashboard/widgets";
 import { LeadDetailsPopup } from "@/components/dashboard/lead-details-popup";
-import { DashboardRemindersCalendar } from "@/components/dashboard/dashboard-reminders-calendar";
-import { buildAgendaEntries, type AgendaEntry } from "@/lib/leads/agenda";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { dismissOnboardingChecklist, toggleOnboardingStep } from "./onboarding-actions";
 import type { OnboardingState } from "@/lib/onboarding/types";
+import type { DashboardReminderItem } from "@/lib/dashboard-reminders/types";
+import { RemindersCalendarCard } from "@/components/dashboard/reminders-calendar-card";
 
 type DashboardHomeProps = {
   leads?: Lead[];
   preview?: boolean;
   showCreateTeamCard?: boolean;
   creditBalance?: number;
-  agendaEntries?: AgendaEntry[];
   campaignsCount?: number;
   hasMetaConnection?: boolean;
   hasOpenAIConnection?: boolean;
   whatsappMessagesCount?: number;
   creativeRequestsCount?: number;
   onboardingState?: OnboardingState | null;
+  dashboardReminders?: DashboardReminderItem[];
 };
 
 export function DashboardHome({
@@ -40,7 +39,8 @@ export function DashboardHome({
   hasOpenAIConnection = false,
   whatsappMessagesCount = 0,
   creativeRequestsCount = 0,
-  onboardingState = null
+  onboardingState = null,
+  dashboardReminders = []
 }: DashboardHomeProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const metrics = preview
@@ -50,7 +50,7 @@ export function DashboardHome({
   const campaignHref = preview ? "/login" : "/dashboard/criacoes/campanhas";
   const funnelHref = preview ? "/login" : "/dashboard/funil";
   const anunciosHref = preview ? "/login" : "/dashboard/anuncios";
-  const agendaCards = buildAgendaEntries(leads);
+  const creativeRequestHref = preview ? "/login" : "/dashboard/criacoes/validador?compose=1";
 
   const onboardingSteps = [
     {
@@ -119,7 +119,7 @@ export function DashboardHome({
         <Metric label="Conexoes" value={metrics.connections} note={metrics.connectionsNote} tone="blue" />
       </div>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-stretch">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-stretch">
         <div className="min-w-0 flex h-full flex-col gap-4">
           <KanbanBoard href={funnelHref} leads={leads} onLeadOpen={setSelectedLead} />
           <LeadTable leads={leads} onLeadOpen={setSelectedLead} />
@@ -160,17 +160,74 @@ export function DashboardHome({
             </div>
           </Link>
 
-          <DashboardRemindersCalendar />
+          <RemindersCalendarCard initialReminders={dashboardReminders} />
 
-          <div className="rounded-[24px] bg-white/44 p-4 text-sm leading-6 text-ink/60">
-            {agendaCards.length > 0
-              ? `${agendaCards.length} compromissos comerciais seguem visiveis no CRM e no funil.`
-              : "Os follow-ups dos leads continuam sendo controlados dentro do CRM e do funil."}
-          </div>
+          <section className="glass rounded-[34px] p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm text-ink/54">Gerar Campanha</p>
+                <h2 className="mt-1 text-xl font-semibold">Criar nova campanha</h2>
+                <p className="mt-2 text-sm leading-6 text-ink/62">
+                  Monte a campanha com publico, oferta e briefing criativo no fluxo principal de Criações.
+                </p>
+              </div>
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/62 text-cobalt">
+                <Sparkles size={19} aria-hidden="true" />
+              </span>
+            </div>
+
+            <Link
+              aria-label="Abrir IA Gerador de Campanha"
+              className="group relative isolate mt-5 flex items-center gap-4 overflow-hidden rounded-[28px] border border-white/24 bg-[linear-gradient(135deg,#2246e0_0%,#3462EE_58%,#4A91A8_100%)] px-5 py-4 text-left text-white shadow-[0_22px_60px_rgba(52,98,238,0.34)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_30px_72px_rgba(52,98,238,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/40"
+              href={campaignHref}
+            >
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_84%_50%,rgba(255,255,255,0.28),transparent_28%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_36%)]"
+              />
+              <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/24">
+                <ShieldCheck size={20} aria-hidden="true" />
+              </span>
+              <span className="relative flex min-w-0 flex-1 flex-col">
+                <span className="text-lg font-semibold leading-tight">Abrir IA Gerador de Campanha</span>
+                <span className="mt-1 text-sm leading-5 text-white/84">
+                  Monte a campanha, anexe criativos e acompanhe o retorno no validador.
+                </span>
+              </span>
+              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/12 ring-1 ring-white/24 transition duration-200 group-hover:bg-white/28 group-hover:shadow-[0_10px_26px_rgba(255,255,255,0.18)] group-hover:ring-white/45">
+                <ArrowRight
+                  size={18}
+                  aria-hidden="true"
+                  className="block -translate-x-px transition duration-200"
+                />
+              </span>
+            </Link>
+          </section>
+
+          <Link
+            className="glass flex flex-col justify-between rounded-[34px] p-5 transition hover:bg-white/68"
+            href={creativeRequestHref}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm text-ink/54">Solicitar Criativo</p>
+                <h2 className="mt-1 text-xl font-semibold">Abrir novo briefing</h2>
+                <p className="mt-2 text-sm leading-6 text-ink/62">
+                  Envie um pedido de design para campanhas e entre direto no formulario de solicitacao.
+                </p>
+              </div>
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/62 text-cobalt">
+                <Palette size={19} aria-hidden="true" />
+              </span>
+            </div>
+
+            <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cobalt">
+              Solicitar criativo
+              <ArrowUpRight size={16} aria-hidden="true" />
+            </span>
+          </Link>
         </aside>
       </section>
-
-      <SuggestedCampaignPanel href={campaignHref} />
 
       <LeadDetailsPopup lead={selectedLead} onClose={() => setSelectedLead(null)} />
     </div>

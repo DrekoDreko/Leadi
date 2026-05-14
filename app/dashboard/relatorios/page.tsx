@@ -111,7 +111,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
         </form>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric
           label="Leads no periodo"
           value={formatInteger(report.summary.leads)}
@@ -129,12 +129,6 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
           value={formatInteger(report.summary.qualified)}
           note="qualificacao, proposta, negociacao"
           tone="yellow"
-        />
-        <Metric
-          label="Score medio"
-          value={report.summary.avgScore === null ? "N/D" : formatScore(report.summary.avgScore)}
-          note="media dos leads filtrados"
-          tone="dark"
         />
         <Metric
           label="ROI financeiro"
@@ -291,7 +285,6 @@ function BreakdownCard({
     won: number;
     qualified: number;
     conversionRate: number;
-    avgScore: number | null;
     campaignCount: number;
     note: string;
   }[];
@@ -317,11 +310,10 @@ function BreakdownCard({
                   {formatPercentage(row.conversionRate)}
                 </span>
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-4">
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <MiniStat label="Leads" value={formatInteger(row.leads)} />
                 <MiniStat label="Vendas" value={formatInteger(row.won)} />
                 <MiniStat label="Qualificados" value={formatInteger(row.qualified)} />
-                <MiniStat label="Score" value={row.avgScore === null ? "N/D" : formatScore(row.avgScore)} />
               </div>
               <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-ink/42">
                 {formatInteger(row.campaignCount)} leads com campanha identificada
@@ -391,10 +383,6 @@ function formatInteger(value: number) {
 
 function formatPercentage(value: number) {
   return `${(value * 100).toFixed(value >= 1 ? 0 : 1)}%`;
-}
-
-function formatScore(value: number) {
-  return value.toFixed(1).replace(".", ",");
 }
 
 function getPeriodLabel(value: LeadPeriodFilterValue) {

@@ -1,10 +1,10 @@
 # LeadHealth
 
-SaaS de CRM com IA para corretores e equipes de planos de saude empresariais. O produto centraliza captacao de leads, funil comercial, campanhas com IA, mensagens de WhatsApp, compliance, pedidos criativos, contas conectadas e gestao de creditos.
+SaaS de CRM com IA para corretores e equipes de planos de saúde empresariais. O produto centraliza captação de leads, funil comercial, campanhas com IA, mensagens de WhatsApp, compliance, pedidos criativos, contas conectadas e gestão de créditos.
 
 ## Acesso
 
-O SaaS esta publicado e operando na Vercel:
+O SaaS está publicado e operando na Vercel:
 
 [https://leadhealth.vercel.app](https://leadhealth.vercel.app)
 
@@ -12,303 +12,114 @@ Login direto:
 
 [https://leadhealth.vercel.app/login](https://leadhealth.vercel.app/login)
 
-## Arquitetura atual
+## Arquitetura Atual
 
-O LeadHealth nao roda mais como ambiente local de produto. A arquitetura operacional atual e baseada em Vercel + Supabase:
+O LeadHealth opera em uma arquitetura moderna e escalável baseada em Vercel + Supabase:
 
-- Vercel hospeda o app Next.js, as rotas de API e os webhooks publicos
-- GitHub mantem o codigo-fonte e alimenta o fluxo de deploy da Vercel
-- Supabase Cloud concentra autenticacao, banco Postgres, storage e contexto multi-tenant
-- OpenAI e conectada por organizacao na area Empresa para campanhas, perguntas, compliance assistido e WhatsApp
-- Meta e conectada por OAuth para ativos, formularios e recebimento de leads via webhook
-- Mercado Pago processa checkout, planos, pacotes de creditos e webhooks de pagamento
-- Variaveis de ambiente, secrets e URLs canonicas devem ser configurados no projeto da Vercel
+- **Frontend/Backend**: Next.js 15 (App Router) hospedado na Vercel.
+- **Banco de Dados & Auth**: Supabase Cloud (Postgres, Auth, Storage) com suporte multi-tenant.
+- **IA**: OpenAI (GPT-4o-mini) para geração de campanhas, mensagens e análise de compliance.
+- **Marketing**: Meta Graph API para sincronização de leads (Lead Ads), formulários e ativos.
+- **Pagamentos**: Mercado Pago para checkout de planos e pacotes de créditos.
+- **Segurança**: Rate limiting por IP/token e limites de payload em endpoints públicos.
 
-O ambiente local pode ser usado apenas para manutencoes tecnicas pontuais, scripts e validacoes de codigo. Ele nao e mais a forma oficial de executar ou demonstrar o SaaS.
+O ambiente local é destinado apenas para desenvolvimento, scripts administrativos e validações técnicas.
 
-## Stack
+## Stack Tecnológica
 
-- Next.js 15 com App Router
-- React 19
-- TypeScript
-- Tailwind CSS
-- Supabase Auth, Postgres e Storage
-- OpenAI Responses API
-- Meta Graph API
-- Mercado Pago
-- Vercel
+- **Core**: Next.js 15, React 19, TypeScript.
+- **Styling**: Tailwind CSS com componentes baseados em design premium.
+- **Backend-as-a-Service**: Supabase (Database, Auth, RLS, Storage).
+- **Integrações**: Meta Graph API, OpenAI API, Mercado Pago API.
+- **Infraestrutura**: Vercel, GitHub Actions (CI/CD).
 
-## Funcionalidades implementadas
+## Funcionalidades Implementadas
 
-- autenticacao com Supabase Auth
-- onboarding de perfil e setup inicial da equipe
-- modelo multi-tenant com organizacoes, workspaces, convites, perfis e papeis
-- dashboard autenticado com navegacao por perfil e tipo de workspace
-- area Empresa para Meta, OpenAI e ativos conectados
-- CRM de leads com listagem, filtros, detalhes, comentarios, atualizacao e exclusao
-- importacao de leads por CSV
-- ingestao de leads por webhook autenticado
-- webhook Meta para recebimento de leads reais
-- funil comercial por etapa
-- geracao de campanhas com IA e historico salvo
-- campanhas preparadas com pagina, conta de anuncio e formulario Meta conectados
-- validador de compliance com regras locais e analise via OpenAI quando configurada
-- geracao de mensagens de WhatsApp com historico salvo
-- pedidos criativos com comentarios e anexos
-- billing com catalogo, creditos, assinaturas, checkout Mercado Pago e webhook de pagamentos
-- area de perfil com nome comercial, token de webhook e logs de eventos recebidos
-- fluxo de equipe com membros e convites
+### Onboarding e Ativação
+- **Checklist de Onboarding**: Guia interativo no dashboard para novos usuários (Primeiro lead, Primeira campanha, Configuração de integração).
+- **Indicadores de Ativação**: Monitoramento em tempo real de métricas de sucesso (Leads gerados, campanhas criadas, mensagens enviadas).
+- **Setup de Equipe**: Fluxo completo de criação de organização, workspaces e convites para membros.
 
-## Principais rotas
+### CRM e Gestão de Leads
+- **Workspace Inteligente**: Visualização em Kanban e Tabela com filtros avançados e busca.
+- **Agendamento de Leads**: Campo `Próximo Contato` com indicadores visuais de "Sem Agenda" e "Atrasado".
+- **Detalhes do Lead**: Histórico de comentários, alteração de status (read-only no Kanban para integridade) e notas.
+- **Importação e Ingestão**: Importação via CSV e ingestão automática via Webhooks (Meta, Zapier, Make).
 
-### Publicas
+### Marketing e IA
+- **Gerador de Campanhas**: Criação de campanhas baseadas em IA com histórico e filtros.
+- **Biblioteca de Templates**: Templates profissionais prontos para uso (Planos de Saúde PME, Adesão, etc.).
+- **Mensagens de WhatsApp**: Gerador de abordagens personalizadas via IA com base nos dados do lead.
+- **Validador de Compliance**: Análise de risco jurídico e técnico para anúncios e abordagens.
 
-- `/`: landing page do produto
-- `/preview`: preview visual
-- `/pricing`: planos e entrada para compra
-- `/login`: login e cadastro
-- `/invite/[token]`: aceite de convite
-- `/privacy`: politica de privacidade publica
-- `/terms`: termos de uso publicos
-- `/data-deletion`: instrucoes publicas de exclusao de dados
+### Integrações e Billing
+- **Central de Contas**: Conexão OAuth com Meta (Páginas, Formulários, Instagram) e OpenAI (API Keys).
+- **Webhook de Leads**: Endpoint autenticado com logs detalhados de eventos recebidos em tempo real.
+- **Gestão de Créditos**: Sistema de saldo, extrato e compra de pacotes via Mercado Pago.
+- **Pedidos Criativos**: Fluxo de solicitação de artes e peças com anexos e comentários.
 
-### Onboarding e equipe
+## Principais Rotas
 
-- `/onboarding/profile-setup`: conclusao de perfil
-- `/team/setup`: configuracao da equipe, membros e convites
+### Públicas
+- `/`: Landing page moderna
+- `/pricing`: Planos e pacotes
+- `/login`: Autenticação centralizada
+- `/privacy`, `/terms`, `/data-deletion`: Documentação legal e conformidade Meta
 
-### Dashboard
+### Dashboard (Autenticado)
+- `/dashboard`: Home com Checklist de Onboarding e Indicadores
+- `/dashboard/leads`: CRM e Workspace
+- `/dashboard/funil`: Funil de vendas por etapas
+- `/dashboard/campanhas`: Gerador de campanhas e Biblioteca
+- `/dashboard/whatsapp`: Gerador de mensagens
+- `/dashboard/empresa`: Gestão de integrações (Meta, OpenAI)
+- `/dashboard/perfil`: Configurações, Token de Webhook e Logs de Eventos
 
-- `/dashboard`: visao geral com indicadores e saldo
-- `/dashboard/leads`: CRM de leads
-- `/dashboard/funil`: acompanhamento por etapas
-- `/dashboard/importar`: importacao CSV
-- `/dashboard/campanhas`: gerador e historico de campanhas
-- `/dashboard/empresa`: central de contas conectadas da empresa
-- `/dashboard/compliance`: revisao de texto e risco
-- `/dashboard/whatsapp`: gerador de mensagens para leads
-- `/dashboard/pedidos`: pedidos criativos
-- `/dashboard/criacoes`: atalhos para novas demandas
-- `/dashboard/creditos`: saldo, extrato e compras
-- `/dashboard/perfil`: dados da conta, webhook e logs
-- `/dashboard/configuracoes`: area reservada de configuracoes
-- `/dashboard/relatorios`: area reservada para relatorios
+## APIs Disponíveis
 
-## APIs disponiveis
+### Leads e Operação
+- `GET/POST/PATCH/DELETE /api/leads`: CRUD completo de leads
+- `POST /api/leads/[id]/comments`: Interação em leads
+- `POST /api/webhooks/leads`: Ingestão externa (Rate limited)
+- `GET /api/dashboard-reminders`: Lembretes e indicadores de ativação
 
-### Leads
+### Integrações
+- `/api/integrations/meta/*`: Fluxo OAuth e sincronização de ativos
+- `/api/meta/webhook`: Recebimento de leads reais da Meta
+- `/api/integrations/openai/*`: Configuração e teste de chaves OpenAI
 
-- `GET /api/leads`: lista leads do workspace autenticado
-- `POST /api/leads`: cria lead manualmente
-- `PATCH /api/leads/[id]`: atualiza lead
-- `DELETE /api/leads/[id]`: remove lead
-- `POST /api/leads/[id]/comments`: adiciona comentario ao lead
-- `POST /api/leads/import-batches/[batchId]`: acompanha lote importado
-- `POST /api/webhooks/leads`: recebe leads externos com token do workspace
+### IA e Conteúdo
+- `POST /api/campaigns/generate`: Geração de campanhas (Consome créditos)
+- `POST /api/whatsapp/generate`: Geração de mensagens personalizadas
+- `POST /api/compliance/validate`: Análise de conformidade
 
-### Meta
+## Configuração de Ambiente (Vercel)
 
-- `GET /api/integrations/meta/connect`: inicia OAuth da Meta
-- `GET /api/integrations/meta/callback`: recebe callback OAuth da Meta
-- `POST /api/integrations/meta/sync`: sincroniza ativos Meta conectados
-- `POST /api/integrations/meta/disconnect`: desconecta a conta Meta
-- `GET /api/meta/webhook`: validacao do webhook Meta
-- `POST /api/meta/webhook`: recebimento de eventos Meta
+| Variável | Descrição |
+| :--- | :--- |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Chave administrativa (Server-side) |
+| `META_APP_ID` / `META_APP_SECRET` | Credenciais do App Meta Developers |
+| `META_VERIFY_TOKEN` | Token de validação do Webhook Meta |
+| `INTEGRATIONS_SECRET_KEY` | Chave para cifrar tokens de clientes |
+| `MERCADO_PAGO_ACCESS_TOKEN` | Token de integração financeira |
 
-### IA e operacao
+## Documentação Técnica Complementar
 
-- `POST /api/campaigns/generate`: gera campanha com consumo de creditos
-- `GET /api/campaigns`: lista historico de campanhas
-- `POST /api/campaigns/questions`: apoio ao fluxo de perguntas da campanha
-- `POST /api/compliance/validate`: analisa risco de compliance
-- `POST /api/whatsapp/generate`: gera mensagem para WhatsApp
-- `POST /api/integrations/openai/connect`: salva a chave OpenAI da organizacao
-- `POST /api/integrations/openai/save`: salva ou atualiza a chave OpenAI da organizacao
-- `POST /api/integrations/openai/test`: valida a chave OpenAI conectada
-- `POST /api/integrations/openai/disconnect`: desconecta a chave OpenAI da organizacao
+- [Guia de Migrations e Banco de Dados](docs/MIGRATIONS.md)
+- [Estratégia de Backup e Segurança](docs/BACKUP.md)
+- [Configuração de Webhooks (Make/Zapier)](docs/make-zapier-webhook-validation.md)
+- [Matriz de Decisão Meta Ads](meta_ads_decision_matrix.md)
+- [Checklist de App Review Meta](docs/meta-app-review.md)
 
-### Pedidos criativos
-
-- `GET /api/creative-requests`: lista pedidos
-- `POST /api/creative-requests`: cria pedido
-- `GET /api/creative-requests/[id]`: consulta pedido
-- `PATCH /api/creative-requests/[id]`: atualiza pedido
-- `POST /api/creative-requests/[id]/comments`: adiciona comentario
-- `POST /api/creative-requests/[id]/attachments`: envia anexo
-- `GET /api/creative-requests/[id]/attachments/[attachmentId]`: baixa anexo autorizado
-
-### Billing
-
-- `POST /api/billing/mercadopago/checkout`: cria checkout
-- `POST /api/billing/webhooks/mercadopago`: confirma pagamentos
-
-## Variaveis de ambiente na Vercel
-
-Core obrigatorio em Production:
+## Manutenção
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+npm run build         # Validação de produção
+npm run lint          # Verificação de qualidade
+npm run mcp:supabase  # Ferramenta administrativa local
+npm run webhook:test  # Simulação de envio de leads
 ```
 
-Publico e legal recomendado:
-
-```bash
-NEXT_PUBLIC_SITE_NAME=LeadHealth
-LEGAL_CONTACT_EMAIL=
-NEXT_PUBLIC_LEGAL_EMAIL=
-```
-
-Integracoes:
-
-```bash
-OPENAI_MODEL=gpt-4o-mini
-INTEGRATIONS_SECRET_KEY=
-MERCADO_PAGO_ACCESS_TOKEN=
-MERCADO_PAGO_WEBHOOK_SECRET=
-META_APP_ID=
-META_APP_SECRET=
-META_VERIFY_TOKEN=
-META_REDIRECT_URI=https://leadhealth.vercel.app/api/integrations/meta/callback
-META_GRAPH_API_VERSION=v22.0
-DATABASE_URL=
-```
-
-Observacoes:
-
-- `NEXT_PUBLIC_APP_URL` deve apontar para `https://leadhealth.vercel.app` ou para o dominio customizado final, caso ele seja configurado
-- se `NEXT_PUBLIC_APP_URL` nao estiver definida na Vercel, o app usa o dominio da propria implantacao como fallback para permitir o deploy
-- o build de producao valida o core e falha cedo se `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` ou `SUPABASE_SERVICE_ROLE_KEY` estiverem ausentes
-- `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no servidor, em automacoes seguras e em rotinas administrativas
-- sem uma chave OpenAI conectada em `/dashboard/empresa`, o validador de compliance continua com regras locais, mas campanhas, perguntas e WhatsApp ficam bloqueados com CTA para conectar
-- sem billing configurado, checkout e cobranca retornam erro amigavel de configuracao
-- sem credenciais da Meta, OAuth e webhook Meta falham com mensagem clara sem expor segredos
-- `INTEGRATIONS_SECRET_KEY` e recomendado para cifrar tokens e chaves conectados na area Empresa
-
-### MCP Supabase local/server
-
-O MCP local de Supabase e os scripts administrativos usam apenas:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-
-Essas variaveis devem existir no ambiente do servidor/local e nunca devem ser expostas ao browser.
-
-## Auth, callbacks e URLs publicas
-
-URLs principais de producao:
-
-- App: `https://leadhealth.vercel.app`
-- Login: `https://leadhealth.vercel.app/login`
-- Callback Supabase Auth: `https://leadhealth.vercel.app/auth/callback`
-- Callback OAuth Meta: `https://leadhealth.vercel.app/api/integrations/meta/callback`
-- Webhook Meta: `https://leadhealth.vercel.app/api/meta/webhook`
-- Webhook de leads externos: `https://leadhealth.vercel.app/api/webhooks/leads`
-- Politica de privacidade: `https://leadhealth.vercel.app/privacy`
-- Termos de uso: `https://leadhealth.vercel.app/terms`
-- Exclusao de dados: `https://leadhealth.vercel.app/data-deletion`
-
-No painel do Supabase Auth, cadastre pelo menos:
-
-```text
-http://localhost:3000/auth/callback
-https://leadhealth.vercel.app/auth/callback
-```
-
-Se houver dominio customizado, ele deve substituir o dominio `leadhealth.vercel.app` em `NEXT_PUBLIC_APP_URL`, callbacks, URLs legais e configuracoes de App Review. Em ambientes de preview da Vercel, mantenha o callback local e, se necessario, adicione o padrao `https://*-<team-or-account-slug>.vercel.app/**` na allowlist de Redirect URLs do Supabase.
-
-## Webhooks
-
-### Leads externos
-
-O endpoint `POST /api/webhooks/leads` aceita:
-
-- `Authorization: Bearer <token>`
-- `x-leadhealth-token: <token>`
-
-Payload recomendado:
-
-```json
-{
-  "lead": {
-    "name": "Maria Souza",
-    "email": "maria@empresa.com",
-    "phone": "(11) 99999-0000",
-    "city": "Sao Paulo",
-    "source": "make_zapier",
-    "interest": "Plano empresarial",
-    "budget": "ate R$ 2.000",
-    "notes": "Veio do formulario principal"
-  }
-}
-```
-
-URL de producao:
-
-```bash
-export LEAD_WEBHOOK_URL=https://leadhealth.vercel.app/api/webhooks/leads
-export LEAD_WEBHOOK_TOKEN=cole_o_token_gerado_no_dashboard
-npm run webhook:test
-```
-
-Os logs de processamento podem ser acompanhados em `/dashboard/perfil`. A area de logs oferece filtros de sucesso/erro, refresh manual e autoatualizacao a cada 15 segundos.
-
-Roteiro operacional completo: `docs/make-zapier-webhook-validation.md`.
-
-### Meta
-
-Para App Review e integracao Meta, use as URLs publicas do ambiente Vercel:
-
-- Privacy Policy URL: `https://leadhealth.vercel.app/privacy`
-- Terms of Service URL: `https://leadhealth.vercel.app/terms`
-- User Data Deletion: `https://leadhealth.vercel.app/data-deletion`
-- Webhook Callback URL: `https://leadhealth.vercel.app/api/meta/webhook`
-- OAuth Redirect URI: `https://leadhealth.vercel.app/api/integrations/meta/callback`
-
-Checklist complementar: `docs/meta-app-review.md`.
-
-## Banco e migrations
-
-Para saber mais sobre como aplicar as migrations, a ordem correta e o processo de validação pós-deploy, leia o documento oficial:
-👉 **[Guia de Migrations e Deploy de Banco de Dados](docs/MIGRATIONS.md)**
-👉 **[Orientação de Backup e Proteção de Dados](docs/BACKUP.md)**
-
-As migrations ficam em `supabase/migrations/` e cobrem, entre outros pontos:
-
-- core multi-tenant
-- onboarding, convites e workspace
-- historico de campanhas
-- billing, assinaturas e creditos
-- importacao CSV
-- pedidos criativos e storage
-- historico de mensagens WhatsApp
-- comentarios de leads
-- contas conectadas e integracoes
-- eventos e logs de webhook de leads
-
-Arquivos manuais de apoio ficam em `supabase/manual_*.sql`.
-
-## Scripts de manutencao
-
-Estes comandos continuam no repositorio para manutencao tecnica. Eles nao substituem o ambiente oficial publicado na Vercel.
-
-```bash
-npm run build
-npm run lint
-npm run ai:preview
-npm run compliance:battery
-npm run mcp:supabase
-npm run webhook:test
-npm run webhook:check
-```
-
-## Estrutura do projeto
-
-- `app/`: paginas, layouts, middleware de acesso e rotas de API
-- `src/lib/`: regras de negocio, integracoes, repositorios e configuracoes
-- `src/components/`: componentes de interface
-- `src/data/`: mocks e dados auxiliares
-- `supabase/`: migrations e SQL de apoio
-- `docs/`: documentacao tecnica complementar
-- `scripts/`: scripts de suporte e validacao
+---
+Desenvolvido por **DrekoDreko / LeadHealth**.

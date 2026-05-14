@@ -1,7 +1,6 @@
 import { leads as mockLeads, type Lead } from "@/data/mock";
 import { getMetaConnectionForOrganization } from "@/lib/integrations/repository.server";
 import { assertOrganizationResourceAccess } from "@/lib/billing/subscription-limits.server";
-import type { LeadFollowUpEvent } from "@/lib/leads/follow-up-events";
 import type { LeadComment } from "@/lib/leads/comments";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -11,7 +10,6 @@ import {
   applyLeadUrlFilters,
   defaultLeadUrlFilters,
   getLeadPeriodStart,
-  getLeadScoreRange,
   getSupabaseSourceValue,
   getSupabaseStageValue,
   normalizeLeadSearchTerm,
@@ -24,27 +22,20 @@ import {
   normalizePhone,
   stringOrNull
 } from "./normalization";
-import { calculateLeadScore, type LeadScoringInput } from "./scoring";
 import {
-  buildEmptyLeadAgendaMetrics,
   buildLeadPaginationMeta,
   normalizeLeadPaginationOptions,
   paginateLeads,
-  type LeadAgendaMetrics,
   type LeadDataState,
   type LeadPaginationOptions
 } from "./repository";
-import { getLeadStageValue } from "./stages";
 
 type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
 type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 type LeadCommentRow = Database["public"]["Tables"]["lead_comments"]["Row"];
 type LeadCommentInsert = Database["public"]["Tables"]["lead_comments"]["Insert"];
-type LeadFollowUpEventRow = Database["public"]["Tables"]["lead_follow_up_events"]["Row"];
-type LeadFollowUpEventInsert = Database["public"]["Tables"]["lead_follow_up_events"]["Insert"];
 type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
-type LeadAgendaRow = Pick<LeadRow, "stage" | "next_contact_at">;
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 type LeadDuplicateReason = "meta_lead_id" | "phone_e164" | "email";
@@ -64,8 +55,6 @@ export type LeadCreateInput = {
   lives_count?: unknown;
   stage?: unknown;
   source?: unknown;
-  score?: unknown;
-  next_contact_at?: unknown;
   budget?: unknown;
   interest?: unknown;
   last_interaction?: unknown;
@@ -121,15 +110,6 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   year: "numeric"
 });
 
-const contactFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit"
-});
-
-const leadAgendaTimeZone = "America/Sao_Paulo";
-
 const mockLeadComments: LeadComment[] = mockLeads.slice(0, 3).map((lead, index) => {
   const createdAt = new Date(Date.now() - (index + 1) * 1000 * 60 * 90).toISOString();
 
@@ -145,39 +125,6 @@ const mockLeadComments: LeadComment[] = mockLeads.slice(0, 3).map((lead, index) 
   };
 });
 
-const mockLeadFollowUpEvents: LeadFollowUpEvent[] = mockLeads.slice(0, 4).map((lead, index) => {
-  const createdAt = new Date(Date.now() - (index + 1) * 1000 * 60 * 45).toISOString();
-  const eventType: LeadFollowUpEvent["eventType"] =
-    index === 0 ? "completed" : index === 1 ? "rescheduled" : index === 2 ? "not_completed" : "cancelled";
-  const previousNextContactAt = new Date(Date.now() - (index + 1) * 1000 * 60 * 60 * 6).toISOString();
-  const nextContactAt =
-    eventType === "rescheduled"
-      ? new Date(Date.now() + 1000 * 60 * 60 * 24 * (index + 1)).toISOString()
-      : null;
-
-  return {
-    id: `mock-follow-up-${lead.id.toLowerCase()}`,
-    leadId: lead.id,
-    organizationId: "mock-organization",
-    authorProfileId: "mock-profile",
-    authorName: lead.owner,
-    authorEmail: `${lead.owner.toLowerCase()}@demo.leadhealth.local`,
-    eventType,
-    previousNextContactAt,
-    nextContactAt,
-    note:
-      eventType === "completed"
-        ? "Compromisso executado com sucesso."
-        : eventType === "rescheduled"
-          ? "Reagendado para acompanhar a resposta do decisor."
-          : eventType === "not_completed"
-            ? "Contato nao realizado no horario previsto."
-            : "Compromisso cancelado pela equipe.",
-    createdAt,
-    updatedAt: createdAt
-  };
-});
-
 export async function getLeadsForCurrentUser(
   filters: LeadUrlFilters = defaultLeadUrlFilters,
   paginationOptions?: LeadPaginationOptions
@@ -188,14 +135,12 @@ export async function getLeadsForCurrentUser(
     if (!isSupabaseConfigured()) {
       const filteredLeads = mockLeads.filter((lead) => applyLeadUrlFilters(lead, filters));
       const paginatedLeads = paginateLeads(filteredLeads, pagination);
-      const agendaMetrics = buildLeadAgendaMetricsFromMockLeads(mockLeads);
 
       return {
         leads: paginatedLeads,
         mode: "not-configured",
         canDeleteLeads: true,
         canCreateMetaAdsLeads: true,
-        agendaMetrics,
         pagination: buildLeadPaginationMeta(
           pagination,
           filteredLeads.length,
@@ -217,7 +162,6 @@ export async function getLeadsForCurrentUser(
         mode: "unauthenticated",
         canDeleteLeads: false,
         canCreateMetaAdsLeads: false,
-        agendaMetrics: buildEmptyLeadAgendaMetrics(),
         pagination: buildLeadPaginationMeta(pagination, 0, 0),
         message: "Usuario nao autenticado."
       };
@@ -235,7 +179,6 @@ export async function getLeadsForCurrentUser(
         mode: "error",
         canDeleteLeads: false,
         canCreateMetaAdsLeads: false,
-        agendaMetrics: buildEmptyLeadAgendaMetrics(),
         pagination: buildLeadPaginationMeta(pagination, 0, 0),
         message: "Nao foi possivel carregar os leads."
       };
@@ -243,9 +186,6 @@ export async function getLeadsForCurrentUser(
 
     const hasMetaConnection = Boolean(
       await getMetaConnectionForOrganization(profile.organization_id)
-    );
-    const agendaMetricsPromise = getLeadAgendaMetricsForProfile(supabase, profile).catch(() =>
-      buildLeadAgendaMetricsFallback(profile)
     );
 
     let query = buildLeadQuery(
@@ -269,7 +209,7 @@ export async function getLeadsForCurrentUser(
       query = query.range(pagination.offset, pagination.offset + pagination.limit - 1);
     }
 
-    const [agendaMetrics, { data, error, count }] = await Promise.all([agendaMetricsPromise, query]);
+    const { data, error, count } = await query;
 
     if (error) {
       return {
@@ -277,7 +217,6 @@ export async function getLeadsForCurrentUser(
         mode: "error",
         canDeleteLeads: false,
         canCreateMetaAdsLeads: hasMetaConnection,
-        agendaMetrics,
         pagination: buildLeadPaginationMeta(pagination, 0, 0),
         message: "Nao foi possivel carregar os leads."
       };
@@ -293,7 +232,6 @@ export async function getLeadsForCurrentUser(
       mode: "supabase",
       canDeleteLeads: canDeleteOrganizationLeads(profile),
       canCreateMetaAdsLeads: hasMetaConnection,
-      agendaMetrics,
       pagination: buildLeadPaginationMeta(pagination, total, leads.length)
     };
   } catch {
@@ -302,7 +240,6 @@ export async function getLeadsForCurrentUser(
       mode: "error",
       canDeleteLeads: false,
       canCreateMetaAdsLeads: false,
-      agendaMetrics: buildEmptyLeadAgendaMetrics(),
       pagination: buildLeadPaginationMeta(pagination, 0, 0),
       message: "Nao foi possivel carregar os leads."
     };
@@ -628,17 +565,11 @@ export async function createLeadCommentForCurrentUser(
   assertCanAccessLead(profile, lead, "comentar");
 
   const supabase = await createSupabaseServerClient();
-  const updatedInteraction = buildLeadInteractionSummary("comment", body);
+  const updatedInteraction = buildLeadInteractionSummary(body);
   const { data: updatedLeadRow, error: updateError } = await supabase
     .from("leads")
     .update({
-      last_interaction: updatedInteraction,
-      score: calculateLeadScore(
-        buildLeadScoreInput({
-          ...lead,
-          last_interaction: updatedInteraction
-        })
-      ).score
+      last_interaction: updatedInteraction
     })
     .eq("id", lead.id)
     .eq("organization_id", profile.organization_id)
@@ -662,126 +593,6 @@ export async function createLeadCommentForCurrentUser(
   return {
     comment: mapLeadCommentRowToItem(data),
     lead: mapLeadRowToLead(updatedLeadRow, profile)
-  };
-}
-
-export async function listLeadFollowUpEventsForCurrentUser(id: string): Promise<LeadFollowUpEvent[]> {
-  if (!isSupabaseConfigured()) {
-    return mockLeadFollowUpEvents
-      .filter((event) => event.leadId === id)
-      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
-  }
-
-  const profile = await getCurrentProfile();
-  const lead = await getLeadForMutation(id, profile.organization_id);
-
-  assertCanAccessLead(profile, lead, "visualizar");
-
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("lead_follow_up_events")
-    .select("*")
-    .eq("organization_id", profile.organization_id)
-    .eq("lead_id", lead.id)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return (data ?? []).map(mapLeadFollowUpEventRowToItem);
-}
-
-export async function createLeadFollowUpEventForCurrentUser(
-  id: string,
-  input: { action?: unknown; next_contact_at?: unknown; note?: unknown }
-): Promise<{ lead: Lead; event: LeadFollowUpEvent }> {
-  const eventType = normalizeLeadFollowUpEventType(input.action);
-  const note = normalizeLeadFollowUpNote(input.note);
-
-  if (!isSupabaseConfigured()) {
-    const event = createMockLeadFollowUpEvent(id, eventType, input.next_contact_at, note);
-    const lead = updateMockLeadFollowUpLead(id, event.nextContactAt, eventType, note);
-
-    mockLeadFollowUpEvents.unshift(event);
-
-    return { lead, event };
-  }
-
-  const profile = await getCurrentProfile();
-  const hasMetaConnection = Boolean(
-    await getMetaConnectionForOrganization(profile.organization_id)
-  );
-  const lead = await getLeadForMutation(id, profile.organization_id);
-
-  assertCanAccessLead(profile, lead, "comentar");
-
-  const previousNextContactAt = lead.next_contact_at;
-  const nextContactAt =
-    eventType === "rescheduled" ? normalizeFollowUpDate(input.next_contact_at) : null;
-
-  if (eventType === "rescheduled" && !nextContactAt) {
-    throw new Error("Data de reagendamento obrigatoria.");
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const followUpSummary = buildLeadInteractionSummary(
-    eventType,
-    note,
-    nextContactAt ?? previousNextContactAt
-  );
-  const { data: updatedLeadRow, error: updateError } = await supabase
-    .from("leads")
-    .update({
-      next_contact_at: eventType === "rescheduled" ? nextContactAt : null,
-      last_interaction: followUpSummary,
-      score: calculateLeadScore(
-        buildLeadScoreInput({
-          ...lead,
-          next_contact_at: eventType === "rescheduled" ? nextContactAt : null,
-          last_interaction: followUpSummary
-        })
-      ).score
-    })
-    .eq("id", id)
-    .eq("organization_id", profile.organization_id)
-    .select("*")
-    .single();
-
-  if (updateError) {
-    throw new Error(updateError.message);
-  }
-
-  const { data: eventRow, error: insertError } = await supabase
-    .from("lead_follow_up_events")
-    .insert(
-      buildLeadFollowUpEventInsert(
-        updatedLeadRow,
-        profile,
-        eventType,
-        previousNextContactAt,
-        nextContactAt,
-        note
-      )
-    )
-    .select("*")
-    .single();
-
-  if (insertError) {
-    await supabase
-      .from("leads")
-      .update({
-        next_contact_at: previousNextContactAt
-      })
-      .eq("id", id)
-      .eq("organization_id", profile.organization_id);
-
-    throw new Error(insertError.message);
-  }
-
-  return {
-    lead: mapLeadRowToLead(updatedLeadRow, profile, hasMetaConnection),
-    event: mapLeadFollowUpEventRowToItem(eventRow)
   };
 }
 
@@ -917,27 +728,6 @@ function buildLeadCommentInsert(
   };
 }
 
-function buildLeadFollowUpEventInsert(
-  lead: LeadRow,
-  profile: ProfileRow,
-  eventType: LeadFollowUpEvent["eventType"],
-  previousNextContactAt: string | null,
-  nextContactAt: string | null,
-  note: string | null
-): LeadFollowUpEventInsert {
-  return {
-    organization_id: lead.organization_id,
-    lead_id: lead.id,
-    author_profile_id: profile.id,
-    author_name: profile.full_name?.trim() || profile.email.split("@")[0] || "Usuario",
-    author_email: profile.email,
-    event_type: eventType,
-    previous_next_contact_at: previousNextContactAt,
-    next_contact_at: nextContactAt,
-    note
-  };
-}
-
 function mapLeadCommentRowToItem(row: LeadCommentRow): LeadComment {
   return {
     id: row.id,
@@ -949,115 +739,6 @@ function mapLeadCommentRowToItem(row: LeadCommentRow): LeadComment {
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
-}
-
-function mapLeadFollowUpEventRowToItem(row: LeadFollowUpEventRow): LeadFollowUpEvent {
-  return {
-    id: row.id,
-    leadId: row.lead_id,
-    organizationId: row.organization_id,
-    authorProfileId: row.author_profile_id,
-    authorName: row.author_name,
-    authorEmail: row.author_email,
-    eventType: row.event_type,
-    previousNextContactAt: row.previous_next_contact_at,
-    nextContactAt: row.next_contact_at,
-    note: row.note,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  };
-}
-
-function normalizeLeadFollowUpEventType(value: unknown): LeadFollowUpEvent["eventType"] {
-  const action = stringOrNull(value)?.trim().toLowerCase();
-
-  if (
-    action === "completed" ||
-    action === "rescheduled" ||
-    action === "cancelled" ||
-    action === "not_completed"
-  ) {
-    return action;
-  }
-
-  throw new Error("Ação de follow-up inválida.");
-}
-
-function normalizeLeadFollowUpNote(value: unknown) {
-  const note = stringOrNull(value)?.trim();
-
-  if (!note) {
-    return null;
-  }
-
-  if (note.length > 2000) {
-    throw new Error("Observacao muito longa. Use ate 2000 caracteres.");
-  }
-
-  return note;
-}
-
-function normalizeFollowUpDate(value: unknown) {
-  const nextContact = stringOrNull(value)?.trim();
-
-  if (!nextContact) {
-    return null;
-  }
-
-  const date = new Date(nextContact);
-
-  if (Number.isNaN(date.getTime())) {
-    throw new Error("Data de reagendamento invalida.");
-  }
-
-  return date.toISOString();
-}
-
-function createMockLeadFollowUpEvent(
-  id: string,
-  eventType: LeadFollowUpEvent["eventType"],
-  nextContactAt: unknown,
-  note: string | null
-): LeadFollowUpEvent {
-  const createdAt = new Date().toISOString();
-  const normalizedNextContactAt =
-    eventType === "rescheduled" ? normalizeFollowUpDate(nextContactAt) : null;
-  const authorName = "Equipe demo";
-
-  return {
-    id: `mock-follow-up-${Date.now()}`,
-    leadId: id,
-    organizationId: "mock-organization",
-    authorProfileId: "mock-profile",
-    authorName,
-    authorEmail: "demo@leadhealth.local",
-    eventType,
-    previousNextContactAt: null,
-    nextContactAt: normalizedNextContactAt,
-    note:
-      note ??
-      (eventType === "completed"
-        ? "Compromisso executado com sucesso."
-        : eventType === "rescheduled"
-          ? "Compromisso reagendado."
-          : eventType === "not_completed"
-            ? "Compromisso nao realizado."
-            : "Compromisso cancelado."),
-    createdAt,
-    updatedAt: createdAt
-  };
-}
-
-function updateMockLeadFollowUpLead(
-  id: string,
-  nextContactAt: string | null,
-  eventType: LeadFollowUpEvent["eventType"],
-  note: string | null
-): Lead {
-  return updateMockLead(id, {
-    next_contact_at: nextContactAt,
-    last_interaction: buildLeadInteractionSummary(eventType, note, nextContactAt)
-  });
 }
 
 async function getLeadForMutation(id: string, organizationId: string) {
@@ -1127,11 +808,6 @@ function buildLeadQuery(
 
   if (filters.city) {
     query = query.ilike("city", `%${filters.city}%`);
-  }
-
-  const scoreRange = getLeadScoreRange(filters.score);
-  if (scoreRange) {
-    query = query.gte("score", scoreRange.min).lte("score", scoreRange.max);
   }
 
   const periodStart = getLeadPeriodStart(filters.period);
@@ -1433,20 +1109,6 @@ function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInser
   const name = getRequiredLeadName(input.name);
   const phone = normalizePhone(input.phone);
   const rawPayload = toJson(input.raw_payload);
-  const scoreInput = buildLeadScoreInput({
-    stage: normalizeLeadStage(input.stage),
-    source: normalizeLeadSource(input.source),
-    email: normalizeEmail(input.email),
-    phone: phone.e164 ?? phone.display,
-    city: stringOrNull(input.city),
-    companyName: stringOrNull(input.company_name),
-    livesCount: normalizeInteger(input.lives_count),
-    budget: stringOrNull(input.budget),
-    interest: stringOrNull(input.interest),
-    lastInteraction: stringOrNull(input.last_interaction),
-    notes: stringOrNull(input.notes),
-    nextContactAt: stringOrNull(input.next_contact_at)
-  });
 
   return {
     organization_id: profile.organization_id,
@@ -1460,8 +1122,6 @@ function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInser
     lives_count: normalizeInteger(input.lives_count),
     stage: normalizeLeadStage(input.stage),
     source: normalizeLeadSource(input.source),
-    score: calculateLeadScore(scoreInput).score,
-    next_contact_at: stringOrNull(input.next_contact_at),
     budget: stringOrNull(input.budget),
     interest: stringOrNull(input.interest),
     last_interaction: stringOrNull(input.last_interaction),
@@ -1504,23 +1164,7 @@ function createMockLead(input: LeadCreateInput): Lead {
   const email = normalizeEmail(input.email);
   const stage = normalizeLeadStage(input.stage);
   const source = normalizeLeadSource(input.source);
-  const nextContactAt = stringOrNull(input.next_contact_at);
   const now = new Date();
-  const scoreInput = buildLeadScoreInput({
-    stage,
-    source,
-    email,
-    phone: phone.e164 ?? phone.display,
-    city: stringOrNull(input.city),
-    companyName: stringOrNull(input.company_name),
-    livesCount: normalizeInteger(input.lives_count),
-    budget: stringOrNull(input.budget),
-    interest: stringOrNull(input.interest),
-    lastInteraction: stringOrNull(input.last_interaction),
-    notes: stringOrNull(input.notes),
-    nextContactAt,
-    receivedAt: now.toISOString()
-  });
 
   return {
     id: `mock-${now.getTime()}`,
@@ -1529,9 +1173,6 @@ function createMockLead(input: LeadCreateInput): Lead {
     canEdit: true,
     canDelete: true,
     stage: stageLabels[stage],
-    nextContact: formatNextContact(nextContactAt),
-    nextContactAt,
-    score: calculateLeadScore(scoreInput).score,
     source: sourceLabels[source],
     phone: phone.display ?? "Sem telefone",
     email: email ?? "Sem email",
@@ -1559,8 +1200,6 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
   const existingLead = mockLeads.find((lead) => lead.id === id);
   const phone = input.phone === undefined ? null : normalizePhone(input.phone);
   const email = input.email === undefined ? undefined : normalizeEmail(input.email);
-  const nextContactAt =
-    input.next_contact_at === undefined ? existingLead?.nextContactAt : stringOrNull(input.next_contact_at);
   const stage = input.stage === undefined ? undefined : normalizeLeadStage(input.stage);
   const source = input.source === undefined ? undefined : normalizeLeadSource(input.source);
   const livesCount =
@@ -1576,11 +1215,6 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
     canEdit: true,
     canDelete: true,
     stage: stage ? stageLabels[stage] : existingLead?.stage ?? "Novo lead",
-    nextContact:
-      input.next_contact_at === undefined
-        ? existingLead?.nextContact ?? "A definir"
-        : formatNextContact(input.next_contact_at),
-    nextContactAt,
     source: source ? sourceLabels[source] : existingLead?.source ?? "Cadastro manual",
     phone:
       input.phone === undefined
@@ -1638,32 +1272,7 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
         : stringOrNull(input.meta_connected_account_id),
     receivedAt: existingLead?.receivedAt ?? now.toISOString()
   };
-  const scoreInput = buildLeadScoreInput({
-    stage: stage ? stage : existingLead?.stage,
-    source: source ? source : existingLead?.source,
-    email: updatedLeadBase.email === "Sem email" ? null : updatedLeadBase.email,
-    phone: updatedLeadBase.phone === "Sem telefone" ? null : updatedLeadBase.phone,
-    city: updatedLeadBase.city,
-    companyName: updatedLeadBase.companyName,
-    livesCount: updatedLeadBase.livesCount,
-    budget: updatedLeadBase.budget === "A qualificar" ? null : updatedLeadBase.budget,
-    interest:
-      updatedLeadBase.interest === "Interesse ainda nao qualificado"
-        ? null
-        : updatedLeadBase.interest,
-    lastInteraction:
-      updatedLeadBase.lastInteraction === "Lead atualizado no modo demonstracao."
-        ? null
-        : updatedLeadBase.lastInteraction,
-    notes: updatedLeadBase.notes === "Sem observacoes registradas." ? null : updatedLeadBase.notes,
-    nextContactAt: updatedLeadBase.nextContactAt,
-    receivedAt: updatedLeadBase.receivedAt
-  });
-  const updatedLead = {
-    ...updatedLeadBase,
-    score: calculateLeadScore(scoreInput).score
-  };
-  return updatedLead;
+  return updatedLeadBase;
 }
 
 function getRequiredLeadName(value: unknown) {
@@ -1676,43 +1285,9 @@ function getRequiredLeadName(value: unknown) {
   return name;
 }
 
-function formatNextContact(value: unknown) {
-  const nextContact = stringOrNull(value);
-
-  if (!nextContact) {
-    return "A definir";
-  }
-
-  const date = new Date(nextContact);
-  return Number.isNaN(date.getTime()) ? nextContact : contactFormatter.format(date);
-}
-
 function buildLeadUpdate(existingLead: LeadRow, input: LeadCreateInput): Database["public"]["Tables"]["leads"]["Update"] {
   const phone = normalizePhone(input.phone);
   const rawPayload = toJson(input.raw_payload);
-  const mergedScoreInput = buildLeadScoreInput({
-    stage: input.stage === undefined ? existingLead.stage : normalizeLeadStage(input.stage),
-    source: input.source === undefined ? existingLead.source : normalizeLeadSource(input.source),
-    email:
-      input.email === undefined ? existingLead.email : normalizeEmail(input.email),
-    phone:
-      input.phone === undefined
-        ? existingLead.phone_e164 ?? existingLead.phone
-        : phone.e164 ?? phone.display,
-    city: input.city === undefined ? existingLead.city : stringOrNull(input.city),
-    companyName:
-      input.company_name === undefined ? existingLead.company_name : stringOrNull(input.company_name),
-    livesCount:
-      input.lives_count === undefined ? existingLead.lives_count : normalizeInteger(input.lives_count),
-    budget: input.budget === undefined ? existingLead.budget : stringOrNull(input.budget),
-    interest: input.interest === undefined ? existingLead.interest : stringOrNull(input.interest),
-    lastInteraction:
-      input.last_interaction === undefined ? existingLead.last_interaction : stringOrNull(input.last_interaction),
-    notes: input.notes === undefined ? existingLead.notes : stringOrNull(input.notes),
-    nextContactAt:
-      input.next_contact_at === undefined ? existingLead.next_contact_at : stringOrNull(input.next_contact_at),
-    receivedAt: existingLead.received_at
-  });
 
   return removeUndefinedValues({
     name: stringOrNull(input.name) ?? undefined,
@@ -1724,9 +1299,6 @@ function buildLeadUpdate(existingLead: LeadRow, input: LeadCreateInput): Databas
     lives_count: input.lives_count === undefined ? undefined : normalizeInteger(input.lives_count),
     stage: input.stage === undefined ? undefined : normalizeLeadStage(input.stage),
     source: input.source === undefined ? undefined : normalizeLeadSource(input.source),
-    score: calculateLeadScore(mergedScoreInput).score,
-    next_contact_at:
-      input.next_contact_at === undefined ? undefined : stringOrNull(input.next_contact_at),
     budget: input.budget === undefined ? undefined : stringOrNull(input.budget),
     interest: input.interest === undefined ? undefined : stringOrNull(input.interest),
     last_interaction:
@@ -1766,9 +1338,6 @@ function mapLeadRowToLead(
     canEdit: canManage,
     canDelete: canManage,
     stage: stageLabels[row.stage],
-    nextContact: row.next_contact_at ? contactFormatter.format(new Date(row.next_contact_at)) : "A definir",
-    nextContactAt: row.next_contact_at,
-    score: row.score,
     source: sourceLabels[row.source],
     phone: row.phone ?? "Sem telefone",
     email: row.email ?? "Sem email",
@@ -1791,221 +1360,14 @@ function mapLeadRowToLead(
   };
 }
 
-function buildLeadScoreInput(input: {
-  stage?: string | null;
-  source?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  city?: string | null;
-  companyName?: string | null;
-  company_name?: string | null;
-  livesCount?: number | null;
-  lives_count?: number | null;
-  budget?: string | null;
-  interest?: string | null;
-  lastInteraction?: string | null;
-  last_interaction?: string | null;
-  notes?: string | null;
-  nextContactAt?: string | null;
-  next_contact_at?: string | null;
-  receivedAt?: string | null;
-  received_at?: string | null;
-}): LeadScoringInput {
-  return {
-    stage: input.stage ?? null,
-    source: input.source ?? null,
-    email: input.email ?? null,
-    phone: input.phone ?? null,
-    city: input.city ?? null,
-    companyName: input.companyName ?? input.company_name ?? null,
-    livesCount: input.livesCount ?? input.lives_count ?? null,
-    budget: input.budget ?? null,
-    interest: input.interest ?? null,
-    lastInteraction: input.lastInteraction ?? input.last_interaction ?? null,
-    notes: input.notes ?? null,
-    nextContactAt: input.nextContactAt ?? input.next_contact_at ?? null,
-    receivedAt: input.receivedAt ?? input.received_at ?? null
-  };
-}
-
 function updateMockLeadCommentLead(id: string, commentBody: string) {
   return updateMockLead(id, {
-    last_interaction: buildLeadInteractionSummary("comment", commentBody)
+    last_interaction: buildLeadInteractionSummary(commentBody)
   });
 }
 
-function buildLeadInteractionSummary(
-  type: "comment" | LeadFollowUpEvent["eventType"],
-  body?: string | null,
-  nextContactAt?: string | null
-) {
-  if (type === "comment") {
-    return body ? `Comentário: ${body.slice(0, 120)}` : "Comentário registrado.";
-  }
-
-  if (type === "rescheduled") {
-    return nextContactAt
-      ? `Follow-up reagendado para ${formatNextContact(nextContactAt)}`
-      : "Follow-up reagendado.";
-  }
-
-  if (type === "completed") {
-    return body ? `Follow-up concluído. ${body.slice(0, 120)}` : "Follow-up concluído.";
-  }
-
-  if (type === "cancelled") {
-    return body ? `Follow-up cancelado. ${body.slice(0, 120)}` : "Follow-up cancelado.";
-  }
-
-  return body ? `Follow-up não realizado. ${body.slice(0, 120)}` : "Follow-up não realizado.";
-}
-
-async function getLeadAgendaMetricsForProfile(
-  supabase: ServerClient,
-  profile: ProfileRow
-): Promise<LeadAgendaMetrics> {
-  let query = supabase
-    .from("leads")
-    .select("stage,next_contact_at")
-    .eq("organization_id", profile.organization_id);
-
-  if (profile.role === "seller") {
-    query = query.eq("owner_profile_id", profile.id);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return buildLeadAgendaMetricsFromLeadRows(data ?? [], profile);
-}
-
-function buildLeadAgendaMetricsFromLeadRows(
-  rows: LeadAgendaRow[],
-  profile: ProfileRow
-): LeadAgendaMetrics {
-  const activeRows = rows.filter((row) => isOperationalAgendaStage(row.stage));
-  const now = new Date();
-  const todayKey = getLocalDateKey(now);
-
-  let noAgenda = 0;
-  let overdueFollowUps = 0;
-  let todayCommitments = 0;
-
-  for (const row of activeRows) {
-    if (!row.next_contact_at) {
-      noAgenda += 1;
-      continue;
-    }
-
-    const nextContact = new Date(row.next_contact_at);
-
-    if (Number.isNaN(nextContact.getTime())) {
-      noAgenda += 1;
-      continue;
-    }
-
-    if (nextContact.getTime() < now.getTime()) {
-      overdueFollowUps += 1;
-      continue;
-    }
-
-    if (getLocalDateKey(nextContact) === todayKey) {
-      todayCommitments += 1;
-    }
-  }
-
-  return {
-    scopeLabel: getLeadAgendaScopeLabel(profile),
-    scopeDescription: getLeadAgendaScopeDescription(profile),
-    noAgenda,
-    overdueFollowUps,
-    todayCommitments
-  };
-}
-
-function buildLeadAgendaMetricsFromMockLeads(leads: Lead[]): LeadAgendaMetrics {
-  const now = new Date();
-  const todayKey = getLocalDateKey(now);
-
-  let noAgenda = 0;
-  let overdueFollowUps = 0;
-  let todayCommitments = 0;
-
-  for (const lead of leads) {
-    if (!isOperationalAgendaStage(lead.stage)) {
-      continue;
-    }
-
-    if (!lead.nextContactAt) {
-      noAgenda += 1;
-      continue;
-    }
-
-    const nextContact = new Date(lead.nextContactAt);
-
-    if (Number.isNaN(nextContact.getTime())) {
-      noAgenda += 1;
-      continue;
-    }
-
-    if (nextContact.getTime() < now.getTime()) {
-      overdueFollowUps += 1;
-      continue;
-    }
-
-    if (getLocalDateKey(nextContact) === todayKey) {
-      todayCommitments += 1;
-    }
-  }
-
-  return {
-    scopeLabel: "Demo",
-    scopeDescription: "Indicadores simulados enquanto o Supabase nao esta conectado.",
-    noAgenda,
-    overdueFollowUps,
-    todayCommitments
-  };
-}
-
-function buildLeadAgendaMetricsFallback(profile?: ProfileRow): LeadAgendaMetrics {
-  if (!profile) {
-    return buildEmptyLeadAgendaMetrics();
-  }
-
-  return buildEmptyLeadAgendaMetrics({
-    scopeLabel: getLeadAgendaScopeLabel(profile),
-    scopeDescription: getLeadAgendaScopeDescription(profile)
-  });
-}
-
-function getLeadAgendaScopeLabel(profile: ProfileRow) {
-  return profile.role === "seller" ? "Escopo: minha carteira" : "Escopo: equipe";
-}
-
-function getLeadAgendaScopeDescription(profile: ProfileRow) {
-  return profile.role === "seller"
-    ? "Indicadores apenas da sua carteira comercial."
-    : "Indicadores da equipe inteira na organizacao.";
-}
-
-function isOperationalAgendaStage(stage: string) {
-  const normalizedStage = getLeadStageValue(stage) ?? stage;
-
-  return (
-    normalizedStage === "new" ||
-    normalizedStage === "qualification" ||
-    normalizedStage === "proposal" ||
-    normalizedStage === "negotiation"
-  );
-}
-
-function getLocalDateKey(value: Date) {
-  return value.toLocaleDateString("sv-SE", {
-    timeZone: leadAgendaTimeZone
-  });
+function buildLeadInteractionSummary(body?: string | null) {
+  return body ? `Comentário: ${body.slice(0, 120)}` : "Comentário registrado.";
 }
 
 function getSupabaseLeadSearchPattern(value: string) {

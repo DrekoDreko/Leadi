@@ -43,7 +43,7 @@ Exemplo de configuração:
 - `supabase_update`: atualiza linhas, sempre exigindo ao menos um filtro.
 - `supabase_delete`: remove linhas, sempre exigindo filtro e `confirm: "DELETE"`.
 
-Tabelas liberadas: `campaigns`, `creative_requests`, `creative_request_comments`, `whatsapp_messages`, `plans`, `subscriptions`, `payment_events`, `organizations`, `meta_integrations`, `meta_pages`, `meta_forms`, `meta_ad_accounts`, `openai_connections`, `integration_sync_logs`, `lead_webhook_integrations`, `lead_webhook_events`, `lead_follow_up_events`, `profiles`, `workspace_members`, `invites`, `leads`, `onboarding_states`, `system_templates`.
+Tabelas liberadas: `campaigns`, `creative_requests`, `creative_request_comments`, `whatsapp_messages`, `plans`, `subscriptions`, `payment_events`, `organizations`, `meta_integrations`, `meta_pages`, `meta_forms`, `meta_ad_accounts`, `openai_connections`, `integration_sync_logs`, `lead_webhook_integrations`, `lead_webhook_events`, `profiles`, `workspace_members`, `invites`, `leads`, `onboarding_states`, `system_templates`.
 
 ## Billing
 
@@ -69,7 +69,6 @@ As tabelas abaixo ficam liberadas no MCP para validacao operacional e suporte:
 - `campaigns`: historico de campanhas com `connected_account_id`, `meta_page_id`, `meta_ad_account_id`, `meta_lead_form_id`, `publish_mode` e `publication_status` para o fluxo controlado.
 - `whatsapp_messages`: historico de mensagens WhatsApp geradas com `delivery_status`, `delivery_provider`, `delivery_attempted_at`, `delivery_sent_at`, `delivery_provider_message_id`, `delivery_error_code`, `delivery_error_message` e `delivery_history` para validar o envio sem expor o texto completo.
 - `leads`: leads com `meta_connected_account_id`, `meta_page_id` e `meta_form_id` quando vierem de ativos Meta conectados.
-- `lead_follow_up_events`: trilha operacional da agenda comercial com `lead_id`, `author_profile_id`, `author_name`, `author_email`, `event_type`, `previous_next_contact_at`, `next_contact_at` e `note` para registrar concluido, reagendado, cancelado ou nao realizado.
 - `onboarding_states`: estado de persistencia do checklist por organizacao, com `completed_steps` (array de IDs) e `dismissed_at`.
 - `system_templates`: templates globais de campanhas e mensagens para apoio aos usuarios, categorizados por `MEI`, `PME`, `Reducao de Custo`, etc. Liberado apenas para `select`. O sistema possui um fallback estático em `src/data/system-templates.ts` caso a tabela nao esteja populada no banco.
 

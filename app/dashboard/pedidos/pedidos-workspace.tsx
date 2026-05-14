@@ -134,6 +134,7 @@ export function PedidosWorkspace({
   initialRequests,
   listMode,
   listMessage,
+  initialComposeOpen = false,
   showAdminLink = false,
   workspaceName,
   workspaceVariant = "requests"
@@ -142,6 +143,7 @@ export function PedidosWorkspace({
   initialRequests: CreativeRequestItem[];
   listMode: CreativeRequestListState["mode"];
   listMessage?: string;
+  initialComposeOpen?: boolean;
   showAdminLink?: boolean;
   workspaceName: string;
   workspaceVariant?: "requests" | "validator";
@@ -150,7 +152,7 @@ export function PedidosWorkspace({
   const [form, setForm] = useState<FormState>(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(
-    createRequestAccess.allowed && initialRequests.length === 0
+    createRequestAccess.allowed && (initialComposeOpen || initialRequests.length === 0)
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [uploadingRequestId, setUploadingRequestId] = useState("");

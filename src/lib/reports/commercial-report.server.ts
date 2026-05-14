@@ -15,7 +15,7 @@ import type { WorkspaceContext } from "@/lib/workspaces/context";
 
 type LeadRow = Pick<
   Database["public"]["Tables"]["leads"]["Row"],
-  "stage" | "source" | "owner_profile_id" | "source_campaign" | "meta_campaign_id" | "score" | "received_at"
+  "stage" | "source" | "owner_profile_id" | "source_campaign" | "meta_campaign_id" | "received_at"
 >;
 type CampaignRow = Pick<
   Database["public"]["Tables"]["campaigns"]["Row"],
@@ -51,7 +51,6 @@ export type CommercialReportBreakdownRow = {
   won: number;
   qualified: number;
   conversionRate: number;
-  avgScore: number | null;
   campaignCount: number;
   note: string;
 };
@@ -76,7 +75,6 @@ export type CommercialReportData = {
     won: number;
     qualified: number;
     conversionRate: number;
-    avgScore: number | null;
     leadsWithoutOwner: number;
     campaignCount: number;
     roiLabel: string;
@@ -125,7 +123,6 @@ export async function getCommercialReportForCurrentUser(
         won: 0,
         qualified: 0,
         conversionRate: 0,
-        avgScore: null,
         leadsWithoutOwner: 0,
         campaignCount: 0,
         roiLabel: "N/D",
@@ -161,7 +158,6 @@ export async function getCommercialReportForCurrentUser(
     const leadsWithoutOwner = leads.filter((lead) => !lead.owner_profile_id).length;
     const qualified = countQualifiedLeads(leads);
     const won = leads.filter((lead) => lead.stage === "won").length;
-    const avgScore = calculateAverageScore(leads);
     const conversionRate = leads.length ? won / leads.length : 0;
 
     return {
@@ -179,7 +175,6 @@ export async function getCommercialReportForCurrentUser(
         won,
         qualified,
         conversionRate,
-        avgScore,
         leadsWithoutOwner,
         campaignCount: campaigns.length,
         roiLabel: "N/D",
@@ -215,8 +210,7 @@ function buildAvailableMetrics() {
     "Conversao por etapa",
     "Distribuicao por origem",
     "Distribuicao por vendedor",
-    "Campanhas identificadas nos leads",
-    "Score medio"
+    "Campanhas identificadas nos leads"
   ];
 }
 
@@ -242,7 +236,6 @@ function buildErrorReport(filters: CommercialReportFilters, message: string): Co
       won: 0,
       qualified: 0,
       conversionRate: 0,
-      avgScore: null,
       leadsWithoutOwner: 0,
       campaignCount: 0,
       roiLabel: "N/D",
@@ -296,7 +289,7 @@ async function loadCommercialLeads(
   const periodStart = getLeadPeriodStart(filters.period);
   let query = supabase
     .from("leads")
-    .select("stage, source, owner_profile_id, source_campaign, meta_campaign_id, score, received_at")
+    .select("stage, source, owner_profile_id, source_campaign, meta_campaign_id, received_at")
     .order("received_at", { ascending: false });
 
   if (context.profile) {
@@ -409,7 +402,6 @@ function buildSellerRows(leads: LeadRow[], sellerMap: Map<string, ProfileRow>): 
 function buildBreakdownRow(label: string, leads: LeadRow[]): CommercialReportBreakdownRow {
   const won = leads.filter((lead) => lead.stage === "won").length;
   const qualified = leads.filter((lead) => ["qualification", "proposal", "negotiation", "won"].includes(lead.stage)).length;
-  const avgScore = calculateAverageScore(leads);
   const conversionRate = leads.length ? won / leads.length : 0;
 
   return {
@@ -418,7 +410,6 @@ function buildBreakdownRow(label: string, leads: LeadRow[]): CommercialReportBre
     won,
     qualified,
     conversionRate,
-    avgScore,
     campaignCount: countCampaignMentions(leads),
     note: leads.length ? `${won} vendas` : "sem registros"
   };
@@ -448,15 +439,6 @@ function normalizeCampaignLabel(lead: LeadRow) {
 
 function normalizeSourceLabel(source: LeadRow["source"]) {
   return sourceDisplayLabels[source];
-}
-
-function calculateAverageScore(leads: LeadRow[]) {
-  if (!leads.length) {
-    return null;
-  }
-
-  const total = leads.reduce((sum, lead) => sum + (Number.isFinite(lead.score) ? lead.score : 0), 0);
-  return total / leads.length;
 }
 
 function countQualifiedLeads(leads: LeadRow[]) {

@@ -27,7 +27,6 @@ type LeadFormValues = {
   budget: string;
   stage: string;
   source: string;
-  next_contact_at: string;
   notes: string;
 };
 
@@ -61,7 +60,6 @@ export function LeadCreateModal({
     type: "error" | "success";
     message: string;
   } | null>(null);
-  const [nextContactAt, setNextContactAt] = useState("");
 
   useEffect(() => {
     if (!open) {
@@ -70,7 +68,6 @@ export function LeadCreateModal({
 
     setErrors({});
     setStatus(null);
-    setNextContactAt("");
   }, [open]);
 
   useEffect(() => {
@@ -212,9 +209,6 @@ export function LeadCreateModal({
             <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/62">
               Cadastre um contato manualmente e acompanhe o atendimento no funil da LeadHealth.
             </p>
-            <p className="mt-2 inline-flex rounded-full bg-cobalt/10 px-3 py-1 text-xs font-semibold text-cobalt">
-              Score calculado automaticamente por perfil, intenção e interações.
-            </p>
           </div>
           <button className="icon-button shrink-0" onClick={closeModal} type="button" title="Fechar">
             <X size={18} aria-hidden="true" />
@@ -355,51 +349,6 @@ export function LeadCreateModal({
               </select>
             </LeadField>
 
-            <LeadField error={errors.next_contact_at} label="Próximo contato">
-              <input
-                aria-invalid={Boolean(errors.next_contact_at)}
-                className={fieldClass(Boolean(errors.next_contact_at))}
-                disabled={isSubmitting}
-                name="next_contact_at"
-                onChange={(e) => setNextContactAt(e.target.value)}
-                type="datetime-local"
-                value={nextContactAt}
-              />
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button
-                  className="rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/60 transition hover:bg-white hover:text-ink"
-                  onClick={() => {
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    tomorrow.setHours(10, 0, 0, 0);
-                    setNextContactAt(toDateTimeLocal(tomorrow));
-                  }}
-                  type="button"
-                >
-                  Amanhã 10h
-                </button>
-                <button
-                  className="rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/60 transition hover:bg-white hover:text-ink"
-                  onClick={() => {
-                    const monday = new Date();
-                    monday.setDate(monday.getDate() + ((1 + 7 - monday.getDay()) % 7 || 7));
-                    monday.setHours(9, 0, 0, 0);
-                    setNextContactAt(toDateTimeLocal(monday));
-                  }}
-                  type="button"
-                >
-                  Próxima Segunda
-                </button>
-                <button
-                  className="rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/60 transition hover:bg-white hover:text-ink"
-                  onClick={() => setNextContactAt("")}
-                  type="button"
-                >
-                  Limpar
-                </button>
-              </div>
-            </LeadField>
-
             <LeadField className="md:col-span-2" error={errors.notes} label="Observações">
               <textarea
                 aria-invalid={Boolean(errors.notes)}
@@ -471,7 +420,6 @@ function getLeadFormValues(formData: FormData): LeadFormValues {
     budget: formString(formData, "budget"),
     stage: formString(formData, "stage"),
     source: formString(formData, "source"),
-    next_contact_at: formString(formData, "next_contact_at"),
     notes: formString(formData, "notes")
   };
 }
@@ -503,14 +451,6 @@ function validateLeadForm(values: LeadFormValues): LeadFormErrors {
     }
   }
 
-  if (values.next_contact_at) {
-    const date = new Date(values.next_contact_at);
-
-    if (Number.isNaN(date.getTime())) {
-      nextErrors.next_contact_at = "Escolha uma data valida.";
-    }
-  }
-
   return nextErrors;
 }
 
@@ -526,7 +466,6 @@ function buildLeadPayload(values: LeadFormValues) {
     budget: values.budget || undefined,
     stage: values.stage,
     source: values.source,
-    next_contact_at: normalizeDateTimeLocal(values.next_contact_at),
     notes: values.notes || undefined,
     last_interaction: "Lead cadastrado manualmente pelo dashboard."
   };
@@ -544,15 +483,6 @@ function getFriendlySubmitError(error?: string) {
   return getFriendlyErrorMessage(error).message;
 }
 
-function normalizeDateTimeLocal(value: string) {
-  if (!value) {
-    return undefined;
-  }
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toISOString();
-}
-
 function formString(formData: FormData, field: keyof LeadFormValues) {
   const value = formData.get(field);
   return typeof value === "string" ? value.trim() : "";
@@ -562,13 +492,4 @@ function fieldClass(hasError: boolean) {
   return `liquid-input disabled:cursor-not-allowed disabled:opacity-60 ${
     hasError ? "border-signal/80 bg-signal/20" : ""
   }`;
-}
-function toDateTimeLocal(date: Date | string | null | undefined): string {
-  if (!date) return "";
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return "";
-  
-  const z = d.getTimezoneOffset() * 60000;
-  const localISOTime = new Date(d.getTime() - z).toISOString().slice(0, 16);
-  return localISOTime;
 }

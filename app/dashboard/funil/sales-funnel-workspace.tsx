@@ -7,7 +7,6 @@ import {
   AlertCircle,
   ArrowRight,
   BriefcaseBusiness,
-  CalendarClock,
   CheckCircle2,
   GripVertical,
   Kanban,
@@ -18,9 +17,9 @@ import {
   RefreshCcw,
   Search,
   Sparkles,
-  Target,
   TrendingUp
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { Lead } from "@/data/mock";
 import { LeadDetailsPopup } from "@/components/dashboard/lead-details-popup";
 import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
@@ -56,7 +55,7 @@ const stageToneByValue: Record<LeadStageValue, StageTone> = {
   qualification: {
     accent: "bg-lagoon text-white",
     card: "border-lagoon/20 bg-lagoon/12",
-    description: "Diagnóstico e fit comercial",
+    description: "Diagnóstico comercial",
     pulse: "bg-lagoon"
   },
   proposal: {
@@ -111,10 +110,7 @@ export function SalesFunnelWorkspace({
   const totalLeads = visibleLeads.length;
   const openLeads = visibleLeads.filter((lead) => !["Venda", "Perdido"].includes(lead.stage)).length;
   const wonLeads = visibleLeads.filter((lead) => lead.stage === "Venda").length;
-  const highFitLeads = visibleLeads.filter((lead) => lead.score >= 80).length;
-  const averageScore = Math.round(
-    visibleLeads.reduce((total, lead) => total + lead.score, 0) / Math.max(totalLeads, 1)
-  );
+  const proposalLeads = visibleLeads.filter((lead) => lead.stage === "Proposta").length;
   const selectedLeadCanEdit = selectedLead?.canEdit ?? true;
   const selectedLeadCanDelete = selectedLead?.canDelete ?? leadState.canDeleteLeads;
   const isErrorState = leadState.mode === "error" || leadState.mode === "unauthenticated";
@@ -372,7 +368,7 @@ export function SalesFunnelWorkspace({
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
           <FunnelHeroMetric
             icon={BriefcaseBusiness}
             label="Leads no funil"
@@ -381,11 +377,11 @@ export function SalesFunnelWorkspace({
             value={String(totalLeads)}
           />
           <FunnelHeroMetric
-            icon={Target}
-            label="Score medio"
-            note={`${highFitLeads} acima de 80%`}
+            icon={Sparkles}
+            label="Propostas"
+            note="em simulacao"
             tone="teal"
-            value={`${averageScore}%`}
+            value={String(proposalLeads)}
           />
           <FunnelHeroMetric
             icon={TrendingUp}
@@ -393,13 +389,6 @@ export function SalesFunnelWorkspace({
             note="fechados no periodo"
             tone="dark"
             value={String(wonLeads)}
-          />
-          <FunnelHeroMetric
-            icon={CalendarClock}
-            label="Sem agenda"
-            note="pedem atencao"
-            tone="yellow"
-            value={String(countStaleLeads(visibleLeads))}
           />
         </div>
 
@@ -513,7 +502,7 @@ export function SalesFunnelWorkspace({
                         </div>
                       </div>
 
-                      <div className="flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
+                      <div className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
                         {column.cards.map((lead) => (
                           <FunnelLeadCard
                             active={draggedLeadId === lead.id}
@@ -618,9 +607,6 @@ function FunnelLeadCard({
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-lagoon/12 px-2.5 py-1 text-[11px] font-semibold text-lagoon">
-            {lead.score}% fit
-          </span>
           <span className="rounded-full bg-ink/6 px-2.5 py-1 text-[11px] font-semibold text-ink/64">
             {lead.source}
           </span>
@@ -671,7 +657,7 @@ function FunnelHeroMetric({
   tone,
   value
 }: {
-  icon: typeof Target;
+  icon: LucideIcon;
   label: string;
   note: string;
   tone: "blue" | "teal" | "dark" | "yellow";
@@ -832,10 +818,6 @@ function matchesFunnelSearch(lead: Lead, searchTerm: string) {
 function buildPhoneHref(phone: string) {
   const digits = phone.replace(/\D/g, "");
   return digits ? `tel:${digits}` : undefined;
-}
-
-function countStaleLeads(leads: Lead[]) {
-  return leads.filter((lead) => lead.nextContact === "A definir").length;
 }
 
 async function parseLeadStageUpdateResponse(response: Response): Promise<LeadStageUpdateResponse> {

@@ -3,7 +3,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Clock3,
   Copy,
   MoreHorizontal,
   Plus,
@@ -15,11 +14,8 @@ import {
   UsersRound
 } from "lucide-react";
 import { campaignDraft, kanbanColumns, leads } from "@/data/mock";
-import { buildAgendaEntries } from "@/lib/leads/agenda";
 
 export function MockDashboardPreview() {
-  const agendaEntries = buildAgendaEntries(leads);
-
   return (
     <div className="pointer-events-none relative w-full select-none overflow-hidden rounded-[34px] border border-[#1d2229] bg-white/24 shadow-[0_24px_70px_rgba(18,23,33,0.10)] backdrop-blur-3xl">
       <div className="relative flex h-12 items-center border-b border-white/10 bg-[#303438] px-4 text-white">
@@ -109,19 +105,21 @@ export function MockDashboardPreview() {
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {kanbanColumns.map((column) => (
                 <div className="min-w-0 rounded-[28px] bg-white/42 p-3" key={column.title}>
-                  {column.cards.map((lead) => (
-                    <div
-                      className={`${column.color} flex min-h-[132px] flex-col justify-between rounded-[24px] p-4 shadow-soft`}
-                      key={lead.id}
-                    >
-                      <div className="space-y-3">
-                        <p className="text-base font-semibold leading-tight">
-                          {lead.name}
-                        </p>
-                        <p className="text-sm opacity-85">{lead.owner}</p>
+                  <div className="flex flex-col gap-2">
+                    {column.cards.map((lead) => (
+                      <div
+                        className={`${column.color} flex min-h-[132px] flex-col justify-between rounded-[24px] p-4 shadow-soft`}
+                        key={lead.id}
+                      >
+                        <div className="space-y-3">
+                          <p className="text-base font-semibold leading-tight">
+                            {lead.name}
+                          </p>
+                          <p className="text-sm opacity-85">{lead.owner}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -131,37 +129,28 @@ export function MockDashboardPreview() {
             <section className="glass rounded-[30px] p-5">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-semibold">Agenda da equipe</h3>
+                  <h3 className="font-semibold">Leads recentes</h3>
                   <p className="mt-1 text-sm text-ink/54">
-                    Mini calendário com lembretes rápidos da operação.
+                    Contatos em atendimento na operação.
                   </p>
                 </div>
-                <Clock3 size={18} aria-hidden="true" />
+                <UsersRound size={18} aria-hidden="true" />
               </div>
               <div className="space-y-2">
-                {agendaEntries.length === 0 ? (
-                  <div className="rounded-[22px] bg-white/44 p-4 text-sm leading-6 text-ink/58">
-                    Nenhum compromisso ativo por enquanto.
-                  </div>
-                ) : (
-                  agendaEntries.map((entry) => (
-                    <div
-                      className="flex items-start justify-between gap-3 rounded-[22px] bg-white/44 p-3"
-                      key={entry.lead.id}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold">{entry.lead.name}</p>
-                        <p className="mt-1 text-sm text-ink/58">{entry.lead.owner}</p>
-                        <p className="mt-2 text-xs text-ink/52">{entry.detailLabel}</p>
-                      </div>
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getAgendaToneClass(entry.tone)}`}
-                      >
-                        {entry.statusLabel}
-                      </span>
+                {leads.slice(0, 3).map((lead) => (
+                  <div
+                    className="flex items-start justify-between gap-3 rounded-[22px] bg-white/44 p-3"
+                    key={lead.id}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{lead.name}</p>
+                      <p className="mt-1 text-sm text-ink/58">{lead.owner}</p>
                     </div>
-                  ))
-                )}
+                    <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-semibold text-ink/62">
+                      {lead.stage}
+                    </span>
+                  </div>
+                ))}
               </div>
             </section>
 
@@ -197,7 +186,6 @@ export function MockDashboardPreview() {
             <div className="mt-6 flex justify-center gap-2">
               {[
                 { label: "Mensagem", icon: Sparkles },
-                { label: "Agendar", icon: Clock3 },
                 { label: "Concluir", icon: CheckCircle2 }
               ].map((item) => (
                 <div
@@ -259,16 +247,4 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <span className="text-right font-medium">{value}</span>
     </div>
   );
-}
-
-function getAgendaToneClass(tone: "danger" | "warning" | "neutral") {
-  if (tone === "danger") {
-    return "bg-red-100 text-red-700";
-  }
-
-  if (tone === "warning") {
-    return "bg-signal/60 text-ink";
-  }
-
-  return "bg-white/70 text-ink/62";
 }

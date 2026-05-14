@@ -40,10 +40,7 @@ const leadExportColumns = [
   { header: "cidade", value: (lead: { city?: string | null }) => lead.city ?? "" },
   { header: "empresa", value: (lead: { companyName?: string | null }) => lead.companyName ?? "" },
   { header: "vidas", value: (lead: { livesCount?: number | null }) => lead.livesCount ?? "" },
-  { header: "score", value: (lead: { score: number }) => lead.score },
   { header: "recebido_em", value: (lead: { receivedAt?: string | null }) => lead.receivedAt ?? "" },
-  { header: "proximo_contato_em", value: (lead: { nextContactAt?: string | null }) => lead.nextContactAt ?? "" },
-  { header: "proximo_contato", value: (lead: { nextContact: string }) => lead.nextContact },
   { header: "criado_em", value: (lead: { createdAt: string }) => lead.createdAt },
   { header: "orcamento", value: (lead: { budget: string }) => lead.budget },
   { header: "interesse", value: (lead: { interest: string }) => lead.interest },
@@ -75,7 +72,6 @@ function buildFilename(filters: ReturnType<typeof parseLeadUrlFilters>, sellerPr
   if (filters.stage !== "all") parts.push(`etapa-${slugify(filters.stage)}`);
   if (filters.source !== "all") parts.push(`origem-${slugify(filters.source)}`);
   if (filters.period !== "all") parts.push(`periodo-${filters.period}`);
-  if (filters.score !== "all") parts.push(`score-${slugify(filters.score)}`);
   if (filters.city) parts.push(`cidade-${slugify(filters.city)}`);
   if (filters.search) parts.push(`busca-${slugify(filters.search)}`);
   if (sellerProfileId) parts.push(`seller-${slugify(sellerProfileId)}`);

@@ -24,14 +24,6 @@ export const leadSourceFilterOptions = [
   { value: "API", label: "API" }
 ] as const;
 
-export const leadScoreFilterOptions = [
-  { value: "all", label: "Qualquer score" },
-  { value: "80+", label: "80+" },
-  { value: "60-79", label: "60-79" },
-  { value: "40-59", label: "40-59" },
-  { value: "0-39", label: "0-39" }
-] as const;
-
 export const leadPeriodFilterOptions = [
   { value: "all", label: "Qualquer periodo" },
   { value: "7d", label: "Ultimos 7 dias" },
@@ -42,14 +34,12 @@ export const leadPeriodFilterOptions = [
 
 export type LeadStageFilterValue = (typeof leadStageFilterOptions)[number]["value"];
 export type LeadSourceFilterValue = (typeof leadSourceFilterOptions)[number]["value"];
-export type LeadScoreFilterValue = (typeof leadScoreFilterOptions)[number]["value"];
 export type LeadPeriodFilterValue = (typeof leadPeriodFilterOptions)[number]["value"];
 
 export type LeadUrlFilters = {
   stage: LeadStageFilterValue;
   source: LeadSourceFilterValue;
   city: string;
-  score: LeadScoreFilterValue;
   period: LeadPeriodFilterValue;
   search: string;
 };
@@ -58,14 +48,12 @@ export const defaultLeadUrlFilters: LeadUrlFilters = {
   stage: "all",
   source: "all",
   city: "",
-  score: "all",
   period: "all",
   search: ""
 };
 
 const stageValues = new Set<string>(leadStageFilterOptions.map((option) => option.value));
 const sourceValues = new Set<string>(leadSourceFilterOptions.map((option) => option.value));
-const scoreValues = new Set<string>(leadScoreFilterOptions.map((option) => option.value));
 const periodValues = new Set<string>(leadPeriodFilterOptions.map((option) => option.value));
 
 export function parseLeadUrlFilters(input: LeadSearchParamsInput): LeadUrlFilters {
@@ -73,7 +61,6 @@ export function parseLeadUrlFilters(input: LeadSearchParamsInput): LeadUrlFilter
     stage: parseFilterValue(input, "stage", stageValues, defaultLeadUrlFilters.stage),
     source: parseFilterValue(input, "source", sourceValues, defaultLeadUrlFilters.source),
     city: normalizeFilterText(readSearchParam(input, "city")),
-    score: parseFilterValue(input, "score", scoreValues, defaultLeadUrlFilters.score),
     period: parseFilterValue(input, "period", periodValues, defaultLeadUrlFilters.period),
     search: normalizeLeadSearchTerm(readSearchParam(input, "search"))
   };
@@ -84,7 +71,6 @@ export function hasActiveLeadUrlFilters(filters: LeadUrlFilters) {
     filters.stage !== defaultLeadUrlFilters.stage ||
     filters.source !== defaultLeadUrlFilters.source ||
     filters.city.trim().length > 0 ||
-    filters.score !== defaultLeadUrlFilters.score ||
     filters.period !== defaultLeadUrlFilters.period ||
     filters.search.trim().length > 0
   );
@@ -100,10 +86,6 @@ export function applyLeadUrlFilters(lead: Lead, filters: LeadUrlFilters) {
   }
 
   if (filters.city && !lead.city?.toLowerCase().includes(filters.city.toLowerCase())) {
-    return false;
-  }
-
-  if (!matchesLeadScoreBand(lead.score, filters.score)) {
     return false;
   }
 
@@ -138,21 +120,6 @@ export function getSupabaseStageValue(value: LeadStageFilterValue) {
 
 export function getSupabaseSourceValue(value: LeadSourceFilterValue) {
   return value === "all" ? null : toRawSourceValue(value);
-}
-
-export function getLeadScoreRange(value: LeadScoreFilterValue) {
-  switch (value) {
-    case "80+":
-      return { min: 80, max: 100 };
-    case "60-79":
-      return { min: 60, max: 79 };
-    case "40-59":
-      return { min: 40, max: 59 };
-    case "0-39":
-      return { min: 0, max: 39 };
-    default:
-      return null;
-  }
 }
 
 export function getLeadPeriodStart(value: LeadPeriodFilterValue) {
@@ -227,16 +194,6 @@ function matchesLeadSearch(lead: Lead, searchTerm: string) {
   return normalizedSearchTerm
     .split(" ")
     .every((searchPart) => searchBase.includes(searchPart));
-}
-
-function matchesLeadScoreBand(score: number, value: LeadScoreFilterValue) {
-  const range = getLeadScoreRange(value);
-
-  if (!range) {
-    return true;
-  }
-
-  return score >= range.min && score <= range.max;
 }
 
 function matchesLeadPeriod(receivedAt: string | null | undefined, value: LeadPeriodFilterValue) {

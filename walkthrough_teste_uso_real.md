@@ -17,7 +17,6 @@ Durante o dia de uso, execute as seguintes ações no sistema:
 
 ### 3. Campanhas e Planejamento
 - [ ] **Criar Campanha**: Acesse `/dashboard/campanhas` e crie uma nova campanha de teste (ex: "Prospecção MEI Maio").
-- [ ] **Registrar Próximo Contato**: Em um lead, defina uma data e hora para o próximo contato (`next_contact_at`). Verifique se ele aparece corretamente na agenda ou lista.
 
 ### 4. Fluxo de Venda
 - [ ] **Mudar Status**: Mova leads entre etapas (ex: de "Novo" para "Em Atendimento" ou "Proposta Enviada").
@@ -40,7 +39,6 @@ Ao final do dia, eu (Antigravity) executarei os seguintes comandos via MCP Supab
 
 1.  `supabase_select` na tabela `leads` filtrando pela data de hoje.
 2.  `supabase_select` na tabela `campaigns` para verificar as novas campanhas.
-3.  `supabase_select` na tabela `lead_follow_up_events` ou `leads` para validar o campo `next_contact_at`.
 
 > [!IMPORTANT]
 > Eu não exporei dados pessoais (nomes completos, telefones reais, emails reais) nos meus resumos de validação. Apenas confirmarei a contagem e integridade dos registros.

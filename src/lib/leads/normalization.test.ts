@@ -5,7 +5,6 @@ import {
   normalizeLeadSource,
   normalizeLeadSourceOrNull,
   normalizeLeadStage,
-  normalizeScore,
   stringOrNull
 } from './normalization';
 
@@ -92,28 +91,6 @@ describe('normalizeLeadStage', () => {
   it('retorna o estágio exato para estágios permitidos', () => {
     expect(normalizeLeadStage('qualification')).toBe('qualification');
     expect(normalizeLeadStage('won')).toBe('won');
-  });
-});
-
-describe('normalizeScore', () => {
-  it('retorna 50 por padrão para valores não numéricos', () => {
-    expect(normalizeScore('abc')).toBe(50);
-    expect(normalizeScore(undefined)).toBe(50);
-    expect(normalizeScore(NaN)).toBe(50);
-  });
-
-  it('retorna 0 para null devido a conversão do JavaScript', () => {
-    expect(normalizeScore(null)).toBe(0);
-  });
-
-  it('limita o score entre 0 e 100', () => {
-    expect(normalizeScore(150)).toBe(100);
-    expect(normalizeScore(-10)).toBe(0);
-  });
-
-  it('arredonda valores decimais e extrai número de strings válidas', () => {
-    expect(normalizeScore(85.6)).toBe(86);
-    expect(normalizeScore('45.4')).toBe(45);
   });
 });
 

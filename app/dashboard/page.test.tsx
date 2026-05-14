@@ -8,6 +8,7 @@ import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repositor
 import { getWhatsAppMessagesCountForCurrentUser } from "@/lib/whatsapp/repository.server";
 import { getOnboardingStateForCurrentUser } from "@/lib/onboarding/repository.server";
 import { getCreativeRequestsCountForCurrentUser } from "@/lib/creative-requests/repository.server";
+import { getDashboardRemindersForCurrentUser } from "@/lib/dashboard-reminders/repository.server";
 
 // Mocks
 vi.mock("server-only", () => ({}));
@@ -40,11 +41,16 @@ vi.mock("@/lib/creative-requests/repository.server", () => ({
   getCreativeRequestsCountForCurrentUser: vi.fn()
 }));
 
+vi.mock("@/lib/dashboard-reminders/repository.server", () => ({
+  getDashboardRemindersForCurrentUser: vi.fn()
+}));
+
 vi.mock("./dashboard-home", () => ({
   DashboardHome: (props: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
     <div data-testid="dashboard-home">
       <span>Campaigns: {props.campaignsCount}</span>
       <span>Leads: {props.leads.length}</span>
+      <span>Reminders: {props.dashboardReminders.length}</span>
     </div>
   )
 }));
@@ -75,6 +81,10 @@ describe('Dashboard Page (/dashboard)', () => {
     vi.mocked(getWhatsAppMessagesCountForCurrentUser).mockResolvedValue(0);
     vi.mocked(getOnboardingStateForCurrentUser).mockResolvedValue(null);
     vi.mocked(getCreativeRequestsCountForCurrentUser).mockResolvedValue(0);
+    vi.mocked(getDashboardRemindersForCurrentUser).mockResolvedValue({
+      reminders: [{ id: "reminder-1" }],
+      mode: "supabase"
+    } as never);
 
     const Page = await DashboardPage();
     render(Page);
@@ -82,5 +92,6 @@ describe('Dashboard Page (/dashboard)', () => {
     expect(screen.getByTestId('dashboard-home')).toBeInTheDocument();
     expect(screen.getByText(/Campaigns: 3/i)).toBeInTheDocument();
     expect(screen.getByText(/Leads: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reminders: 1/i)).toBeInTheDocument();
   });
 });

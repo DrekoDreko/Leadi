@@ -53,6 +53,7 @@ As migrations devem ser executadas em ordem crescente pelo prefixo (data). O Sup
 27. `202605070004_invite_acceptance_fix.sql`
 28. `20260507160221_lead_follow_up_events.sql`
 29. `202605130004_whatsapp_delivery.sql`
+30. `202605140001_remove_lead_score_agenda.sql`
 
 *Caso novas migrations sejam criadas, basta inseri-las na pasta `supabase/migrations/` com o prefixo apropriado `YYYYMMDDHHMMSS_name.sql`.*
 

@@ -18,8 +18,6 @@ describe("Leads export API - /api/leads/export", () => {
         name: "Lead Exportado",
         owner: "Equipe",
         stage: "Novo lead",
-        nextContact: "A definir",
-        score: 87,
         source: "Meta Lead Form",
         phone: "(11) 99999-0000",
         email: "lead@exemplo.com",
@@ -31,8 +29,7 @@ describe("Leads export API - /api/leads/export", () => {
         interest: "Plano empresarial",
         lastInteraction: "Contato inicial.",
         notes: "Observacao",
-        receivedAt: "2026-05-01T10:00:00.000Z",
-        nextContactAt: "2026-05-02T10:00:00.000Z"
+        receivedAt: "2026-05-01T10:00:00.000Z"
       }
     ] as never);
 
@@ -46,6 +43,8 @@ describe("Leads export API - /api/leads/export", () => {
     expect(response.headers.get("content-type")).toContain("text/csv");
     expect(response.headers.get("content-disposition")).toContain("attachment");
     expect(csv).toContain("Lead Exportado");
+    expect(csv).not.toContain("score");
+    expect(csv).not.toContain("proximo_contato");
     expect(getLeadExportRowsForCurrentUser).toHaveBeenCalledWith(
       expect.objectContaining({
         stage: "Novo lead",

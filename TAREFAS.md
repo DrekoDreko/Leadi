@@ -492,42 +492,6 @@ Criterios de aceite:
 - Feedback vira backlog claro e acionavel.
 ```
 
-## Fase 11 - Agenda real e follow-up comercial
-
-Nota operacional 2026-05-06:
-- A home do dashboard ainda renderiza a agenda por meio de `scheduledTasks` mockado em `src/data/mock.ts`.
-- O produto ja possui base parcial para agenda dentro de leads: `next_contact_at` existe no fluxo de criacao/edicao e aparece em metricas e estados de UI.
-- A estrategia recomendada e evoluir em camadas: primeiro trocar o card mockado por dados reais, depois criar visao dedicada de agenda e, por ultimo, adicionar historico de conclusao/reagendamento.
-
-
-### F11.3 - Melhorar cadastro e edicao de proximo contato
-
-- [x] **Antigravity**
-
-```txt
-Melhore a experiencia de cadastrar e editar proximo contato dos leads.
-
-Contexto:
-- O campo `next_contact_at` ja existe, mas a agenda real depende de um fluxo mais claro e confiavel para o time comercial.
-
-Objetivo:
-- Tornar o agendamento de follow-up facil durante criacao e edicao do lead.
-
-Requisitos:
-- Revisar UX dos campos atuais de proximo contato em criacao e edicao.
-- Destacar melhor quando um lead esta sem agenda ou com follow-up atrasado.
-- Permitir reagendar rapidamente sem perder o contexto do lead.
-- Validar mensagens de erro e formatos de data/hora.
-- Evitar regressao no CRUD atual de leads.
-- Validar pelo MCP Supabase a persistencia correta de `next_contact_at` apos criar, editar e limpar um agendamento de teste.
-
-Criterios de aceite:
-- Usuario consegue agendar ou reagendar follow-up com menos friccao.
-- Leads sem agenda e atrasados ficam visiveis.
-- npm run lint passa.
-```
-
-
 
 ## Backlog futuro
 
@@ -605,31 +569,6 @@ Requisitos:
 Criterios de aceite:
 - Arquitetura suporta trocar provedor.
 - Envio real so acontece com credenciais configuradas.
-```
-
-### B6 - Scoring automatico de leads
-
-- [x] **Antigravity**
-
-```txt
-Crie scoring automatico de leads.
-
-Contexto:
-- Leads podem ser priorizados por perfil e intencao.
-
-Objetivo:
-- Calcular score com base em campos do lead e interacoes.
-
-Requisitos:
-- Definir regra inicial local e explicavel.
-- Atualizar score ao criar/editar lead.
-- Mostrar score na UI e permitir filtro.
-- Evitar depender de IA para a primeira versao.
-- Conferir pelo MCP Supabase score persistido/atualizado em leads de teste.
-
-Criterios de aceite:
-- Score e calculado de forma previsivel.
-- Usuario entende por que lead tem score alto.
 ```
 
 ### B7 - Relatorios de ROI por campanha, origem e vendedor

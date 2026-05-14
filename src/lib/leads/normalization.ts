@@ -90,16 +90,6 @@ export function normalizeLeadStage(value: unknown): LeadStage {
     : "new";
 }
 
-export function normalizeScore(value: unknown) {
-  const score = typeof value === "number" ? value : Number(value);
-
-  if (!Number.isFinite(score)) {
-    return 50;
-  }
-
-  return Math.min(100, Math.max(0, Math.round(score)));
-}
-
 export function stringOrNull(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }

@@ -24,7 +24,6 @@ export type LeadSource = "manual" | "csv_import" | "meta_lead_ads" | "make_zapie
 export type MetaConnectionStatus = "active" | "inactive" | "error" | "revoked";
 export type LeadWebhookEventStatus = "processed" | "failed";
 export type LeadStage = "new" | "qualification" | "proposal" | "negotiation" | "won" | "lost";
-export type LeadFollowUpEventType = "completed" | "rescheduled" | "cancelled" | "not_completed";
 export type PlanStatus = "active" | "inactive" | "archived";
 export type BillingProviderGateway = "asaas" | "mercado_pago" | "stripe";
 export type BillingGateway = "internal" | BillingProviderGateway | "manual";
@@ -272,6 +271,39 @@ export type Database = {
           priority?: CreativeRequestPriority;
           due_at?: string | null;
           files?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      dashboard_reminders: {
+        Row: {
+          id: string;
+          organization_id: string;
+          created_by_profile_id: string;
+          reminder_date: string;
+          remind_at: string;
+          message: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          created_by_profile_id: string;
+          reminder_date: string;
+          remind_at: string;
+          message: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          created_by_profile_id?: string;
+          reminder_date?: string;
+          remind_at?: string;
+          message?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -1026,8 +1058,6 @@ export type Database = {
           lives_count: number | null;
           stage: LeadStage;
           source: LeadSource;
-          score: number;
-          next_contact_at: string | null;
           budget: string | null;
           interest: string | null;
           last_interaction: string | null;
@@ -1061,8 +1091,6 @@ export type Database = {
           lives_count?: number | null;
           stage?: LeadStage;
           source?: LeadSource;
-          score?: number;
-          next_contact_at?: string | null;
           budget?: string | null;
           interest?: string | null;
           last_interaction?: string | null;
@@ -1096,8 +1124,6 @@ export type Database = {
           lives_count?: number | null;
           stage?: LeadStage;
           source?: LeadSource;
-          score?: number;
-          next_contact_at?: string | null;
           budget?: string | null;
           interest?: string | null;
           last_interaction?: string | null;
@@ -1151,51 +1177,6 @@ export type Database = {
           author_name?: string;
           author_email?: string;
           body?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      lead_follow_up_events: {
-        Row: {
-          id: string;
-          organization_id: string;
-          lead_id: string;
-          author_profile_id: string;
-          author_name: string;
-          author_email: string;
-          event_type: LeadFollowUpEventType;
-          previous_next_contact_at: string | null;
-          next_contact_at: string | null;
-          note: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          lead_id: string;
-          author_profile_id: string;
-          author_name: string;
-          author_email: string;
-          event_type: LeadFollowUpEventType;
-          previous_next_contact_at?: string | null;
-          next_contact_at?: string | null;
-          note?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          organization_id?: string;
-          lead_id?: string;
-          author_profile_id?: string;
-          author_name?: string;
-          author_email?: string;
-          event_type?: LeadFollowUpEventType;
-          previous_next_contact_at?: string | null;
-          next_contact_at?: string | null;
-          note?: string | null;
           created_at?: string;
           updated_at?: string;
         };

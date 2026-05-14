@@ -222,10 +222,9 @@ export function WhatsAppWorkspace({
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Metric label="Conversas" value={metrics.conversations} note={metrics.conversationsNote} tone="blue" />
         <Metric label="Respostas" value={metrics.responses} note={metrics.responsesNote} tone="teal" />
-        <Metric label="Agendados" value={metrics.scheduled} note={metrics.scheduledNote} tone="yellow" />
         <Metric label="Aguardando" value={metrics.pending} note={metrics.pendingNote} tone="dark" />
       </div>
 
@@ -268,9 +267,8 @@ export function WhatsAppWorkspace({
                     <h3 className="font-semibold">{lead.name}</h3>
                     <p className="mt-1 text-sm text-ink/56">{lead.phone}</p>
                     <p className="mt-1 text-sm text-ink/56">{lead.email}</p>
-                    <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/62 px-3 py-1.5 text-xs font-semibold">
-                      <Clock3 size={15} aria-hidden="true" />
-                      {lead.nextContact}
+                    <span className="mt-4 inline-flex rounded-full bg-white/62 px-3 py-1.5 text-xs font-semibold">
+                      {lead.stage}
                     </span>
                   </button>
                 );
@@ -531,18 +529,15 @@ export function WhatsAppWorkspace({
 function getWhatsAppMetrics(leads: Lead[]) {
   const total = leads.length;
   const responses = leads.filter((lead) => lead.lastInteraction.trim().length > 0).length;
-  const scheduled = leads.filter((lead) => lead.nextContactAt).length;
-  const pending = Math.max(total - scheduled, 0);
+  const pending = leads.filter((lead) => ["Novo lead", "Qualificação"].includes(lead.stage)).length;
 
   return {
     conversations: String(total),
     conversationsNote: total > 0 ? `${total} leads no CRM` : "aguardando leads reais",
     responses: String(responses),
     responsesNote: total > 0 ? `${Math.round((responses / total) * 100)}% com retorno` : "sem base ainda",
-    scheduled: String(scheduled),
-    scheduledNote: scheduled > 0 ? "agenda ativa" : "sem agendamentos",
     pending: String(pending),
-    pendingNote: pending > 0 ? "follow-up pendente" : "sem pendências"
+    pendingNote: pending > 0 ? "em abordagem" : "sem pendências"
   };
 }
 

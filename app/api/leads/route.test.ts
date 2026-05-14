@@ -37,7 +37,6 @@ describe('Leads API - /api/leads', () => {
         mode: 'supabase',
         canDeleteLeads: true,
         canCreateMetaAdsLeads: true,
-        agendaMetrics: {},
         pagination: { total: 0, pages: 0, current: 1 }
       };
 
