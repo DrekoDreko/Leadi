@@ -130,6 +130,9 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
                   <input
                     className="liquid-input"
                     disabled={!isSignUp}
+                    autoComplete="name"
+                    autoCapitalize="words"
+                    autoCorrect="off"
                     name="fullName"
                     placeholder="Seu nome"
                     required={isSignUp}
@@ -149,10 +152,14 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
                   />
                   <input
                     className="liquid-input pl-11"
+                    autoComplete={isSignUp ? "email" : "username"}
+                    autoCapitalize="none"
+                    autoCorrect="off"
                     name="email"
                     placeholder="voce@corretora.com.br"
                     required
                     type="email"
+                    spellCheck={false}
                   />
                 </div>
               </label>
@@ -162,11 +169,15 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
                 </span>
                 <input
                   className="liquid-input"
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
+                  autoCapitalize="none"
+                  autoCorrect="off"
                   minLength={6}
                   name="password"
                   placeholder="••••••••"
                   required
                   type="password"
+                  spellCheck={false}
                 />
               </label>
               <button
