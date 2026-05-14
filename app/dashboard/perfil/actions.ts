@@ -25,12 +25,51 @@ export async function updateBrokerageNameAction(formData: FormData) {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.rpc("update_brokerage_name", {
+  const { error: rpcError } = await supabase.rpc("update_brokerage_name", {
     brokerage_name: brokerageName
   });
 
-  if (error) {
-    redirect(`/dashboard/perfil?brokerage=${getBrokerageErrorCode(error)}`);
+  // If the RPC exists and failed for other reasons, redirect with the error
+  if (rpcError && rpcError.code !== "PGRST202") {
+    redirect(`/dashboard/perfil?brokerage=${getBrokerageErrorCode(rpcError)}`);
+  }
+
+  // Fallback: If RPC is missing (PGRST202), try to update directly via client
+  if (rpcError && rpcError.code === "PGRST202") {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id, role")
+      .eq("auth_user_id", user.id)
+      .single();
+
+    if (!profile) redirect("/dashboard/perfil?brokerage=failed");
+
+    const { data: organization } = await supabase
+      .from("organizations")
+      .select("type")
+      .eq("id", profile.organization_id)
+      .single();
+
+    if (!organization) redirect("/dashboard/perfil?brokerage=failed");
+
+    const role = normalizeWorkspaceRole(profile.role);
+    const canEdit = role === "owner" || role === "admin" || organization.type === "solo";
+
+    if (!canEdit) {
+      redirect("/dashboard/perfil?brokerage=permission");
+    }
+
+    const { error: updateError } = await supabase
+      .from("organizations")
+      .update({ name: brokerageName })
+      .eq("id", profile.organization_id);
+
+    if (updateError) {
+      redirect("/dashboard/perfil?brokerage=failed");
+    }
   }
 
   revalidatePath("/dashboard");
