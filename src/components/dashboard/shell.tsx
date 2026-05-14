@@ -7,6 +7,7 @@ import { SubscriptionAccessBanner } from "@/components/billing/subscription-acce
 import { BrandMark } from "@/components/brand-mark";
 import { getDashboardNavItems } from "@/lib/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { SubscriptionNotice } from "@/lib/billing/subscription-limits.server";
 import type { DashboardNavVariant } from "@/lib/workspaces/context";
 
@@ -27,7 +28,6 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
   const primaryNavItems = getDashboardNavItems(navVariant);
   const currentPath = pathname ?? "";
   const isFunnelPage = currentPath === "/dashboard/funil";
@@ -47,6 +47,12 @@ export function DashboardShell({
   const creationActive = isActive(creationHref);
 
   const handleLogout = async () => {
+    if (preview || !isSupabaseConfigured()) {
+      router.push("/login");
+      return;
+    }
+
+    const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
     router.push("/login");
   };
