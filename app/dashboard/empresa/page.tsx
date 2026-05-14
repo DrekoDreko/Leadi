@@ -99,7 +99,7 @@ export default async function EmpresaPage({
               <div className="mt-5 flex flex-wrap gap-2">
                 {connectedAccounts.canManageConnections ? (
                   <>
-                    <Link
+                    <a
                       className={`inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white ${
                         connectedAccounts.metaConnection ? "bg-cobalt" : "bg-ink"
                       }`}
@@ -107,7 +107,7 @@ export default async function EmpresaPage({
                     >
                       {connectedAccounts.metaConnection ? "Reconectar Meta" : "Conectar Meta"}
                       <ArrowUpRight size={18} aria-hidden="true" />
-                    </Link>
+                    </a>
                     <form action="/api/integrations/meta/sync" method="post">
                       <input name="returnTo" type="hidden" value={COMPANY_RETURN_TO} />
                       <button
