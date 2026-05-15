@@ -232,7 +232,10 @@ export function WhatsAppWorkspace({
         <div className="rounded-[26px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
           Você não possui créditos de IA suficientes para executar esta ação. Adicione créditos
           ou atualize seu plano em{" "}
-          <Link className="font-semibold text-cobalt underline underline-offset-4" href="/dashboard/creditos">
+          <Link
+            className="font-semibold text-cobalt underline underline-offset-4"
+            href="/dashboard/perfil/creditos"
+          >
             Créditos de IA
           </Link>{" "}
           para continuar gerando mensagens com IA.

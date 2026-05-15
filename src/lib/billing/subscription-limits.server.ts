@@ -69,7 +69,7 @@ type OrganizationBillingState = {
 };
 
 const VALID_SUBSCRIPTION_STATUSES = new Set<SubscriptionRow["status"]>(["trialing", "active"]);
-const DEFAULT_ACTION_HREF = "/dashboard/creditos";
+const DEFAULT_ACTION_HREF = "/dashboard/perfil/creditos";
 
 const DEFAULT_PLAN_LIMITS: Record<
   string,

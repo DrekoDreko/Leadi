@@ -74,6 +74,9 @@ export async function updateBrokerageNameAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/perfil");
+  revalidatePath("/dashboard/perfil/meta");
+  revalidatePath("/dashboard/perfil/empresa");
+  revalidatePath("/dashboard/perfil/creditos");
   revalidatePath("/dashboard/integracoes/webhook-leads");
   revalidatePath("/dashboard/leads");
   revalidatePath("/dashboard/criacoes/campanhas");

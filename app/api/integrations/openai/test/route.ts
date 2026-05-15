@@ -21,7 +21,7 @@ async function getReturnTo(request: Request) {
     return returnTo;
   }
 
-  return "/dashboard/perfil?section=empresa";
+  return "/dashboard/perfil?openai=coming_soon";
 }
 
 function redirectBack(url: URL, returnTo: string, query: string) {

@@ -442,7 +442,7 @@ export function CampaignGenerator({
           ou atualize seu plano em{" "}
           <Link
             className="font-semibold text-cobalt underline underline-offset-4"
-            href="/dashboard/creditos"
+            href="/dashboard/perfil/creditos"
           >
             Créditos de IA
           </Link>{" "}
@@ -647,7 +647,7 @@ export function CampaignGenerator({
                     Conecte sua conta Meta em{" "}
                     <Link
                       className="font-semibold text-cobalt underline underline-offset-4"
-                      href="/dashboard/perfil?section=empresa"
+                      href="/dashboard/perfil/meta"
                     >
                       Perfil
                     </Link>{" "}
@@ -949,7 +949,7 @@ export function CampaignGenerator({
               {!metaConnection ? (
                 <Link
                   className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white"
-                  href="/dashboard/perfil?section=empresa"
+                  href="/dashboard/perfil/meta"
                 >
                   Conectar Meta
                   <ArrowUpRight size={16} aria-hidden="true" />

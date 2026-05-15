@@ -30,7 +30,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("Perfil Page (/dashboard/perfil)", () => {
-  it("renderiza os cards de perfil, corretora, créditos e operação sem webhook", async () => {
+  it("renderiza a visão resumida do perfil e os cards de gerenciamento", async () => {
     vi.mocked(requireCompletedProfile).mockResolvedValue({
       mode: "supabase",
       workspace: { id: "org-1" },
@@ -64,17 +64,20 @@ describe("Perfil Page (/dashboard/perfil)", () => {
 
     expect(screen.getByText("Perfil")).toBeInTheDocument();
     expect(screen.getByText("Configuracoes")).toBeInTheDocument();
+    expect(screen.getByText("Usuario")).toBeInTheDocument();
+    expect(screen.getByText("Empresa")).toBeInTheDocument();
+    expect(screen.getByText("Meta")).toBeInTheDocument();
+    expect(screen.getAllByText("Créditos de IA").length).toBeGreaterThan(0);
     expect(screen.getByText("Nome usado com clientes")).toBeInTheDocument();
-    expect(screen.getAllByText("Créditos de IA").length).toBeGreaterThan(1);
-    expect(screen.getByText("Saldo de IA")).toBeInTheDocument();
-    expect(screen.getByText("Conta OpenAI própria")).toBeInTheDocument();
-    expect(screen.getByText(/^Em breve$/, { selector: "p" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Disponível em breve/i })).toBeDisabled();
-    expect(screen.getByText("Empresa e contas conectadas")).toBeInTheDocument();
-    expect(screen.getByText("Operacao da conta")).toBeInTheDocument();
-    expect(screen.getAllByText("Corretora Demo").length).toBeGreaterThan(1);
-    expect(screen.queryByText("Webhook de Leads")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Configurar integração/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Gerenciar conta")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Gerenciar créditos/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Gerenciar Meta/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Gerenciar empresa/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Em breve" })).toBeDisabled();
+    expect(screen.queryByText("Saldo de IA")).not.toBeInTheDocument();
+    expect(screen.queryByText("Conta OpenAI própria")).not.toBeInTheDocument();
+    expect(screen.queryByText("Empresa e contas conectadas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Operacao da conta")).not.toBeInTheDocument();
   });
 
   it("redireciona filtros antigos de webhookStatus para a nova tela tecnica", async () => {
@@ -136,10 +139,7 @@ describe("Perfil Page (/dashboard/perfil)", () => {
     const Page = await PerfilPage({ searchParams: Promise.resolve({ meta: "missing" }) });
     render(Page);
 
-    expect(screen.getByText("Integração Meta não configurada")).toBeInTheDocument();
-    expect(
-      screen.getByText(/META_APP_ID e META_APP_SECRET/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/META_APP_ID e META_APP_SECRET/i)).toBeInTheDocument();
     expect(
       screen.getByText(/o botão Conectar Meta não consegue iniciar o OAuth/i)
     ).toBeInTheDocument();

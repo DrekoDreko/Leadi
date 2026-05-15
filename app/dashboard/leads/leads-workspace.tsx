@@ -664,7 +664,7 @@ function MetaLeadImportModal({
             />
           ) : sourcesState && !sourcesState.hasConnection ? (
             <MetaImportState
-              actionHref="/dashboard/perfil?section=empresa"
+              actionHref="/dashboard/perfil/meta"
               actionLabel="Ir para integrações"
               icon={<Megaphone size={22} aria-hidden="true" />}
               title="Conecte sua conta Meta para importar leads."
@@ -672,7 +672,7 @@ function MetaLeadImportModal({
             />
           ) : sources.length === 0 ? (
             <MetaImportState
-              actionHref="/dashboard/perfil?section=empresa"
+              actionHref="/dashboard/perfil/meta"
               actionLabel="Sincronizar Meta"
               icon={<Inbox size={22} aria-hidden="true" />}
               title="Nenhuma campanha ou formulário de lead encontrado."
