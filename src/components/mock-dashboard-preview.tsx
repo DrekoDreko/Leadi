@@ -35,7 +35,7 @@ export function MockDashboardPreview() {
         </div>
 
         <div className="pointer-events-none absolute left-1/2 top-1/2 flex h-7 w-[clamp(220px,40vw,460px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#24292a] px-3 text-sm font-semibold text-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]">
-          <span className="truncate">LeadHealth</span>
+          <span className="truncate">Leadi</span>
           <div className="absolute right-3 hidden items-center gap-2 text-white/74 lg:flex">
             <RotateCw size={15} aria-hidden="true" />
           </div>

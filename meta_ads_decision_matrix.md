@@ -1,12 +1,12 @@
 # Matriz de Decisão: Evolução da Publicação Meta Ads
 
-Este documento define os critérios e o roteiro técnico para evoluir a funcionalidade de campanhas no LeadHealth, saindo de rascunhos locais para a publicação direta via Meta Marketing API.
+Este documento define os critérios e o roteiro técnico para evoluir a funcionalidade de campanhas no Leadi, saindo de rascunhos locais para a publicação direta via Meta Marketing API.
 
 ## 1. Comparativo de Estados de Publicação
 
 | Característica | Rascunho Local | Rascunho Enviado (Pausado) | Publicação Controlada |
 | :--- | :--- | :--- | :--- |
-| **Onde reside** | Apenas Banco LeadHealth | Meta Ads Manager | Meta Ads Manager |
+| **Onde reside** | Apenas Banco Leadi | Meta Ads Manager | Meta Ads Manager |
 | **Status na Meta** | Inexistente | `PAUSED` | `ACTIVE` / `SCHEDULED` |
 | **Interação Técnica** | Nenhuma (Offline) | Graph API (`POST`) | Graph API (`POST`) |
 | **App Review** | Não necessário | **Obrigatório** | **Obrigatório** |
@@ -17,7 +17,7 @@ Este documento define os critérios e o roteiro técnico para evoluir a funciona
 
 ## 2. Requisitos Técnicos e Permissões
 
-Para avançar além do rascunho local, o LeadHealth precisa cumprir as seguintes exigências da Meta:
+Para avançar além do rascunho local, o Leadi precisa cumprir as seguintes exigências da Meta:
 
 ### Permissões de API (Scope)
 - **`ads_management`**: Necessária para criar Campanhas, AdSets e Ads.
@@ -26,7 +26,7 @@ Para avançar além do rascunho local, o LeadHealth precisa cumprir as seguintes
 - **`leads_retrieval`**: Para capturar leads do formulário após a publicação.
 
 ### Processo Institucional
-1. **Verificação de Empresa (Business Verification)**: A organização LeadHealth deve comprovar existência legal no Facebook Business Suite.
+1. **Verificação de Empresa (Business Verification)**: A organização Leadi deve comprovar existência legal no Facebook Business Suite.
 2. **App Review**: Submissão de screencasts e justificativas de uso para cada permissão solicitada.
 3. **Termos de Política**: O app deve estar em conformidade com as Políticas de Publicidade da Meta (especialmente sensível para o setor de Saúde/Seguros).
 
@@ -58,7 +58,7 @@ Para avançar além do rascunho local, o LeadHealth precisa cumprir as seguintes
 ## 5. Roadmap de Evolução Proposto
 
 ### Fase 1: Rascunho Inteligente (Atual)
-- O LeadHealth gera o criativo (texto/imagem).
+- O Leadi gera o criativo (texto/imagem).
 - Salva no banco de dados local.
 - Fornece botão "Copiar Dados" ou link direto para o Gerenciador de Anúncios.
 

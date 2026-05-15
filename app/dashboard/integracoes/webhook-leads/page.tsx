@@ -35,7 +35,7 @@ export default async function WebhookLeadsPage({
       <PageHeading
         eyebrow="Integrações"
         title="Configuração do Webhook de Leads"
-        description="Use esta área para conectar ferramentas externas ao LeadHealth. Depois de configurado, todo lead enviado para esta URL será cadastrado automaticamente no CRM."
+        description="Use esta área para conectar ferramentas externas ao Leadi. Depois de configurado, todo lead enviado para esta URL será cadastrado automaticamente no CRM."
       >
         <Link
           className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white/78"

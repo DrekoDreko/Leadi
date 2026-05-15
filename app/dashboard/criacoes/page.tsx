@@ -61,7 +61,7 @@ export default function CriacoesPage() {
       <PageHeading
         eyebrow="Criar"
         title="Novas criacoes"
-        description="Este e o hub de criacao da LeadHealth: campanhas, validador, solicitacao de criativo e futuras rotinas da operacao."
+        description="Este e o hub de criacao do Leadi: campanhas, validador, solicitacao de criativo e futuras rotinas da operacao."
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white">
           <Plus size={18} aria-hidden="true" />

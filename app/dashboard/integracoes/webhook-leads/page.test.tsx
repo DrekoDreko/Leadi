@@ -7,7 +7,7 @@ import { listLeadWebhookLogsByOrganization } from "@/lib/leads/webhook-events.re
 vi.mock("server-only", () => ({}));
 
 vi.mock("next/headers", () => ({
-  headers: vi.fn(async () => new Headers([["host", "leadhealth.vercel.app"], ["x-forwarded-proto", "https"]]))
+  headers: vi.fn(async () => new Headers([["host", "leadi.example.com"], ["x-forwarded-proto", "https"]]))
 }));
 
 vi.mock("@/lib/workspaces/context", () => ({
@@ -49,7 +49,7 @@ describe("Webhook Leads Page (/dashboard/integracoes/webhook-leads)", () => {
       isAdmin: false,
       isOwner: true,
       displayName: "Lucas",
-      profile: { email: "lucas@leadhealth.com" },
+      profile: { email: "lucas@leadi.example" },
       profileSetupCompleted: true
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -73,7 +73,7 @@ describe("Webhook Leads Page (/dashboard/integracoes/webhook-leads)", () => {
 
     expect(screen.getByText("Configuração do Webhook de Leads")).toBeInTheDocument();
     expect(screen.getByTestId("setup-card")).toHaveTextContent(
-      "https://leadhealth.vercel.app/api/webhooks/leads"
+      "https://leadi.example.com/api/webhooks/leads"
     );
     expect(screen.getByTestId("setup-card")).toHaveTextContent("can-manage");
     expect(screen.getByTestId("logs-card")).toHaveTextContent("failed");

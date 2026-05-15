@@ -67,7 +67,7 @@ export function OpenAIComingSoonCard({
           <h3 className="mt-3 text-xl font-semibold">Conta OpenAI própria</h3>
           <p className="mt-2 text-sm leading-6 text-ink/62">
             Em breve você poderá conectar sua própria conta OpenAI para usar sua estrutura de IA
-            diretamente na LeadHealth. Por enquanto, as gerações usam os Créditos de IA da
+            diretamente no Leadi. Por enquanto, as gerações usam os Créditos de IA do
             plataforma.
           </p>
         </div>
@@ -76,7 +76,7 @@ export function OpenAIComingSoonCard({
 
       <div className="mt-5 rounded-[22px] bg-white/58 px-4 py-3 text-sm leading-6 text-ink/64">
         Recurso reservado para uma próxima etapa da plataforma. Hoje, o fluxo principal usa a
-        chave global da LeadHealth e o saldo interno de créditos.
+        chave global do Leadi e o saldo interno de créditos.
       </div>
 
       <button

@@ -2,6 +2,7 @@ import { getServerEnv } from "@/lib/env/server";
 import { getSiteUrl } from "@/lib/site/config";
 
 const DEFAULT_META_GRAPH_API_VERSION = "v22.0";
+const DEFAULT_META_BUSINESS_LOGIN_CONFIG_ID = "967205742685129";
 const DEFAULT_META_OAUTH_SCOPES = [
   "business_management",
   "leads_retrieval",
@@ -22,6 +23,10 @@ export function getMetaAppId() {
 
 export function getMetaAppSecret() {
   return getServerEnv("META_APP_SECRET");
+}
+
+export function getMetaBusinessLoginConfigId() {
+  return getServerEnv("META_BUSINESS_LOGIN_CONFIG_ID") || DEFAULT_META_BUSINESS_LOGIN_CONFIG_ID;
 }
 
 export function getMetaRedirectUri() {

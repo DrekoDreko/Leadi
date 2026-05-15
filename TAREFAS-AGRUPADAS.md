@@ -5,13 +5,13 @@ Arquivo gerado a partir de `TAREFAS.md` para visualizar as tarefas por tema reco
 ## Integracao Make/Zapier e webhooks
 
 - [x] **F5.7 - Criar logs de webhooks recebidos**
-- [x] **Eu:** criar cenario no Make ou Zapier conectando Meta Lead Ads ao webhook da LeadHealth.
+- [x] **Eu:** criar cenario no Make ou Zapier conectando Meta Lead Ads ao webhook do Leadi.
 - [x] **F5.8 - Testar recebimento de lead em tempo quase real**
 
 ## Meta Lead Ads oficial e marketing
 
 - [x] **Eu:** criar ou confirmar conta Meta for Developers.
-- [x] **Eu:** criar app da Meta para a LeadHealth.
+- [x] **Eu:** criar app da Meta para o Leadi.
 - [x] **Eu:** obter `META_APP_ID` e `META_APP_SECRET`.
 - [x] **Eu:** definir `META_VERIFY_TOKEN`.
 - [x] **F6.2 - Criar GET /api/meta/webhook para verificacao**
@@ -52,7 +52,7 @@ Arquivo gerado a partir de `TAREFAS.md` para visualizar as tarefas por tema reco
 ## Deploy, producao e URLs publicas
 
 - [ ] **Eu:** criar projeto na Vercel.
-- [ ] **Eu:** configurar dominio da LeadHealth.
+- [ ] **Eu:** configurar dominio do Leadi.
 - [ ] **Eu:** configurar variaveis de ambiente de producao.
 - [x] **F8.1 - Revisar URLs, redirects e callback de autenticacao**
 - [x] **F8.2 - Adicionar verificacao de ambiente para producao**
@@ -80,7 +80,7 @@ Arquivo gerado a partir de `TAREFAS.md` para visualizar as tarefas por tema reco
 
 ## Produto comercial, onboarding e beta
 
-- [ ] **Eu:** definir nome final, dominio, identidade e promessa principal da LeadHealth.
+- [ ] **Eu:** definir nome final, dominio, identidade e promessa principal do Leadi.
 - [ ] **Eu:** definir ICP: corretor solo, corretora pequena, equipe comercial ou agencia.
 - [ ] **Eu:** criar lista dos 10 primeiros usuarios beta.
 - [ ] **Eu:** definir oferta beta e preco de entrada.

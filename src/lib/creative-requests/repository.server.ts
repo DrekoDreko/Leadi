@@ -71,8 +71,8 @@ const mockCreativeRequestSeed: CreativeRequestItem[] = [
         id: "mock-comment-2",
         creativeRequestId: "mock-request-1",
         authorProfileId: "mock-admin-1",
-        authorName: "Suporte LeadHealth",
-        authorEmail: "suporte@leadhealth.demo",
+        authorName: "Suporte Leadi",
+        authorEmail: "suporte@leadi.example",
         body: "Recebido. O material ficará organizado como rascunho para revisão da sua equipe.",
         visibility: "workspace",
         createdAt: "2026-04-29T16:05:00.000Z",
@@ -99,8 +99,8 @@ const mockCreativeRequestSeed: CreativeRequestItem[] = [
         id: "mock-comment-3",
         creativeRequestId: "mock-request-2",
         authorProfileId: "mock-admin-2",
-        authorName: "Suporte LeadHealth",
-        authorEmail: "suporte@leadhealth.demo",
+        authorName: "Suporte Leadi",
+        authorEmail: "suporte@leadi.example",
         body: "Storyboard inicial registrado. Confirmem se o foco principal será faixa de investimento ou comparativo de cobertura.",
         visibility: "workspace",
         createdAt: "2026-04-29T12:10:00.000Z",
@@ -110,8 +110,8 @@ const mockCreativeRequestSeed: CreativeRequestItem[] = [
         id: "mock-comment-4",
         creativeRequestId: "mock-request-2",
         authorProfileId: "mock-admin-2",
-        authorName: "Suporte LeadHealth",
-        authorEmail: "suporte@leadhealth.demo",
+        authorName: "Suporte Leadi",
+        authorEmail: "suporte@leadi.example",
         body: "Manter a primeira versao como anotação interna até a revisão do roteiro final.",
         visibility: "ops_only",
         createdAt: "2026-04-29T12:40:00.000Z",
@@ -279,7 +279,7 @@ export async function createCreativeRequestCommentForCurrentUser(
 
   if (!isSupabaseConfigured()) {
     return addMockCreativeRequestComment(requestId, {
-      authorEmail: "demo@leadhealth.local",
+      authorEmail: "demo@leadi.local",
       authorName: "Equipe Demo",
       body,
       visibility: "workspace"
@@ -397,8 +397,8 @@ export async function createCreativeRequestCommentForAdmin(
 
   if (!isSupabaseConfigured()) {
     return addMockCreativeRequestComment(requestId, {
-      authorEmail: "operacao@leadhealth.local",
-      authorName: "Suporte LeadHealth",
+      authorEmail: "operacao@leadi.local",
+      authorName: "Suporte Leadi",
       body,
       visibility
     }, true);
@@ -750,7 +750,7 @@ function buildMockAdminCreativeRequests(): CreativeRequestAdminItem[] {
     requesterProfileId: `mock-profile-${index + 1}`,
     requesterName: ["Larissa Costa", "Marcos Lima", "Bianca Rocha"][index] ?? "Usuario Demo",
     requesterEmail:
-      ["larissa@atlas.demo", "marcos@prisma.demo", "bianca@hub.demo"][index] ?? "demo@leadhealth.local"
+      ["larissa@atlas.demo", "marcos@prisma.demo", "bianca@hub.demo"][index] ?? "demo@leadi.local"
   }));
 }
 

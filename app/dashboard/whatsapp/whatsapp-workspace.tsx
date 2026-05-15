@@ -642,10 +642,14 @@ function normalizeWhatsAppMessageBrand(
 ): WhatsAppMessage {
   return {
     ...message,
-    openingMessage: message.openingMessage.replaceAll("LeadHealth", brokerageName),
-    followUpMessage: message.followUpMessage.replaceAll("LeadHealth", brokerageName),
-    objectionReply: message.objectionReply.replaceAll("LeadHealth", brokerageName)
+    openingMessage: replacePlatformBrand(message.openingMessage, brokerageName),
+    followUpMessage: replacePlatformBrand(message.followUpMessage, brokerageName),
+    objectionReply: replacePlatformBrand(message.objectionReply, brokerageName)
   };
+}
+
+function replacePlatformBrand(value: string, brokerageName: string) {
+  return value.replaceAll("LeadHealth", brokerageName).replaceAll("Leadi", brokerageName);
 }
 
 function formatWhatsAppStage(stage: WhatsAppHistoryItem["stage"]) {

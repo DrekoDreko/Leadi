@@ -8,7 +8,7 @@ export function HeroSection() {
       <div className="section-shell">
         <div className="mx-auto max-w-4xl text-center">
           <p className="mb-5 inline-flex rounded-full bg-white/52 px-4 py-2 text-sm font-medium text-ink/70 shadow-soft backdrop-blur-xl">
-            CRM + IA para plano de saúde empresarial
+            CRM e automação para gestão de leads
           </p>
           <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight text-ink md:text-6xl lg:text-7xl">
             Leads do Meta organizados em um CRM feito para{" "}

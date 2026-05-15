@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
@@ -11,8 +10,10 @@ import {
   Unplug
 } from "lucide-react";
 import { AiCreditsPanel, OpenAIComingSoonCard } from "@/components/dashboard/ai-credits-panel";
+import { IntegrationNotice } from "@/components/dashboard/integration-notice";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
+import type { ConnectedAccountsState } from "@/lib/integrations/types";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getAiBalance } from "@/lib/ai/credits";
 import { updateBrokerageNameAction } from "./actions";
@@ -34,7 +35,9 @@ const integrationFeedbackMessages: Record<string, string> = {
   coming_soon: "A conta OpenAI própria está em breve. Hoje as gerações usam os Créditos de IA da plataforma.",
   success: "Sincronizacao concluida com sucesso.",
   partial: "Sincronizacao concluida com avisos.",
-  error: "Nao foi possivel concluir a atualizacao das contas conectadas."
+  error: "Nao foi possivel concluir a atualizacao das contas conectadas.",
+  missing:
+    "Este ambiente ainda não tem META_APP_ID e META_APP_SECRET. Sem essas variáveis, o botão Conectar Meta não consegue iniciar o OAuth."
 };
 
 export default async function PerfilPage({
@@ -77,6 +80,7 @@ export default async function PerfilPage({
   const isCompanySectionFocused = params?.section === "empresa";
   const highlightOpenAI = params?.highlight === "openai";
   const companyMessage = integrationFeedback ?? connectedAccounts.message ?? null;
+  const isMetaConfigurationMissing = params?.meta === "missing";
 
   return (
     <div className="space-y-4">
@@ -133,10 +137,14 @@ export default async function PerfilPage({
         </p>
       ) : null}
 
-      {companyMessage ? (
-        <p className="rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">
-          {companyMessage}
-        </p>
+      {isMetaConfigurationMissing && companyMessage ? (
+        <IntegrationNotice
+          message={companyMessage}
+          title="Integração Meta não configurada"
+          tone="warning"
+        />
+      ) : companyMessage ? (
+        <IntegrationNotice message={companyMessage} />
       ) : null}
 
       <section className="glass-strong rounded-[34px] p-6">
@@ -309,8 +317,167 @@ export default async function PerfilPage({
             </p>
           </article>
         </div>
+
+        <MetaConnectedAccountsSection connectedAccounts={connectedAccounts} />
       </section>
     </div>
+  );
+}
+
+function MetaConnectedAccountsSection({
+  connectedAccounts
+}: {
+  connectedAccounts: ConnectedAccountsState;
+}) {
+  const connection = connectedAccounts.metaConnection;
+  const connectedAssets = [
+    ...connectedAccounts.metaPages.map((page) => ({
+      id: page.id,
+      name: page.name,
+      type: "Página",
+      externalId: page.metaPageId,
+      status: formatMetaAssetStatus(page.status),
+      lastSyncedAt: page.lastSyncAt
+    })),
+    ...connectedAccounts.metaAdAccounts.map((account) => ({
+      id: account.id,
+      name: account.name,
+      type: "Conta de anúncio",
+      externalId: account.metaAdAccountId,
+      status: formatMetaAssetStatus(account.status),
+      lastSyncedAt: account.lastSyncAt
+    })),
+    ...connectedAccounts.metaLeadForms.map((form) => ({
+      id: form.id,
+      name: form.name,
+      type: "Formulário",
+      externalId: form.metaFormId,
+      status: formatMetaAssetStatus(form.status),
+      lastSyncedAt: form.lastSyncAt ?? form.lastLeadSyncAt
+    }))
+  ];
+
+  return (
+    <section className="mt-5 rounded-[30px] border border-white/50 bg-white/38 p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-sm font-medium text-cobalt">Contas Meta conectadas</p>
+          <h3 className="mt-2 text-2xl font-semibold">
+            {connection?.metaUserName ?? "Nenhuma conta Meta conectada"}
+          </h3>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/62">
+            Ativos disponíveis para páginas, formulários, contas de anúncio e importação manual
+            de leads históricos.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {connectedAccounts.canManageConnections ? (
+            <>
+              <form action="/api/integrations/meta/sync" method="post">
+                <input name="returnTo" type="hidden" value={PROFILE_COMPANY_SECTION_HREF} />
+                <button
+                  className="inline-flex items-center gap-2 rounded-full bg-white/68 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white"
+                  type="submit"
+                >
+                  <RefreshCw size={18} aria-hidden="true" />
+                  Sincronizar novamente
+                </button>
+              </form>
+              <a
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
+                href={`/api/integrations/meta/connect?returnTo=${encodeURIComponent(PROFILE_COMPANY_SECTION_HREF)}`}
+              >
+                Gerenciar conexão
+                <ArrowUpRight size={18} aria-hidden="true" />
+              </a>
+            </>
+          ) : (
+            <span className="rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink/62">
+              Apenas owner e admins podem gerenciar.
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <InfoTile label="Perfil Meta" value={connection?.metaUserName ?? "Não conectado"} />
+        <InfoTile label="ID do perfil" value={connection?.metaUserId ?? "Não informado"} />
+        <InfoTile
+          label="Status"
+          value={connection?.connectionStatusLabel ?? "Pendente"}
+        />
+        <InfoTile
+          label="Última sincronização"
+          value={formatDateTime(connection?.lastSyncAt)}
+        />
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <InfoTile label="Páginas conectadas" value={String(connectedAccounts.metaPages.length)} />
+        <InfoTile
+          label="Contas de anúncio"
+          value={String(connectedAccounts.metaAdAccounts.length)}
+        />
+        <InfoTile
+          label="Formulários de lead"
+          value={String(connectedAccounts.metaLeadForms.length)}
+        />
+      </div>
+
+      <div className="mt-5 rounded-[24px] bg-white/48 p-4">
+        <p className="text-sm font-semibold text-ink">Permissões concedidas</p>
+        {connection?.permissions.length ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {connection.permissions.map((permission) => (
+              <span
+                className="rounded-full bg-white/76 px-3 py-1.5 text-xs font-semibold text-ink/70"
+                key={permission}
+              >
+                {permission}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-ink/58">Permissões ainda não disponíveis.</p>
+        )}
+      </div>
+
+      <div className="mt-5 overflow-hidden rounded-[24px] border border-white/50 bg-white/30">
+        <div className="hidden grid-cols-[1.1fr_150px_180px_150px] gap-3 border-b border-ink/8 px-4 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
+          <span>Ativo</span>
+          <span>Tipo</span>
+          <span>ID externo</span>
+          <span>Status</span>
+        </div>
+
+        {connectedAssets.length ? (
+          connectedAssets.map((asset) => (
+            <div
+              className="grid gap-2 border-b border-ink/8 px-4 py-3 text-sm last:border-0 md:grid-cols-[1.1fr_150px_180px_150px] md:items-center"
+              key={`${asset.type}-${asset.id}`}
+            >
+              <div>
+                <p className="font-semibold text-ink">{asset.name}</p>
+                <p className="mt-1 text-xs text-ink/46">
+                  Sincronizado em {formatDateTime(asset.lastSyncedAt)}
+                </p>
+              </div>
+              <span className="text-ink/64">{asset.type}</span>
+              <span className="font-mono text-xs text-ink/58">{asset.externalId}</span>
+              <span className="rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
+                {asset.status}
+              </span>
+            </div>
+          ))
+        ) : (
+          <p className="px-4 py-5 text-sm leading-6 text-ink/62">
+            Nenhum ativo Meta sincronizado ainda. Use “Sincronizar novamente” depois de conectar
+            sua conta.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -341,4 +508,42 @@ function formatOpenAIStatus(status: string) {
     default:
       return "Pendente";
   }
+}
+
+function formatMetaAssetStatus(status: string) {
+  switch (status) {
+    case "connected":
+    case "active":
+      return "Conectado";
+    case "pending":
+      return "Pendente";
+    case "expired":
+      return "Expirado";
+    case "error":
+      return "Erro";
+    case "disconnected":
+    case "inactive":
+    case "revoked":
+      return "Desconectado";
+    default:
+      return "Pendente";
+  }
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "Não informado";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Não informado";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }

@@ -5,14 +5,14 @@ export const metadata = buildLegalMetadata({
   title: "Termos de Uso",
   pathname: "/terms",
   description:
-    "Termos publicos de uso da LeadHealth para operacao do CRM, integracoes, IA, captura de leads e recursos comerciais."
+    "Termos publicos de uso do Leadi para operacao do CRM, integracoes, IA, captura de leads e recursos comerciais."
 });
 
 const sections = [
   {
     title: "1. Objeto do servico",
     body: [
-      "A LeadHealth disponibiliza uma plataforma online para organizacao de leads, gestao comercial, criacao assistida de campanhas, operacao de equipe e integracoes com ferramentas de marketing, IA, automacao e pagamento.",
+      "O Leadi disponibiliza uma plataforma online para organizacao de leads, gestao comercial, criacao assistida de campanhas, operacao de equipe e integracoes com ferramentas de marketing, IA, automacao e pagamento.",
       "Os recursos disponiveis podem variar conforme o plano contratado, o ambiente tecnico configurado e a maturidade do produto. Funcionalidades em fase inicial podem sofrer ajustes para manutencao, seguranca e melhoria continua."
     ]
   },
@@ -26,14 +26,14 @@ const sections = [
   {
     title: "3. Uso aceitavel",
     body: [
-      "Nao e permitido utilizar a LeadHealth para violar leis, direitos de terceiros, politicas de plataformas integradas, obrigacoes contratuais ou regras de publicidade aplicaveis ao setor de saude e planos empresariais.",
+      "Nao e permitido utilizar o Leadi para violar leis, direitos de terceiros, politicas de plataformas integradas, obrigacoes contratuais ou regras de publicidade aplicaveis ao setor de saude e planos empresariais.",
       "O cliente nao deve tentar contornar limites tecnicos, acessar dados de outras organizacoes, explorar vulnerabilidades, automatizar abuso da plataforma ou utilizar conteudo gerado como se fosse garantia juridica, medica ou comercial."
     ]
   },
   {
     title: "4. Integracoes, IA e terceiros",
     body: [
-      "A LeadHealth pode depender de servicos de terceiros para autenticacao, banco, pagamentos, modelos de IA, mensageria e APIs externas. A disponibilidade dessas integracoes pode impactar partes da experiencia.",
+      "O Leadi pode depender de servicos de terceiros para autenticacao, banco, pagamentos, modelos de IA, mensageria e APIs externas. A disponibilidade dessas integracoes pode impactar partes da experiencia.",
       "Quando o cliente habilita uma integracao, ele declara ter permissao para conectar a origem de dados correspondente e reconhece que regras, limites e revisoes de terceiros, como Meta, podem influenciar o funcionamento da funcionalidade."
     ]
   },
@@ -41,7 +41,7 @@ const sections = [
     title: "5. Disponibilidade e limitacao",
     body: [
       "A plataforma e oferecida em base de esforco comercialmente razoavel. Podem ocorrer indisponibilidades, manutencoes, ajustes de layout, mudancas de fluxo e limitacoes temporarias, especialmente em ambientes de teste, homologacao ou rollout inicial.",
-      "Na extensao permitida pela legislacao aplicavel, a LeadHealth nao garante resultados comerciais especificos, aprovacao automatica por plataformas externas, conformidade juridica absoluta ou ausencia total de falhas."
+      "Na extensao permitida pela legislacao aplicavel, o Leadi nao garante resultados comerciais especificos, aprovacao automatica por plataformas externas, conformidade juridica absoluta ou ausencia total de falhas."
     ]
   },
   {
@@ -59,7 +59,7 @@ export default function TermsPage() {
       effectiveDate="05/05/2026"
       eyebrow="Termos"
       sections={[...sections]}
-      summary="Condicoes operacionais iniciais para uso da LeadHealth como CRM SaaS com IA, integracoes e captacao de leads."
+      summary="Condicoes operacionais iniciais para uso do Leadi como CRM SaaS com IA, integracoes e captacao de leads."
       title="Termos de Uso"
     />
   );

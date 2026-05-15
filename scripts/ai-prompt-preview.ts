@@ -16,7 +16,7 @@ function main() {
   const campaignPrompt = buildCampaignTextPrompt({
     audience: "Empresas de 20 a 99 vidas na regiao de Campinas",
     product: "Plano de saude empresarial",
-    brokerageName: "LeadHealth Consultoria em Beneficios",
+    brokerageName: "Leadi Consultoria em Beneficios",
     objective: "gerar pedidos de cotacao consultiva",
     offer: "Apoio para comparar rede, faixa de investimento e implantacao",
     region: "Campinas e regiao",
@@ -27,7 +27,7 @@ function main() {
 
   const whatsappPrompt = buildWhatsAppMessagePrompt({
     product: "Plano de saude empresarial",
-    brokerageName: "LeadHealth Beneficios",
+    brokerageName: "Leadi Beneficios",
     leadName: "Mariana",
     leadContext: "Pediu cotacao para empresa com operacao em Barueri e citou prioridade em rede e prazo.",
     stage: "qualification",
@@ -50,7 +50,7 @@ function main() {
     text: "Plano ideal para diabeticos com economia garantida e aprovacao sem burocracia."
   });
 
-  assert.match(leadHealthBaseInstructions, /LeadHealth/i);
+  assert.match(leadHealthBaseInstructions, /Leadi/i);
   assert.match(campaignPrompt, /quantidade de vidas/i);
   assert.match(campaignPrompt, /rede/i);
   assert.match(whatsappPrompt, /objecoes/i);
@@ -70,7 +70,7 @@ function main() {
   assert.equal(safeReview.riskLevel, "low");
 
   const fallback = buildFallbackWhatsAppMessage({
-    brokerageName: "LeadHealth Beneficios",
+    brokerageName: "Leadi Beneficios",
     stage: "proposal",
     tone: "consultivo",
     lead: {

@@ -24,6 +24,7 @@ export async function GET(request: Request) {
       returnTo
     });
     const authUrl = buildMetaOAuthAuthorizationUrl({ state, returnTo });
+    console.info("[meta-oauth] redirect url", authUrl.toString());
 
     return NextResponse.redirect(authUrl);
   } catch (error) {

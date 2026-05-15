@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    q: "O LeadHealth cria anúncios automaticamente?",
+    q: "O Leadi cria anúncios automaticamente?",
     a: "O objetivo é ajudar na criação, organização e acompanhamento de campanhas. A publicação ou automação depende das integrações disponíveis e das permissões da conta Meta."
   },
   {
@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     q: "O sistema garante vendas?",
-    a: "Não. O LeadHealth organiza a operação, melhora controle e velocidade de atendimento, mas resultados comerciais dependem da oferta, equipe, campanha e processo."
+    a: "Não. O Leadi organiza a operação, melhora controle e velocidade de atendimento, mas resultados comerciais dependem da oferta, equipe, campanha e processo."
   }
 ];
 
@@ -60,7 +60,7 @@ export function FAQSection() {
       <div className="mb-12 max-w-2xl">
         <p className="mb-3 text-sm font-medium text-cobalt">Dúvidas frequentes</p>
         <h2 className="text-3xl font-semibold leading-tight text-ink md:text-4xl">
-          Perguntas sobre o LeadHealth
+          Perguntas sobre o Leadi
         </h2>
       </div>
       <div className="mx-auto max-w-3xl space-y-3">

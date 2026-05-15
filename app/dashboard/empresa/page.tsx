@@ -10,6 +10,7 @@ import {
   UsersRound
 } from "lucide-react";
 import { AiCreditsPanel, OpenAIComingSoonCard } from "@/components/dashboard/ai-credits-panel";
+import { IntegrationNotice } from "@/components/dashboard/integration-notice";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { getAiBalance } from "@/lib/ai/credits";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
@@ -23,7 +24,9 @@ const integrationFeedbackMessages: Record<string, string> = {
   coming_soon: "A conta OpenAI própria está em breve. Hoje as gerações usam os Créditos de IA da plataforma.",
   success: "Sincronizacao concluida com sucesso.",
   partial: "Sincronizacao concluida com avisos.",
-  error: "Nao foi possivel concluir a atualizacao das contas conectadas."
+  error: "Nao foi possivel concluir a atualizacao das contas conectadas.",
+  missing:
+    "Este ambiente ainda não tem META_APP_ID e META_APP_SECRET. Sem essas variáveis, o botão Conectar Meta não consegue iniciar o OAuth."
 };
 
 export default async function EmpresaPage({
@@ -46,6 +49,7 @@ export default async function EmpresaPage({
     (params?.sync && integrationFeedbackMessages[params.sync]) ||
     connectedAccounts.message ||
     null;
+  const isMetaConfigurationMissing = params?.meta === "missing";
 
   return (
     <div className="space-y-4">
@@ -60,10 +64,14 @@ export default async function EmpresaPage({
         </span>
       </PageHeading>
 
-      {companyMessage ? (
-        <p className="rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">
-          {companyMessage}
-        </p>
+      {isMetaConfigurationMissing && companyMessage ? (
+        <IntegrationNotice
+          message={companyMessage}
+          title="Integração Meta não configurada"
+          tone="warning"
+        />
+      ) : companyMessage ? (
+        <IntegrationNotice message={companyMessage} />
       ) : null}
 
       <section className="rounded-[34px] p-6 glass-strong">

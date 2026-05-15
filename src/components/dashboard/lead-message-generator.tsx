@@ -76,7 +76,7 @@ export function LeadMessageGenerator({
     () =>
       generatedMessage ??
       buildFallbackWhatsAppMessage({
-        brokerageName: "LeadHealth",
+        brokerageName: "Leadi",
         lead: {
           name: lead.name,
           city: lead.city,

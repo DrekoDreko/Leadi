@@ -1179,6 +1179,8 @@ export type Database = {
           meta_connected_account_id: string | null;
           import_batch_id: string | null;
           archived_at: string | null;
+          archive_reason: string | null;
+          duplicate_of_lead_id: string | null;
           raw_payload: Json;
           received_at: string;
           created_at: string;
@@ -1213,6 +1215,8 @@ export type Database = {
           meta_connected_account_id?: string | null;
           import_batch_id?: string | null;
           archived_at?: string | null;
+          archive_reason?: string | null;
+          duplicate_of_lead_id?: string | null;
           raw_payload?: Json;
           received_at?: string;
           created_at?: string;
@@ -1247,6 +1251,8 @@ export type Database = {
           meta_connected_account_id?: string | null;
           import_batch_id?: string | null;
           archived_at?: string | null;
+          archive_reason?: string | null;
+          duplicate_of_lead_id?: string | null;
           raw_payload?: Json;
           received_at?: string;
           created_at?: string;

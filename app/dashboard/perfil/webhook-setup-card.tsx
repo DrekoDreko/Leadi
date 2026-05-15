@@ -157,7 +157,7 @@ export function WebhookSetupCard({
                   </button>
                 </div>
                 <p className="mt-3 text-xs leading-5 text-ink/60">
-                  A LeadHealth salva apenas o hash. Se você perder este valor, gere outro token.
+                  O Leadi salva apenas o hash. Se você perder este valor, gere outro token.
                 </p>
                 {copiedValue === "token" ? (
                   <p className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-lagoon">

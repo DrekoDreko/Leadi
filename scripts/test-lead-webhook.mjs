@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 
 const defaultPayload = {
   lead: {
-    name: "Teste webhook LeadHealth",
-    email: "teste.webhook@leadhealth.demo",
+    name: "Teste webhook Leadi",
+    email: "teste.webhook@leadi.example",
     phone: "+5511999998888",
     city: "Sao Paulo",
     interest: "Plano empresarial",

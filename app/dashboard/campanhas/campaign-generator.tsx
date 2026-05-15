@@ -530,7 +530,7 @@ export function CampaignGenerator({
                     <p className="text-sm font-medium text-cobalt">Conexões da campanha</p>
                     <h3 className="mt-2 text-lg font-semibold">Meta e publicação controlada</h3>
                     <p className="mt-2 text-sm leading-6 text-ink/64">
-                      O LeadHealth usa a conta Meta conectada da empresa e prepara a campanha
+                      O Leadi usa a conta Meta conectada da empresa e prepara a campanha
                       para revisão antes da publicação. Sem página e conta de anúncio selecionadas,
                       a geração fica salva como texto, sem avançar para preparo.
                     </p>
@@ -932,7 +932,7 @@ export function CampaignGenerator({
             </div>
             <div className="space-y-3 text-sm leading-6 text-ink/68">
               <p>
-                O LeadHealth prepara a campanha com base nas contas conectadas. Você revisa
+                O Leadi prepara a campanha com base nas contas conectadas. Você revisa
                 antes de publicar.
               </p>
               <div className="rounded-[24px] bg-white/42 p-4">

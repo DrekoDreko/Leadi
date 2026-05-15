@@ -35,7 +35,7 @@ export const complianceBatteryCases: ComplianceBatteryCase[] = [
     bucket: "safe",
     label: "Seguro: renovacao e analise de proposta",
     text:
-      "Sua empresa vai renovar o beneficio? Fale com a equipe da LeadHealth para comparar propostas e organizar os proximos passos da cotacao."
+      "Sua empresa vai renovar o beneficio? Fale com a equipe do Leadi para comparar propostas e organizar os proximos passos da cotacao."
   },
   {
     id: "questionable-superlativo",
@@ -90,7 +90,7 @@ export const complianceBatteryCases: ComplianceBatteryCase[] = [
     bucket: "prohibited",
     label: "Proibido: compliance como garantia absoluta",
     text:
-      "LeadHealth entrega compliance garantido e sem risco de reprovacao na Meta para sua campanha.",
+      "Leadi entrega compliance garantido e sem risco de reprovacao na Meta para sua campanha.",
     expectedReasonTitles: ["Promessa forte ou garantia"]
   },
   {

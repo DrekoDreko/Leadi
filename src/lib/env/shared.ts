@@ -72,6 +72,10 @@ export const ENV_VARIABLES = {
     description: "Versao da Graph API da Meta.",
     public: false
   },
+  META_BUSINESS_LOGIN_CONFIG_ID: {
+    description: "Configuration ID do Facebook Login for Business.",
+    public: false
+  },
   META_WHATSAPP_ACCESS_TOKEN: {
     description: "Token de acesso server-side para envio oficial de WhatsApp via Meta.",
     public: false

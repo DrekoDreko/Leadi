@@ -26,7 +26,7 @@ export default function PricingPage() {
             Escolha o plano ideal para sua operação
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-ink/64">
-            A LeadHealth foi pensada para organizar leads, integrar Meta Lead Ads, usar IA em campanhas e mensagens e apoiar a operação comercial da corretora.
+            O Leadi foi pensado para organizar leads, integrar Meta Lead Ads, usar IA em campanhas e mensagens e apoiar a operação comercial da corretora.
           </p>
         </section>
 

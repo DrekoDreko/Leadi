@@ -37,16 +37,16 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
         <section
           className={`glass-dark rounded-[38px] p-6 text-white transition-[min-height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:p-8 ${panelHeight}`}
         >
-          <Link href="/" className="flex items-center gap-3" aria-label="LeadHealth">
+          <Link href="/" className="flex items-center gap-3" aria-label="Leadi">
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-ink shadow-soft">
-              LH
+              Le
             </span>
-            <span className="text-xl font-semibold text-white">LeadHealth</span>
+            <span className="text-xl font-semibold text-white">Leadi</span>
           </Link>
           <div className="mt-14 transition-[margin] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:mt-24">
             <ShieldCheck className="text-signal" size={38} aria-hidden="true" />
             <h1 className="mt-8 text-4xl font-semibold leading-tight sm:text-5xl">
-              Acesse seu painel LeadHealth
+              Acesse seu painel Leadi
             </h1>
             <p className="mt-5 max-w-md leading-8 text-white/64">
               Autenticação conectada ao Supabase Auth, com configuração guiada

@@ -19,6 +19,8 @@ Este roteiro cobre o teste manual de recebimento de leads via `POST /api/webhook
 - Header obrigatorio:
   - `Content-Type: application/json`
 
+Nota de rebrand: o header `x-leadhealth-token` e URLs reais existentes continuam aceitos por compatibilidade. Uma troca para nomes novos deve ser feita em uma migração operacional separada.
+
 Observacoes:
 
 - O token identifica a organizacao; o payload externo nao precisa enviar `organization_id`.

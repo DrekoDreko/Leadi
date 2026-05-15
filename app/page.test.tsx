@@ -21,7 +21,7 @@ describe('Landing Page (/)', () => {
         name: /Leads do Meta organizados em um CRM feito para vender plano de saúde empresarial/i
       })
     ).toBeInTheDocument();
-    expect(screen.getByText(/CRM \+ IA para plano de saúde empresarial/i)).toBeInTheDocument();
+    expect(screen.getByText(/CRM e automação para gestão de leads/i)).toBeInTheDocument();
   });
 
   it('contem links para as paginas principais', async () => {

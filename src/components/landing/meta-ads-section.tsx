@@ -20,7 +20,7 @@ export function MetaAdsSection() {
             Feito para quem vende através do Facebook e Instagram
           </h2>
           <p className="mt-4 text-lg leading-7 text-ink/64">
-            O LeadHealth foi pensado para operações que captam leads por formulários do Meta Lead Ads e precisam transformar esses contatos em oportunidades reais dentro de um processo comercial organizado.
+            O Leadi foi pensado para operações que captam leads por formulários do Meta Lead Ads e precisam transformar esses contatos em oportunidades reais dentro de um processo comercial organizado.
           </p>
           <ul className="mt-8 space-y-3">
             {highlights.map((h) => (

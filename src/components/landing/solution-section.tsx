@@ -29,7 +29,7 @@ export function SolutionSection() {
           Uma operação comercial completa para leads do Meta
         </h2>
         <p className="mt-4 text-lg leading-7 text-ink/64">
-          O LeadHealth une captação, CRM, funil, IA e compliance em uma plataforma focada em plano de saúde empresarial.
+          O Leadi une captação, CRM, funil, IA e compliance em uma plataforma focada em plano de saúde empresarial.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

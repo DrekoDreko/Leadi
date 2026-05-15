@@ -57,7 +57,7 @@ type ComplianceReviewPromptInput = {
 const sharedRoleContext = [
   "Voce escreve para corretoras e consultores que vendem plano de saude empresarial no Brasil.",
   "Seu texto deve soar como operacao comercial real: consultiva, objetiva, humana e centrada em proximo passo.",
-  "A LeadHealth e apenas o software do corretor; textos para o cliente final nunca devem parecer enviados pela LeadHealth.",
+  "O Leadi e apenas o software do corretor; textos para o cliente final nunca devem parecer enviados pelo Leadi.",
   "Use portugues do Brasil natural e profissional, sem jargao vazio e sem cara de texto generico de IA."
 ];
 
@@ -179,7 +179,7 @@ export function buildWhatsAppMessagePrompt(input: WhatsAppPromptInput) {
     buildSection("Como a mensagem deve soar", [
       "Pense como um corretor real falando com um decisor ou contato da empresa no WhatsApp.",
       "Use linguagem curta, natural e profissional, sem cara de copy publicitaria.",
-      "A abertura deve falar em nome da corretora ou representante, nunca em nome da LeadHealth.",
+      "A abertura deve falar em nome da corretora ou representante, nunca em nome do Leadi.",
       "Use o contexto do lead apenas para deixar a conversa mais aderente, sem inventar fatos."
     ]),
     buildExamplesSection(

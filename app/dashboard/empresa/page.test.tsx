@@ -53,4 +53,35 @@ describe("Empresa Page (/dashboard/empresa)", () => {
     expect(screen.getByText(/^Em breve$/, { selector: "p" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Disponível em breve/i })).toBeDisabled();
   });
+
+  it("mostra aviso quando a Meta ainda nao esta configurada", async () => {
+    vi.mocked(requireCompletedProfile).mockResolvedValue({
+      workspaceName: "Lucas Seguros",
+      isManager: true,
+      isSoloOwner: false
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    vi.mocked(getConnectedAccountsForCurrentUser).mockResolvedValue({
+      canManageConnections: true,
+      connectedAccounts: [],
+      metaConnection: null,
+      metaPages: [],
+      metaAdAccounts: [],
+      metaLeadForms: [],
+      message: null
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    vi.mocked(getAiBalance).mockResolvedValue(24);
+
+    const Page = await EmpresaPage({ searchParams: Promise.resolve({ meta: "missing" }) });
+    render(Page);
+
+    expect(screen.getByText("Integração Meta não configurada")).toBeInTheDocument();
+    expect(
+      screen.getByText(/META_APP_ID e META_APP_SECRET/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/o botão Conectar Meta não consegue iniciar o OAuth/i)
+    ).toBeInTheDocument();
+  });
 });

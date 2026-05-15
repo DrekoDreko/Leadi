@@ -17,9 +17,9 @@ import { FAQSection } from "@/components/landing/faq-section";
 import { CTASection } from "@/components/landing/cta-section";
 
 export const metadata = {
-  title: "LeadHealth — CRM para plano de saúde empresarial",
+  title: "Leadi — CRM e automação para gestão de leads",
   description:
-    "Organize leads do Meta Lead Ads, acompanhe oportunidades no funil, gere campanhas com IA e conduza o processo comercial com mais controle. Feito para corretores e equipes de plano de saúde empresarial."
+    "Plataforma para captar, organizar e acompanhar leads com funil comercial, integrações e automações."
 };
 
 const navLinks = [
@@ -109,7 +109,7 @@ export default function Home() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-col gap-1">
                 <p className="text-xs text-ink/60">
-                  LeadHealth é uma solução em evolução para operações comerciais de planos de saúde empresariais.
+                  O Leadi é uma solução em evolução para operações comerciais de planos de saúde empresariais.
                 </p>
                 <p className="text-xs text-ink/50">© 2025 Codeellow. Todos os direitos reservados.</p>
               </div>

@@ -43,7 +43,7 @@ export async function getTeamSetupData(context: WorkspaceContext): Promise<TeamS
           id: "demo-member",
           profileId: "demo-profile",
           name: context.displayName,
-          email: "demo@leadhealth.app",
+          email: "demo@leadi.example",
           role: "owner",
           status: "active",
           createdAt: new Date().toISOString()
@@ -98,7 +98,7 @@ async function mapMembers(memberRows: MemberRow[]): Promise<TeamMember[]> {
       id: member.id,
       profileId: member.user_id,
       name: getProfileName(profile),
-      email: profile?.email ?? "sem-email@leadhealth.app",
+      email: profile?.email ?? "sem-email@leadi.example",
       role: normalizeWorkspaceRole(member.role),
       status: member.status,
       createdAt: member.created_at

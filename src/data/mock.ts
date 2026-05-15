@@ -47,11 +47,13 @@ export type Lead = {
   metaConnectedAccountId?: string | null;
   receivedAt?: string | null;
   archivedAt?: string | null;
+  archiveReason?: string | null;
+  duplicateOfLeadId?: string | null;
 };
 
 export const leads: Lead[] = [
   {
-    id: "LH-1042",
+    id: "LE-1042",
     name: "Marina Azevedo",
     owner: "Lucas",
     stage: "Novo lead",
@@ -74,7 +76,7 @@ export const leads: Lead[] = [
     notes: "Lead em expansão, decisora direta e com urgência para fechar ainda este mês."
   },
   {
-    id: "LH-1039",
+    id: "LE-1039",
     name: "Renato Carvalho",
     owner: "Bia",
     stage: "Qualificação",
@@ -92,7 +94,7 @@ export const leads: Lead[] = [
     notes: "Lead sensível a investimento. Vale abrir comparando faixa, rede e próximos passos."
   },
   {
-    id: "LH-1031",
+    id: "LE-1031",
     name: "Paula Mendes",
     owner: "Lucas",
     stage: "Proposta",
@@ -110,7 +112,7 @@ export const leads: Lead[] = [
     notes: "Precisa de orientação simples. Enviar resumo visual com coberturas e próximos passos."
   },
   {
-    id: "LH-1028",
+    id: "LE-1028",
     name: "Fábio Lins",
     owner: "Nina",
     stage: "Negociação",

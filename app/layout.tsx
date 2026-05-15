@@ -9,14 +9,14 @@ export const metadata: Metadata = {
     template: `%s | ${getSiteName()}`
   },
   description:
-    "CRM com IA para corretores de plano de saude empresarial organizarem leads e campanhas.",
+    "Plataforma para captar, organizar e acompanhar leads com funil comercial, integrações e automações.",
   alternates: {
     canonical: getCanonicalUrl("/")
   },
   openGraph: {
     title: getSiteName(),
     description:
-      "CRM com IA para corretores de plano de saude empresarial organizarem leads e campanhas.",
+      "Plataforma para captar, organizar e acompanhar leads com funil comercial, integrações e automações.",
     url: getCanonicalUrl("/"),
     siteName: getSiteName(),
     type: "website",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: getSiteName(),
     description:
-      "CRM com IA para corretores de plano de saude empresarial organizarem leads e campanhas."
+      "Plataforma para captar, organizar e acompanhar leads com funil comercial, integrações e automações."
   }
 };
 

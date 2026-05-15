@@ -9,7 +9,7 @@ export function CTASection() {
           Pronto para organizar seus leads do Meta em uma operação comercial de verdade?
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-lg leading-7 text-white/64">
-          Veja como o LeadHealth pode ajudar sua equipe a captar, acompanhar e conduzir oportunidades de plano de saúde empresarial com mais controle.
+          Veja como o Leadi pode ajudar sua equipe a captar, acompanhar e conduzir oportunidades de plano de saúde empresarial com mais controle.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link

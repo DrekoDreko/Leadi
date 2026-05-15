@@ -17,7 +17,7 @@ export function DashboardShell({
   navVariant = "owner-team",
   preview = false,
   subscriptionNotice = null,
-  workspaceName = "LeadHealth"
+  workspaceName = "Leadi"
 }: {
   children: React.ReactNode;
   displayName?: string;
@@ -71,7 +71,7 @@ export function DashboardShell({
             aria-label={`Perfil de ${displayName}`}
             title={`${displayName} - ${workspaceName}`}
           >
-            {preview ? "LH" : getInitials(displayName)}
+            {preview ? "Le" : getInitials(displayName)}
           </Link>
           <nav className="flex flex-col gap-3" aria-label="Menu principal do dashboard">
             {primaryNavItems.map((item) => {
@@ -194,6 +194,6 @@ function getInitials(name: string) {
       .filter(Boolean)
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
-      .join("") || "LH"
+      .join("") || "Le"
   );
 }

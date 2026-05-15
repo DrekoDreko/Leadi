@@ -35,7 +35,7 @@ export default async function ProfileSetupPage({
           <div className="max-w-2xl">
             <p className="text-sm font-semibold text-cobalt">Configuracao inicial</p>
             <h1 className="mt-3 text-4xl font-semibold leading-tight">
-              Como voce vai usar a LeadHealth?
+              Como voce vai usar o Leadi?
             </h1>
             <p className="mt-4 leading-7 text-ink/62">
               Essa escolha define seu workspace, seu papel inicial e a experiencia do CRM.
