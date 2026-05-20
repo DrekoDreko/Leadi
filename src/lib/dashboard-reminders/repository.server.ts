@@ -250,7 +250,7 @@ async function getCurrentProfile() {
     throw new Error("Usuario nao autenticado.");
   }
 
-  const profile = await fetchCurrentProfile(supabase, user.id);
+  const profile = await fetchCurrentProfileByAuthUserId(supabase, user.id);
 
   if (profile) {
     return profile;
@@ -258,17 +258,27 @@ async function getCurrentProfile() {
 
   if (hasSupabaseServiceRole()) {
     const adminSupabase = createSupabaseAdminClient();
-    const adminProfile = await fetchCurrentProfile(adminSupabase, user.id);
+    const adminProfile = await fetchCurrentProfileByAuthUserId(adminSupabase, user.id);
 
     if (adminProfile) {
       return adminProfile;
+    }
+
+    if (user.email) {
+      const profileByEmail = await fetchCurrentProfileByEmail(adminSupabase, user.email);
+
+      if (profileByEmail) {
+        const reboundProfile = await rebindProfileAuthUserId(adminSupabase, profileByEmail.id, user.id);
+
+        return reboundProfile ?? profileByEmail;
+      }
     }
   }
 
   throw new Error("Perfil nao encontrado.");
 }
 
-async function fetchCurrentProfile(
+async function fetchCurrentProfileByAuthUserId(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>> | ReturnType<typeof createSupabaseAdminClient>,
   authUserId: string
 ) {
@@ -291,6 +301,50 @@ async function fetchCurrentProfile(
   }
 
   return profile;
+}
+
+async function fetchCurrentProfileByEmail(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>> | ReturnType<typeof createSupabaseAdminClient>,
+  email: string
+) {
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (error || !profile) {
+    return null;
+  }
+
+  if (!profile.organization_id) {
+    throw new Error("Seu perfil nao esta vinculado a uma organizacao.");
+  }
+
+  return profile;
+}
+
+async function rebindProfileAuthUserId(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  profileId: string,
+  authUserId: string
+) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ auth_user_id: authUserId })
+    .eq("id", profileId)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  if (!data.organization_id) {
+    throw new Error("Seu perfil nao esta vinculado a uma organizacao.");
+  }
+
+  return data;
 }
 
 function normalizeDate(value: unknown) {

@@ -244,4 +244,100 @@ describe("dashboard reminders repository", () => {
     expect(createSupabaseAdminClient).toHaveBeenCalled();
     expect(adminEqProfile).toHaveBeenCalledWith("auth_user_id", "auth-1");
   });
+
+  it("rebinda o auth_user_id quando o perfil existe pelo e-mail", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(hasSupabaseServiceRole).mockReturnValue(true);
+
+    const profileByEmail = {
+      id: "profile-2",
+      organization_id: "org-2",
+      auth_user_id: "old-auth-id",
+      full_name: "Email Match",
+      email: "match@example.com",
+      role: "owner",
+      profile_setup_completed: true
+    };
+
+    const reboundSingle = vi.fn().mockResolvedValue({
+      data: {
+        ...profileByEmail,
+        auth_user_id: "auth-1"
+      },
+      error: null
+    });
+    const updateSelect = vi.fn(() => ({ single: reboundSingle }));
+    const updateEq = vi.fn(() => ({ select: updateSelect }));
+    const updateProfiles = vi.fn(() => ({ eq: updateEq }));
+
+    const insertSingle = vi.fn().mockResolvedValue({
+      data: {
+        id: "reminder-1",
+        organization_id: "org-2",
+        created_by_profile_id: "profile-2",
+        reminder_date: "2026-05-20",
+        remind_at: "2026-05-20T09:30:00.000Z",
+        message: "Revisar design",
+        created_at: "2026-05-13T10:00:00.000Z",
+        updated_at: "2026-05-13T10:00:00.000Z"
+      },
+      error: null
+    });
+    const selectInsert = vi.fn(() => ({ single: insertSingle }));
+    const insertReminders = vi.fn(() => ({ select: selectInsert }));
+
+    const adminProfileResponses = [
+      { data: null, error: null },
+      { data: profileByEmail, error: null }
+    ];
+    const adminSelectProfile = vi.fn(() => ({
+      eq: vi.fn(() => ({
+        maybeSingle: vi.fn().mockResolvedValue(adminProfileResponses.shift() ?? { data: null, error: null })
+      }))
+    }));
+
+    const regularSelectProfile = vi.fn(() => ({
+      eq: vi.fn(() => ({
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+      }))
+    }));
+
+    const regularSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "auth-1", email: "match@example.com" } }
+        })
+      },
+      from: vi.fn((table: string) =>
+        table === "profiles" ? { select: regularSelectProfile } : { insert: insertReminders }
+      )
+    };
+
+    const adminSupabase = {
+      from: vi.fn((table: string) => {
+        if (table === "profiles") {
+          return {
+            select: adminSelectProfile,
+            update: updateProfiles
+          };
+        }
+
+        return { insert: insertReminders };
+      })
+    };
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(regularSupabase as never);
+    vi.mocked(createSupabaseAdminClient).mockReturnValue(adminSupabase as never);
+
+    await createDashboardReminderForCurrentUser({
+      date: "2026-05-20",
+      message: "Revisar design",
+      time24h: "09:30",
+      timezoneOffsetMinutes: 0,
+      clientNowIso: "2026-05-13T10:00:00.000Z"
+    });
+
+    expect(insertReminders).toHaveBeenCalled();
+    expect(updateProfiles).toHaveBeenCalled();
+  });
 });
