@@ -1,4 +1,5 @@
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import type {
@@ -249,14 +250,45 @@ async function getCurrentProfile() {
     throw new Error("Usuario nao autenticado.");
   }
 
-  const { data: profile, error } = await supabase
+  const profile = await fetchCurrentProfile(supabase, user.id);
+
+  if (profile) {
+    return profile;
+  }
+
+  if (hasSupabaseServiceRole()) {
+    const adminSupabase = createSupabaseAdminClient();
+    const adminProfile = await fetchCurrentProfile(adminSupabase, user.id);
+
+    if (adminProfile) {
+      return adminProfile;
+    }
+  }
+
+  throw new Error("Perfil nao encontrado.");
+}
+
+async function fetchCurrentProfile(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>> | ReturnType<typeof createSupabaseAdminClient>,
+  authUserId: string
+) {
+  const query = supabase
     .from("profiles")
     .select("*")
-    .eq("auth_user_id", user.id)
-    .single();
+    .eq("auth_user_id", authUserId) as {
+      maybeSingle?: () => Promise<{ data: ProfileRow | null; error: { message: string } | null }>;
+      single?: () => Promise<{ data: ProfileRow | null; error: { message: string } | null }>;
+    };
 
-  if (error || !profile) {
-    throw new Error(error?.message ?? "Perfil nao encontrado.");
+  const result = query.maybeSingle ? await query.maybeSingle() : await query.single!();
+  const { data: profile, error } = result;
+
+  if (error) {
+    return null;
+  }
+
+  if (!profile) {
+    return null;
   }
 
   if (!profile.organization_id) {

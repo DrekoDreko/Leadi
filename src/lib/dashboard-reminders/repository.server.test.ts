@@ -6,6 +6,7 @@ import {
 } from "./repository.server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn()
@@ -15,9 +16,15 @@ vi.mock("@/lib/supabase/config", () => ({
   isSupabaseConfigured: vi.fn()
 }));
 
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: vi.fn(),
+  hasSupabaseServiceRole: vi.fn()
+}));
+
 describe("dashboard reminders repository", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(hasSupabaseServiceRole).mockReturnValue(false);
   });
 
   it("resolve horario manual invalido", () => {
@@ -161,5 +168,80 @@ describe("dashboard reminders repository", () => {
       reminder_date: "2026-05-20",
       message: "Revisar design"
     });
+  });
+
+  it("usa o cliente admin como fallback quando a leitura do perfil falha", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(hasSupabaseServiceRole).mockReturnValue(true);
+
+    const fallbackProfile = {
+      id: "profile-1",
+      organization_id: "org-1",
+      auth_user_id: "auth-1",
+      full_name: "Fallback User",
+      email: "fallback@example.com",
+      role: "owner",
+      profile_setup_completed: true
+    };
+
+    const regularSingleProfile = vi.fn().mockResolvedValue({
+      data: null,
+      error: null
+    });
+    const regularEqProfile = vi.fn(() => ({ maybeSingle: regularSingleProfile }));
+    const regularSelectProfile = vi.fn(() => ({ eq: regularEqProfile }));
+
+    const adminSingleProfile = vi.fn().mockResolvedValue({
+      data: fallbackProfile,
+      error: null
+    });
+    const adminEqProfile = vi.fn(() => ({ maybeSingle: adminSingleProfile }));
+    const adminSelectProfile = vi.fn(() => ({ eq: adminEqProfile }));
+
+    const insertSingle = vi.fn().mockResolvedValue({
+      data: {
+        id: "reminder-1",
+        organization_id: "org-1",
+        created_by_profile_id: "profile-1",
+        reminder_date: "2026-05-20",
+        remind_at: "2026-05-20T09:30:00.000Z",
+        message: "Revisar design",
+        created_at: "2026-05-13T10:00:00.000Z",
+        updated_at: "2026-05-13T10:00:00.000Z"
+      },
+      error: null
+    });
+    const insertReminders = vi.fn(() => ({ select: () => ({ single: insertSingle }) }));
+
+    const regularSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "auth-1" } }
+        })
+      },
+      from: vi.fn((table: string) =>
+        table === "profiles" ? { select: regularSelectProfile } : { insert: insertReminders }
+      )
+    };
+
+    const adminSupabase = {
+      from: vi.fn((table: string) =>
+        table === "profiles" ? { select: adminSelectProfile } : { insert: insertReminders }
+      )
+    };
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(regularSupabase as never);
+    vi.mocked(createSupabaseAdminClient).mockReturnValue(adminSupabase as never);
+
+    await createDashboardReminderForCurrentUser({
+      date: "2026-05-20",
+      message: "Revisar design",
+      time24h: "09:30",
+      timezoneOffsetMinutes: 0,
+      clientNowIso: "2026-05-13T10:00:00.000Z"
+    });
+
+    expect(createSupabaseAdminClient).toHaveBeenCalled();
+    expect(adminEqProfile).toHaveBeenCalledWith("auth_user_id", "auth-1");
   });
 });
