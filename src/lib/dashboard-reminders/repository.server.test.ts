@@ -76,14 +76,14 @@ describe("dashboard reminders repository", () => {
     const eqReminders = vi.fn(() => ({ gte }));
     const selectReminders = vi.fn(() => ({ eq: eqReminders }));
 
-    const singleProfile = vi.fn().mockResolvedValue({
+    const maybeSingleProfile = vi.fn().mockResolvedValue({
       data: {
         id: "profile-1",
         organization_id: "org-1"
       },
       error: null
     });
-    const eqProfile = vi.fn(() => ({ single: singleProfile }));
+    const eqProfile = vi.fn(() => ({ maybeSingle: maybeSingleProfile }));
     const selectProfile = vi.fn(() => ({ eq: eqProfile }));
 
     const supabase = {
@@ -129,14 +129,14 @@ describe("dashboard reminders repository", () => {
       return { select: selectInsert };
     });
 
-    const singleProfile = vi.fn().mockResolvedValue({
+    const maybeSingleProfile = vi.fn().mockResolvedValue({
       data: {
         id: "profile-1",
         organization_id: "org-1"
       },
       error: null
     });
-    const eqProfile = vi.fn(() => ({ single: singleProfile }));
+    const eqProfile = vi.fn(() => ({ maybeSingle: maybeSingleProfile }));
     const selectProfile = vi.fn(() => ({ eq: eqProfile }));
 
     const supabase = {

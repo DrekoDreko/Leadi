@@ -272,16 +272,11 @@ async function fetchCurrentProfile(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>> | ReturnType<typeof createSupabaseAdminClient>,
   authUserId: string
 ) {
-  const query = supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("*")
-    .eq("auth_user_id", authUserId) as {
-      maybeSingle?: () => Promise<{ data: ProfileRow | null; error: { message: string } | null }>;
-      single?: () => Promise<{ data: ProfileRow | null; error: { message: string } | null }>;
-    };
-
-  const result = query.maybeSingle ? await query.maybeSingle() : await query.single!();
-  const { data: profile, error } = result;
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
 
   if (error) {
     return null;
