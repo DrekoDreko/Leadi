@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
   const isApiRoute = pathname === "/api" || pathname.startsWith("/api/");
   const isLeadWebhookRoute = pathname === "/api/webhooks/leads";
   const isMetaWebhookRoute = pathname === "/api/meta/webhook";
+  const isMetaDataDeletionRoute = pathname === "/api/meta/data-deletion";
   const isImportRoute = pathname === "/dashboard/importar" || pathname.startsWith("/dashboard/importar/");
   const isCreateTeamRoute =
     pathname === "/dashboard/criar-equipe" || pathname.startsWith("/dashboard/criar-equipe/");
@@ -22,9 +23,9 @@ export async function middleware(request: NextRequest) {
     isOnboardingRoute ||
     isTeamRoute ||
     isInviteRoute ||
-    (isApiRoute && !isLeadWebhookRoute && !isMetaWebhookRoute);
+    (isApiRoute && !isLeadWebhookRoute && !isMetaWebhookRoute && !isMetaDataDeletionRoute);
 
-  if (isLeadWebhookRoute || isMetaWebhookRoute) {
+  if (isLeadWebhookRoute || isMetaWebhookRoute || isMetaDataDeletionRoute) {
     return NextResponse.next({ request });
   }
 

@@ -1,6 +1,6 @@
-# Tarefas da LeadHealth - prompts para Antigravity
+# Tarefas do Leadi - prompts para Antigravity
 
-Checklist vivo dos próximos passos da SaaS LeadHealth. Use este arquivo como uma fila de prompts: copie um bloco `txt`, cole no Antigravity e execute uma tarefa por vez.
+Checklist vivo dos próximos passos do SaaS Leadi. Use este arquivo como uma fila de prompts: copie um bloco `txt`, cole no Antigravity e execute uma tarefa por vez.
 
 O `README.md` fica apenas como descrição pública do projeto no GitHub. Este arquivo é operacional.
 
@@ -16,7 +16,7 @@ O `README.md` fica apenas como descrição pública do projeto no GitHub. Este a
 Use este texto junto com qualquer tarefa abaixo quando quiser dar mais contexto ao Antigravity:
 
 ```txt
-Você está trabalhando no projeto LeadHealth, uma SaaS CRM + IA para vendedores de plano de saúde empresarial.
+Você está trabalhando no projeto Leadi, um SaaS de CRM e automação para gestão de leads.
 
 Stack atual:
 - Next.js App Router
@@ -356,7 +356,7 @@ Criterios de aceite:
 - [/] **Antigravity + Eu** (Preparado - veja [walkthrough_teste_uso_real.md](file:///Users/lucasgomesdreko/.gemini/antigravity/brain/85999ead-cddc-45b6-92f1-00c9f98d4bab/walkthrough_teste_uso_real.md))
 
 ```txt
-Prepare e acompanhe um teste de uso da LeadHealth como vendedor real por 1 dia.
+Prepare e acompanhe um teste de uso do Leadi como vendedor real por 1 dia.
 
 Contexto:
 - Eu vou usar o produto como se estivesse vendendo plano de saude empresarial.
@@ -379,7 +379,7 @@ Criterios de aceite:
 
 ## Fase 10 - Produto comercial
 
-- [ ] **Eu:** definir nome final, dominio, identidade e promessa principal da LeadHealth.
+- [ ] **Eu:** definir nome final, dominio, identidade e promessa principal do Leadi.
 - [ ] **Eu:** definir ICP: corretor solo, corretora pequena, equipe comercial ou agencia.
 - [ ] **Eu:** criar lista dos 10 primeiros usuarios beta.
 - [ ] **Eu:** definir oferta beta e preco de entrada.

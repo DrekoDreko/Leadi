@@ -16,7 +16,7 @@ const solutions = [
   { icon: BrainCircuit, title: "IA comercial", desc: "Sugestão de campanhas, textos e mensagens com linguagem consultiva e segura." },
   { icon: MessageCircle, title: "Mensagens WhatsApp", desc: "Gere mensagens consultivas para cada etapa do atendimento com apoio de IA." },
   { icon: CheckSquare, title: "Compliance de anúncios", desc: "Checklist que ajuda a evitar linguagem sensível antes de publicar campanhas." },
-  { icon: BarChart2, title: "Painel de métricas", desc: "Leads por campanha, conversão por vendedor e status da operação em tempo real." },
+  { icon: BarChart2, title: "Painel de métricas", desc: "Leads por campanha, conversão por consultor e status da operação em tempo real." },
   { icon: ShieldCheck, title: "Segurança e LGPD", desc: "Dados comerciais organizados com controle de acesso e boas práticas de privacidade." }
 ];
 
@@ -29,7 +29,7 @@ export function SolutionSection() {
           Uma operação comercial completa para leads do Meta
         </h2>
         <p className="mt-4 text-lg leading-7 text-ink/64">
-          O LeadHealth une captação, CRM, funil, IA e compliance em uma plataforma focada em plano de saúde empresarial.
+          O Leadi une captação, CRM, funil, IA e compliance em uma plataforma focada em plano de saúde.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

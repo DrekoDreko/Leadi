@@ -1,33 +1,26 @@
 import Link from "next/link";
 
 import { BrandMark } from "@/components/brand-mark";
-import { MockDashboardPreview } from "@/components/mock-dashboard-preview";
 import { HeroSection } from "@/components/landing/hero-section";
-import { PainSection } from "@/components/landing/pain-section";
-import { SolutionSection } from "@/components/landing/solution-section";
-import { HowItWorksSection } from "@/components/landing/how-it-works-section";
-import { FeaturesSection } from "@/components/landing/features-section";
+import { HighlightCarousel } from "@/components/landing/highlight-carousel";
+import { EssentialFeatures } from "@/components/landing/essential-features";
 import { MetaAdsSection } from "@/components/landing/meta-ads-section";
-import { AISection } from "@/components/landing/ai-section";
 import { ComplianceSection } from "@/components/landing/compliance-section";
-import { BenefitsSection } from "@/components/landing/benefits-section";
 import { PlansSection } from "@/components/landing/plans-section";
-import { LGPDSection } from "@/components/landing/lgpd-section";
 import { FAQSection } from "@/components/landing/faq-section";
 import { CTASection } from "@/components/landing/cta-section";
 
 export const metadata = {
-  title: "LeadHealth — CRM para plano de saúde empresarial",
+  title: "Leadi — Anúncios com IA e CRM para leads do Meta",
   description:
-    "Organize leads do Meta Lead Ads, acompanhe oportunidades no funil, gere campanhas com IA e conduza o processo comercial com mais controle. Feito para corretores e equipes de plano de saúde empresarial."
+    "Crie anúncios com IA, organize leads do Facebook e Instagram e acompanhe oportunidades em um CRM para venda de plano de saúde."
 };
 
 const navLinks = [
-  { label: "Produto", href: "#produto" },
+  { label: "Início", href: "#inicio" },
   { label: "Como funciona", href: "#como-funciona" },
   { label: "Recursos", href: "#recursos" },
   { label: "Planos", href: "#planos" },
-  { label: "Segurança", href: "#seguranca" },
   { label: "FAQ", href: "#faq" }
 ];
 
@@ -61,40 +54,22 @@ export default function Home() {
       {/* ── Hero ── */}
       <HeroSection />
 
-      {/* ── Dashboard Preview ── */}
-      <section className="section-shell relative z-10 pb-24">
-        <MockDashboardPreview />
-      </section>
 
-      {/* ── Pain ── */}
-      <PainSection />
 
-      {/* ── Solution ── */}
-      <SolutionSection />
+      {/* ── Fluxo Principal ── */}
+      <HighlightCarousel />
 
-      {/* ── How it works ── */}
-      <HowItWorksSection />
+      {/* ── Funções Essenciais ── */}
+      <EssentialFeatures />
 
-      {/* ── Features Grid ── */}
-      <FeaturesSection />
-
-      {/* ── Meta Ads ── */}
+      {/* ── Meta Ads + CRM ── */}
       <MetaAdsSection />
-
-      {/* ── AI ── */}
-      <AISection />
 
       {/* ── Compliance ── */}
       <ComplianceSection />
 
-      {/* ── Benefits ── */}
-      <BenefitsSection />
-
-      {/* ── Plans ── */}
+      {/* ── Planos ── */}
       <PlansSection />
-
-      {/* ── LGPD ── */}
-      <LGPDSection />
 
       {/* ── FAQ ── */}
       <FAQSection />
@@ -107,11 +82,14 @@ export default function Home() {
         <div className="section-shell">
           <div className="glass-strong rounded-[28px] px-6 py-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 max-w-xl">
                 <p className="text-xs text-ink/60">
-                  LeadHealth é uma solução em evolução para operações comerciais de planos de saúde empresariais.
+                  O Leadi é uma solução em evolução para operações comerciais de planos de saúde.
                 </p>
-                <p className="text-xs text-ink/50">© 2025 Codeellow. Todos os direitos reservados.</p>
+                <p className="text-[10px] text-ink/40 leading-relaxed mt-0.5">
+                  Meta, Facebook e Instagram são marcas da Meta Platforms, Inc. O Leadi não é afiliado, patrocinado ou endossado pela Meta.
+                </p>
+                <p className="text-xs text-ink/50 mt-1">© 2025 Codeellow. Todos os direitos reservados.</p>
               </div>
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 <Link className="font-medium text-ink/60 transition hover:text-cobalt" href="/privacy">
@@ -139,3 +117,4 @@ export default function Home() {
     </main>
   );
 }
+

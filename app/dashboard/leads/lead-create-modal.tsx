@@ -178,6 +178,11 @@ export function LeadCreateModal({
             ? "Lead criado no modo demonstracao. Configure o Supabase para salvar dados reais."
             : "Lead criado e salvo no CRM."
       });
+
+      // Close modal after success
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error) {
       setStatus({
         type: "error",
@@ -207,7 +212,7 @@ export function LeadCreateModal({
               Novo lead
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/62">
-              Cadastre um contato manualmente e acompanhe o atendimento no funil da LeadHealth.
+              Cadastre um contato manualmente e acompanhe o atendimento no funil do Leadi.
             </p>
           </div>
           <button className="icon-button shrink-0" onClick={closeModal} type="button" title="Fechar">

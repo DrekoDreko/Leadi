@@ -36,6 +36,10 @@ export const ENV_VARIABLES = {
     description: "Modelo padrao usado nas rotas de IA.",
     public: false
   },
+  OPENAI_API_KEY: {
+    description: "Chave global da plataforma para chamadas server-side da OpenAI.",
+    public: false
+  },
   MERCADO_PAGO_ACCESS_TOKEN: {
     description: "Token server-side do Mercado Pago.",
     public: false
@@ -66,6 +70,10 @@ export const ENV_VARIABLES = {
   },
   META_GRAPH_API_VERSION: {
     description: "Versao da Graph API da Meta.",
+    public: false
+  },
+  META_BUSINESS_LOGIN_CONFIG_ID: {
+    description: "Configuration ID do Facebook Login for Business.",
     public: false
   },
   META_WHATSAPP_ACCESS_TOKEN: {
@@ -131,4 +139,18 @@ export function validateProductionCoreEnv(source: NodeJS.ProcessEnv = process.en
       `Ausentes: ${missing.join(", ")}.`
     ].join(" ")
   );
+}
+
+export function shouldValidateProductionCoreEnv(source: NodeJS.ProcessEnv = process.env) {
+  if (source.SKIP_ENV_VALIDATION === "1") {
+    return false;
+  }
+
+  // Vercel preview builds run with NODE_ENV=production too, but they should not
+  // be blocked by production-only env checks.
+  if (source.VERCEL_ENV === "preview") {
+    return false;
+  }
+
+  return source.NODE_ENV === "production";
 }

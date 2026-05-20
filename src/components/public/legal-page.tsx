@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { getSiteDomainLabel, getSiteLegalEmail } from "@/lib/site/config";
@@ -11,6 +12,7 @@ type LegalSection = {
 type LegalPageProps = {
   effectiveDate: string;
   eyebrow: string;
+  intro?: ReactNode;
   sections: readonly LegalSection[];
   summary: string;
   title: string;
@@ -19,6 +21,7 @@ type LegalPageProps = {
 export function LegalPage({
   effectiveDate,
   eyebrow,
+  intro,
   sections,
   summary,
   title
@@ -92,6 +95,10 @@ export function LegalPage({
             </div>
           </div>
 
+          {intro ? (
+            <div className="border-b border-white/40 px-6 py-8 md:px-10">{intro}</div>
+          ) : null}
+
           <div className="grid gap-6 px-6 py-8 md:px-10">
             {sections.map((section) => (
               <article className="glass rounded-[30px] p-6" key={section.title}>
@@ -110,7 +117,7 @@ export function LegalPage({
       <footer className="section-shell pt-6">
         <div className="flex flex-col gap-3 px-2 text-sm text-ink/72 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
-            <p>LeadHealth · Documento publico para operacao inicial da plataforma.</p>
+            <p>Leadi · Documento publico para operacao inicial do produto.</p>
             <div className="flex items-center gap-3">
               <Link className="font-semibold transition-colors hover:text-cobalt" href="/privacy">
                 Privacidade

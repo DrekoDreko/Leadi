@@ -2,7 +2,8 @@ export const dashboardReminderPresets = [
   "one_hour",
   "two_hours",
   "this_afternoon",
-  "this_evening"
+  "this_evening",
+  "custom"
 ] as const;
 
 export type DashboardReminderPreset = (typeof dashboardReminderPresets)[number];

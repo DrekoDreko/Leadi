@@ -1,16 +1,16 @@
-# LeadHealth - plano tecnico vigente
+# Leadi - plano tecnico vigente
 
-Este documento substitui o planejamento antigo e fixa a arquitetura atual do LeadHealth.
+Este documento substitui o planejamento antigo e fixa a arquitetura atual do Leadi.
 
 ## Principio central
 
-O LeadHealth e um SaaS/CRM para corretores e equipes de planos de saude empresariais. A plataforma organiza leads, funil, mensagens, campanhas, compliance, pedidos de materiais e integracoes.
+O Leadi e um SaaS/CRM para corretores e equipes de planos de saude empresariais. A plataforma organiza leads, funil, mensagens, campanhas, compliance, pedidos de materiais e integracoes.
 
 A regra de arquitetura e:
 
 ```txt
-O cliente conecta as proprias contas Meta e OpenAI no LeadHealth.
-O LeadHealth usa apenas as permissoes concedidas pela organizacao para sincronizar leads, listar ativos e preparar campanhas controladas.
+O cliente conecta as proprias contas Meta e OpenAI no Leadi.
+O Leadi usa apenas as permissoes concedidas pela organizacao para sincronizar leads, listar ativos e preparar campanhas controladas.
 ```
 
 O produto nao deve assumir uma conta Meta ou OpenAI central da plataforma para operar recursos do cliente.
@@ -68,7 +68,7 @@ Deve mostrar:
 - registrar `meta_connected_account_id` para rastrear a origem autorizada;
 - tratar CSV Meta sem conexao como CSV importado para evitar falsa origem conectada.
 
-`/dashboard/pedidos` deve continuar existindo como area de briefings e materiais de apoio da propria organizacao. A linguagem deve evitar qualquer promessa de que a LeadHealth publica campanhas por contas proprias.
+`/dashboard/pedidos` deve continuar existindo como area de briefings e materiais de apoio da propria organizacao. A linguagem deve evitar qualquer promessa de que o Leadi publica campanhas por contas proprias.
 
 ## Rotas de integracao
 
@@ -113,7 +113,7 @@ Evitar:
 - garantias de aprovacao;
 - promessa absoluta de economia;
 - coleta de dados sensiveis no primeiro contato;
-- qualquer texto que diga ou sugira que a LeadHealth usa contas proprias para operar pelo cliente.
+- qualquer texto que diga ou sugira que o Leadi usa contas proprias para operar pelo cliente.
 
 ## Roadmap tecnico imediato
 

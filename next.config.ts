@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
-import { validateProductionCoreEnv } from "./src/lib/env/shared";
+import {
+  shouldValidateProductionCoreEnv,
+  validateProductionCoreEnv
+} from "./src/lib/env/shared";
 
-if (process.env.NODE_ENV === "production" && process.env.SKIP_ENV_VALIDATION !== "1") {
+if (shouldValidateProductionCoreEnv()) {
   validateProductionCoreEnv();
 }
 

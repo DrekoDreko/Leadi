@@ -197,7 +197,7 @@ export async function getCommercialReportForCurrentUser(
       message:
         leads.length === 0
           ? "Nenhum lead encontrado para os filtros selecionados."
-          : `Dados consolidados a partir de ${leads.length} leads, ${campaigns.length} campanhas registradas e ${accessibleProfiles.length} vendedores visiveis.`
+          : `Dados consolidados a partir de ${leads.length} leads, ${campaigns.length} campanhas registradas e ${accessibleProfiles.length} consultores visíveis.`
     };
   } catch (error) {
     return buildErrorReport(filters, error instanceof Error ? error.message : "Nao foi possivel carregar os relatórios.");
@@ -209,7 +209,7 @@ function buildAvailableMetrics() {
     "Leads por periodo",
     "Conversao por etapa",
     "Distribuicao por origem",
-    "Distribuicao por vendedor",
+    "Distribuicao por consultor",
     "Campanhas identificadas nos leads"
   ];
 }
@@ -389,11 +389,11 @@ function buildSourceRows(leads: LeadRow[]): CommercialReportBreakdownRow[] {
 function buildSellerRows(leads: LeadRow[], sellerMap: Map<string, ProfileRow>): CommercialReportBreakdownRow[] {
   return groupRows(leads, (lead) => {
     if (!lead.owner_profile_id) {
-      return "Sem vendedor";
+      return "Sem consultor";
     }
 
     const profile = sellerMap.get(lead.owner_profile_id);
-    return profile?.full_name?.trim() || profile?.email || "Sem vendedor";
+    return profile?.full_name?.trim() || profile?.email || "Sem consultor";
   })
     .map((entry) => buildBreakdownRow(entry.label, entry.leads))
     .sort(compareRows);

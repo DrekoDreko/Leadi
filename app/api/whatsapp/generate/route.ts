@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { EnvValidationError } from "@/lib/env/server";
+import { AiCreditsError, runAiActionWithCredits } from "@/lib/ai/credits";
 import {
   generateWhatsAppMessage,
   LeadHealthOpenAIError,
   type WhatsAppMessageInput
 } from "@/lib/openai";
-import { resolveOpenAIKeyForOrganization } from "@/lib/integrations/repository.server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import { saveWhatsAppMessageForCurrentUser } from "@/lib/whatsapp/repository.server";
-import type { WhatsAppGenerationForm } from "@/lib/whatsapp/types";
+import type { WhatsAppGenerationForm, WhatsAppHistoryItem } from "@/lib/whatsapp/types";
 
 type WhatsAppRequestBody = Partial<WhatsAppMessageInput> & {
   leadId?: unknown;
@@ -28,22 +27,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
 
-    const openAIKey = await resolveOpenAIKeyForOrganization(billingContext.organizationId);
-
-    if (!openAIKey) {
-      return NextResponse.json(
-        {
-          error:
-            "Conecte sua chave OpenAI no Perfil para gerar mensagens com IA usando a conta da sua organizacao."
-        },
-        { status: 400 }
-      );
-    }
-
-    const message = await generateWhatsAppMessage({
-      ...input,
-      brokerageName: billingContext.brokerageName
-    }, { apiKey: openAIKey });
+    const { result: message, remainingCredits } = await runAiActionWithCredits({
+      orgId: billingContext.organizationId,
+      userId: billingContext.profileId,
+      feature: "generate_whatsapp_message",
+      description: "Geracao de mensagem de WhatsApp com IA",
+      metadata: {
+        route: "whatsapp/generate",
+        stage: input.stage ?? "new"
+      },
+      generate: (apiKey) =>
+        generateWhatsAppMessage(
+          {
+            ...input,
+            brokerageName: billingContext.brokerageName
+          },
+          { apiKey }
+        )
+    });
     const savedForm: WhatsAppGenerationForm = {
       leadId: getOptionalString(body?.leadId),
       leadName: input.leadName,
@@ -54,12 +55,18 @@ export async function POST(request: Request) {
       tone: input.tone ?? "proximo, educado e objetivo",
       product: input.product
     };
-    const savedMessage = await saveWhatsAppMessageForCurrentUser({
-      form: savedForm,
-      message
-    });
+    let savedMessage: WhatsAppHistoryItem | null = null;
 
-    return NextResponse.json({ message, savedMessage });
+    try {
+      savedMessage = await saveWhatsAppMessageForCurrentUser({
+        form: savedForm,
+        message
+      });
+    } catch (saveError) {
+      console.error("Nao foi possivel salvar a mensagem de WhatsApp gerada.", saveError);
+    }
+
+    return NextResponse.json({ message, savedMessage, aiBalance: remainingCredits });
   } catch (error) {
     const { message, status } = getWhatsAppError(error);
 
@@ -115,17 +122,17 @@ function getStage(value: unknown): WhatsAppMessageInput["stage"] {
 }
 
 function getWhatsAppError(error: unknown) {
-  if (error instanceof EnvValidationError) {
+  if (error instanceof AiCreditsError) {
     return {
       message: error.message,
-      status: 503
+      status: 400
     };
   }
 
   if (error instanceof LeadHealthOpenAIError) {
     return {
       message: error.message,
-      status: error.code === "missing_api_key" ? 400 : 502
+      status: error.code === "missing_api_key" ? 503 : 502
     };
   }
 

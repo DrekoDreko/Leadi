@@ -110,4 +110,92 @@ select {
     background: rgba(255, 255, 255, 0.7);
     box-shadow: 0 0 0 4px rgba(52, 98, 238, 0.12);
   }
+
+  .campaign-liquid-hero {
+    isolation: isolate;
+    background:
+      linear-gradient(135deg, rgba(6, 13, 29, 0.96) 0%, rgba(15, 38, 91, 0.94) 38%, rgba(29, 91, 151, 0.88) 72%, rgba(112, 169, 181, 0.86) 100%),
+      radial-gradient(circle at 16% 14%, rgba(255, 255, 255, 0.2), transparent 26%),
+      #071226;
+    backdrop-filter: blur(30px) saturate(1.35);
+  }
+
+  .campaign-liquid-hero::before,
+  .campaign-liquid-hero::after {
+    content: "";
+    position: absolute;
+    inset: -38%;
+    z-index: -1;
+    pointer-events: none;
+    filter: blur(24px);
+    transform: translate3d(0, 0, 0);
+  }
+
+  .campaign-liquid-hero::before {
+    background:
+      radial-gradient(circle at 18% 28%, rgba(125, 211, 252, 0.44), transparent 22%),
+      radial-gradient(circle at 48% 18%, rgba(58, 115, 255, 0.42), transparent 25%),
+      radial-gradient(circle at 78% 38%, rgba(156, 214, 218, 0.5), transparent 23%),
+      radial-gradient(circle at 54% 78%, rgba(21, 74, 170, 0.54), transparent 24%);
+    animation: campaign-liquid-float 17s ease-in-out infinite alternate;
+    opacity: 0.9;
+  }
+
+  .campaign-liquid-hero::after {
+    background:
+      conic-gradient(from 120deg at 50% 50%, rgba(255, 255, 255, 0.12), rgba(49, 110, 226, 0.34), rgba(111, 194, 205, 0.26), rgba(255, 255, 255, 0.08), rgba(49, 110, 226, 0.34));
+    animation: campaign-liquid-drift 24s linear infinite;
+    mix-blend-mode: screen;
+    opacity: 0.42;
+  }
+
+  .campaign-liquid-glow {
+    background:
+      radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.28), transparent 28%),
+      radial-gradient(circle at 84% 12%, rgba(169, 226, 231, 0.34), transparent 25%),
+      linear-gradient(115deg, rgba(255, 255, 255, 0.18), transparent 34%, rgba(255, 255, 255, 0.08) 62%, transparent 78%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    opacity: 0.78;
+  }
+
+  .campaign-liquid-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-position: center;
+    background-size: 28px 28px;
+    mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.32));
+    opacity: 0.16;
+  }
+}
+
+@keyframes campaign-liquid-float {
+  0% {
+    transform: translate3d(-3%, -2%, 0) rotate(0deg) scale(1);
+  }
+
+  45% {
+    transform: translate3d(4%, 2%, 0) rotate(9deg) scale(1.08);
+  }
+
+  100% {
+    transform: translate3d(-1%, 5%, 0) rotate(-7deg) scale(1.03);
+  }
+}
+
+@keyframes campaign-liquid-drift {
+  0% {
+    transform: rotate(0deg) scale(1.05);
+  }
+
+  100% {
+    transform: rotate(360deg) scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .campaign-liquid-hero::before,
+  .campaign-liquid-hero::after {
+    animation: none;
+  }
 }

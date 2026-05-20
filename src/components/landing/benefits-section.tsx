@@ -5,7 +5,7 @@ const benefits = [
   { title: "Atendimento mais rápido", desc: "Facilita o primeiro contato logo após a chegada do lead no sistema." },
   { title: "Mais clareza no funil", desc: "Cada oportunidade tem um status claro e um próximo passo definido." },
   { title: "Campanhas mais organizadas", desc: "Histórico e padronização reduzem retrabalho e melhora de resultados." },
-  { title: "Melhor controle por vendedor", desc: "Veja a performance de cada membro da equipe com rastreio claro." },
+  { title: "Melhor controle por consultor", desc: "Veja a performance de cada membro da equipe com rastreio claro." },
   { title: "Histórico centralizado", desc: "Tudo registrado: proposta, contato, combinado e próxima ação." },
   { title: "Menos dependência de planilhas", desc: "Substitui controles manuais por um processo estruturado e digital." },
   { title: "Mais previsibilidade comercial", desc: "Visualize o funil e antecipe o comportamento da operação." }

@@ -14,7 +14,7 @@ export async function requireBillingAuthContext(): Promise<BillingAuthContext> {
   const context = await getBillingAuthContext();
 
   if (!context) {
-    redirect("/login?next=/dashboard/creditos");
+    redirect("/login?next=/dashboard/perfil/creditos");
   }
 
   return context;

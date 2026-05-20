@@ -59,7 +59,7 @@ export function Metric({
   }[tone];
 
   return (
-    <article className="glass rounded-[30px] p-5">
+    <article className="glass !bg-cloud/95 rounded-[30px] p-5">
       <p className="text-sm text-ink/54">{label}</p>
       <div className="mt-3 flex flex-col gap-3">
         <strong className="text-4xl font-semibold">{value}</strong>
@@ -180,7 +180,7 @@ export function KanbanBoard({
   const columns = buildKanbanColumns(boardLeads);
 
   return (
-    <section className="glass rounded-[34px] p-5">
+    <section className="glass !bg-cloud/95 rounded-[34px] p-5">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
           <p className="text-sm text-ink/54">Kanban</p>

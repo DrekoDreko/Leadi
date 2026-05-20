@@ -1,6 +1,6 @@
 # Orientação de Backup e Proteção de Dados
 
-Este documento descreve como proteger os dados de produção do LeadHealth, detalhando as opções de backup, exportação e os cuidados necessários antes de operações críticas.
+Este documento descreve como proteger os dados de produção do Leadi, detalhando as opções de backup, exportação e os cuidados necessários antes de operações críticas.
 
 ---
 

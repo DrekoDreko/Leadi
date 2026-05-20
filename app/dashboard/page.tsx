@@ -1,7 +1,7 @@
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { getCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
-import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
+import { getAiBalance } from "@/lib/ai/credits";
 import { getWhatsAppMessagesCountForCurrentUser } from "@/lib/whatsapp/repository.server";
 import { getOnboardingStateForCurrentUser } from "@/lib/onboarding/repository.server";
 import { getCreativeRequestsCountForCurrentUser } from "@/lib/creative-requests/repository.server";
@@ -13,7 +13,6 @@ export default async function DashboardPage() {
     context,
     leadState,
     campaignState,
-    connectedAccounts,
     whatsappMessagesCount,
     onboardingState,
     creativeRequestsCount,
@@ -22,18 +21,17 @@ export default async function DashboardPage() {
     requireCompletedProfile(),
     getLeadsForCurrentUser(),
     getCampaignsForCurrentUser(6),
-    getConnectedAccountsForCurrentUser(),
     getWhatsAppMessagesCountForCurrentUser(),
     getOnboardingStateForCurrentUser(),
     getCreativeRequestsCountForCurrentUser(),
     getDashboardRemindersForCurrentUser()
   ]);
+  const aiBalance = await getAiBalance(context.workspace?.id ?? "");
 
   return (
     <DashboardHome
+      aiBalance={aiBalance}
       campaignsCount={campaignState.campaigns.length}
-      hasMetaConnection={Boolean(connectedAccounts.metaConnection)}
-      hasOpenAIConnection={Boolean(connectedAccounts.openAIConnection)}
       leads={leadState.leads}
       showCreateTeamCard={context.isSoloOwner}
       whatsappMessagesCount={whatsappMessagesCount}

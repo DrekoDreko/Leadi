@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await syncMetaOrganizationAssets({
+    const syncResult = await syncMetaOrganizationAssets({
       organizationId: identity.organization.id,
       connectedByProfileId: identity.profile.id,
       accessToken,
@@ -32,7 +32,11 @@ export async function POST(request: Request) {
       connectionId: metaConnection.id
     });
 
-    return redirectBack(requestUrl, returnTo, "sync=updated");
+    return redirectBack(
+      requestUrl,
+      returnTo,
+      syncResult.warnings.length > 0 ? "sync=partial" : "sync=updated"
+    );
   } catch (error) {
     console.error("Falha ao sincronizar ativos Meta.", error);
 
@@ -69,7 +73,7 @@ async function getReturnTo(request: Request) {
     return returnTo;
   }
 
-  return "/dashboard/perfil?section=empresa";
+  return "/dashboard/perfil/meta";
 }
 
 function redirectBack(url: URL, returnTo: string, query: string) {

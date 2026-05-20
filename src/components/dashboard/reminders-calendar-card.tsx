@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, CheckCircle2, Clock3, Loader2, X } from "lucide-react";
-import type { DashboardReminderItem } from "@/lib/dashboard-reminders/types";
+import type { DashboardReminderItem, DashboardReminderPreset } from "@/lib/dashboard-reminders/types";
 
 type ReminderCreateResponse = {
   reminder?: DashboardReminderItem;
@@ -38,7 +38,7 @@ export function RemindersCalendarCard({
   const [selectedDate, setSelectedDate] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [preset, setPreset] = useState<"" | "one_hour" | "two_hours" | "this_afternoon" | "this_evening">("");
+  const [preset, setPreset] = useState<DashboardReminderPreset | "">("");
   const [time24h, setTime24h] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -89,7 +89,7 @@ export function RemindersCalendarCard({
     setTime24h("");
     setError("");
     setSuccessMessage("");
-    setPreset(date === todayDate ? "one_hour" : "");
+    setPreset(date === todayDate ? "one_hour" : "custom");
     setIsModalOpen(true);
   }
 
@@ -111,8 +111,8 @@ export function RemindersCalendarCard({
       return;
     }
 
-    if (!isTodaySelected && !manualTime) {
-      setError("Informe um horario em 24 horas para lembretes em outros dias.");
+    if (preset === "custom" && !manualTime) {
+      setError("Informe um horario em 24 horas para o lembrete.");
       return;
     }
 
@@ -181,7 +181,7 @@ export function RemindersCalendarCard({
 
   return (
     <>
-      <section className="glass rounded-[34px] p-5">
+      <section className="glass !bg-cloud/95 rounded-[34px] p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm text-ink/54">Calendario</p>
@@ -299,38 +299,43 @@ export function RemindersCalendarCard({
               <div className="mt-4 space-y-4">
                 <p className="text-sm font-medium text-ink/72">Quando voce quer ser lembrado</p>
 
-                {isTodaySelected ? (
-                  <label className="block space-y-2">
-                    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink/48">
-                      <Clock3 size={14} aria-hidden="true" />
-                      Atalho rapido
-                    </span>
-                    <select
-                      className="liquid-input"
-                      disabled={isSubmitting}
-                      onChange={(event) => setPreset(event.target.value as typeof preset)}
-                      value={preset}
-                    >
-                      <option value="one_hour">Lembre-me em uma hora</option>
-                      <option value="two_hours">Lembre-me em duas horas</option>
-                      <option value={dynamicPreset.value}>{dynamicPreset.label}</option>
-                    </select>
-                  </label>
-                ) : null}
-
                 <label className="block space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/48">
-                    {isTodaySelected ? "Ou defina o horario (24 horas)" : "Horario do lembrete (24 horas)"}
+                  <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink/48">
+                    <Clock3 size={14} aria-hidden="true" />
+                    Atalho rapido
                   </span>
-                  <input
+                  <select
                     className="liquid-input"
                     disabled={isSubmitting}
-                    onChange={(event) => setTime24h(event.target.value)}
-                    placeholder="14:30"
-                    type="time"
-                    value={time24h}
-                  />
+                    onChange={(event) => setPreset(event.target.value as typeof preset)}
+                    value={preset}
+                  >
+                    {isTodaySelected && (
+                      <>
+                        <option value="one_hour">Lembre-me em uma hora</option>
+                        <option value="two_hours">Lembre-me em duas horas</option>
+                        <option value={dynamicPreset.value}>{dynamicPreset.label}</option>
+                      </>
+                    )}
+                    <option value="custom">Personalizar</option>
+                  </select>
                 </label>
+
+                {preset === "custom" && (
+                  <label className="block space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/48">
+                      Horario do lembrete (24 horas)
+                    </span>
+                    <input
+                      className="liquid-input"
+                      disabled={isSubmitting}
+                      onChange={(event) => setTime24h(event.target.value)}
+                      placeholder="14:30"
+                      type="time"
+                      value={time24h}
+                    />
+                  </label>
+                )}
               </div>
 
               <div className="mt-5 flex flex-wrap gap-2">

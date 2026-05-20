@@ -6,15 +6,18 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
-  ArrowUpRight,
   ChevronRight,
+  Archive,
   Download,
+  FileText,
   Filter,
   Inbox,
   Loader2,
+  Megaphone,
   Plus,
   RefreshCcw,
   Search,
+  UploadCloud,
   X
 } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
@@ -39,32 +42,40 @@ import {
 import { LeadCreateModal } from "./lead-create-modal";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 import type { SystemTemplate } from "@/lib/templates/types";
+import type {
+  MetaLeadImportResponse,
+  MetaLeadImportSource,
+  MetaLeadImportSourcesState
+} from "@/lib/meta/manual-lead-import.types";
 
 const filterKeys: Array<keyof LeadUrlFilters> = [
   "stage",
   "source",
   "city",
   "period",
-  "search"
+  "search",
+  "archived"
 ];
 const paginationQueryKeys = ["limit", "offset"];
 
 export function LeadsWorkspace({
   createLeadAccess,
-  hasOpenAIConnection,
+  aiBalance,
   initialLeadId,
   initialLeadPanel,
   leadFilters,
   leadState,
-  whatsappTemplates = []
+  whatsappTemplates = [],
+  title = "Leads"
 }: {
   createLeadAccess: ResourceAccessSummary;
-  hasOpenAIConnection: boolean;
+  aiBalance: number;
   initialLeadId: string | null;
   initialLeadPanel: "details" | "message";
   leadFilters: LeadUrlFilters;
   leadState: LeadDataState;
   whatsappTemplates?: SystemTemplate[];
+  title?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -82,13 +93,13 @@ export function LeadsWorkspace({
   const [isLoadingMoreLeads, setIsLoadingMoreLeads] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [selectedLeadPanel, setSelectedLeadPanel] = useState<"details" | "message">(initialLeadPanel);
+  const [isMetaImportOpen, setIsMetaImportOpen] = useState(false);
 
   const visibleLeads = leads;
   const hasActiveFilters = searchTerm.trim().length > 0 || hasActiveLeadUrlFilters(leadFilters);
   const isErrorState = leadState.mode === "error" || leadState.mode === "unauthenticated";
   const isEmptyWithoutFilters = !isErrorState && leads.length === 0 && !hasActiveFilters;
   const isEmptyWithFilters = !isErrorState && hasActiveFilters && leads.length === 0;
-  const kanbanColumns = buildKanbanColumns(visibleLeads);
   const newLeads = visibleLeads.filter((lead) => lead.stage === "Novo lead").length;
   const qualifiedLeads = visibleLeads.filter((lead) => lead.stage === "Qualificação").length;
   const proposalLeads = visibleLeads.filter((lead) => lead.stage === "Proposta").length;
@@ -106,7 +117,7 @@ export function LeadsWorkspace({
       if (isDefaultLeadUrlFilterValue(key, value)) {
         nextSearchParams.delete(key);
       } else {
-        nextSearchParams.set(key, value);
+        nextSearchParams.set(key, String(value));
       }
     }
 
@@ -286,14 +297,34 @@ export function LeadsWorkspace({
     }
   }
 
+  function handleMetaImportFinished(result: MetaLeadImportResponse) {
+    const duplicateMessage =
+      result.summary.duplicates > 0
+        ? ` Encontramos ${result.summary.duplicates} leads duplicados. Eles foram arquivados automaticamente para manter sua base limpa.`
+        : "";
+
+    setCreateFeedback(
+      `Importação Meta concluída: ${result.summary.imported} importados, ${result.summary.duplicates} duplicados, ${result.summary.errors} erros.${duplicateMessage}`
+    );
+    router.refresh();
+  }
+
 
   return (
     <div className="space-y-4">
       <PageHeading
         eyebrow="CRM"
-        title="Leads"
+        title={title}
         description="Lista dedicada para qualificar contatos, acompanhar responsáveis e priorizar próximos passos."
       >
+        <button
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
+          onClick={() => setIsMetaImportOpen(true)}
+          type="button"
+        >
+          <UploadCloud size={18} aria-hidden="true" />
+          Importar leads Meta
+        </button>
         <Link
           className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white/72 px-5 py-3 text-sm font-semibold text-ink"
           href={exportHref}
@@ -373,10 +404,10 @@ export function LeadsWorkspace({
                     onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
                     onLeadOpen={openLeadDetails}
                   />
-                  <LeadKanbanPanel
-                    columns={kanbanColumns}
-                    onLeadOpen={openLeadDetails}
-                  />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <SalesFunnelGateway />
+                    <ArchivedLeadsGateway />
+                  </div>
                 </div>
               </section>
               <LeadPaginationControls
@@ -398,8 +429,13 @@ export function LeadsWorkspace({
         onCreated={handleLeadCreated}
         open={isCreateOpen}
       />
+      <MetaLeadImportModal
+        open={isMetaImportOpen}
+        onClose={() => setIsMetaImportOpen(false)}
+        onImported={handleMetaImportFinished}
+      />
       <LeadDetailsPopup
-        hasOpenAIConnection={hasOpenAIConnection}
+        aiBalance={aiBalance}
         initialPanel={selectedLeadPanel}
         lead={selectedLead}
         messageGeneratorEnabled
@@ -455,6 +491,421 @@ function LeadPaginationControls({
       )}
     </div>
   );
+}
+
+function MetaLeadImportModal({
+  open,
+  onClose,
+  onImported
+}: {
+  open: boolean;
+  onClose: () => void;
+  onImported: (result: MetaLeadImportResponse) => void;
+}) {
+  const [sourcesState, setSourcesState] = useState<MetaLeadImportSourcesState | null>(null);
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [isLoadingSources, setIsLoadingSources] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<MetaLeadImportResponse | null>(null);
+
+  const sources = sourcesState?.sources ?? [];
+  const selectedSource = sources.find((source) => source.id === selectedSourceId) ?? null;
+  const canImport = Boolean(sourcesState?.canImport && selectedSource && !isImporting);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [onClose, open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    let ignore = false;
+    setIsLoadingSources(true);
+    setError(null);
+    setResult(null);
+
+    fetch("/api/meta/leads/sources", {
+      headers: {
+        Accept: "application/json"
+      }
+    })
+      .then(async (response) => {
+        const data = (await response.json()) as MetaLeadImportSourcesState;
+
+        if (!response.ok || data.mode === "error" || data.mode === "unauthenticated") {
+          throw new Error(data.message ?? "Nao foi possivel carregar fontes Meta.");
+        }
+
+        return data;
+      })
+      .then((data) => {
+        if (ignore) {
+          return;
+        }
+
+        setSourcesState(data);
+        setSelectedSourceId(data.sources[0]?.id ?? null);
+      })
+      .catch((fetchError) => {
+        if (ignore) {
+          return;
+        }
+
+        setSourcesState(null);
+        setSelectedSourceId(null);
+        setError(getFriendlyErrorMessage(fetchError).message);
+      })
+      .finally(() => {
+        if (!ignore) {
+          setIsLoadingSources(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [open]);
+
+  async function handleImportSelected() {
+    if (!selectedSource || isImporting) {
+      return;
+    }
+
+    setIsImporting(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/meta/leads/import", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          sourceType: selectedSource.type,
+          sourceId: selectedSource.id
+        })
+      });
+      const data = (await response.json()) as MetaLeadImportResponse;
+
+      if (!response.ok) {
+        throw new Error(data.message ?? "Nao foi possivel importar leads Meta.");
+      }
+
+      setResult(data);
+      onImported(data);
+    } catch (importError) {
+      setError(getFriendlyErrorMessage(importError).message);
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-end bg-ink/42 px-3 py-4 backdrop-blur-md sm:items-center sm:px-5"
+      onClick={onClose}
+      role="dialog"
+    >
+      <section
+        className="mx-auto flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] border border-white/70 bg-cloud/95 shadow-glass"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-ink/10 p-5 sm:p-6">
+          <div>
+            <p className="text-sm font-medium text-cobalt">Meta Lead Ads</p>
+            <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">Importar leads Meta</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/62">
+              Escolha campanhas, anúncios ou formulários já existentes na conta conectada.
+            </p>
+          </div>
+          <button className="icon-button shrink-0" onClick={onClose} type="button" title="Fechar">
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto p-5 sm:p-6">
+          {isLoadingSources ? (
+            <MetaImportState
+              icon={<Loader2 className="animate-spin" size={22} aria-hidden="true" />}
+              title="Carregando fontes Meta"
+              description="Buscando formulários, campanhas e anúncios disponíveis para importação."
+            />
+          ) : error ? (
+            <MetaImportState
+              icon={<AlertCircle size={22} aria-hidden="true" />}
+              title="Não foi possível carregar a importação"
+              description={error}
+            />
+          ) : sourcesState && !sourcesState.hasConnection ? (
+            <MetaImportState
+              actionHref="/dashboard/perfil/meta"
+              actionLabel="Ir para integrações"
+              icon={<Megaphone size={22} aria-hidden="true" />}
+              title="Conecte sua conta Meta para importar leads."
+              description={sourcesState.message ?? "Depois de conectar a conta, sincronize os ativos Meta e volte para importar."}
+            />
+          ) : sources.length === 0 ? (
+            <MetaImportState
+              actionHref="/dashboard/perfil/meta"
+              actionLabel="Sincronizar Meta"
+              icon={<Inbox size={22} aria-hidden="true" />}
+              title="Nenhuma campanha ou formulário de lead encontrado."
+              description="Sincronize novamente a conta Meta ou confirme se há formulários de Lead Ads disponíveis."
+            />
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+              <div className="space-y-3">
+                {sources.map((source) => (
+                  <MetaImportSourceOption
+                    key={`${source.type}-${source.id}`}
+                    selected={source.id === selectedSourceId}
+                    source={source}
+                    onSelect={() => setSelectedSourceId(source.id)}
+                  />
+                ))}
+              </div>
+
+              <aside className="rounded-[26px] border border-white/60 bg-white/44 p-4">
+                <p className="text-sm font-semibold text-ink">Resumo da seleção</p>
+                {selectedSource ? (
+                  <div className="mt-4 space-y-3 text-sm text-ink/66">
+                    <InfoLine label="Tipo" value={getSourceTypeLabel(selectedSource.type)} />
+                    <InfoLine label="Status" value={getSourceStatusLabel(selectedSource.status)} />
+                    <InfoLine
+                      label="Leads disponíveis"
+                      value={formatLeadCount(selectedSource.availableLeadCount)}
+                    />
+                    <InfoLine
+                      label="Última coleta"
+                      value={formatMetaImportDate(selectedSource.lastCollectedAt)}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-ink/58">Selecione uma fonte para continuar.</p>
+                )}
+
+                {result ? <MetaImportResultSummary result={result} /> : null}
+
+                {error ? (
+                  <p className="mt-4 rounded-[20px] bg-red-500/10 px-4 py-3 text-sm font-medium text-ink">
+                    {error}
+                  </p>
+                ) : null}
+
+                <button
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white transition hover:bg-cobalt/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={!canImport}
+                  onClick={handleImportSelected}
+                  type="button"
+                >
+                  {isImporting ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : null}
+                  {isImporting ? "Importando" : "Importar leads selecionados"}
+                </button>
+              </aside>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MetaImportSourceOption({
+  source,
+  selected,
+  onSelect
+}: {
+  source: MetaLeadImportSource;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      className={`w-full rounded-[24px] border p-4 text-left transition ${
+        selected
+          ? "border-cobalt/40 bg-white/78 shadow-glass"
+          : "border-white/54 bg-white/38 hover:bg-white/56"
+      }`}
+      onClick={onSelect}
+      type="button"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-cobalt/10 px-3 py-1 text-xs font-semibold text-cobalt">
+              {source.type === "form" ? (
+                <FileText size={14} aria-hidden="true" />
+              ) : (
+                <Megaphone size={14} aria-hidden="true" />
+              )}
+              {getSourceTypeLabel(source.type)}
+            </span>
+            <span className="rounded-full bg-white/76 px-3 py-1 text-xs font-semibold text-ink/70">
+              {getSourceStatusLabel(source.status)}
+            </span>
+          </div>
+          <h3 className="mt-3 text-lg font-semibold leading-tight text-ink">{source.name}</h3>
+          <p className="mt-1 text-sm text-ink/54">
+            {source.parentName ?? source.pageName ?? source.adAccountName ?? "Conta Meta conectada"}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-sm sm:min-w-[220px]">
+          <InfoPill label="Leads" value={formatLeadCount(source.availableLeadCount)} />
+          <InfoPill label="Coleta" value={formatMetaImportDate(source.lastCollectedAt)} />
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function MetaImportResultSummary({ result }: { result: MetaLeadImportResponse }) {
+  return (
+    <div className="mt-4 rounded-[22px] bg-lagoon/14 p-4">
+      <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+        <CheckCircle2 className="text-lagoon" size={18} aria-hidden="true" />
+        Importação concluída
+      </p>
+      {result.summary.duplicates > 0 ? (
+        <p className="mt-2 text-sm leading-6 text-ink/68">
+          Encontramos {result.summary.duplicates} leads duplicados. Eles foram arquivados
+          automaticamente para manter sua base limpa.
+        </p>
+      ) : null}
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-ink/72">
+        <InfoPill label="Encontrados" value={String(result.summary.totalFound)} />
+        <InfoPill label="Importados" value={String(result.summary.imported)} />
+        <InfoPill label="Duplicados" value={String(result.summary.duplicates)} />
+        <InfoPill label="Arquivados" value={String(result.summary.archived)} />
+        <InfoPill label="Erros" value={String(result.summary.errors)} />
+      </div>
+    </div>
+  );
+}
+
+function MetaImportState({
+  icon,
+  title,
+  description,
+  actionHref,
+  actionLabel
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  actionHref?: string;
+  actionLabel?: string;
+}) {
+  return (
+    <div className="rounded-[28px] border border-white/56 bg-white/42 p-6">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
+        {icon}
+      </div>
+      <h3 className="mt-4 text-2xl font-semibold text-ink">{title}</h3>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/62">{description}</p>
+      {actionHref && actionLabel ? (
+        <Link
+          className="mt-5 inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+          href={actionHref}
+        >
+          {actionLabel}
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span>{label}</span>
+      <span className="font-semibold text-ink">{value}</span>
+    </div>
+  );
+}
+
+function InfoPill({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="rounded-[18px] bg-white/62 px-3 py-2">
+      <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-ink/38">
+        {label}
+      </span>
+      <span className="mt-1 block text-xs font-semibold text-ink">{value}</span>
+    </span>
+  );
+}
+
+function getSourceTypeLabel(type: MetaLeadImportSource["type"]) {
+  switch (type) {
+    case "campaign":
+      return "Campanha";
+    case "ad":
+      return "Anúncio";
+    case "form":
+      return "Formulário";
+  }
+}
+
+function getSourceStatusLabel(status: MetaLeadImportSource["status"]) {
+  switch (status) {
+    case "active":
+      return "Ativo";
+    case "paused":
+      return "Pausado";
+    case "ended":
+      return "Encerrado";
+    case "unknown":
+    default:
+      return "Não informado";
+  }
+}
+
+function formatLeadCount(value: number | null | undefined) {
+  return typeof value === "number" ? value.toLocaleString("pt-BR") : "Não informado";
+}
+
+function formatMetaImportDate(value?: string | null) {
+  if (!value) {
+    return "Não informado";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Não informado";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }
 
 function LeadDataNotice({ leadState }: { leadState: LeadDataState }) {
@@ -762,6 +1213,91 @@ function LeadWorkspaceEmptyState({
   );
 }
 
+function SalesFunnelGateway() {
+  return (
+    <Link
+      href="/dashboard/funil"
+      className="group relative flex flex-col overflow-hidden rounded-[34px] border border-white/40 bg-white/40 p-1 transition-all hover:border-cobalt/30 hover:bg-white/60 hover:shadow-2xl hover:shadow-cobalt/10 sm:flex-row sm:items-center sm:gap-8"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden rounded-[30px] sm:aspect-square sm:w-[280px] sm:shrink-0">
+        <img
+          src="/assets/kanban-animation.png"
+          alt="Funil de vendas"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-tr from-cobalt/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+        
+        {/* Animated Hand/Cursor simulation */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:translate-x-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-4 ring-cobalt/10">
+            <div className="h-4 w-4 rounded-sm bg-cobalt animate-pulse" />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col justify-center p-6 sm:p-4">
+        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-cobalt/60">
+          <div className="h-1.5 w-1.5 rounded-full bg-cobalt animate-pulse" />
+          Gestão Visual
+        </div>
+        <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          Acessar funil de vendas
+        </h2>
+        <p className="mt-4 max-w-md text-lg leading-relaxed text-ink/60">
+          Visualize seus leads em um quadro Kanban interativo. Arraste e solte para mover contatos entre as etapas de venda.
+        </p>
+        
+        <div className="mt-8 flex items-center gap-3 text-sm font-bold text-cobalt">
+          Explorar Funil 
+          <ChevronRight className="transition-transform group-hover:translate-x-1" size={18} />
+        </div>
+      </div>
+
+      {/* Decorative element */}
+      <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-cobalt/5 blur-3xl transition-colors group-hover:bg-cobalt/10" />
+    </Link>
+  );
+}
+
+function ArchivedLeadsGateway() {
+  return (
+    <Link
+      href="/dashboard/leads/arquivados"
+      className="group relative flex flex-col overflow-hidden rounded-[34px] border border-white/40 bg-white/40 p-1 transition-all hover:border-amber-500/30 hover:bg-white/60 hover:shadow-2xl hover:shadow-amber-500/10"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden rounded-[30px] sm:aspect-video sm:w-full">
+        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-50 to-amber-100/50">
+          <Archive
+            className="text-amber-500/40 transition-transform duration-700 group-hover:scale-110 group-hover:rotate-3"
+            size={80}
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      </div>
+
+      <div className="flex flex-col justify-center p-6">
+        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-600/70">
+          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+          Histórico
+        </div>
+        <h2 className="mt-3 text-2xl font-bold tracking-tight text-ink">
+          Leads arquivados
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-ink/60">
+          Acesse a lista de leads que foram removidos do fluxo principal para manter sua organização limpa.
+        </p>
+        
+        <div className="mt-6 flex items-center gap-3 text-sm font-bold text-amber-600">
+          Ver Arquivados 
+          <ChevronRight className="transition-transform group-hover:translate-x-1" size={18} />
+        </div>
+      </div>
+
+      <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-amber-500/5 blur-3xl transition-colors group-hover:bg-amber-500/10" />
+    </Link>
+  );
+}
+
 function LeadTablePanel({
   leads,
   hasActiveFilters,
@@ -898,100 +1434,9 @@ function LeadTablePanel({
   );
 }
 
-function LeadKanbanPanel({
-  columns,
-  onLeadOpen
-}: {
-  columns: ReturnType<typeof buildKanbanColumns>;
-  onLeadOpen: (lead: Lead) => void;
-}) {
-  return (
-    <section className="glass rounded-[34px] p-5 h-full">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-ink/54">Kanban</p>
-          <h2 className="text-2xl font-semibold">Funil de vendas</h2>
-        </div>
-        <Link
-          className="icon-button"
-          href="/dashboard/funil"
-          title="Visualizar todo o funil"
-        >
-          <ArrowUpRight size={18} aria-hidden="true" />
-        </Link>
-      </div>
 
-      <div className="grid gap-3 xl:grid-cols-4">
-        {columns.map((column) => (
-          <div className="rounded-[28px] bg-white/34 p-3" key={column.title}>
-            <div className="mb-3 flex items-center justify-between gap-2 px-1">
-              <span className="text-sm font-semibold">{column.title}</span>
-              <span className="rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold">
-                {column.cards.length}
-              </span>
-            </div>
-
-            {column.cards.map((lead) => (
-              <article
-                className={`${column.color} flex w-full flex-col justify-between rounded-[24px] p-4 text-left shadow-soft transition hover:-translate-y-0.5`}
-                key={lead.id}
-              >
-                <div className="space-y-3">
-                  <button
-                    className="block text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50"
-                    onClick={() => onLeadOpen(lead)}
-                    type="button"
-                  >
-                    <span className="block font-semibold leading-tight">{lead.name}</span>
-                    <span className="mt-1 block text-sm opacity-85">{lead.owner}</span>
-                  </button>
-                </div>
-                <div
-                  className="mt-4"
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                >
-                  <LeadStageBadge
-                    stage={lead.stage}
-                    variant="kanban"
-                  />
-                </div>
-              </article>
-            ))}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function isDefaultLeadUrlFilterValue(key: keyof LeadUrlFilters, value: string) {
+function isDefaultLeadUrlFilterValue(key: keyof LeadUrlFilters, value: string | boolean) {
   return value === defaultLeadUrlFilters[key];
-}
-
-function buildKanbanColumns(leads: Lead[]) {
-  return [
-    {
-      title: "Novo lead",
-      color: "bg-cobalt text-white",
-      cards: leads.filter((lead) => lead.stage === "Novo lead")
-    },
-    {
-      title: "Qualificação",
-      color: "bg-lagoon text-white",
-      cards: leads.filter((lead) => lead.stage === "Qualificação")
-    },
-    {
-      title: "Proposta",
-      color: "bg-signal text-ink",
-      cards: leads.filter((lead) => lead.stage === "Proposta")
-    },
-    {
-      title: "Negociação",
-      color: "bg-ink text-white",
-      cards: leads.filter((lead) => lead.stage === "Negociação")
-    }
-  ];
 }
 
 

@@ -24,6 +24,7 @@ export async function GET(request: Request) {
       returnTo
     });
     const authUrl = buildMetaOAuthAuthorizationUrl({ state, returnTo });
+    console.info("[meta-oauth] redirect url", authUrl.toString());
 
     return NextResponse.redirect(authUrl);
   } catch (error) {
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
 
 function normalizeReturnTo(value: string | null) {
   if (!value || !value.startsWith("/")) {
-    return "/dashboard/perfil?section=empresa";
+    return "/dashboard/perfil/meta";
   }
 
   return value;

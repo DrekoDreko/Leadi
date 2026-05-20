@@ -1,6 +1,8 @@
 # Checklist de URLs Públicas e Integrações
 
-Este documento lista as URLs públicas de produção da LeadHealth que devem ser configuradas nos painéis externos (Meta, Supabase, Make/Zapier, Mercado Pago, etc.).
+Este documento lista as URLs públicas de produção do Leadi que devem ser configuradas nos painéis externos (Meta, Supabase, Make/Zapier, Mercado Pago, etc.).
+
+> **Nota de rebrand:** as URLs abaixo permanecem no domínio legado até a migração operacional de domínio, OAuth, webhooks e painéis externos. Não troque esses valores nos painéis antes da migração coordenada.
 
 ## 🌐 URLs da Aplicação (Produção)
 - **App Principal:** `https://leadhealth.vercel.app`
@@ -8,6 +10,7 @@ Este documento lista as URLs públicas de produção da LeadHealth que devem ser
 - **Privacidade:** `https://leadhealth.vercel.app/privacy`
 - **Termos de Uso:** `https://leadhealth.vercel.app/terms`
 - **Exclusão de Dados:** `https://leadhealth.vercel.app/data-deletion`
+- **Callback de Exclusão Meta:** `https://leadhealth.vercel.app/api/meta/data-deletion`
 
 ## 🔒 Supabase Auth
 Cadastre na "Allowlist de Redirect URLs" do painel do Supabase:
@@ -19,13 +22,14 @@ Painel do App Review e configurações de produtos Meta:
 - **Privacy Policy URL:** `https://leadhealth.vercel.app/privacy`
 - **Terms of Service URL:** `https://leadhealth.vercel.app/terms`
 - **User Data Deletion:** `https://leadhealth.vercel.app/data-deletion`
+- **Data Deletion Callback URL:** `https://leadhealth.vercel.app/api/meta/data-deletion`
 - **Valid OAuth Redirect URI:** `https://leadhealth.vercel.app/api/integrations/meta/callback`
 - **Webhook Callback URL (Meta Webhooks):** `https://leadhealth.vercel.app/api/meta/webhook`
 
 ## ⚡ Webhook de Leads Externos (Make, Zapier, RD, etc.)
 - **URL de Disparo:** `https://leadhealth.vercel.app/api/webhooks/leads`
 - **Método:** `POST`
-- *(Lembre-se de enviar o token de autenticação gerado na aba "Perfil" no header `Authorization: Bearer <token>` ou `x-leadhealth-token: <token>`)*
+- *(Lembre-se de enviar o token de autenticação gerado na tela `/dashboard/integracoes/webhook-leads` no header `Authorization: Bearer <token>` ou `x-leadhealth-token: <token>`.)*
 
 ## 💳 Mercado Pago (Cobranças/Assinaturas)
 - **Webhook URL:** `https://leadhealth.vercel.app/api/billing/webhooks/mercadopago`

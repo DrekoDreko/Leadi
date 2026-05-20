@@ -4,7 +4,7 @@ import DashboardPage from './page';
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { getCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
-import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
+import { getAiBalance } from "@/lib/ai/credits";
 import { getWhatsAppMessagesCountForCurrentUser } from "@/lib/whatsapp/repository.server";
 import { getOnboardingStateForCurrentUser } from "@/lib/onboarding/repository.server";
 import { getCreativeRequestsCountForCurrentUser } from "@/lib/creative-requests/repository.server";
@@ -25,10 +25,6 @@ vi.mock("@/lib/campaigns/repository.server", () => ({
   getCampaignsForCurrentUser: vi.fn()
 }));
 
-vi.mock("@/lib/integrations/repository.server", () => ({
-  getConnectedAccountsForCurrentUser: vi.fn()
-}));
-
 vi.mock("@/lib/whatsapp/repository.server", () => ({
   getWhatsAppMessagesCountForCurrentUser: vi.fn()
 }));
@@ -45,12 +41,17 @@ vi.mock("@/lib/dashboard-reminders/repository.server", () => ({
   getDashboardRemindersForCurrentUser: vi.fn()
 }));
 
+vi.mock("@/lib/ai/credits", () => ({
+  getAiBalance: vi.fn()
+}));
+
 vi.mock("./dashboard-home", () => ({
   DashboardHome: (props: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
     <div data-testid="dashboard-home">
       <span>Campaigns: {props.campaignsCount}</span>
       <span>Leads: {props.leads.length}</span>
       <span>Reminders: {props.dashboardReminders.length}</span>
+      <span>AI Balance: {props.aiBalance}</span>
     </div>
   )
 }));
@@ -73,10 +74,7 @@ describe('Dashboard Page (/dashboard)', () => {
       campaigns: [{}, {}, {}]
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    vi.mocked(getConnectedAccountsForCurrentUser).mockResolvedValue({
-      metaConnection: null,
-      openAIConnection: null
-    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    vi.mocked(getAiBalance).mockResolvedValue(18);
 
     vi.mocked(getWhatsAppMessagesCountForCurrentUser).mockResolvedValue(0);
     vi.mocked(getOnboardingStateForCurrentUser).mockResolvedValue(null);
@@ -93,5 +91,6 @@ describe('Dashboard Page (/dashboard)', () => {
     expect(screen.getByText(/Campaigns: 3/i)).toBeInTheDocument();
     expect(screen.getByText(/Leads: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Reminders: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/AI Balance: 18/i)).toBeInTheDocument();
   });
 });

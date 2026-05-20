@@ -7,7 +7,7 @@ export default function PreviewPage() {
       displayName="Preview"
       navVariant="owner-team"
       preview
-      workspaceName="LeadHealth Preview"
+      workspaceName="Leadi Preview"
     >
       <DashboardHome preview showCreateTeamCard={false} />
     </DashboardShell>

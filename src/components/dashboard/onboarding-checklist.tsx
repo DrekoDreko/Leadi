@@ -56,7 +56,7 @@ export function OnboardingChecklist({
   return (
     <div
       className={cn(
-        "glass overflow-hidden rounded-[32px] border border-white/20 bg-white/40 shadow-xl transition-all duration-700 animate-in fade-in slide-in-from-top-4",
+        "glass overflow-hidden rounded-[32px] border border-white/20 !bg-cloud/95 shadow-xl transition-all duration-700 animate-in fade-in slide-in-from-top-4",
         isDismissing && "scale-95 opacity-0 duration-300"
       )}
     >
@@ -122,8 +122,8 @@ export function OnboardingChecklist({
               className={cn(
                 "group relative flex flex-col gap-3 rounded-2xl border p-5 transition-all duration-500",
                 step.isCompleted
-                  ? "border-teal-500/20 bg-teal-50/30"
-                  : "border-white/40 bg-white/30 hover:border-cobalt/30 hover:bg-white/50 hover:shadow-lg hover:shadow-cobalt/5"
+                  ? "border-teal-500/20 !bg-cloud/95"
+                  : "border-white/40 !bg-cloud/95 hover:border-cobalt/30 hover:!bg-cloud/95 hover:shadow-lg hover:shadow-cobalt/5"
               )}
             >
               <div className="flex items-start justify-between gap-3">

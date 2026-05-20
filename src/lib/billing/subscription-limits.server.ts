@@ -69,7 +69,7 @@ type OrganizationBillingState = {
 };
 
 const VALID_SUBSCRIPTION_STATUSES = new Set<SubscriptionRow["status"]>(["trialing", "active"]);
-const DEFAULT_ACTION_HREF = "/dashboard/creditos";
+const DEFAULT_ACTION_HREF = "/dashboard/perfil/creditos";
 
 const DEFAULT_PLAN_LIMITS: Record<
   string,
@@ -252,7 +252,7 @@ export async function getOrganizationResourceAccess(
     return buildDeniedAccess(resource, "feature_unavailable", {
       title: "Seu plano atual não libera equipe",
       message:
-        "Convites para vendedores ficam disponíveis a partir do plano Equipe. Faça upgrade para adicionar usuários.",
+        "Convites para consultores ficam disponíveis a partir do plano Equipe. Faça upgrade para adicionar usuários.",
       limit: state.limits.users,
       used: state.usage.users
     });

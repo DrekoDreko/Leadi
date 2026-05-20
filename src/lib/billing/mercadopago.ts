@@ -66,9 +66,9 @@ export async function createMercadoPagoCheckout(input: MercadoPagoCheckoutInput)
       external_reference: input.externalReference,
       notification_url: getMercadoPagoNotificationUrl(),
       back_urls: {
-        success: getMercadoPagoBackUrl("/dashboard/creditos?status=success"),
-        pending: getMercadoPagoBackUrl("/dashboard/creditos?status=pending"),
-        failure: getMercadoPagoBackUrl("/dashboard/creditos?status=failure")
+        success: getMercadoPagoBackUrl("/dashboard/perfil/creditos?status=success"),
+        pending: getMercadoPagoBackUrl("/dashboard/perfil/creditos?status=pending"),
+        failure: getMercadoPagoBackUrl("/dashboard/perfil/creditos?status=failure")
       },
       auto_return: "approved",
       binary_mode: false,
@@ -180,5 +180,5 @@ export function getMercadoPagoWebhookSignature(request: Request) {
 }
 
 export function getMercadoPagoReturnUrlStatus(status: "success" | "pending" | "failure") {
-  return getMercadoPagoBackUrl(`/dashboard/creditos?status=${status}`);
+  return getMercadoPagoBackUrl(`/dashboard/perfil/creditos?status=${status}`);
 }

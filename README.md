@@ -1,6 +1,6 @@
-# LeadHealth
+# Leadi
 
-SaaS de CRM com IA para corretores e equipes de planos de saúde empresariais. O produto centraliza captação de leads, funil comercial, campanhas com IA, mensagens de WhatsApp, compliance, pedidos criativos, contas conectadas e gestão de créditos.
+CRM e automação para gestão de leads. Plataforma para captar, organizar e acompanhar leads com funil comercial, integrações e automações.
 
 ## Acesso
 
@@ -12,9 +12,11 @@ Login direto:
 
 [https://leadhealth.vercel.app/login](https://leadhealth.vercel.app/login)
 
+Nota de rebrand: as URLs reais de produção ainda usam o domínio legado até a migração operacional de domínio, OAuth, webhooks e painéis externos.
+
 ## Arquitetura Atual
 
-O LeadHealth opera em uma arquitetura moderna e escalável baseada em Vercel + Supabase:
+O Leadi opera em uma arquitetura moderna e escalável baseada em Vercel + Supabase:
 
 - **Frontend/Backend**: Next.js 15 (App Router) hospedado na Vercel.
 - **Banco de Dados & Auth**: Supabase Cloud (Postgres, Auth, Storage) com suporte multi-tenant.
@@ -73,7 +75,8 @@ O ambiente local é destinado apenas para desenvolvimento, scripts administrativ
 - `/dashboard/campanhas`: Gerador de campanhas e Biblioteca
 - `/dashboard/whatsapp`: Gerador de mensagens
 - `/dashboard/empresa`: Gestão de integrações (Meta, OpenAI)
-- `/dashboard/perfil`: Configurações, Token de Webhook e Logs de Eventos
+- `/dashboard/perfil`: Configurações gerais e card-resumo do Webhook de Leads
+- `/dashboard/integracoes/webhook-leads`: Configuração técnica do webhook, token e logs
 
 ## APIs Disponíveis
 
@@ -122,4 +125,4 @@ npm run webhook:test  # Simulação de envio de leads
 ```
 
 ---
-Desenvolvido por **DrekoDreko / LeadHealth**.
+Desenvolvido por **DrekoDreko / Leadi**.

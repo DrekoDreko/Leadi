@@ -5,7 +5,7 @@ import { EnvValidationError } from "@/lib/env/server";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-  const returnToFallback = "/dashboard/perfil?section=empresa";
+  const returnToFallback = "/dashboard/perfil/meta";
 
   if (requestUrl.searchParams.has("error")) {
     return redirectBack(requestUrl, returnToFallback, "meta=error");
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
   try {
     const exchange = await exchangeMetaOAuthCode({ code, state });
-    await syncMetaOrganizationAssets({
+    const syncResult = await syncMetaOrganizationAssets({
       organizationId: state.organizationId,
       connectedByProfileId: state.profileId,
       accessToken: exchange.accessToken,
@@ -36,7 +36,11 @@ export async function GET(request: Request) {
       metaUserName: exchange.metaUserName
     });
 
-    return redirectBack(requestUrl, state.returnTo || returnToFallback, "meta=connected&sync=updated");
+    return redirectBack(
+      requestUrl,
+      state.returnTo || returnToFallback,
+      syncResult.warnings.length > 0 ? "meta=connected&sync=partial" : "meta=connected&sync=updated"
+    );
   } catch (error) {
     console.error("Falha ao concluir o OAuth da Meta.", error);
     if (error instanceof EnvValidationError) {

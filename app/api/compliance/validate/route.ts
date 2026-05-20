@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { AiCreditsError, runAiActionWithCredits } from "@/lib/ai/credits";
 import {
   DEFAULT_COMPLIANCE_DISCLAIMER,
   reviewTextLocally as reviewTextLocallyWithRules
@@ -10,7 +11,6 @@ import {
   type ComplianceReviewOutput
 } from "@/lib/openai";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
-import { resolveOpenAIKeyForOrganization } from "@/lib/integrations/repository.server";
 
 type ComplianceRequestBody = {
   text?: unknown;
@@ -26,6 +26,7 @@ type ComplianceReviewResponse = ComplianceReviewOutput & {
   analysisSource: "local" | "local_ai";
   score: number;
   aiWarning: string;
+  aiBalance?: number;
 };
 
 const MAX_TEXT_LENGTH = 4000;
@@ -43,42 +44,39 @@ export async function POST(request: Request) {
     const input = parseComplianceRequest(body);
     const localReview = reviewTextLocally(input.text);
     const billingContext = await getBillingAuthContext();
-    const openAIKey = billingContext
-      ? await resolveOpenAIKeyForOrganization(billingContext.organizationId)
-      : null;
 
-    try {
-      const aiReview = await reviewComplianceText(
-        input,
-        openAIKey ? { apiKey: openAIKey } : undefined
-      );
-      return NextResponse.json({
-        review: mergeReviews(localReview, aiReview, "")
-      });
-    } catch (error) {
-      if (error instanceof LeadHealthOpenAIError && error.code === "missing_api_key") {
-        return NextResponse.json({
-          review: {
-            ...localReview,
-            analysisSource: "local",
-            aiWarning: "Nenhuma chave OpenAI foi encontrada. A analise usou somente regras locais."
-          } satisfies ComplianceReviewResponse
-        });
-      }
-
-      if (error instanceof LeadHealthOpenAIError) {
-        return NextResponse.json({
-          review: {
-            ...localReview,
-            analysisSource: "local",
-            aiWarning: error.message
-          } satisfies ComplianceReviewResponse
-        });
-      }
-
-      throw error;
+    if (!billingContext) {
+      return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
+
+    const { result: aiReview, remainingCredits } = await runAiActionWithCredits({
+      orgId: billingContext.organizationId,
+      userId: billingContext.profileId,
+      feature: "generate_compliance_review",
+      description: "Revisao de compliance com IA",
+      metadata: {
+        route: "compliance/validate",
+        channel: input.channel
+      },
+      generate: (apiKey) => reviewComplianceText(input, { apiKey })
+    });
+
+    return NextResponse.json({
+      review: mergeReviews(localReview, aiReview, ""),
+      aiBalance: remainingCredits
+    });
   } catch (error) {
+    if (error instanceof AiCreditsError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (error instanceof LeadHealthOpenAIError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.code === "missing_api_key" ? 503 : 502 }
+      );
+    }
+
     const message =
       error instanceof Error && error.message
         ? error.message

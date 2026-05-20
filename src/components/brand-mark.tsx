@@ -1,15 +1,27 @@
-import Link from "next/link";
-import { ActivitySquare } from "lucide-react";
+"use client";
 
-export function BrandMark() {
+import Image from "next/image";
+
+type BrandMarkProps = {
+  tone?: "light" | "dark";
+};
+
+export function BrandMark({ tone = "light" }: BrandMarkProps) {
+  const textClassName = tone === "dark" ? "text-white" : "text-ink";
+
   return (
-    <Link href="/" className="flex items-center gap-3" aria-label="LeadHealth" title="LeadHealth">
-      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-ink text-white shadow-soft">
-        <ActivitySquare size={22} aria-hidden="true" />
+    <div className="inline-flex items-center gap-3" aria-label="Leadi" title="Leadi">
+      <Image
+        alt=""
+        className="h-11 w-auto shrink-0"
+        height={743}
+        priority
+        src="/assets/leadi-logo.png"
+        width={667}
+      />
+      <span className={`text-xl font-semibold tracking-normal ${textClassName}`}>
+        Leadi
       </span>
-      <span className="text-xl font-semibold tracking-normal text-ink">
-        LeadHealth
-      </span>
-    </Link>
+    </div>
   );
 }

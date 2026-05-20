@@ -6,18 +6,20 @@ Este roteiro cobre o teste manual de recebimento de leads via `POST /api/webhook
 
 1. Aplicar a migration `supabase/migrations/202605050001_lead_webhook_events.sql`.
 2. Garantir que o app esteja com `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` configuradas.
-3. Gerar um token em `/dashboard/perfil`.
-4. Copiar a URL do webhook mostrada em `/dashboard/perfil`.
+3. Gerar um token em `/dashboard/integracoes/webhook-leads`.
+4. Copiar a URL do webhook mostrada em `/dashboard/integracoes/webhook-leads`.
 
 ## Contrato do endpoint
 
 - Metodo: `POST`
-- URL: use a exibida em `/dashboard/perfil`
+- URL: use a exibida em `/dashboard/integracoes/webhook-leads`
 - Headers aceitos para autenticacao:
   - `Authorization: Bearer <token>`
   - `x-leadhealth-token: <token>`
 - Header obrigatorio:
   - `Content-Type: application/json`
+
+Nota de rebrand: o header `x-leadhealth-token` e URLs reais existentes continuam aceitos por compatibilidade. Uma troca para nomes novos deve ser feita em uma migração operacional separada.
 
 Observacoes:
 
@@ -29,14 +31,14 @@ Observacoes:
 
 ```json
 {
-  "lead": {
-    "name": "Maria Souza",
-    "email": "maria@empresa.com",
-    "phone": "(11) 99999-0000",
-    "city": "Sao Paulo",
-    "interest": "Plano empresarial",
-    "source": "make_zapier",
-    "notes": "Teste manual do Make/Zapier"
+    "lead": {
+      "name": "Maria Souza",
+      "email": "maria@empresa.com",
+      "phone": "(11) 99999-0000",
+      "city": "São Paulo",
+      "interest": "Plano empresarial",
+      "source": "make_zapier",
+      "notes": "Teste manual do Make/Zapier"
   }
 }
 ```
@@ -59,7 +61,7 @@ npm run webhook:test
 
 ## Validacao quase em tempo real
 
-1. Abrir `/dashboard/perfil` e acompanhar a tabela "Logs recebidos".
+1. Abrir `/dashboard/integracoes/webhook-leads` e acompanhar a tabela "Logs recebidos".
 2. Confirmar um registro `Sucesso (201)` ou, em caso de falha, ler a mensagem apresentada na coluna de erro.
 3. Abrir `/dashboard/leads` e verificar se o lead apareceu.
 4. Rodar a verificacao local abaixo para confirmar evento recebido, lead vinculado e `source = make_zapier`.
@@ -94,7 +96,7 @@ O script retorna um JSON com:
 
 ## Criterio de aceite
 
-- O log mais recente aparece em `/dashboard/perfil` poucos segundos apos o disparo.
+- O log mais recente aparece em `/dashboard/integracoes/webhook-leads` poucos segundos apos o disparo.
 - O lead vinculado existe na tabela `leads`.
 - O lead foi salvo com `source = make_zapier`.
 - O lead aparece no dashboard/logo na listagem de leads.

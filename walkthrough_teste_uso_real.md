@@ -1,6 +1,6 @@
-# Preparação para Teste de Uso Real - LeadHealth
+# Preparação para Teste de Uso Real - Leadi
 
-Este documento orienta o teste de uso da LeadHealth como um vendedor real por 1 dia. O objetivo é identificar fricções no fluxo de trabalho e bugs operacionais.
+Este documento orienta o teste de uso do Leadi como um vendedor real por 1 dia. O objetivo é identificar fricções no fluxo de trabalho e bugs operacionais.
 
 ## 📋 Checklist de Teste (Execução Manual)
 

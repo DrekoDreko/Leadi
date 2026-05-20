@@ -113,6 +113,9 @@ export async function createDashboardReminderForCurrentUser(
     .single();
 
   if (error) {
+    if (error.code === "42P01") {
+      throw new Error("A tabela de lembretes ainda nao foi criada no banco de dados.");
+    }
     throw new Error(error.message);
   }
 
@@ -147,7 +150,7 @@ export function resolveDashboardReminderInput(input: DashboardReminderCreateInpu
     };
   }
 
-  if (!preset) {
+  if (!preset || preset === "custom") {
     throw new Error("Escolha quando voce quer ser lembrado.");
   }
 
@@ -181,9 +184,15 @@ function resolvePresetReminderDate(input: {
     return new Date(input.clientNow.getTime() + 2 * 60 * 60 * 1000);
   }
 
+  const hourString = presetHours[input.preset as keyof typeof presetHours];
+
+  if (!hourString) {
+    throw new Error("Escolha uma opcao valida para o lembrete.");
+  }
+
   return buildLocalDateIso(
     formatDateForOffset(input.clientNow, input.timezoneOffsetMinutes),
-    presetHours[input.preset],
+    hourString,
     input.timezoneOffsetMinutes
   );
 }
@@ -248,6 +257,10 @@ async function getCurrentProfile() {
 
   if (error || !profile) {
     throw new Error(error?.message ?? "Perfil nao encontrado.");
+  }
+
+  if (!profile.organization_id) {
+    throw new Error("Seu perfil nao esta vinculado a uma organizacao.");
   }
 
   return profile;

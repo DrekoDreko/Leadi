@@ -1,73 +1,24 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
-
-const plans = [
-  {
-    name: "Inicial",
-    label: "Para corretores individuais",
-    desc: "Organize seus leads e comece a acompanhar oportunidades de forma profissional.",
-    price: "Sob consulta",
-    cta: "Falar com a equipe",
-    href: "/login",
-    highlight: false,
-    features: [
-      "CRM de leads",
-      "Funil de oportunidades",
-      "Mensagens com IA",
-      "Importação de leads",
-      "Histórico de atendimento"
-    ]
-  },
-  {
-    name: "Profissional",
-    label: "Para pequenas equipes",
-    desc: "Para equipes que captam leads no Meta e precisam de organização e controle.",
-    price: "Sob consulta",
-    cta: "Falar com a equipe",
-    href: "/login",
-    highlight: true,
-    features: [
-      "Tudo do plano Inicial",
-      "Integração Meta Lead Ads",
-      "Campanhas com IA",
-      "Distribuição de leads",
-      "Painel de métricas",
-      "Checklist de compliance"
-    ]
-  },
-  {
-    name: "Operação",
-    label: "Para corretoras com equipe",
-    desc: "Para corretoras com múltiplos vendedores, campanhas ativas e processos comerciais.",
-    price: "Sob consulta",
-    cta: "Falar com a equipe",
-    href: "/login",
-    highlight: false,
-    features: [
-      "Tudo do plano Profissional",
-      "Múltiplas equipes",
-      "Gestão de propostas",
-      "Agenda e lembretes",
-      "Prioridade de suporte",
-      "Onboarding assistido"
-    ]
-  }
-];
+import { pricingNotice, pricingPlans } from "@/data/pricing";
 
 export function PlansSection() {
   return (
     <section className="section-shell pb-24" id="planos">
       <div className="mb-12 max-w-2xl">
-        <p className="mb-3 text-sm font-medium text-cobalt">Planos</p>
+        <p className="mb-3 text-sm font-medium text-cobalt">Planos públicos</p>
         <h2 className="text-3xl font-semibold leading-tight text-ink md:text-4xl">
           Escolha o plano ideal para sua operação
         </h2>
         <p className="mt-4 text-lg leading-7 text-ink/64">
-          Preços disponíveis mediante consulta com a equipe Codeellow.
+          Planos para corretores e corretoras que querem organizar leads, campanhas e vendas em um único fluxo.
         </p>
       </div>
+      <p className="mb-6 max-w-3xl text-sm leading-6 text-ink/58">
+        {pricingNotice}
+      </p>
       <div className="grid gap-6 lg:grid-cols-3">
-        {plans.map((plan) => (
+        {pricingPlans.map((plan) => (
           <div
             key={plan.name}
             className={`flex flex-col rounded-[34px] p-7 ${
@@ -81,8 +32,13 @@ export function PlansSection() {
                 {plan.label}
               </p>
               <h3 className="mt-2 text-2xl font-semibold">{plan.name}</h3>
-              <p className={`mt-2 text-sm leading-6 ${plan.highlight ? "text-white/60" : "text-ink/60"}`}>{plan.desc}</p>
+              <p className={`mt-2 text-sm leading-6 ${plan.highlight ? "text-white/60" : "text-ink/60"}`}>{plan.description}</p>
               <p className={`mt-5 text-lg font-semibold ${plan.highlight ? "text-signal" : "text-cobalt"}`}>{plan.price}</p>
+              {plan.implantation && (
+                <p className={`mt-2 text-xs font-medium ${plan.highlight ? "text-white/52" : "text-ink/48"}`}>
+                  {plan.implantation}
+                </p>
+              )}
             </div>
             <ul className="mt-6 flex-1 space-y-2.5">
               {plan.features.map((f) => (
@@ -109,3 +65,4 @@ export function PlansSection() {
     </section>
   );
 }
+

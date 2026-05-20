@@ -1,7 +1,14 @@
 import "server-only";
 
 import { requireIntegrationEnv } from "@/lib/env/server";
-import { getMetaAppId, getMetaAppSecret, getMetaGraphApiVersion, getMetaOAuthScopes, getMetaRedirectUri } from "@/lib/meta/config";
+import {
+  getMetaAppId,
+  getMetaAppSecret,
+  getMetaBusinessLoginConfigId,
+  getMetaGraphApiVersion,
+  getMetaOAuthScopes,
+  getMetaRedirectUri
+} from "@/lib/meta/config";
 import {
   recordIntegrationSyncLog,
   saveMetaAssetsSnapshot,
@@ -46,10 +53,12 @@ export type MetaOAuthExchangeResult = {
   expiresAt: string | null;
   metaUserId: string;
   metaUserName: string;
-  pages: MetaPageSnapshot[];
-  adAccounts: MetaAdAccountSnapshot[];
-  leadForms: MetaLeadFormSnapshot[];
   scopes: string[];
+};
+
+type MetaAssetSyncWarning = {
+  scope: string;
+  message: string;
 };
 
 export type MetaPageSnapshot = {
@@ -88,6 +97,7 @@ export function buildMetaOAuthAuthorizationUrl(input: {
 
   const clientId = getMetaAppId().trim();
   const appSecret = getMetaAppSecret().trim();
+  const configId = getMetaBusinessLoginConfigId().trim();
 
   if (!clientId || !appSecret) {
     throw new Error("META_APP_ID ou META_APP_SECRET nao configurado.");
@@ -101,6 +111,11 @@ export function buildMetaOAuthAuthorizationUrl(input: {
   authUrl.searchParams.set("scope", getMetaOAuthScopes().join(","));
   authUrl.searchParams.set("auth_type", "rerequest");
   authUrl.searchParams.set("return_to", input.returnTo);
+
+  if (configId) {
+    authUrl.searchParams.set("config_id", configId);
+    authUrl.searchParams.set("override_default_response_type", "true");
+  }
 
   return authUrl;
 }
@@ -142,10 +157,6 @@ export async function exchangeMetaOAuthCode(input: {
     accessToken
   );
 
-  const pages = await fetchMetaPages(accessToken);
-  const adAccounts = await fetchMetaAdAccounts(accessToken);
-  const leadForms = await fetchMetaLeadFormsForPages(accessToken, pages);
-
   return {
     accessToken,
     expiresAt: accessTokenResponse.expires_in
@@ -153,9 +164,6 @@ export async function exchangeMetaOAuthCode(input: {
       : null,
     metaUserId: profile.id?.trim() ?? input.state.profileId,
     metaUserName: profile.name?.trim() ?? "Conta Meta da organizacao",
-    pages,
-    adAccounts,
-    leadForms,
     scopes: getMetaOAuthScopes()
   } satisfies MetaOAuthExchangeResult;
 }
@@ -168,9 +176,11 @@ export async function syncMetaOrganizationAssets(input: {
   metaUserName?: string | null;
   connectionId?: string | null;
 }) {
-  const pages = await fetchMetaPages(input.accessToken);
-  const adAccounts = await fetchMetaAdAccounts(input.accessToken);
-  const leadForms = await fetchMetaLeadFormsForPages(input.accessToken, pages);
+  const warnings: MetaAssetSyncWarning[] = [];
+  const pages = await fetchMetaPagesSafely(input.accessToken, warnings);
+  const adAccounts = await fetchMetaAdAccountsSafely(input.accessToken, warnings);
+  const leadFormsResult = await fetchMetaLeadFormsForPages(input.accessToken, pages, warnings);
+  const leadForms = leadFormsResult.leadForms;
 
   const connection = await saveMetaConnectionSnapshot({
     organizationId: input.organizationId,
@@ -202,20 +212,25 @@ export async function syncMetaOrganizationAssets(input: {
     provider: "meta",
     connectionId: connection.id,
     assetType: "meta_assets",
-    status: "success",
-    title: "Ativos Meta sincronizados",
-    message: `Sincronizamos ${snapshot.pages.length} paginas, ${snapshot.adAccounts.length} contas de anuncio e ${snapshot.leadForms.length} formularios.`,
+    status: warnings.length > 0 ? "warning" : "success",
+    title: warnings.length > 0 ? "Ativos Meta sincronizados com avisos" : "Ativos Meta sincronizados",
+    message:
+      warnings.length > 0
+        ? `Sincronizamos ${snapshot.pages.length} paginas, ${snapshot.adAccounts.length} contas de anuncio e ${snapshot.leadForms.length} formularios com avisos.`
+        : `Sincronizamos ${snapshot.pages.length} paginas, ${snapshot.adAccounts.length} contas de anuncio e ${snapshot.leadForms.length} formularios.`,
     details: {
       pages: snapshot.pages.length,
       adAccounts: snapshot.adAccounts.length,
-      leadForms: snapshot.leadForms.length
+      leadForms: snapshot.leadForms.length,
+      warnings: warnings.map((warning) => warning.message)
     },
     createdByProfileId: input.connectedByProfileId
   });
 
   return {
     connection,
-    ...snapshot
+    ...snapshot,
+    warnings: warnings.map((warning) => warning.message)
   };
 }
 
@@ -277,8 +292,9 @@ async function fetchMetaAdAccounts(accessToken: string): Promise<MetaAdAccountSn
 
 async function fetchMetaLeadFormsForPages(
   accessToken: string,
-  pages: MetaPageSnapshot[]
-): Promise<MetaLeadFormSnapshot[]> {
+  pages: MetaPageSnapshot[],
+  warnings: MetaAssetSyncWarning[]
+): Promise<{ leadForms: MetaLeadFormSnapshot[] }> {
   const formGroups = await Promise.all(
     pages.map(async (page) => {
       if (!page.metaPageId) {
@@ -286,36 +302,75 @@ async function fetchMetaLeadFormsForPages(
       }
 
       const pageToken = page.pageAccessToken ?? accessToken;
-      const response = await fetchMetaJson<{ data?: MetaLeadFormResponse[] }>(
-        buildGraphUrl(`/${page.metaPageId}/leadgen_forms`),
-        {
-          fields: "id,name,status"
-        },
-        pageToken
-      );
 
-      return (response.data ?? []).flatMap((form) => {
-        const metaFormId = form.id?.trim();
-        if (!metaFormId) {
-          return [];
-        }
-
-        return [
+      try {
+        const response = await fetchMetaJson<{ data?: MetaLeadFormResponse[] }>(
+          buildGraphUrl(`/${page.metaPageId}/leadgen_forms`),
           {
-            metaFormId,
-            name: form.name?.trim() || "Formulario Meta",
-            pageId: page.metaPageId,
-            pageName: page.name,
-            status: mapLeadFormStatus(form.status),
-            lastLeadSyncAt: null,
-            lastSyncAt: new Date().toISOString()
+            fields: "id,name,status"
+          },
+          pageToken
+        );
+
+        return (response.data ?? []).flatMap((form) => {
+          const metaFormId = form.id?.trim();
+          if (!metaFormId) {
+            return [];
           }
-        ];
-      });
+
+          return [
+            {
+              metaFormId,
+              name: form.name?.trim() || "Formulario Meta",
+              pageId: page.metaPageId,
+              pageName: page.name,
+              status: mapLeadFormStatus(form.status),
+              lastLeadSyncAt: null,
+              lastSyncAt: new Date().toISOString()
+            }
+          ];
+        });
+      } catch (error) {
+        warnings.push({
+          scope: `formularios da pagina ${page.name}`,
+          message: describeMetaGraphWarning(`formularios da pagina ${page.name}`, error)
+        });
+        return [];
+      }
     })
   );
 
-  return formGroups.flat();
+  return { leadForms: formGroups.flat() };
+}
+
+async function fetchMetaPagesSafely(
+  accessToken: string,
+  warnings: MetaAssetSyncWarning[]
+): Promise<MetaPageSnapshot[]> {
+  try {
+    return await fetchMetaPages(accessToken);
+  } catch (error) {
+    warnings.push({
+      scope: "paginas",
+      message: describeMetaGraphWarning("paginas", error)
+    });
+    return [];
+  }
+}
+
+async function fetchMetaAdAccountsSafely(
+  accessToken: string,
+  warnings: MetaAssetSyncWarning[]
+): Promise<MetaAdAccountSnapshot[]> {
+  try {
+    return await fetchMetaAdAccounts(accessToken);
+  } catch (error) {
+    warnings.push({
+      scope: "contas de anuncio",
+      message: describeMetaGraphWarning("contas de anuncio", error)
+    });
+    return [];
+  }
 }
 
 async function fetchMetaJson<T>(
@@ -345,6 +400,11 @@ async function fetchMetaJson<T>(
   }
 
   return payload as T;
+}
+
+function describeMetaGraphWarning(scope: string, error: unknown) {
+  const detail = error instanceof Error && error.message ? error.message : "Falha na Meta Graph API.";
+  return `Nao foi possivel sincronizar ${scope} da Meta: ${detail}`;
 }
 
 function buildGraphUrl(path: string) {

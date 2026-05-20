@@ -23,7 +23,7 @@ export function LGPDSection() {
               Dados comerciais tratados com responsabilidade
             </h2>
             <p className="mt-4 text-lg leading-7 text-ink/64">
-              O LeadHealth é desenvolvido com atenção às boas práticas de privacidade e segurança de dados. A adequação à LGPD é uma prioridade contínua do produto.
+              O Leadi é desenvolvido com atenção às boas práticas de privacidade e segurança de dados. A adequação à LGPD é uma prioridade contínua do produto.
             </p>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">

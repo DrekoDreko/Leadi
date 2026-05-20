@@ -28,15 +28,15 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
   const exportHref = buildExportHref(resolvedSearchParams);
   const selectedSellerLabel =
     filters.seller === "all"
-      ? "Todos os vendedores"
+      ? "Todos os consultores"
       : report.sellerOptions.find((option) => option.value === filters.seller)?.label ??
-        "Vendedor selecionado";
+        "Consultor selecionado";
 
   return (
     <div className="space-y-4">
       <PageHeading
         eyebrow="Relatórios"
-        title="ROI por campanha, origem e vendedor"
+        title="ROI por campanha, origem e consultor"
         description="Os indicadores abaixo usam dados reais do Supabase. Quando custo ou receita nao existem, o ROI financeiro aparece como indisponivel em vez de ser inventado."
       >
         <Link
@@ -66,7 +66,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
             <p className="mt-2 max-w-3xl leading-7 text-ink/62">{report.scopeDescription}</p>
           </div>
           <div className="rounded-[22px] bg-white/54 px-4 py-3 text-sm text-ink/66">
-            <strong className="block text-ink">Vendedor selecionado</strong>
+            <strong className="block text-ink">Consultor selecionado</strong>
             <span>{selectedSellerLabel}</span>
           </div>
         </div>
@@ -85,11 +85,11 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
             options={leadSourceFilterOptions}
           />
           <FilterSelect
-            label="Vendedor"
+            label="Consultor"
             name="seller"
             defaultValue={filters.seller}
             options={[
-              { value: "all", label: "Todos os vendedores" },
+              { value: "all", label: "Todos os consultores" },
               ...report.sellerOptions
             ]}
           />
@@ -174,7 +174,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
           </div>
           <div className="space-y-3">
             <KeyFigure label="Campanhas registradas" value={formatInteger(report.summary.campaignCount)} />
-            <KeyFigure label="Leads sem vendedor" value={formatInteger(report.summary.leadsWithoutOwner)} />
+            <KeyFigure label="Leads sem consultor" value={formatInteger(report.summary.leadsWithoutOwner)} />
             <KeyFigure label="Conversao" value={formatPercentage(report.summary.conversionRate)} />
             <KeyFigure label="Base considerada" value={filters.period === "all" ? "Todos os periodos" : getPeriodLabel(filters.period)} />
             <KeyFigure label="Origem filtrada" value={getSourceLabel(filters.source)} />
@@ -196,10 +196,10 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
           emptyLabel="Nenhuma origem encontrada."
         />
         <BreakdownCard
-          title="Por vendedor"
+          title="Por consultor"
           subtitle="Responsáveis visiveis no workspace."
           rows={report.sellerRows}
-          emptyLabel="Nenhum vendedor encontrado."
+          emptyLabel="Nenhum consultor encontrado."
         />
       </section>
 

@@ -62,7 +62,7 @@ export function getSiteMetadataBase() {
 }
 
 export function getSiteName() {
-  return process.env.NEXT_PUBLIC_SITE_NAME?.trim() || "LeadHealth";
+  return process.env.NEXT_PUBLIC_SITE_NAME?.trim() || "Leadi";
 }
 
 export function getSiteLegalEmail() {

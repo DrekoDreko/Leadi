@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import { CheckCircle2, Copy, KeyRound, Loader2, Webhook } from "lucide-react";
+import { CheckCircle2, Copy, KeyRound, Loader2 } from "lucide-react";
 import {
   createLeadWebhookTokenAction,
   type CreateLeadWebhookTokenActionState
@@ -17,7 +17,7 @@ const samplePayload = {
   name: "Ana Martins",
   email: "ana@empresa.com.br",
   phone: "+5511999998888",
-  city: "Sao Paulo",
+  city: "São Paulo",
   interest: "Plano empresarial",
   source: "make_zapier"
 };
@@ -67,22 +67,7 @@ export function WebhookSetupCard({
 
   return (
     <section className="glass-strong rounded-[34px] p-6">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-cobalt">Integracoes</p>
-            <h2 className="mt-2 text-2xl font-semibold">Make/Zapier</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-ink/62">
-              Use esta URL no webhook do Make ou Zapier, gere um token da sua organizacao e envie
-              o JSON com os campos principais do lead.
-            </p>
-          </div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-4 py-2 text-sm font-semibold text-ink">
-            <Webhook size={16} aria-hidden="true" />
-            Webhook de leads
-          </span>
-        </div>
-
+      <div className="flex flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
           <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
             <div className="flex items-center justify-between gap-3">
@@ -100,8 +85,8 @@ export function WebhookSetupCard({
               </button>
             </div>
             <p className="mt-3 text-xs leading-5 text-ink/58">
-              Envie `POST` com `Content-Type: application/json` e o token em
-              `Authorization: Bearer ...` ou `x-leadhealth-token`.
+              Use esta URL no Make, Zapier ou em outro sistema que envie leads via requisição
+              POST.
             </p>
             {copiedValue === "url" ? (
               <p className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-lagoon">
@@ -114,12 +99,12 @@ export function WebhookSetupCard({
           <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
             <div className="flex items-center gap-2 text-cobalt">
               <KeyRound size={16} aria-hidden="true" />
-              <p className="text-sm font-medium">Token da integracao</p>
+              <p className="text-sm font-medium">Token da integração</p>
             </div>
 
             {!isSupabaseMode ? (
               <p className="mt-3 text-sm leading-6 text-ink/62">
-                Configure o Supabase para gerar um token real da organizacao.
+                Configure o Supabase para gerar um token real da organização.
               </p>
             ) : canManageToken ? (
               <form action={formAction} className="mt-4 space-y-3">
@@ -172,7 +157,7 @@ export function WebhookSetupCard({
                   </button>
                 </div>
                 <p className="mt-3 text-xs leading-5 text-ink/60">
-                  A LeadHealth salva apenas o hash. Se voce perder este valor, gere outro token.
+                  O Leadi salva apenas o hash. Se você perder este valor, gere outro token.
                 </p>
                 {copiedValue === "token" ? (
                   <p className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-lagoon">
@@ -187,21 +172,32 @@ export function WebhookSetupCard({
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
           <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
-            <p className="text-sm font-medium text-cobalt">Passo a passo rapido</p>
+            <p className="text-sm font-medium text-cobalt">Como configurar</p>
             <ol className="mt-3 space-y-2 text-sm leading-6 text-ink/66">
               <li>1. Copie a URL do webhook acima.</li>
-              <li>2. Gere um token da organizacao e guarde em local seguro.</li>
-              <li>3. No Make/Zapier, envie `POST` com JSON e o token no header.</li>
-              <li>4. Se quiser validar antes da automacao, rode o curl de teste abaixo.</li>
-              <li>5. Dispare um lead real de teste e confira os logs logo abaixo.</li>
+              <li>2. Gere um token para a sua organização.</li>
+              <li>3. No Make, Zapier ou ferramenta externa, crie uma requisição POST.</li>
+              <li>
+                4. Envie o token no header{" "}
+                <code className="rounded bg-white/68 px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
+                  x-leadhealth-token: SEU_TOKEN_AQUI
+                </code>{" "}
+                ou{" "}
+                <code className="rounded bg-white/68 px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
+                  Authorization: Bearer SEU_TOKEN_AQUI
+                </code>
+                .
+              </li>
+              <li>5. Envie os dados do lead em formato JSON.</li>
+              <li>6. Faça um teste e confira os logs recebidos.</li>
             </ol>
 
             <div className="mt-4 rounded-[22px] bg-ink px-4 py-4 text-xs leading-6 text-white">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-white">Comando de teste rapido</p>
+                  <p className="text-sm font-semibold text-white">Comando de teste</p>
                   <p className="mt-1 text-xs text-white/72">
-                    Troque `SEU_TOKEN_AQUI` pelo token gerado e dispare o webhook manualmente.
+                    Troque SEU_TOKEN_AQUI pelo token gerado e dispare o webhook manualmente.
                   </p>
                 </div>
                 <button
@@ -228,9 +224,10 @@ export function WebhookSetupCard({
           <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-cobalt">Payload exemplo</p>
+                <p className="text-sm font-medium text-cobalt">Payload exemplo JSON</p>
                 <p className="mt-2 text-sm leading-6 text-ink/62">
-                  Campos como `nome`, `email`, `telefone`, `cidade` e `interesse` tambem sao aceitos.
+                  Campos como nome, email, telefone, cidade e interesse também podem ser aceitos
+                  conforme o mapeamento do sistema.
                 </p>
               </div>
               <button

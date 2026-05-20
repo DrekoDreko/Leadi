@@ -1,54 +1,48 @@
 import { ShieldCheck, XCircle, CheckCircle2 } from "lucide-react";
 
-const risks = [
-  "Perguntas sensíveis sobre saúde",
-  "Promessas de economia garantida",
-  "Linguagem agressiva ou imprecisa",
-  "Textos com risco de reprovação no Meta",
-  "Abordagens que parecem enganosas"
-];
-
 export function ComplianceSection() {
   return (
-    <section className="section-shell pb-24" id="seguranca">
+    <section className="section-shell pb-24" id="compliance">
       <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
         <div>
           <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-cobalt text-white shadow-soft">
             <ShieldCheck size={22} aria-hidden="true" />
           </span>
-          <p className="mb-3 text-sm font-medium text-cobalt">Compliance comercial</p>
-          <h2 className="text-3xl font-semibold leading-tight text-ink md:text-4xl">
-            Venda com uma linguagem mais segura
+          <p className="mb-3 text-sm font-semibold text-cobalt uppercase tracking-wider">Compliance de anúncios</p>
+          <h2 className="text-3xl font-semibold leading-[1.1] tracking-tight text-ink md:text-5xl">
+            Campanhas com linguagem mais segura
           </h2>
-          <p className="mt-4 text-lg leading-7 text-ink/64">
-            O sistema ajuda a identificar e evitar comunicações que podem gerar problemas em campanhas ou impressão negativa no cliente.
+          <p className="mt-4 text-base leading-relaxed text-ink/64 md:text-lg">
+            A IA do Leadi ajuda a estruturar textos consultivos e o checklist aponta termos que podem gerar risco de reprovação ou bloqueio de conta nas plataformas.
           </p>
-          <ul className="mt-6 space-y-3">
-            {risks.map((r) => (
-              <li key={r} className="flex items-center gap-3">
-                <XCircle size={16} className="shrink-0 text-red-400" aria-hidden="true" />
-                <span className="text-sm text-ink/70">{r}</span>
-              </li>
-            ))}
-          </ul>
+          <p className="mt-4 text-sm text-ink/48">
+            * O Leadi ajuda a reduzir riscos ao apontar termos de atenção, mas a aprovação final das campanhas depende exclusivamente das regras e análise das plataformas de anúncios.
+          </p>
         </div>
         <div className="space-y-4">
-          <div className="glass-strong rounded-[28px] p-6">
+          <div className="glass-strong rounded-[28px] p-6 border border-red-200/20">
             <div className="mb-3 flex items-center gap-2">
-              <XCircle size={16} className="text-red-400" aria-hidden="true" />
-              <span className="text-xs font-semibold uppercase tracking-wide text-red-400">Linguagem de risco</span>
+              <XCircle size={16} className="text-red-500" aria-hidden="true" />
+              <span className="text-xs font-bold uppercase tracking-wider text-red-500">Linguagem de risco (Evitar)</span>
             </div>
-            <p className="rounded-[16px] bg-red-50/60 px-4 py-3 text-sm font-medium text-red-700">
-              &ldquo;Está pagando caro no plano de saúde? Economize agora com garantia!&rdquo;
+            <p className="rounded-[16px] bg-red-50/50 border border-red-100 px-4 py-3.5 text-sm font-medium text-red-700">
+              &ldquo;Economize garantido no seu plano de saúde agora!&rdquo;
+            </p>
+            <p className="mt-2 text-xs text-red-600/70 px-1">
+              Promessas de economia imediata ou termos agressivos costumam acionar alertas de bloqueio.
             </p>
           </div>
-          <div className="glass-strong rounded-[28px] p-6">
+          
+          <div className="glass-strong rounded-[28px] p-6 border border-emerald-200/20">
             <div className="mb-3 flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-cobalt" aria-hidden="true" />
-              <span className="text-xs font-semibold uppercase tracking-wide text-cobalt">Linguagem recomendada</span>
+              <CheckCircle2 size={16} className="text-emerald-600" aria-hidden="true" />
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 font-semibold">Linguagem recomendada (Preferir)</span>
             </div>
-            <p className="rounded-[16px] bg-cobalt/5 px-4 py-3 text-sm font-medium text-cobalt">
-              &ldquo;Compare alternativas de contratação empresarial com orientação especializada.&rdquo;
+            <p className="rounded-[16px] bg-emerald-50/40 border border-emerald-100 px-4 py-3.5 text-sm font-medium text-emerald-800">
+              &ldquo;Compare alternativas de plano empresarial para sua empresa com suporte especializado.&rdquo;
+            </p>
+            <p className="mt-2 text-xs text-emerald-700/70 px-1">
+              Uma abordagem consultiva e voltada à comparação reduz bloqueios e atrai leads qualificados.
             </p>
           </div>
         </div>
@@ -56,3 +50,4 @@ export function ComplianceSection() {
     </section>
   );
 }
+

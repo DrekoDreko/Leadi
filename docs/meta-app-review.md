@@ -1,6 +1,6 @@
 # Meta App Review - checklist tecnico
 
-Guia operacional para a LeadHealth publicar a integracao Meta com o minimo de retrabalho.
+Guia operacional para o Leadi publicar a integracao Meta com o minimo de retrabalho.
 
 ## 1. URLs publicas que devem existir
 
@@ -8,6 +8,7 @@ Guia operacional para a LeadHealth publicar a integracao Meta com o minimo de re
 - Politica de privacidade: `/privacy`
 - Termos de uso: `/terms`
 - Exclusao de dados: `/data-deletion`
+- Callback de exclusao da Meta: `/api/meta/data-deletion`
 - Verificacao de webhook: `/api/meta/webhook`
 
 ## 2. Configuracao minima antes de abrir o painel da Meta
@@ -25,7 +26,8 @@ Guia operacional para a LeadHealth publicar a integracao Meta com o minimo de re
 - `App Domains`: dominio raiz do app publicado
 - `Privacy Policy URL`: `https://SEU_DOMINIO/privacy`
 - `Terms of Service URL`: `https://SEU_DOMINIO/terms`
-- `User Data Deletion`: preferir a URL `https://SEU_DOMINIO/data-deletion`
+- `User Data Deletion`: preferir `Data Deletion Callback URL` em `https://SEU_DOMINIO/api/meta/data-deletion`
+- `User Data Deletion` instructions page: `https://SEU_DOMINIO/data-deletion`
 - `Webhook Callback URL`: `https://SEU_DOMINIO/api/meta/webhook`
 - `Verify Token`: o mesmo valor de `META_VERIFY_TOKEN`
 - `OAuth Redirect URI`: `https://SEU_DOMINIO/api/integrations/meta/callback`

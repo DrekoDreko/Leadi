@@ -42,6 +42,7 @@ export type LeadUrlFilters = {
   city: string;
   period: LeadPeriodFilterValue;
   search: string;
+  archived: boolean;
 };
 
 export const defaultLeadUrlFilters: LeadUrlFilters = {
@@ -49,7 +50,8 @@ export const defaultLeadUrlFilters: LeadUrlFilters = {
   source: "all",
   city: "",
   period: "all",
-  search: ""
+  search: "",
+  archived: false
 };
 
 const stageValues = new Set<string>(leadStageFilterOptions.map((option) => option.value));
@@ -62,7 +64,8 @@ export function parseLeadUrlFilters(input: LeadSearchParamsInput): LeadUrlFilter
     source: parseFilterValue(input, "source", sourceValues, defaultLeadUrlFilters.source),
     city: normalizeFilterText(readSearchParam(input, "city")),
     period: parseFilterValue(input, "period", periodValues, defaultLeadUrlFilters.period),
-    search: normalizeLeadSearchTerm(readSearchParam(input, "search"))
+    search: normalizeLeadSearchTerm(readSearchParam(input, "search")),
+    archived: readSearchParam(input, "archived") === "true"
   };
 }
 

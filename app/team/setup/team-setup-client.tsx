@@ -172,13 +172,13 @@ export function TeamSetupClient({
         title={workspaceType === "team" ? "Gestao da equipe" : "Workspace individual"}
         description={
           workspaceType === "team"
-            ? "Convide administradores e vendedores, ajuste papéis e acompanhe os membros ativos."
+            ? "Convide administradores e consultores, ajuste papéis e acompanhe os membros ativos."
             : "Seu workspace ainda e individual. Quando virar equipe, os convites e papéis aparecem aqui."
         }
       >
         <div className="inline-flex items-center gap-2 rounded-full bg-white/58 px-4 py-2 text-sm font-semibold text-ink">
           <ShieldCheck size={16} aria-hidden="true" />
-          {currentRole === "owner" ? "Owner" : currentRole === "admin" ? "Admin" : "Vendedor"}
+          {currentRole === "owner" ? "Owner" : currentRole === "admin" ? "Admin" : "Consultor"}
         </div>
         <Link
           className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
@@ -283,7 +283,7 @@ export function TeamSetupClient({
                             type="button"
                           >
                             {isBusy ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : null}
-                            Rebaixar a vendedor
+                            Rebaixar a consultor
                           </button>
                         ) : null}
                         {canRemoveMember ? (
@@ -326,7 +326,7 @@ export function TeamSetupClient({
                   onChange={(event) => setInviteRole(event.target.value as InviteRole)}
                 >
                   {canInviteAdmins ? <option value="admin">Admin</option> : null}
-                  <option value="seller">Vendedor</option>
+                  <option value="seller">Consultor</option>
                 </select>
                 <button
                   className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90 disabled:opacity-70"
@@ -403,7 +403,7 @@ export function TeamSetupClient({
 }
 
 function getRoleLabel(role: "owner" | "admin" | "seller" | InviteRole) {
-  return role === "owner" ? "Owner" : role === "admin" ? "Admin" : "Vendedor";
+  return role === "owner" ? "Owner" : role === "admin" ? "Admin" : "Consultor";
 }
 
 function getAccessBullets(workspaceType: "solo" | "team", currentRole: "owner" | "admin" | "seller") {
@@ -416,20 +416,20 @@ function getAccessBullets(workspaceType: "solo" | "team", currentRole: "owner" |
 
   if (currentRole === "owner") {
     return [
-      "Owner: convida admins e vendedores, altera nome e gerencia membros.",
-      "Admin: convida vendedores e organiza a operação comercial.",
-      "Vendedor: trabalha apenas sua carteira e leads permitidos."
+      "Owner: convida admins e consultores, altera nome e gerencia membros.",
+      "Admin: convida consultores e organiza a operação comercial.",
+      "Consultor: trabalha apenas sua carteira e leads permitidos."
     ];
   }
 
   if (currentRole === "admin") {
     return [
-      "Admin: coordena a equipe e convida vendedores.",
-      "Vendedor: trabalha apenas sua carteira e leads permitidos."
+      "Admin: coordena a equipe e convida consultores.",
+      "Consultor: trabalha apenas sua carteira e leads permitidos."
     ];
   }
 
-  return ["Vendedor: trabalha apenas sua carteira e leads permitidos."];
+  return ["Consultor: trabalha apenas sua carteira e leads permitidos."];
 }
 
 function useAbsoluteInviteUrl(invitePath: string) {

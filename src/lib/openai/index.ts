@@ -21,6 +21,11 @@ type OpenAIResponsePayload = {
     }>;
     type?: string;
   }>;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+  };
   error?: {
     message?: string;
     type?: string;
@@ -274,10 +279,13 @@ function getOpenAIApiKey(override?: string | null) {
     return normalizedOverride;
   }
 
-  throw new LeadHealthOpenAIError(
-    "Nenhuma chave OpenAI conectada foi encontrada. Cadastre sua chave OpenAI na area Empresa para usar este recurso.",
-    "missing_api_key"
-  );
+  const platformApiKey = getServerEnv("OPENAI_API_KEY");
+
+  if (platformApiKey) {
+    return platformApiKey;
+  }
+
+  throw new LeadHealthOpenAIError("IA da plataforma ainda não configurada.", "missing_api_key");
 }
 
 function getOpenAIModel() {
@@ -316,14 +324,14 @@ function extractOutputText(payload: OpenAIResponsePayload | null) {
 
 function getRequestErrorMessage(status: number, payload: OpenAIResponsePayload | null) {
   if (status === 401) {
-    return "A chave da OpenAI parece invalida ou sem permissao. Verifique a chave conectada na area Empresa ou no servidor.";
+    return "A chave global da plataforma parece inválida ou sem permissão. Verifique a configuração no servidor.";
   }
 
   if (status === 429) {
     const errorMessage = payload?.error?.message?.toLowerCase() ?? "";
 
     if (errorMessage.includes("quota") || errorMessage.includes("billing") || errorMessage.includes("credit")) {
-      return "A conta atingiu a cota mensal ou ficou sem credito. Verifique Billing e Usage Limits na OpenAI.";
+      return "A plataforma atingiu a cota mensal ou ficou sem credito para IA.";
     }
 
     return "A OpenAI limitou temporariamente as chamadas. Aguarde alguns instantes e tente novamente.";

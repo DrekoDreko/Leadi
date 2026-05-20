@@ -85,9 +85,11 @@ const stageToneByValue: Record<LeadStageValue, StageTone> = {
 };
 
 export function SalesFunnelWorkspace({
+  aiBalance,
   createLeadAccess,
   leadState
 }: {
+  aiBalance: number;
   createLeadAccess: ResourceAccessSummary;
   leadState: LeadDataState;
 }) {
@@ -322,7 +324,7 @@ export function SalesFunnelWorkspace({
               </span>
             </div>
             <h1 className="max-w-4xl text-3xl font-semibold tracking-tight md:text-4xl xl:text-[2.8rem]">
-              Um funil mais amplo, legível e pronto para o corretor agir sem sair da tela.
+              Um funil mais amplo, legível e pronto para o consultor agir sem sair da tela.
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-ink/64 md:text-base">
               Mantivemos as etapas atuais do CRM, mas com uma leitura mais próxima de quadro
@@ -538,6 +540,7 @@ export function SalesFunnelWorkspace({
         open={isCreateOpen}
       />
       <LeadDetailsPopup
+        aiBalance={aiBalance}
         lead={selectedLead}
         onClose={() => setSelectedLead(null)}
         onDeleted={selectedLeadCanDelete ? handleLeadDeleted : undefined}
