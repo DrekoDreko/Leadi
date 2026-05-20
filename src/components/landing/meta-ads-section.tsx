@@ -1,59 +1,72 @@
-import { CheckCircle2 } from "lucide-react";
-
-const highlights = [
-  "Captura de leads do Meta Lead Ads",
-  "Organização automática no CRM",
-  "Separação por campanha e formulário",
-  "Status comercial de cada lead",
-  "Distribuição para vendedores",
-  "Acompanhamento de conversão",
-  "Histórico completo de contato"
-];
+import { Sparkles, UsersRound, Share2, Facebook, Instagram } from "lucide-react";
 
 export function MetaAdsSection() {
+  const blocks = [
+    {
+      icon: Sparkles,
+      title: "1. Campanha com IA",
+      desc: "Ideias e copys consultivas alinhadas com as regras de compliance e prontas para rodar no Meta."
+    },
+    {
+      icon: Share2,
+      title: "2. Leads do Facebook e Instagram",
+      desc: "Integração automática para receber leads de formulários oficiais sem perda de tempo ou planilhas."
+    },
+    {
+      icon: UsersRound,
+      title: "3. CRM e funil comercial",
+      desc: "Distribuição instantânea por corretor, acompanhamento em etapas claras e sugestões de WhatsApp."
+    }
+  ];
+
   return (
     <section className="section-shell pb-24" id="meta-ads">
-      <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
-        <div>
-          <p className="mb-3 text-sm font-medium text-cobalt">Meta Lead Ads</p>
-          <h2 className="text-3xl font-semibold leading-tight text-ink md:text-4xl">
-            Feito para quem vende através do Facebook e Instagram
-          </h2>
-          <p className="mt-4 text-lg leading-7 text-ink/64">
-            O Leadi foi pensado para operações que captam leads por formulários do Meta Lead Ads e precisam transformar esses contatos em oportunidades reais dentro de um processo comercial organizado.
-          </p>
-          <ul className="mt-8 space-y-3">
-            {highlights.map((h) => (
-              <li className="flex items-center gap-3" key={h}>
-                <CheckCircle2 size={18} className="shrink-0 text-cobalt" aria-hidden="true" />
-                <span className="text-sm font-medium text-ink/80">{h}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-6 inline-flex rounded-full bg-signal/20 px-4 py-2 text-sm font-medium text-ink/70">
-            Integração com Meta Lead Ads em implantação
-          </div>
-        </div>
-        <div className="glass-strong rounded-[34px] p-8">
-          <div className="space-y-4">
-            {[
-              { label: "Campanha", value: "PME - Julho 2025", color: "bg-cobalt/10 text-cobalt" },
-              { label: "Formulário", value: "Form Empresarial MEI", color: "bg-signal/30 text-ink" },
-              { label: "Leads captados", value: "47 leads", color: "bg-green-100 text-green-700" },
-              { label: "Em atendimento", value: "23 leads", color: "bg-blue-100 text-blue-700" },
-              { label: "Em proposta", value: "8 leads", color: "bg-purple-100 text-purple-700" },
-              { label: "Convertidos", value: "3 leads", color: "bg-signal/30 text-ink" }
-            ].map((row) => (
-              <div key={row.label} className="flex items-center justify-between rounded-[18px] bg-white/50 px-4 py-3">
-                <span className="text-sm text-ink/60">{row.label}</span>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${row.color}`}>
-                  {row.value}
+      <div className="mx-auto max-w-4xl text-center mb-16">
+        <p className="mb-3 text-sm font-semibold text-cobalt uppercase tracking-wider">Integração Direta</p>
+        <h2 className="text-3xl font-semibold leading-[1.1] tracking-tight text-ink md:text-5xl">
+          Crie a campanha. Receba o lead. Acompanhe a venda.
+        </h2>
+        <p className="mt-4 text-base leading-relaxed text-ink/64 md:text-lg max-w-3xl mx-auto">
+          O Leadi conecta a criação de campanhas, a captura imediata de leads e o acompanhamento comercial em uma operação única para plano de saúde.
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {blocks.map((block, i) => {
+          const Icon = block.icon;
+          return (
+            <div
+              key={block.title}
+              className="glass-strong rounded-[32px] p-8 border border-white/50 shadow-soft relative overflow-hidden flex flex-col justify-between"
+            >
+              <div>
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cobalt/10 text-cobalt mb-6">
+                  <Icon size={22} aria-hidden="true" />
                 </span>
+                <h3 className="text-xl font-bold text-ink tracking-tight">{block.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-ink/60">{block.desc}</p>
               </div>
-            ))}
-          </div>
-        </div>
+              
+              {i === 1 && (
+                <div className="mt-6 flex items-center gap-3 text-ink/40 text-xs font-semibold">
+                  <span>Plataformas suportadas:</span>
+                  <div className="flex gap-2">
+                    <Facebook size={14} className="text-ink/60" />
+                    <Instagram size={14} className="text-ink/60" />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-8 text-center">
+        <p className="text-[11px] leading-relaxed text-ink/40 max-w-2xl mx-auto">
+          Meta, Facebook e Instagram são marcas registradas da Meta Platforms, Inc. O Leadi é uma plataforma independente e não possui filiação, patrocínio, endosso ou parceria oficial com a Meta Platforms.
+        </p>
       </div>
     </section>
   );
 }
+

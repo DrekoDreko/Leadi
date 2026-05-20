@@ -16,7 +16,7 @@ const pains = [
   {
     icon: Clock,
     title: "Demora no primeiro contato",
-    desc: "Vendedores demoram para chamar no WhatsApp e oportunidades esfridam."
+    desc: "Consultores demoram para chamar no WhatsApp e oportunidades esfridam."
   },
   {
     icon: TrendingDown,
@@ -26,7 +26,7 @@ const pains = [
   {
     icon: FolderOpen,
     title: "Campanhas sem padrão comercial",
-    desc: "Cada vendedor cria anúncios do seu jeito, sem processo ou histórico."
+    desc: "Cada consultor cria anúncios do seu jeito, sem processo ou histórico."
   },
   {
     icon: MessageSquareX,

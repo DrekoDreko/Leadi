@@ -71,7 +71,7 @@ export const BILLING_PRODUCTS: Record<BillingProductKey, BillingProduct> = {
   credit_pack_1000: {
     key: "credit_pack_1000",
     label: "Pacote 1000 créditos",
-    description: "Volume maior para campanhas em escala e múltiplos vendedores.",
+    description: "Volume maior para campanhas em escala e múltiplos consultores.",
     kind: "pack",
     credits: 1000,
     amountCents: 17900,

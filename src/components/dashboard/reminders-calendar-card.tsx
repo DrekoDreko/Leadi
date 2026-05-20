@@ -181,7 +181,7 @@ export function RemindersCalendarCard({
 
   return (
     <>
-      <section className="glass rounded-[34px] p-5">
+      <section className="glass !bg-cloud/95 rounded-[34px] p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm text-ink/54">Calendario</p>

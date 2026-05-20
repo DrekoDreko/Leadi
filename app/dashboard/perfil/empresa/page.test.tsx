@@ -12,9 +12,9 @@ vi.mock("@/lib/workspaces/context", () => ({
 describe("Perfil Empresa Page (/dashboard/perfil/empresa)", () => {
   it("renderiza um resumo simples da empresa", async () => {
     vi.mocked(requireCompletedProfile).mockResolvedValue({
-      workspaceName: "Lucas Seguros",
+      workspaceName: "Gabriel Seguros",
       workspaceType: "team",
-      brokerageName: "Lucas Seguros",
+      brokerageName: "Gabriel Seguros",
       isSoloOwner: false
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -22,7 +22,7 @@ describe("Perfil Empresa Page (/dashboard/perfil/empresa)", () => {
     render(Page);
 
     expect(screen.getByText("Dados da empresa")).toBeInTheDocument();
-    expect(screen.getAllByText("Lucas Seguros").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Gabriel Seguros").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /Gerenciar Meta/i })).toBeInTheDocument();
   });
 });

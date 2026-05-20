@@ -11,7 +11,7 @@ describe('Pricing Page (/pricing)', () => {
     render(<PricingPage />);
     
     expect(screen.getByRole('heading', { name: /Escolha o plano ideal para sua operação/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /^Inicial$/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Essencial$/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /^Profissional$/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /^Operação$/i })).toBeInTheDocument();
   });
@@ -19,7 +19,7 @@ describe('Pricing Page (/pricing)', () => {
   it('exibe os preços dos planos', () => {
     render(<PricingPage />);
 
-    const initialCard = screen.getByRole('heading', { name: /^Inicial$/i }).closest('article');
+    const initialCard = screen.getByRole('heading', { name: /^Essencial$/i }).closest('article');
     const professionalCard = screen.getByRole('heading', { name: /^Profissional$/i }).closest('article');
     const operationCard = screen.getByRole('heading', { name: /^Operação$/i }).closest('article');
 

@@ -3,9 +3,6 @@ import { expect, it, describe, vi } from 'vitest';
 import Home from './page';
 
 // Mock components that might be complex
-vi.mock('@/components/mock-dashboard-preview', () => ({
-  MockDashboardPreview: () => <div data-testid="mock-dashboard" />
-}));
 
 vi.mock('@/components/brand-mark', () => ({
   BrandMark: () => <div data-testid="brand-mark" />
@@ -18,10 +15,10 @@ describe('Landing Page (/)', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /Leads do Meta organizados em um CRM feito para vender plano de saúde empresarial/i
+        name: /Crie anúncios com IA para vender/i
       })
     ).toBeInTheDocument();
-    expect(screen.getByText(/CRM e automação para gestão de leads/i)).toBeInTheDocument();
+    expect(screen.getByText(/O Leadi ajuda sua operação a criar campanhas/i)).toBeInTheDocument();
   });
 
   it('contem links para as paginas principais', async () => {

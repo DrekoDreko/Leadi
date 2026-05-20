@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Mail, ShieldCheck } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { signInAction, signInWithGoogleAction, signUpAction } from "./actions";
 
 type AuthMode = "login" | "signup";
@@ -35,23 +36,29 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="grid w-full max-w-5xl items-stretch gap-4 lg:grid-cols-[0.9fr_1.1fr]">
         <section
-          className={`glass-dark rounded-[38px] p-6 text-white transition-[min-height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:p-8 ${panelHeight}`}
+          className={`campaign-liquid-hero relative overflow-hidden rounded-[38px] border border-white/32 shadow-[0_36px_120px_rgba(10,18,39,0.34)] p-6 text-white transition-[min-height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:p-8 ${panelHeight}`}
         >
-          <Link href="/" className="flex items-center gap-3" aria-label="Leadi">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-ink shadow-soft">
-              Le
-            </span>
-            <span className="text-xl font-semibold text-white">Leadi</span>
-          </Link>
-          <div className="mt-14 transition-[margin] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:mt-24">
-            <ShieldCheck className="text-signal" size={38} aria-hidden="true" />
-            <h1 className="mt-8 text-4xl font-semibold leading-tight sm:text-5xl">
-              Acesse seu painel Leadi
-            </h1>
-            <p className="mt-5 max-w-md leading-8 text-white/64">
-              Autenticação conectada ao Supabase Auth, com configuração guiada
-              de perfil, workspace e permissões da equipe.
-            </p>
+          <div
+            aria-hidden="true"
+            className="campaign-liquid-glow absolute inset-0"
+          />
+          <div
+            aria-hidden="true"
+            className="campaign-liquid-grid absolute inset-0"
+          />
+
+          <div className="relative z-10">
+            <BrandMark tone="dark" />
+            <div className="mt-14 transition-[margin] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:mt-24">
+              <ShieldCheck className="text-signal" size={38} aria-hidden="true" />
+              <h1 className="mt-8 text-4xl font-semibold leading-tight sm:text-5xl">
+                Acesse seu painel Leadi
+              </h1>
+              <p className="mt-5 max-w-md leading-8 text-white/64">
+                Autenticação conectada ao Supabase Auth, com configuração guiada
+                de perfil, workspace e permissões da equipe.
+              </p>
+            </div>
           </div>
         </section>
 

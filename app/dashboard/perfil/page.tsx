@@ -85,7 +85,7 @@ export default async function PerfilPage({
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
           <Settings size={18} aria-hidden="true" />
-          {context.role === "owner" ? "Owner" : context.role === "admin" ? "Admin" : "Vendedor"}
+          {context.role === "owner" ? "Owner" : context.role === "admin" ? "Admin" : "Consultor"}
         </span>
       </PageHeading>
 
@@ -189,6 +189,7 @@ export default async function PerfilPage({
             href="/dashboard/perfil/creditos"
             icon={<Coins size={20} aria-hidden="true" />}
             title="Créditos de IA"
+            statusText={aiBalance > 0 ? `${aiBalance.toLocaleString("pt-BR")} créditos` : "Sem saldo"}
           />
           <ManageLinkCard
             cta="Gerenciar Meta"
@@ -196,6 +197,7 @@ export default async function PerfilPage({
             href="/dashboard/perfil/meta"
             icon={<ArrowUpRight size={20} aria-hidden="true" />}
             title="Meta e contas conectadas"
+            statusText={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
           />
           <ManageLinkCard
             cta="Gerenciar empresa"
@@ -203,12 +205,14 @@ export default async function PerfilPage({
             href="/dashboard/perfil/empresa"
             icon={<BriefcaseBusiness size={20} aria-hidden="true" />}
             title="Dados da empresa"
+            statusText={context.workspaceType === "team" ? "Equipe" : "Individual"}
           />
           <ManageDisabledCard
             cta="Em breve"
             description="Conexão própria da OpenAI ficará disponível em uma próxima etapa."
             icon={<Sparkles size={20} aria-hidden="true" />}
             title="OpenAI"
+            statusText="Em breve"
           />
         </div>
       </section>
@@ -221,31 +225,40 @@ function ManageLinkCard({
   description,
   cta,
   href,
-  icon
+  icon,
+  statusText
 }: {
   title: string;
   description: string;
   cta: string;
   href: string;
   icon: ReactNode;
+  statusText?: string;
 }) {
   return (
     <Link
-      className="group flex h-full flex-col justify-between rounded-[30px] border border-white/50 bg-white/38 p-5 text-left transition hover:-translate-y-0.5 hover:bg-white/48"
+      className="group glass flex h-full flex-col justify-between rounded-[34px] p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_80px_rgba(18,23,33,0.14)]"
       href={href}
     >
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-cobalt">{title}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-semibold text-cobalt">{title}</p>
+              {statusText && (
+                <span className="inline-flex items-center rounded-full bg-white/70 px-2.5 py-0.5 text-xs font-semibold text-cobalt shadow-[0_4px_12px_rgba(18,23,33,0.02)] transition-all duration-300 group-hover:bg-white group-hover:scale-105">
+                  {statusText}
+                </span>
+              )}
+            </div>
             <p className="mt-2 text-sm leading-6 text-ink/62">{description}</p>
           </div>
-          <span className="rounded-full bg-white/70 p-3 text-ink">{icon}</span>
+          <span className="rounded-full bg-white/70 p-3 text-ink transition-all duration-300 group-hover:scale-110 group-hover:bg-white">{icon}</span>
         </div>
       </div>
-      <span className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-white transition group-hover:bg-ink/90">
+      <span className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-white transition-all duration-300 group-hover:bg-ink/90 group-hover:shadow-[0_12px_24px_rgba(18,23,33,0.12)]">
         {cta}
-        <ArrowRight size={16} aria-hidden="true" />
+        <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
       </span>
     </Link>
   );
@@ -255,29 +268,35 @@ function ManageDisabledCard({
   title,
   description,
   cta,
-  icon
+  icon,
+  statusText
 }: {
   title: string;
   description: string;
   cta: string;
   icon: ReactNode;
+  statusText?: string;
 }) {
   return (
-    <div className="flex h-full flex-col justify-between rounded-[30px] border border-white/50 bg-white/28 p-5 text-left opacity-90">
+    <div className="glass flex h-full flex-col justify-between rounded-[34px] p-6 text-left opacity-80 transition-all duration-300">
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-cobalt">{title}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-semibold text-cobalt">{title}</p>
+              {statusText && (
+                <span className="inline-flex items-center rounded-full bg-lagoon/12 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-lagoon">
+                  {statusText}
+                </span>
+              )}
+            </div>
             <p className="mt-2 text-sm leading-6 text-ink/62">{description}</p>
           </div>
           <span className="rounded-full bg-white/70 p-3 text-ink/60">{icon}</span>
         </div>
-        <span className="inline-flex rounded-full bg-lagoon/12 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-lagoon">
-          Em breve
-        </span>
       </div>
       <button
-        className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink/62"
+        className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink/62 cursor-not-allowed"
         disabled
         type="button"
       >

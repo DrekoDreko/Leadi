@@ -55,7 +55,7 @@ export const leads: Lead[] = [
   {
     id: "LE-1042",
     name: "Marina Azevedo",
-    owner: "Lucas",
+    owner: "Gabriel",
     stage: "Novo lead",
     source: "Meta Lead Form",
     phone: "(19) 98842-1042",
@@ -78,7 +78,7 @@ export const leads: Lead[] = [
   {
     id: "LE-1039",
     name: "Renato Carvalho",
-    owner: "Bia",
+    owner: "Beatriz",
     stage: "Qualificação",
     source: "CSV importado",
     phone: "(11) 97620-1039",
@@ -96,7 +96,7 @@ export const leads: Lead[] = [
   {
     id: "LE-1031",
     name: "Paula Mendes",
-    owner: "Lucas",
+    owner: "Gabriel",
     stage: "Proposta",
     source: "Cadastro manual",
     phone: "(13) 99110-1031",
@@ -114,7 +114,7 @@ export const leads: Lead[] = [
   {
     id: "LE-1028",
     name: "Fábio Lins",
-    owner: "Nina",
+    owner: "Fernanda",
     stage: "Negociação",
     source: "Meta Lead Form",
     phone: "(15) 98132-1028",

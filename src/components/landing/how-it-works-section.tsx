@@ -2,7 +2,7 @@ const steps = [
   {
     num: "01",
     title: "Conecte sua operação",
-    desc: "Organize seus formulários, vendedores e canais de atendimento em um ambiente centralizado."
+    desc: "Organize seus formulários, consultores e canais de atendimento em um ambiente centralizado."
   },
   {
     num: "02",

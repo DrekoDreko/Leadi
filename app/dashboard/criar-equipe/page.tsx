@@ -10,7 +10,7 @@ export default async function CriarEquipePage() {
       <PageHeading
         eyebrow="Equipe"
         title="Criar equipe"
-        description="Transforme seu workspace individual em uma operacao com admins e vendedores convidados."
+        description="Transforme seu workspace individual em uma operacao com admins e consultores convidados."
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
           <UserPlus size={18} aria-hidden="true" />

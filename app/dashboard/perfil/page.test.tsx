@@ -34,17 +34,17 @@ describe("Perfil Page (/dashboard/perfil)", () => {
     vi.mocked(requireCompletedProfile).mockResolvedValue({
       mode: "supabase",
       workspace: { id: "org-1" },
-      workspaceName: "Corretora Demo",
+      workspaceName: "Aliança Corretora",
       workspaceType: "solo",
       role: "owner",
       isManager: true,
       isSoloOwner: true,
       isAdmin: false,
       isOwner: true,
-      displayName: "Lucas",
-      profile: { email: "lucas@leadi.example" },
+      displayName: "Gabriel",
+      profile: { email: "gabriel@alianca.example" },
       profileSetupCompleted: true,
-      brokerageName: "Corretora Demo"
+      brokerageName: "Aliança Corretora"
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     vi.mocked(getConnectedAccountsForCurrentUser).mockResolvedValue({
@@ -84,15 +84,15 @@ describe("Perfil Page (/dashboard/perfil)", () => {
     vi.mocked(requireCompletedProfile).mockResolvedValue({
       mode: "supabase",
       workspace: { id: "org-1" },
-      workspaceName: "Corretora Demo",
+      workspaceName: "Aliança Corretora",
       workspaceType: "solo",
       role: "owner",
       isManager: true,
       isSoloOwner: true,
       isAdmin: false,
       isOwner: true,
-      displayName: "Lucas",
-      profile: { email: "lucas@leadi.example" },
+      displayName: "Gabriel",
+      profile: { email: "gabriel@alianca.example" },
       profileSetupCompleted: true
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -111,17 +111,17 @@ describe("Perfil Page (/dashboard/perfil)", () => {
     vi.mocked(requireCompletedProfile).mockResolvedValue({
       mode: "supabase",
       workspace: { id: "org-1" },
-      workspaceName: "Corretora Demo",
+      workspaceName: "Aliança Corretora",
       workspaceType: "solo",
       role: "owner",
       isManager: true,
       isSoloOwner: true,
       isAdmin: false,
       isOwner: true,
-      displayName: "Lucas",
-      profile: { email: "lucas@leadi.example" },
+      displayName: "Gabriel",
+      profile: { email: "gabriel@alianca.example" },
       profileSetupCompleted: true,
-      brokerageName: "Corretora Demo"
+      brokerageName: "Aliança Corretora"
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     vi.mocked(getConnectedAccountsForCurrentUser).mockResolvedValue({

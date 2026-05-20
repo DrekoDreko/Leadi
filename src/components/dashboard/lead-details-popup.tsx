@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
-  AlertTriangle,
   Archive,
   CheckCircle2,
   Clock3,
@@ -13,7 +12,6 @@ import {
   PhoneCall,
   Save,
   Send,
-  Trash2,
   UserRound,
   X
 } from "lucide-react";
@@ -547,39 +545,6 @@ export function LeadDetailsPopup({
           </div>
         )}
 
-        {isConfirmingDelete && !isEditing && (
-          <div
-            aria-live="polite"
-            className="mt-5 flex flex-col gap-3 rounded-[24px] bg-red-50/90 px-4 py-3 text-sm font-medium text-red-900 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <span className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
-              <span>
-                {deleteError ?? "Confirme o arquivamento deste lead. Ele sera movido para a lista de arquivados."}
-              </span>
-            </span>
-            <span className="flex shrink-0 gap-2">
-              <button
-                className="rounded-full bg-white/70 px-4 py-2 text-xs font-semibold text-ink transition hover:bg-white"
-                disabled={isDeleting}
-                onClick={cancelDelete}
-                type="button"
-              >
-                Cancelar
-              </button>
-              <button
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={isDeleting}
-                onClick={handleDeleteConfirmed}
-                type="button"
-              >
-                {isDeleting && <Loader2 className="animate-spin" size={15} aria-hidden="true" />}
-                {isDeleting ? "Arquivando..." : "Confirmar arquivamento"}
-              </button>
-            </span>
-          </div>
-        )}
-
         {!isEditing && messageGeneratorEnabled ? (
           <div className="mt-5 flex flex-wrap gap-2">
             <button
@@ -921,7 +886,6 @@ export function LeadDetailsPopup({
                       <Archive size={18} aria-hidden="true" />
                     </span>
                     <div>
-                      <p className="text-sm text-amber-700/72">Zona sensível</p>
                       <h3 className="font-semibold text-ink">Arquivar lead</h3>
                     </div>
                   </div>
@@ -966,12 +930,12 @@ export function LeadDetailsPopup({
                     </div>
                   ) : (
                     <button
-                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white/70 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-white"
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white/70 px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-white"
                       onClick={startDelete}
                       type="button"
                     >
-                      <Trash2 size={18} aria-hidden="true" />
-                      Excluir lead
+                      <Archive size={18} aria-hidden="true" />
+                      Arquivar lead
                     </button>
                   )}
                 </section>

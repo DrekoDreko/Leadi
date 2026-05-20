@@ -12,7 +12,7 @@ export default async function ImportarLeadsPage() {
     getConnectedAccountsForCurrentUser()
   ]);
   const description = context.isManager
-    ? "Importe uma base para a equipe e distribua os leads entre vendedores."
+    ? "Importe uma base para a equipe e distribua os leads entre consultores."
     : "Importe leads apenas para a sua propria carteira comercial.";
 
   return (

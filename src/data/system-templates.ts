@@ -3,54 +3,108 @@ import type { SystemTemplate } from "@/lib/templates/types";
 export const systemTemplatesFallback: SystemTemplate[] = [
   // Campaigns
   {
-    id: "tpl-campaign-mei",
+    id: "tpl-campaign-migration-business-plan",
+    templateType: "campaign",
+    category: "Plano empresarial",
+    title: "Migração para plano empresarial",
+    description: "Para pessoas com CNPJ que desejam avaliar alternativas de plano de saúde empresarial.",
+    content: {
+      audience: "Pessoas com CNPJ, MEI, ME ou LTDA que desejam avaliar alternativas de plano de saúde empresarial.",
+      offer: "Análise consultiva para comparar possibilidades de contratação empresarial conforme perfil da empresa.",
+      region: "São Paulo, SP",
+      differentiator: "Atendimento consultivo, explicação clara das opções e apoio no entendimento das regras de contratação.",
+      tone: "Consultivo e direto",
+      notes: "Evitar promessa de economia garantida. Usar linguagem educativa e profissional."
+    },
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: "tpl-campaign-mei-safe",
     templateType: "campaign",
     category: "MEI",
-    title: "Plano de Saúde para MEI - Vantagens Exclusivas",
-    description: "Focado em microempreendedores que buscam reduzir custos e ter acesso à rede privada.",
+    title: "Plano de saúde para MEI",
+    description: "Orientação clara para microempreendedores que querem entender opções com CNPJ.",
     content: {
-      audience: "Microempreendedores Individuais (MEI) e profissionais liberais",
-      offer: "Consultoria gratuita para reduzir custos no plano de saúde MEI",
-      region: "Brasil",
-      differentiator: "Atendimento personalizado e comparativo entre as melhores operadoras para MEI",
-      tone: "consultivo, direto e seguro",
-      notes: "Destacar que o MEI tem desconto de até 35% em relação ao plano individual."
+      audience: "Microempreendedores individuais que buscam entender opções de plano de saúde com CNPJ.",
+      offer: "Orientação sobre possibilidades de contratação para MEI, respeitando critérios das operadoras.",
+      region: "São Paulo, ABC Paulista",
+      differentiator: "Explicação simples sobre documentação, carências, elegibilidade e alternativas disponíveis.",
+      tone: "Humano e claro",
+      notes: "Não afirmar aprovação garantida. Não prometer valores específicos."
     },
     isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
   {
-    id: "tpl-campaign-pme",
+    id: "tpl-campaign-small-business",
     templateType: "campaign",
-    category: "PME",
-    title: "Saúde para Pequenas e Médias Empresas",
-    description: "Focado em empresas de 2 a 99 vidas que querem valorizar a equipe.",
+    category: "Pequenas empresas",
+    title: "Plano empresarial para pequenas empresas",
+    description: "Cotação orientada para sócios, equipe ou familiares elegíveis.",
     content: {
-      audience: "Donos e gestores de pequenas e médias empresas (PMEs)",
-      offer: "Análise de benefícios para equipe com foco em retenção de talentos",
-      region: "Região Metropolitana",
-      differentiator: "Rede credenciada qualificada e gestão simplificada para o RH",
-      tone: "profissional, objetivo e premium",
-      notes: "Ênfase na valorização do colaborador e dedução fiscal para a empresa."
+      audience: "Donos de pequenas empresas que querem organizar benefício de saúde para sócios, equipe ou familiares elegíveis.",
+      offer: "Cotação orientada de planos empresariais conforme quantidade de vidas e perfil da empresa.",
+      region: "Campinas, Jundiaí, Sorocaba",
+      differentiator: "Comparação entre operadoras, rede credenciada e formatos de contratação.",
+      tone: "Consultivo e direto",
+      notes: "Evitar linguagem de urgência exagerada. Focar em clareza e orientação."
     },
     isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
   {
-    id: "tpl-campaign-cost",
+    id: "tpl-campaign-operator-comparison",
     templateType: "campaign",
-    category: "Redução de Custo",
-    title: "Economize no Plano Empresarial Atual",
-    description: "Focado em empresas que já possuem plano mas estão sofrendo com reajustes.",
+    category: "Comparativo",
+    title: "Comparativo entre operadoras",
+    description: "Apoio organizado para comparar rede, abrangência e possibilidades.",
     content: {
-      audience: "Empresas que já possuem plano de saúde mas buscam economia",
-      offer: "Estudo de viabilidade para reduzir custos sem perder qualidade na rede",
-      region: "Brasil",
-      differentiator: "Comparativo real de preços e análise técnica de reajustes",
-      tone: "educativo, prático e confiável",
-      notes: "Focar na economia de custos fixos sem sacrificar o atendimento aos sócios e equipe."
+      audience: "Empresas que desejam comparar opções entre operadoras como Bradesco, SulAmérica, Amil e outras disponíveis.",
+      offer: "Apoio para comparar rede, abrangência, perfil de uso e possibilidades de contratação.",
+      region: "São Paulo, Guarulhos, Osasco",
+      differentiator: "Comparativo organizado para ajudar o cliente a tomar decisão com mais segurança.",
+      tone: "Profissional e objetivo",
+      notes: "Não depreciar operadoras. Não prometer melhor preço absoluto."
+    },
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: "tpl-campaign-partners-team",
+    templateType: "campaign",
+    category: "Elegibilidade",
+    title: "Inclusão de sócios e equipe",
+    description: "Análise de elegibilidade para titulares, colaboradores e dependentes.",
+    content: {
+      audience: "Empresas LTDA, ME e pequenos negócios que precisam entender quem pode entrar como titular ou dependente.",
+      offer: "Análise das possibilidades de inclusão de sócios, colaboradores e dependentes conforme regras da operadora.",
+      region: "Grande São Paulo",
+      differentiator: "Orientação sobre documentação, elegibilidade e composição de vidas.",
+      tone: "Humano e claro",
+      notes: "Não prometer aceitação automática. Focar em análise de viabilidade."
+    },
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: "tpl-campaign-contract-review",
+    templateType: "campaign",
+    category: "Revisão",
+    title: "Revisão de contrato atual",
+    description: "Diagnóstico consultivo para revisar rede, condições e alternativas.",
+    content: {
+      audience: "Empresas que já possuem plano de saúde e querem revisar opções, rede e condições disponíveis.",
+      offer: "Revisão consultiva do cenário atual e apresentação de alternativas quando fizer sentido.",
+      region: "São Paulo, Santos, Interior de SP",
+      differentiator: "Diagnóstico organizado antes de sugerir qualquer mudança.",
+      tone: "Consultivo e direto",
+      notes: "Evitar “você está pagando caro”. Usar “avaliar alternativas” ou “revisar possibilidades”."
     },
     isActive: true,
     createdAt: new Date().toISOString(),

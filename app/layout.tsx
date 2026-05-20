@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   },
   description:
     "Plataforma para captar, organizar e acompanhar leads com funil comercial, integrações e automações.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png"
+  },
   alternates: {
     canonical: getCanonicalUrl("/")
   },

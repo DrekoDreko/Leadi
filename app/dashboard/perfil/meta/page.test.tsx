@@ -17,14 +17,14 @@ vi.mock("@/lib/integrations/repository.server", () => ({
 describe("Perfil Meta Page (/dashboard/perfil/meta)", () => {
   it("renderiza a area detalhada de Meta e os ativos conectados", async () => {
     vi.mocked(requireCompletedProfile).mockResolvedValue({
-      workspaceName: "Corretora Demo"
+      workspaceName: "Aliança Corretora"
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     vi.mocked(getConnectedAccountsForCurrentUser).mockResolvedValue({
       message: null,
       canManageConnections: true,
       metaConnection: {
-        metaUserName: "Corretora Demo Meta",
+        metaUserName: "Aliança Corretora Meta",
         metaUserId: "meta-1",
         connectionStatusLabel: "Conectada",
         lastSyncAt: "2026-05-15T12:00:00.000Z",
@@ -33,7 +33,7 @@ describe("Perfil Meta Page (/dashboard/perfil/meta)", () => {
       metaPages: [
         {
           id: "page-1",
-          name: "Corretora Demo Empresarial",
+          name: "Aliança Corretora Empresarial",
           metaPageId: "meta-page-1",
           status: "connected",
           lastSyncAt: "2026-05-15T12:00:00.000Z"
@@ -62,7 +62,7 @@ describe("Perfil Meta Page (/dashboard/perfil/meta)", () => {
     expect(screen.getByText("Permissões concedidas")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Gerenciar conexão/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Sincronizar novamente/i })).toBeInTheDocument();
-    expect(screen.getByText("Corretora Demo Empresarial")).toBeInTheDocument();
+    expect(screen.getByText("Aliança Corretora Empresarial")).toBeInTheDocument();
     expect(screen.getByText("Formulario Principal")).toBeInTheDocument();
   });
 });

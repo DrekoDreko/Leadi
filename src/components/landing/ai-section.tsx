@@ -2,10 +2,10 @@ import { BrainCircuit } from "lucide-react";
 
 const aiFeatures = [
   { title: "Sugestão de campanhas", desc: "A IA propõe estruturas de campanha baseadas no perfil do público e do produto." },
-  { title: "Textos consultivos", desc: "Gere copy de anúncio com linguagem adequada para plano de saúde empresarial." },
+  { title: "Textos consultivos", desc: "Gere copy de anúncio com linguagem adequada para plano de saúde." },
   { title: "Mensagens de WhatsApp", desc: "Crie mensagens para cada etapa: primeiro contato, follow-up e proposta." },
   { title: "Análise de linguagem sensível", desc: "Identifica termos de risco antes de publicar qualquer material." },
-  { title: "Sugestão de próxima ação", desc: "Apoia o vendedor com o que fazer em cada momento da negociação." },
+  { title: "Sugestão de próxima ação", desc: "Apoia o consultor com o que fazer em cada momento da negociação." },
   { title: "Resumo de atendimento", desc: "Ajuda a registrar o histórico de forma estruturada e consultiva." }
 ];
 
@@ -19,10 +19,10 @@ export function AISection() {
               <BrainCircuit size={22} aria-hidden="true" />
             </span>
             <h2 className="text-3xl font-semibold leading-tight md:text-4xl">
-              IA para acelerar a operação, não para substituir o vendedor
+              IA para acelerar a operação, não para substituir o consultor
             </h2>
             <p className="mt-4 text-lg leading-7 text-white/64">
-              O vendedor mantém o controle de cada negociação. A IA apoia com sugestões, textos e análises — mas a decisão e o relacionamento sempre ficam com a equipe comercial.
+              O consultor mantém o controle de cada negociação. A IA apoia com sugestões, textos e análises — mas a decisão e o relacionamento sempre ficam com a equipe comercial.
             </p>
             <div className="mt-6 inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white/70">
               Controle humano sempre presente

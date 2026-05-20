@@ -79,74 +79,91 @@ export function MetaConnectedAccountsSection({
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <InfoTile label="Perfil Meta" value={connection?.metaUserName ?? "Não conectado"} />
-        <InfoTile label="ID do perfil" value={connection?.metaUserId ?? "Não informado"} />
-        <InfoTile label="Status" value={connection?.connectionStatusLabel ?? "Pendente"} />
-        <InfoTile label="Última sincronização" value={formatDateTime(connection?.lastSyncAt)} />
-      </div>
-
-      <div className="mt-5 grid gap-3 md:grid-cols-3">
-        <InfoTile label="Páginas conectadas" value={String(connectedAccounts.metaPages.length)} />
-        <InfoTile
-          label="Contas de anúncio"
-          value={String(connectedAccounts.metaAdAccounts.length)}
-        />
-        <InfoTile label="Formulários de lead" value={String(connectedAccounts.metaLeadForms.length)} />
-      </div>
-
-      <div className="mt-5 rounded-[24px] bg-white/48 p-4">
-        <p className="text-sm font-semibold text-ink">Permissões concedidas</p>
-        {connection?.permissions.length ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {connection.permissions.map((permission) => (
-              <span
-                className="rounded-full bg-white/76 px-3 py-1.5 text-xs font-semibold text-ink/70"
-                key={permission}
-              >
-                {permission}
-              </span>
-            ))}
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        {/* Sessão 1: Informações da Conta */}
+        <article className="rounded-[28px] border border-white/44 bg-white/36 p-5 flex flex-col gap-4">
+          <p className="text-sm font-semibold text-cobalt">Informações da conta</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoTile label="Perfil Meta" value={connection?.metaUserName ?? "Não conectado"} />
+            <InfoTile label="ID do perfil" value={connection?.metaUserId ?? "Não informado"} />
+            <InfoTile label="Status" value={connection?.connectionStatusLabel ?? "Pendente"} />
+            <InfoTile label="Última sincronização" value={formatDateTime(connection?.lastSyncAt)} />
           </div>
-        ) : (
-          <p className="mt-2 text-sm text-ink/58">Permissões ainda não disponíveis.</p>
-        )}
+        </article>
+
+        {/* Sessão 2: Resumo dos Ativos */}
+        <article className="rounded-[28px] border border-white/44 bg-white/36 p-5 flex flex-col gap-4">
+          <p className="text-sm font-semibold text-cobalt">Resumo dos ativos</p>
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+            <InfoTile label="Páginas conectadas" value={String(connectedAccounts.metaPages.length)} />
+            <InfoTile
+              label="Contas de anúncio"
+              value={String(connectedAccounts.metaAdAccounts.length)}
+            />
+            <InfoTile label="Formulários de lead" value={String(connectedAccounts.metaLeadForms.length)} />
+          </div>
+        </article>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-[24px] border border-white/50 bg-white/30">
-        <div className="hidden grid-cols-[1.1fr_150px_180px_150px] gap-3 border-b border-ink/8 px-4 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
-          <span>Ativo</span>
-          <span>Tipo</span>
-          <span>ID externo</span>
-          <span>Status</span>
-        </div>
-
-        {connectedAssets.length ? (
-          connectedAssets.map((asset) => (
-            <div
-              className="grid gap-2 border-b border-ink/8 px-4 py-3 text-sm last:border-0 md:grid-cols-[1.1fr_150px_180px_150px] md:items-center"
-              key={`${asset.type}-${asset.id}`}
-            >
-              <div>
-                <p className="font-semibold text-ink">{asset.name}</p>
-                <p className="mt-1 text-xs text-ink/46">
-                  Sincronizado em {formatDateTime(asset.lastSyncedAt)}
-                </p>
-              </div>
-              <span className="text-ink/64">{asset.type}</span>
-              <span className="font-mono text-xs text-ink/58">{asset.externalId}</span>
-              <span className="rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
-                {asset.status}
-              </span>
+      {/* Sessão 3: Permissões concedidas */}
+      <article className="mt-6 rounded-[28px] border border-white/44 bg-white/36 p-5 flex flex-col gap-4">
+        <p className="text-sm font-semibold text-ink">Permissões concedidas</p>
+        <div className="rounded-[22px] bg-white/48 p-4">
+          {connection?.permissions.length ? (
+            <div className="flex flex-wrap gap-2">
+              {connection.permissions.map((permission) => (
+                <span
+                  className="rounded-full bg-white/76 px-3 py-1.5 text-xs font-semibold text-ink/70"
+                  key={permission}
+                >
+                  {permission}
+                </span>
+              ))}
             </div>
-          ))
-        ) : (
-          <p className="px-4 py-5 text-sm leading-6 text-ink/62">
-            Nenhum ativo Meta sincronizado ainda. Use “Sincronizar novamente” depois de conectar
-            sua conta.
-          </p>
-        )}
-      </div>
+          ) : (
+            <p className="text-sm text-ink/58">Permissões ainda não disponíveis.</p>
+          )}
+        </div>
+      </article>
+
+      {/* Sessão 4: Ativos Sincronizados */}
+      <article className="mt-6 rounded-[28px] border border-white/44 bg-white/36 p-5 flex flex-col gap-4">
+        <p className="text-sm font-semibold text-cobalt">Ativos sincronizados</p>
+        <div className="overflow-hidden rounded-[24px] border border-white/50 bg-white/30">
+          <div className="hidden grid-cols-[1.1fr_150px_180px_150px] gap-3 border-b border-ink/8 px-4 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
+            <span>Ativo</span>
+            <span>Tipo</span>
+            <span>ID externo</span>
+            <span>Status</span>
+          </div>
+
+          {connectedAssets.length ? (
+            connectedAssets.map((asset) => (
+              <div
+                className="grid gap-2 border-b border-ink/8 px-4 py-3 text-sm last:border-0 md:grid-cols-[1.1fr_150px_180px_150px] md:items-center"
+                key={`${asset.type}-${asset.id}`}
+              >
+                <div>
+                  <p className="font-semibold text-ink">{asset.name}</p>
+                  <p className="mt-1 text-xs text-ink/46">
+                    Sincronizado em {formatDateTime(asset.lastSyncedAt)}
+                  </p>
+                </div>
+                <span className="text-ink/64">{asset.type}</span>
+                <span className="font-mono text-xs text-ink/58">{asset.externalId}</span>
+                <span className="rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
+                  {asset.status}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="px-4 py-5 text-sm leading-6 text-ink/62">
+              Nenhum ativo Meta sincronizado ainda. Use “Sincronizar novamente” depois de conectar
+              sua conta.
+            </p>
+          )}
+        </div>
+      </article>
     </section>
   );
 }
@@ -163,7 +180,7 @@ export function MetaOverviewCard({
   formsCount: number;
 }) {
   return (
-    <article className="rounded-[28px] bg-white/46 p-5">
+    <article className="glass-strong rounded-[34px] p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-cobalt">Meta</p>

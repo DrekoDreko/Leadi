@@ -1,10 +1,7 @@
 import {
-  ArrowUpRight,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Copy,
-  MoreHorizontal,
   Plus,
   RotateCw,
   Sparkles,
@@ -82,29 +79,28 @@ export function MockDashboardPreview() {
 
         <main className="min-w-0 space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
-            <MetricCard label="Leads no mês" value="128" delta="+18%" />
-            <MetricCard label="Em proposta" value="31" delta="+6 hoje" />
-            <MetricCard label="Pedidos ativos" value="9" delta="+2 novos" />
+            <MetricCard label="Novo lead Meta" value="Marina Azevedo" delta="Responsável atribuído" />
+            <MetricCard label="Leads recebidos" value="128 no mês" delta="+18% do Meta" />
+            <MetricCard label="Proposta em andamento" value="31 ativas" delta="Funil comercial" />
           </div>
 
           <section className="glass-strong rounded-[34px] p-5">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm text-ink/55">Funil de oportunidades</p>
-                <h2 className="text-2xl font-semibold">Plano empresarial</h2>
+                <h2 className="text-2xl font-semibold">Plano de Saúde PME</h2>
               </div>
               <div className="flex gap-2">
-                <div className="icon-button">
-                  <MoreHorizontal size={18} aria-hidden="true" />
-                </div>
-                <div className="icon-button">
-                  <ArrowUpRight size={18} aria-hidden="true" />
-                </div>
+                <span className="rounded-full bg-cobalt/10 px-3 py-1.5 text-xs font-semibold text-cobalt flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-cobalt"></span>
+                  Meta Lead Ads ativo
+                </span>
               </div>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {kanbanColumns.map((column) => (
                 <div className="min-w-0 rounded-[28px] bg-white/42 p-3" key={column.title}>
+                  <p className="text-xs font-semibold text-ink/50 mb-2 px-1 uppercase tracking-wider">{column.title}</p>
                   <div className="flex flex-col gap-2">
                     {column.cards.map((lead) => (
                       <div
@@ -115,7 +111,12 @@ export function MockDashboardPreview() {
                           <p className="text-base font-semibold leading-tight">
                             {lead.name}
                           </p>
-                          <p className="text-sm opacity-85">{lead.owner}</p>
+                          <p className="text-xs opacity-75">{lead.companyName || "PME"}</p>
+                          <p className="text-sm font-medium opacity-90">{lead.livesCount ? `${lead.livesCount} vidas` : ""}</p>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2 text-[10px] opacity-75">
+                          <span>{lead.owner}</span>
+                          <span>{lead.budget}</span>
                         </div>
                       </div>
                     ))}
@@ -129,9 +130,9 @@ export function MockDashboardPreview() {
             <section className="glass rounded-[30px] p-5">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-semibold">Leads recentes</h3>
+                  <h3 className="font-semibold">Captura automática Meta</h3>
                   <p className="mt-1 text-sm text-ink/54">
-                    Contatos em atendimento na operação.
+                    Leads importados dos formulários.
                   </p>
                 </div>
                 <UsersRound size={18} aria-hidden="true" />
@@ -144,10 +145,10 @@ export function MockDashboardPreview() {
                   >
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{lead.name}</p>
-                      <p className="mt-1 text-sm text-ink/58">{lead.owner}</p>
+                      <p className="mt-1 text-xs text-ink/48">{lead.companyName || "PME"}</p>
                     </div>
-                    <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-semibold text-ink/62">
-                      {lead.stage}
+                    <span className="rounded-full bg-cobalt/10 text-cobalt px-2.5 py-1 text-[11px] font-semibold">
+                      Meta Ads
                     </span>
                   </div>
                 ))}
@@ -155,20 +156,25 @@ export function MockDashboardPreview() {
             </section>
 
             <section className="glass rounded-[30px] p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-semibold">Criar nova campanha</h3>
-                  <Sparkles size={18} aria-hidden="true" />
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={16} className="text-cobalt" />
+                  <h3 className="font-semibold">Campanha criada com IA</h3>
                 </div>
-              <p className="text-lg font-semibold">{campaignDraft.title}</p>
+                <span className="rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-xs font-semibold">
+                  Checklist aprovado
+                </span>
+              </div>
+              <p className="text-base font-semibold text-ink leading-snug">{campaignDraft.title}</p>
               <p className="mt-3 text-sm leading-6 text-ink/64">
                 {campaignDraft.copy}
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <span className="rounded-full bg-cobalt px-3 py-1.5 text-xs font-medium text-white">
-                  Seguro para Meta
+                  Linguagem Consultiva
                 </span>
                 <span className="rounded-full bg-signal px-3 py-1.5 text-xs font-medium text-ink">
-                  MEI, ME e LTDA
+                  Preparado para Meta
                 </span>
               </div>
             </section>
@@ -177,38 +183,41 @@ export function MockDashboardPreview() {
 
         <aside className="min-w-0 space-y-4">
           <section className="glass-strong rounded-[34px] p-5 text-center">
-            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-[linear-gradient(135deg,#3462EE,#4A91A8)] text-3xl font-semibold text-white shadow-soft">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[linear-gradient(135deg,#3462EE,#4A91A8)] text-2.5xl font-semibold text-white shadow-soft">
               MA
             </div>
-            <h3 className="text-2xl font-semibold">{leads[0].name}</h3>
-            <p className="mt-1 text-sm text-ink/58">{leads[0].phone}</p>
-            <p className="mt-1 text-sm text-ink/58">{leads[0].email}</p>
-            <div className="mt-6 flex justify-center gap-2">
-              {[
-                { label: "Mensagem", icon: Sparkles },
-                { label: "Concluir", icon: CheckCircle2 }
-              ].map((item) => (
-                <div
-                  className="icon-button"
-                  key={item.label}
-                >
-                  <item.icon size={18} aria-hidden="true" />
-                </div>
-              ))}
+            <h3 className="text-xl font-bold">{leads[0].name}</h3>
+            <p className="mt-1 text-xs text-ink/58">{leads[0].companyName} • {leads[0].livesCount} vidas</p>
+            
+            {/* Suggested WhatsApp message block */}
+            <div className="mt-4 rounded-2xl bg-white/60 p-3.5 border border-white/50 text-left text-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold text-cobalt uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles size={10} /> Mensagem por IA
+                </span>
+                <span className="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded">Recomendada</span>
+              </div>
+              <p className="text-ink/75 leading-relaxed italic">
+                &ldquo;Olá Marina! Vi que solicitou cotação para 48 vidas da Azevedo Clínica. Montei um estudo Bradesco e Amil...&rdquo;
+              </p>
+            </div>
+
+            <div className="mt-4 flex justify-center gap-2">
+              <div className="rounded-full bg-cobalt text-white flex px-4 py-2 text-xs font-semibold items-center gap-1.5 shadow-soft cursor-pointer hover:bg-cobalt/95">
+                <Sparkles size={14} />
+                Enviar WhatsApp
+              </div>
             </div>
           </section>
 
           <section className="glass rounded-[34px] p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="font-semibold">Informações</h3>
-              <div className="icon-button">
-                <ArrowUpRight size={18} aria-hidden="true" />
-              </div>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-semibold">Detalhes do Lead</h3>
             </div>
-            <div className="space-y-4 text-sm">
-              <InfoRow label="Nome" value={leads[0].name} />
-              <InfoRow label="Telefone" value={leads[0].phone} />
-              <InfoRow label="Email" value={leads[0].email} />
+            <div className="space-y-3 text-xs">
+              <InfoRow label="Origem" value="Meta Lead Ads" />
+              <InfoRow label="Campanha" value="PME Campinas" />
+              <InfoRow label="Orçamento" value="R$ 18k/mês" />
             </div>
           </section>
         </aside>

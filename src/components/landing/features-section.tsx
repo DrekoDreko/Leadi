@@ -21,10 +21,10 @@ const features = [
   { icon: Sparkles, title: "Campanhas com IA", desc: "Crie briefings e textos de campanha com apoio de inteligência artificial." },
   { icon: MessageCircle, title: "Mensagens WhatsApp com IA", desc: "Gere mensagens consultivas para cada etapa do atendimento." },
   { icon: CheckSquare, title: "Checklist de compliance", desc: "Verifique linguagem sensível antes de publicar anúncios." },
-  { icon: Users, title: "Distribuição de leads", desc: "Atribua oportunidades a vendedores com equilíbrio e rastreio." },
+  { icon: Users, title: "Distribuição de leads", desc: "Atribua oportunidades a consultores com equilíbrio e rastreio." },
   { icon: Bell, title: "Agenda e lembretes", desc: "Agende próximos contatos e receba alertas de follow-up." },
   { icon: History, title: "Histórico de atendimento", desc: "Registros de tudo que foi dito, proposto e combinado." },
-  { icon: BarChart2, title: "Painel de métricas", desc: "Leads por campanha, conversão por vendedor e visão geral." },
+  { icon: BarChart2, title: "Painel de métricas", desc: "Leads por campanha, conversão por consultor e visão geral." },
   { icon: FileText, title: "Gestão de propostas", desc: "Associe planos e propostas a cada oportunidade no funil." }
 ];
 

@@ -125,7 +125,7 @@ export function DashboardHome({
 
         <aside className="min-w-0 flex h-full flex-col gap-4">
           <Link
-            className="glass flex flex-col justify-between rounded-[34px] p-5 transition hover:bg-white/68"
+            className="glass !bg-cloud/95 flex flex-col justify-between rounded-[34px] p-5 transition hover:!bg-cloud/95"
             href={anunciosHref}
           >
             <div className="mb-5 flex items-center gap-3">
@@ -160,7 +160,7 @@ export function DashboardHome({
 
           <RemindersCalendarCard initialReminders={dashboardReminders} />
 
-          <section className="glass rounded-[34px] p-5">
+          <section className="glass !bg-cloud/95 rounded-[34px] p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm text-ink/54">Gerar Campanha</p>
@@ -203,7 +203,7 @@ export function DashboardHome({
           </section>
 
           <Link
-            className="glass flex flex-col justify-between rounded-[34px] p-5 transition hover:bg-white/68"
+            className="glass !bg-cloud/95 flex flex-col justify-between rounded-[34px] p-5 transition hover:!bg-cloud/95"
             href={creativeRequestHref}
           >
             <div className="flex items-start justify-between gap-3">

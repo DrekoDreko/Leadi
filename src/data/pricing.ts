@@ -22,7 +22,7 @@ export type FounderOffer = {
 
 export const pricingPlans: PricingPlan[] = [
   {
-    name: "Inicial",
+    name: "Essencial",
     label: "Para corretores individuais",
     description: "Organização comercial básica para centralizar leads, acompanhar oportunidades e manter o histórico de atendimento.",
     price: "R$ 297/mês",

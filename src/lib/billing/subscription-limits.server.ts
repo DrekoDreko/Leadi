@@ -252,7 +252,7 @@ export async function getOrganizationResourceAccess(
     return buildDeniedAccess(resource, "feature_unavailable", {
       title: "Seu plano atual não libera equipe",
       message:
-        "Convites para vendedores ficam disponíveis a partir do plano Equipe. Faça upgrade para adicionar usuários.",
+        "Convites para consultores ficam disponíveis a partir do plano Equipe. Faça upgrade para adicionar usuários.",
       limit: state.limits.users,
       used: state.usage.users
     });
