@@ -53,9 +53,9 @@ export function Metric({
 }) {
   const toneClass = {
     blue: "bg-cobalt text-white",
-    yellow: "bg-signal text-ink",
+    yellow: "bg-signal text-ink dark:text-cloud",
     teal: "bg-lagoon text-white",
-    dark: "bg-ink text-white"
+    dark: "bg-ink text-cloud"
   }[tone];
 
   return (

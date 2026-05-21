@@ -152,13 +152,13 @@ export const kanbanColumns = [
   {
     title: "Proposta",
     total: 7,
-    color: "bg-signal text-ink",
+    color: "bg-signal text-ink dark:text-cloud",
     cards: [leads[2]]
   },
   {
     title: "Negociação",
     total: 5,
-    color: "bg-ink text-white",
+    color: "bg-ink text-cloud",
     cards: [leads[3]]
   }
 ];

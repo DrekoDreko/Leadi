@@ -218,6 +218,7 @@ A `TASK-002` foi marcada como concluida no roadmap normalizado porque a auditori
 - `sed -n '1250,1525p' src/lib/leads/repository.server.ts`
 - `sed -n '940,1165p' src/components/dashboard/lead-details-popup.tsx`
 - `sed -n '1,260p' app/dashboard/funil/page.tsx`
+
 - `sed -n '80,180p' app/dashboard/leads/leads-workspace.tsx`
 - `sed -n '980,1060p' app/dashboard/leads/leads-workspace.tsx`
 - `sed -n '1,140p' supabase/migrations/202604280001_phase_1_core.sql`
@@ -436,3 +437,202 @@ As falhas de `test` e `build` nao tem relacao com a tarefa executada, porque est
 - O webhook depende de `meta_forms` ou `meta_pages` sincronizados para rotear o lead para o tenant correto.
 - `docs/meta-app-review.md` ainda referencia `/dashboard/empresa`, mas a rota canonica atual para operacao e review e `/dashboard/perfil/meta`.
 - Nenhuma alteracao funcional foi realizada nesta execucao.
+
+### Data
+2026-05-21 14:35
+
+### Tarefa
+`TASK-005 -- Revisar estrutura de usuarios e equipe`
+
+### Status
+Concluida.
+
+### Arquivos alterados
+- `docs/AUDITORIA_ESTRUTURA_USUARIOS_EQUIPE.md`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi executada uma auditoria tecnica documental da estrutura atual de usuarios e equipe do Leadi, cobrindo onboarding, papeis canonicos, convites, aceite de convite, gestao de membros, guards de rota e limites atuais entre `owner`, `admin` e `seller`.
+
+O artefato principal criado foi `docs/AUDITORIA_ESTRUTURA_USUARIOS_EQUIPE.md`, com mapeamento dos fluxos reais, diferencas entre copy e papel tecnico, impactos de `workspaceType`, pontos de enforcement no middleware e nas RPCs, alem dos gargalos mais relevantes para tarefas futuras de distribuicao de leads.
+
+A `TASK-005` foi marcada como concluida no roadmap normalizado porque o diagnostico foi criado e registrado sem alterar logica funcional do produto.
+
+### Comandos executados
+- `sed -n '1,260p' AGENTS.md`
+- `sed -n '1,260p' docs/AGENTE_LEADI_TAREFAS.md`
+- `sed -n '1,320p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `sed -n '1,220p' package.json`
+- `rg --files src/lib/workspaces app/team/setup | sed -n '1,200p'`
+- `ls middleware.ts`
+- `sed -n '1,220p' src/lib/workspaces/team.ts`
+- `sed -n '1,260p' src/lib/workspaces/permissions.ts`
+- `sed -n '1,220p' app/team/setup/page.tsx`
+- `sed -n '1,220p' middleware.ts`
+- `sed -n '1,260p' src/lib/workspaces/context.ts`
+- `sed -n '1,260p' app/team/setup/team-setup-client.tsx`
+- `sed -n '1,260p' app/team/setup/actions.ts`
+- `sed -n '1,260p' docs/LOG_EXECUCAO_TAREFAS.md`
+- `sed -n '220,520p' app/team/setup/team-setup-client.tsx`
+- `rg -n "create_workspace_invite|update_workspace_member_role|remove_workspace_member|update_workspace_name|workspace_members|invites|role_to_assign" supabase/migrations src/lib/supabase/database.types.ts`
+- `rg -n "type ProfileRole|type WorkspaceType|profiles:|organizations:" src/lib/supabase/database.types.ts`
+- `rg -n "profile_setup_completed|organization_id|role|is_platform_admin|workspaceType|requireTeamManagement|requireWorkspaceManager|requireImportPermission" app src middleware.ts --glob '!node_modules'`
+- `sed -n '540,620p' src/lib/supabase/database.types.ts`
+- `sed -n '1050,1165p' src/lib/supabase/database.types.ts`
+- `sed -n '1510,1545p' src/lib/supabase/database.types.ts`
+- `date '+%Y-%m-%d %H:%M'`
+- `sed -n '1,260p' app/onboarding/profile-setup/actions.ts`
+- `sed -n '1,260p' app/onboarding/profile-setup/page.tsx`
+- `sed -n '1490,1525p' src/lib/supabase/database.types.ts`
+- `rg --files app/invite src | rg 'invite'`
+- `sed -n '1,260p' 'app/invite/[token]/page.tsx'`
+- `rg -n "accept_workspace_invite|invite_token|used_at|used_by_user_id|expires_at|role_to_assign" app src --glob '!node_modules'`
+- `rg -n "create or replace function .*complete_profile_setup|complete_profile_setup\(|create or replace function .*accept_workspace_invite|create or replace function .*create_workspace_invite|create or replace function .*update_workspace_member_role|create or replace function .*remove_workspace_member|create or replace function .*update_workspace_name" supabase/migrations`
+- `rg -n "WorkspaceMemberRole|InviteStatus|WorkspaceMemberStatus" src/lib/supabase/database.types.ts`
+- `sed -n '146,560p' supabase/migrations/202605070002_multiuser_owner_admin_seller.sql`
+- `sed -n '1,200p' supabase/migrations/202605070004_invite_acceptance_fix.sql`
+- `sed -n '560,700p' supabase/migrations/202605070002_multiuser_owner_admin_seller.sql`
+- `sed -n '1,260p' docs/AUDITORIA_FUNIL_ATUAL.md`
+- `git status --short`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+
+### Resultado dos comandos
+Os comandos de leitura e busca foram usados para auditar as regras reais de onboarding, equipe, convites e papeis.
+
+`package.json` foi verificado antes das validacoes. Os scripts relevantes disponiveis nesta execucao foram:
+
+- `lint`
+- `test`
+- `build`
+
+O script `typecheck` nao existe no `package.json`.
+
+Resultados das validacoes:
+
+- `npm run lint`: concluido com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou com `sh: vitest: command not found`, indicando indisponibilidade do binario de teste neste ambiente local.
+- `npm run build`: concluido com sucesso. O build registrou um aviso runtime de `Dynamic server usage` para `/dashboard` por uso de `cookies`, mas terminou sem erro e gerou a aplicacao.
+
+### Pendências
+- Consolidar um glossario unico para `owner`, `admin`, `seller`, `consultor` e o legado `supervisor`.
+- Centralizar melhor a matriz de acesso hoje espalhada entre middleware, helpers, UI e RPCs.
+- Separar mais claramente bloqueio de billing para convites da permissao funcional do papel.
+- Revisar se os vestigios `seller-solo` e `requireSupervisor()` ainda fazem sentido para as proximas tarefas.
+
+### Observações técnicas
+- O onboarding sempre promove o usuario inicial a `owner`, inclusive em workspace `solo`.
+- O aceite de convite move o perfil para a nova organizacao e pressupoe uma unica organizacao ativa por usuario.
+- A remocao de membro recria um workspace `solo` para o usuario removido, em vez de deixa-lo sem organizacao.
+- `workspace_members.user_id` referencia `profiles.id`, nao `auth_user_id`, o que merece atencao em futuras consultas e automacoes.
+- Nenhuma alteracao funcional foi realizada nesta execucao.
+
+### Data
+2026-05-21 14:52
+
+### Tarefa
+`TASK-006 — Revisar exposição de chaves`
+
+### Status
+Concluída.
+
+### Arquivos alterados
+- `.env.example`
+- `README.md`
+- `docs/SECURITY_AUDIT.md`
+- `src/lib/env/shared.ts`
+- `src/lib/env/shared.test.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi revisada a documentação e os guardrails locais ligados a segredos e variáveis de ambiente, sem expor valores reais nem alterar configurações externas de produção.
+
+O catálogo compartilhado de variáveis em `src/lib/env/shared.ts` ganhou helpers para distinguir variáveis públicas e server-only. Em paralelo, `src/lib/env/shared.test.ts` passou a verificar que apenas chaves `NEXT_PUBLIC_*` são tratadas como públicas e que o `.env.example` cobre todas as variáveis listadas no catálogo.
+
+O arquivo `.env.example` foi alinhado ao conjunto real de variáveis do projeto e reorganizado em blocos explícitos de exposição. O `README.md` passou a documentar a regra operacional de que apenas `NEXT_PUBLIC_*` pode chegar ao client, enquanto `docs/SECURITY_AUDIT.md` registrou esse reforço documental e de teste.
+
+### Comandos executados
+- `sed -n '1,220p' src/lib/security/client-code-guard.ts`
+- `sed -n '1,220p' src/lib/env/server.ts`
+- `sed -n '1,180p' README.md`
+- `git status --short`
+- `rg -n "ENV_VARIABLES|\\.public\\b|EnvVariableDefinition|PRODUCTION_CORE_ENV_KEYS|MCP_SUPABASE_ENV_KEYS" src app docs README.md`
+- `sed -n '1,220p' docs/LOG_EXECUCAO_TAREFAS.md`
+- `sed -n '1,260p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `npm run security:check`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+
+### Resultado dos comandos
+- `npm run security:check`: falhou no ambiente local com `sh: vitest: command not found` antes de executar os testes.
+- `npm run lint`: concluído com sucesso, com warnings preexistentes em arquivos fora do escopo desta tarefa.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found` antes de executar os testes.
+- `npm run build`: concluído com sucesso; o build manteve apenas warnings de lint preexistentes e uma mensagem informativa de rota dinâmica já conhecida em `/dashboard`.
+- `npm run typecheck`: não existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binário `vitest` para reexecutar `npm run security:check` e `npm run test`.
+- Se desejado, tratar os warnings antigos de lint que apareceram durante a validação, mas eles não foram abordados nesta tarefa para respeitar o escopo.
+
+### Observações técnicas
+- A tarefa ficou limitada a documentação, catálogo compartilhado de env e teste de consistência entre código e `.env.example`.
+- Nenhuma integração real, secret, variável externa, autenticação, Supabase, billing, Meta ou OpenAI foi alterado fora do repositório.
+
+### Data
+2026-05-21 15:07
+
+### Tarefa
+`TASK-008 — Criar tela de detalhe do lead com dados básicos`
+
+### Status
+Concluída.
+
+### Arquivos alterados
+- `src/components/dashboard/lead-details-popup.tsx`
+- `src/components/dashboard/lead-details-popup.test.tsx`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+O detalhe do lead foi reorganizado para melhorar a leitura logo na abertura do popup, sem alterar regras de negócio nem fluxos de edição. Os dados básicos passaram a aparecer em um bloco de leitura rápida, enquanto contexto comercial e origem ficaram destacados antes da área de comentários.
+
+Em `src/components/dashboard/lead-details-popup.tsx`, o layout foi redistribuído para priorizar responsável, empresa, telefone, email, cidade, vidas, etapa, origem, campanha, orçamento e datas de recebimento/criação com menos rolagem no mobile e no desktop. Comentários internos, ações de contato, edição e arquivamento foram preservados no mesmo componente.
+
+Também foi criado `src/components/dashboard/lead-details-popup.test.tsx` para verificar que os blocos de dados básicos e origem são renderizados e que os comentários continuam carregando normalmente.
+
+### Comandos executados
+- `git status --short`
+- `sed -n '1,260p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1,260p' app/dashboard/leads/leads-workspace.tsx`
+- `sed -n '1,260p' app/dashboard/funil/sales-funnel-workspace.tsx`
+- `sed -n '260,620p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1,260p' src/data/mock.ts`
+- `sed -n '1,260p' src/lib/leads/repository.server.ts`
+- `rg -n "profileItems|Comentarios|Origem|sourceCampaign|receivedAt|livesCount|companyName|owner|interest|notes|lastInteraction" src/components/dashboard/lead-details-popup.tsx`
+- `rg -n "LeadDetailsPopup|selectedLead|setSelectedLead|Detalhes|MessageCircle|PhoneCall|Mail" app/dashboard/leads/leads-workspace.tsx`
+- `rg -n "LeadDetailsPopup|selectedLead|setSelectedLead|onClick=\\{\\(\\) => setSelectedLead|MessageCircle|PhoneCall|Mail" app/dashboard/funil/sales-funnel-workspace.tsx`
+- `sed -n '720,920p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1,240p' app/dashboard/leads/page.test.tsx`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+
+### Resultado dos comandos
+- `npm run lint`: concluído com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, o que impediu a execução da suite e do novo teste do componente.
+- `npm run build`: concluído com sucesso; além dos warnings de lint já conhecidos, o build registrou a mensagem informativa já existente de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear a geração final.
+- `npm run typecheck`: não existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binário `vitest` para reexecutar `npm run test` e validar o novo teste do popup.
+- Se desejado depois, tratar os warnings antigos de lint fora do escopo desta tarefa.
+
+### Observações técnicas
+- A alteração ficou restrita à visualização do prontuário do lead e ao teste do componente.
+- Nenhuma camada sensível de autenticação, Supabase, schema, billing, webhooks, Meta Ads, OpenAI ou variáveis de ambiente foi alterada nesta tarefa.

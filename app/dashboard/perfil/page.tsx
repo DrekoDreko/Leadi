@@ -164,7 +164,7 @@ export default async function PerfilPage({
               type="text"
             />
             <button
-              className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
+              className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
               type="submit"
             >
               Salvar nome
@@ -268,7 +268,7 @@ function ManageLinkCard({
           <span className="rounded-full bg-white/70 p-3 text-ink transition-all duration-300 group-hover:scale-110 group-hover:bg-white">{icon}</span>
         </div>
       </div>
-      <span className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-white transition-all duration-300 group-hover:bg-ink/90 group-hover:shadow-[0_12px_24px_rgba(18,23,33,0.12)]">
+      <span className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-cloud transition-all duration-300 group-hover:bg-ink/90 group-hover:shadow-[0_12px_24px_rgba(18,23,33,0.12)]">
         {cta}
         <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
       </span>
@@ -308,7 +308,7 @@ function ManageDisabledCard({
         </div>
       </div>
       <button
-        className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink/62 cursor-not-allowed"
+        className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-ink/10 px-4 py-3 text-sm font-semibold text-ink/60 cursor-not-allowed"
         disabled
         type="button"
       >

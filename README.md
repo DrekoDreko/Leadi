@@ -14,6 +14,21 @@ Login direto:
 
 Nota de rebrand: as URLs reais de produção ainda usam o domínio legado até a migração operacional de domínio, OAuth, webhooks e painéis externos.
 
+## Status do Projeto
+
+Atualmente, o projeto está com toda a sua fundação técnica estabelecida e operante. A **Fase 1 (Diagnóstico e Base)** do nosso roadmap técnico foi totalmente concluída. Isso significa que consolidamos nossa infraestrutura principal e estamos prontos para tracionar novas funcionalidades. Já estruturamos e estabilizamos:
+
+- **Estrutura de Leads e Funil Comercial**: Alinhamento completo entre banco de dados, API e interface.
+- **Integração com a Meta**: Fluxo ponta a ponta implementado (OAuth, Webhooks, Sincronização de formulários e anúncios).
+- **IA e Automações**: Gerador de campanhas e criação de abordagens via WhatsApp usando OpenAI.
+- **Workspaces e Equipe**: Estrutura multi-tenant com níveis de permissão definidos (owner, admin, seller).
+- **Design System e UI/UX**: Interface premium, com suporte robusto a temas Claro e Escuro (Dark Mode) e alto padrão de acessibilidade.
+
+O projeto agora avança para expandir as capacidades do CRM, o prontuário de cada lead e a gestão de tarefas operacionais no funil de vendas.
+
+### 🚀 Em Breve: Simulador de Preços
+Estamos desenvolvendo um **Simulador de Preços** nativo. Esta será uma ferramenta dedicada para consultores e corretores de plano de saúde poderem realizar cotações e cálculos de maneira ágil, tudo integrado diretamente ao ciclo de vendas do lead dentro do CRM Leadi.
+
 ## Arquitetura Atual
 
 O Leadi opera em uma arquitetura moderna e escalável baseada em Vercel + Supabase:
@@ -98,19 +113,29 @@ O ambiente local é destinado apenas para desenvolvimento, scripts administrativ
 
 ## Configuração de Ambiente (Vercel)
 
-| Variável | Descrição |
-| :--- | :--- |
-| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
-| `SUPABASE_SERVICE_ROLE_KEY` | Chave administrativa (Server-side) |
-| `META_APP_ID` / `META_APP_SECRET` | Credenciais do App Meta Developers |
-| `META_VERIFY_TOKEN` | Token de validação do Webhook Meta |
-| `INTEGRATIONS_SECRET_KEY` | Chave para cifrar tokens de clientes |
-| `MERCADO_PAGO_ACCESS_TOKEN` | Token de integração financeira |
+Use `.env.example` como catálogo base. Ele separa variáveis públicas de variáveis estritamente server-side.
+
+| Variável | Exposição | Descrição |
+| :--- | :--- | :--- |
+| `NEXT_PUBLIC_APP_URL` | Client/public | URL pública canônica do app |
+| `NEXT_PUBLIC_SITE_NAME` | Client/public | Nome exibido na interface |
+| `NEXT_PUBLIC_LEGAL_EMAIL` | Client/public | E-mail jurídico exibido em páginas públicas |
+| `NEXT_PUBLIC_SUPABASE_URL` | Client/public | URL do projeto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client/public | Chave anônima usada pelo client SDK |
+| `LEGAL_CONTACT_EMAIL` | Server-only | Contato jurídico/operacional interno |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only | Chave administrativa do Supabase |
+| `INTEGRATIONS_SECRET_KEY` | Server-only | Chave dedicada para cifrar tokens de clientes |
+| `OPENAI_API_KEY` | Server-only | Chave global da OpenAI para rotas server-side |
+| `META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN` | Server-only | Credenciais do App Meta Developers e do webhook |
+| `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET` | Server-only | Credenciais financeiras do Mercado Pago |
+| `META_WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_EXTERNAL_API_KEY` | Server-only | Credenciais de envio de WhatsApp |
 
 Notas operacionais:
 
 - Guarde segredos reais no painel da Vercel ou no ambiente seguro do servidor. Evite manter `.env.production` real no workspace.
+- Nunca use valores reais em `.env.example`, screenshots, seeds, mocks ou documentação versionada.
 - `INTEGRATIONS_SECRET_KEY` e `SUPABASE_SERVICE_ROLE_KEY` são estritamente server-side e nunca devem aparecer em arquivos `"use client"`.
+- Somente variáveis com prefixo `NEXT_PUBLIC_` podem ser consumidas em componentes client.
 - Rode `npm run security:check` antes de publicar mudanças que mexam em autenticação, integrações ou configuração de ambiente.
 
 ## Documentação Técnica Complementar

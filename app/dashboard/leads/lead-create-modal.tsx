@@ -225,7 +225,7 @@ export function LeadCreateModal({
             <div
               aria-live="polite"
               className={`mb-5 flex items-start gap-3 rounded-[24px] px-4 py-3 text-sm font-medium ${
-                status.type === "success" ? "bg-lagoon/16 text-ink" : "bg-signal/34 text-ink"
+                status.type === "success" ? "bg-lagoon/16 text-ink dark:text-cloud" : "bg-signal/34 text-ink dark:text-cloud"
               }`}
             >
               {status.type === "success" && (

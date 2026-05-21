@@ -436,7 +436,7 @@ export function CsvImportWorkspace({
       />
 
       {loadError ? (
-        <p className="flex items-start gap-3 rounded-[24px] bg-signal/30 px-5 py-4 text-sm font-medium text-ink">
+        <p className="flex items-start gap-3 rounded-[24px] bg-signal/30 px-5 py-4 text-sm font-medium text-ink dark:text-cloud">
           <AlertCircle className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
           <span>{loadError}</span>
         </p>
@@ -603,7 +603,7 @@ export function CsvImportWorkspace({
                     ))}
                     <span className="min-w-0">
                       {row.issues.length > 0 ? (
-                        <span className="inline-flex rounded-full bg-signal/28 px-2.5 py-1 text-xs font-semibold text-ink">
+                        <span className="inline-flex rounded-full bg-signal/28 px-2.5 py-1 text-xs font-semibold text-ink dark:text-cloud">
                           Revisar
                         </span>
                       ) : (
@@ -753,7 +753,7 @@ export function CsvImportWorkspace({
                   importSummary.created > 0 &&
                   !importSummary.undone ? (
                     <button
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-signal/20 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-signal/32 disabled:cursor-not-allowed disabled:opacity-70"
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-signal/20 px-4 py-2 text-sm font-semibold text-ink dark:text-cloud transition hover:bg-signal/32 disabled:cursor-not-allowed disabled:opacity-70"
                       disabled={isUndoing}
                       onClick={handleUndoImport}
                       type="button"
@@ -843,7 +843,7 @@ export function CsvImportWorkspace({
                 Clique para escolher um arquivo e abrir a tela de mapeamento.
               </p>
               <button
-                className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
                 onClick={openFilePicker}
                 type="button"
               >

@@ -274,8 +274,8 @@ function CampaignStatCard({
   const noteClass = {
     blue: "bg-cobalt text-white",
     teal: "bg-lagoon text-white",
-    yellow: "bg-signal text-ink",
-    dark: "bg-ink text-white"
+    yellow: "bg-signal text-ink dark:text-cloud",
+    dark: "bg-ink text-cloud"
   }[accent];
 
   return (
@@ -962,7 +962,7 @@ function CampaignConnectionsStep({
           Conecte sua conta Meta para escolher página, conta de anúncio e formulário de Lead Ads.
         </p>
         <Link
-          className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+          className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-cloud"
           href="/dashboard/perfil/meta"
         >
           Conectar Meta
@@ -1344,7 +1344,7 @@ function CampaignCreativeStep({
               ))}
             </div>
           ) : (
-            <p className="mt-4 rounded-[20px] bg-signal/16 px-4 py-3 text-sm font-semibold text-ink/70">
+            <p className="mt-4 rounded-[20px] bg-signal/16 px-4 py-3 text-sm font-semibold text-ink dark:text-cloud/70">
               Nenhum arquivo adicionado ainda. Você pode continuar, mas a equipe precisará receber o criativo depois.
             </p>
           )}
@@ -1603,9 +1603,9 @@ function SmallStatusChip({
   const toneClasses = {
     neutral: "border-white/58 bg-white/72 text-ink/72",
     blue: "border-cobalt/12 bg-cobalt text-white",
-    yellow: "border-signal/20 bg-signal text-ink",
+    yellow: "border-signal/20 bg-signal text-ink dark:text-cloud",
     teal: "border-lagoon/14 bg-lagoon text-white",
-    dark: "border-ink/14 bg-ink text-white"
+    dark: "border-ink/14 bg-ink text-cloud"
   }[tone];
 
   return (

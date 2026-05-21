@@ -19,7 +19,7 @@ export function SubscriptionAccessBanner({ notice }: SubscriptionAccessBannerPro
           <p className="mt-2 max-w-3xl text-sm leading-6 text-amber-900/90">{notice.message}</p>
         </div>
         <Link
-          className="inline-flex shrink-0 items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+          className="inline-flex shrink-0 items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
           href={notice.actionHref}
         >
           {notice.actionLabel}

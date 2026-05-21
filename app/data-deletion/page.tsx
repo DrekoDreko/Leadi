@@ -62,7 +62,7 @@ export default async function DataDeletionPage({ searchParams }: DataDeletionPag
           ? "A solicitação foi recebida e a integração vinculada foi removida ou desativada no lado do Leadi."
           : "A solicitação foi recebida e está em processamento no lado do Leadi."}
       </p>
-      <div className="mt-5 rounded-2xl bg-ink px-4 py-3 font-mono text-sm text-white">
+      <div className="mt-5 rounded-2xl bg-ink px-4 py-3 font-mono text-sm text-cloud">
         {confirmationCode}
       </div>
       <p className="mt-4 text-sm leading-7 text-ink/68">

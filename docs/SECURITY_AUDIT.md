@@ -45,6 +45,12 @@ Data da atualizacao: 2026-05-20
 - Parcialmente corrigido: Meta OAuth e acoes sensiveis. Connect/sync/disconnect/upload exigem gestor, `returnTo` rejeita `//`, URL OAuth completa deixou de ser logada e state expira em 10 minutos. Nonce one-time, CSRF padronizado, auditoria completa e rate limit distribuido ficam para validacao/lote posterior.
 - Parcialmente corrigido: webhook Mercado Pago. O payload persistido foi minimizado e a assinatura deixou de ser salva; rate limit distribuido e auditoria completa ficam pendentes.
 
+Data da atualizacao: 2026-05-21
+
+- Corrigido parcialmente: catalogo e template de ambiente ficaram mais claros. `.env.example` agora cobre o conjunto compartilhado de variaveis com separacao explicita entre `NEXT_PUBLIC_*` e segredos server-only.
+- Corrigido parcialmente: o repositorio ganhou teste para evitar drift entre `src/lib/env/shared.ts` e `.env.example`, reduzindo o risco de documentar mal uma variavel sensivel.
+- Mantido e reforcado: `npm run security:check` continua como guardrail obrigatorio para bloquear segredos server-side em modulos `"use client"`.
+
 ### 1. Dependencia vulneravel do Next.js
 
 Confirmado por `npm audit --json`.

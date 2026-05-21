@@ -61,6 +61,12 @@ export type LeadCreateInput = {
   interest?: unknown;
   last_interaction?: unknown;
   notes?: unknown;
+  cpf?: unknown;
+  birth_date?: unknown;
+  profession?: unknown;
+  health_plan_type?: unknown;
+  current_health_plan?: unknown;
+  dependents_count?: unknown;
   source_campaign?: unknown;
   source_adset?: unknown;
   source_ad?: unknown;
@@ -1281,6 +1287,12 @@ function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInser
     interest: stringOrNull(input.interest),
     last_interaction: stringOrNull(input.last_interaction),
     notes: stringOrNull(input.notes),
+    cpf: stringOrNull(input.cpf),
+    birth_date: stringOrNull(input.birth_date),
+    profession: stringOrNull(input.profession),
+    health_plan_type: stringOrNull(input.health_plan_type),
+    current_health_plan: stringOrNull(input.current_health_plan),
+    dependents_count: normalizeInteger(input.dependents_count),
     source_campaign: stringOrNull(input.source_campaign),
     source_adset: stringOrNull(input.source_adset),
     source_ad: stringOrNull(input.source_ad),
@@ -1462,6 +1474,12 @@ function buildLeadUpdate(existingLead: LeadRow, input: LeadCreateInput): Databas
     last_interaction:
       input.last_interaction === undefined ? undefined : stringOrNull(input.last_interaction),
     notes: input.notes === undefined ? undefined : stringOrNull(input.notes),
+    cpf: input.cpf === undefined ? undefined : stringOrNull(input.cpf),
+    birth_date: input.birth_date === undefined ? undefined : stringOrNull(input.birth_date),
+    profession: input.profession === undefined ? undefined : stringOrNull(input.profession),
+    health_plan_type: input.health_plan_type === undefined ? undefined : stringOrNull(input.health_plan_type),
+    current_health_plan: input.current_health_plan === undefined ? undefined : stringOrNull(input.current_health_plan),
+    dependents_count: input.dependents_count === undefined ? undefined : normalizeInteger(input.dependents_count),
     source_campaign:
       input.source_campaign === undefined ? undefined : stringOrNull(input.source_campaign),
     source_adset: input.source_adset === undefined ? undefined : stringOrNull(input.source_adset),

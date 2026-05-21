@@ -311,7 +311,7 @@ export function LeadMessageGenerator({
 
       <div className="mt-5 flex flex-wrap gap-2">
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isGenerating || currentAiBalance < messageCost}
           onClick={() => void handleGenerate()}
           type="button"

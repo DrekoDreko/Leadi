@@ -167,7 +167,7 @@ Referência original: Tarefa 37.
 
 ### TASK-005 — Revisar estrutura de usuários e equipe
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Mapear papéis, permissões e limites atuais para futura distribuição de leads.
@@ -194,9 +194,16 @@ Mapear papéis, permissões e limites atuais para futura distribuição de leads
 #### Observações
 Referência original: Tarefa 55.
 
+#### Execucao 2026-05-21
+- Arquivo criado: `docs/AUDITORIA_ESTRUTURA_USUARIOS_EQUIPE.md`
+- Arquivos analisados: `src/lib/workspaces/context.ts`, `src/lib/workspaces/permissions.ts`, `src/lib/workspaces/team.ts`, `app/team/setup/*`, `app/onboarding/profile-setup/*`, `app/invite/[token]/page.tsx`, `middleware.ts`, `src/lib/supabase/database.types.ts` e `supabase/migrations/202605070002_multiuser_owner_admin_seller.sql`.
+- Principais achados: o onboarding grava `owner` tanto para workspace `solo` quanto `team`; `admin` atua como gerente operacional com limites reais reforcados por RPC; `seller` perde acesso gerencial e ao ser removido ganha um novo workspace `solo`; ha drift de nomenclatura entre `supervisor`, `admin`, `consultor` e `owner` individual; o sistema assume uma unica organizacao ativa por usuario.
+- Comandos executados: leitura com `sed`, buscas com `rg`, conferencia de scripts com `sed -n '1,220p' package.json`, estado do worktree com `git status --short`, validacoes `npm run lint`, `npm run test` e `npm run build`.
+- Pendencias: consolidar glossario de papeis, centralizar a matriz de acesso, separar melhor bloqueio comercial de permissao e revisar os vestigios legados de `supervisor` e `seller-solo`. Nao houve alteracao funcional nesta tarefa.
+
 ### TASK-006 — Revisar exposição de chaves
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Reduzir risco operacional com segredos e arquivos de ambiente no workspace.
@@ -226,13 +233,19 @@ Referência original: Tarefa 63.
 #### Atenção: área sensível
 Segredos, variáveis de ambiente e produção. Não expor valores reais nem alterar configuração externa.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `.env.example`, `README.md`, `docs/SECURITY_AUDIT.md`, `src/lib/env/shared.ts` e `src/lib/env/shared.test.ts`.
+- Principais entregas: o catalogo compartilhado de env ganhou helpers para separar variaveis publicas de server-only; o `.env.example` foi alinhado ao conjunto real de variaveis do projeto com avisos mais claros sobre exposicao; o `README.md` passou a documentar explicitamente a diferenca entre `NEXT_PUBLIC_*` e segredos server-side; e a auditoria de seguranca registrou os novos guardrails documentais e de teste.
+- Validacoes executadas: `npm run security:check`, `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes e sem erros; `npm run build` concluiu com sucesso; `npm run security:check` e `npm run test` falharam porque o binario `vitest` nao estava disponivel no ambiente local (`sh: vitest: command not found`), sem indicio de relacao direta com esta tarefa.
+- Pendencias: restaurar a disponibilidade local do `vitest` para reexecutar `security:check` e `test` com cobertura completa antes de tratar esta frente como totalmente validada.
 ---
 
 ## Fase 2 — CRM e prontuário do lead
 
 ### TASK-007 — Ajustar modelo de lead com campos comerciais
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Criar a base de schema para o prontuário comercial do lead.
@@ -263,7 +276,7 @@ Banco, migrations, dados de leads e tipagem compartilhada.
 
 ### TASK-008 — Criar tela de detalhe do lead com dados básicos
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Fortalecer o prontuário básico do lead sem adicionar módulos pesados.
@@ -291,6 +304,13 @@ Referência original: Tarefa 03. Executar após TASK-007.
 
 #### Atenção: área sensível
 Dados de leads. Limitar a alteração à visualização e integrações já existentes.
+
+#### Execucao 2026-05-21
+- Arquivos alterados: `src/components/dashboard/lead-details-popup.tsx`, `src/components/dashboard/lead-details-popup.test.tsx`.
+- Principais entregas: o detalhe do lead foi reorganizado para priorizar dados basicos, contexto comercial e resumo de origem antes da area de comentarios; a leitura rapida agora destaca responsavel, empresa, contato, cidade, vidas, origem, campanha, orcamento e datas sem exigir rolagem excessiva; comentarios, acoes de contato, edicao e arquivamento foram preservados.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e manteve apenas avisos conhecidos; `npm run test` falhou no ambiente local com `sh: vitest: command not found`, sem evidenca de regressao especifica da tarefa.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a suite de testes completa.
 
 ### TASK-009 — Adicionar histórico manual de contato
 

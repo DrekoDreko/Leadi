@@ -53,7 +53,7 @@ export function FlowSection() {
             </p>
             <div className="mt-4 flex gap-2">
               <span className="text-[11px] font-semibold bg-cobalt/10 text-cobalt px-2.5 py-1 rounded-full">PME & MEI</span>
-              <span className="text-[11px] font-semibold bg-signal/30 text-ink px-2.5 py-1 rounded-full">Linguagem Consultiva</span>
+              <span className="text-[11px] font-semibold bg-signal/30 text-ink dark:text-cloud px-2.5 py-1 rounded-full">Linguagem Consultiva</span>
             </div>
           </div>
         </div>
@@ -184,7 +184,7 @@ export function FlowSection() {
           <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-soft">
             <div className="flex items-center justify-between border-b border-ink/8 pb-3 mb-3">
               <div>
-                <span className="rounded-full bg-signal px-2.5 py-0.5 text-[11px] font-semibold text-ink">
+                <span className="rounded-full bg-signal px-2.5 py-0.5 text-[11px] font-semibold text-ink dark:text-cloud">
                   Primeiro Contato
                 </span>
                 <h4 className="text-base font-bold mt-1">Marcos Silva</h4>
@@ -233,7 +233,7 @@ export function FlowSection() {
               <span className="absolute bottom-2 right-3 text-[10px] text-ink/40">Revisado por IA</span>
             </div>
             <div className="mt-4 flex gap-2">
-              <button className="flex-1 bg-ink text-white rounded-full py-2.5 text-xs font-semibold transition hover:-translate-y-0.5">
+              <button className="flex-1 bg-ink text-cloud rounded-full py-2.5 text-xs font-semibold transition hover:-translate-y-0.5">
                 Copiar
               </button>
               <button className="flex-1 bg-cobalt text-white rounded-full py-2.5 text-xs font-semibold transition hover:-translate-y-0.5 flex items-center justify-center gap-1.5">
@@ -331,7 +331,7 @@ export function FlowSection() {
               >
                 <div
                   className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition-colors duration-300 ${
-                    isActive ? "bg-cobalt text-white" : "bg-ink/5 text-ink/60"
+                    isActive ? "bg-cobalt text-cloud" : "bg-ink/5 text-ink/60"
                   }`}
                 >
                   <Icon size={20} />

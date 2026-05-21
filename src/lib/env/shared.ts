@@ -104,6 +104,26 @@ export const ENV_VARIABLES = {
 
 export type EnvVariableName = keyof typeof ENV_VARIABLES;
 
+export function isPublicEnvVariable(key: EnvVariableName) {
+  return ENV_VARIABLES[key].public;
+}
+
+export function isServerOnlyEnvVariable(key: EnvVariableName) {
+  return !isPublicEnvVariable(key);
+}
+
+export function listPublicEnvVariables() {
+  return Object.keys(ENV_VARIABLES).filter((key) =>
+    isPublicEnvVariable(key as EnvVariableName)
+  ) as EnvVariableName[];
+}
+
+export function listServerOnlyEnvVariables() {
+  return Object.keys(ENV_VARIABLES).filter((key) =>
+    isServerOnlyEnvVariable(key as EnvVariableName)
+  ) as EnvVariableName[];
+}
+
 export const PRODUCTION_CORE_ENV_KEYS = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",

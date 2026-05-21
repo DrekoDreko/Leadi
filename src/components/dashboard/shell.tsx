@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Bell, Check, ChevronDown, Clock, Loader2, LogOut, Plus, Search, X } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { BrandMark } from "@/components/brand-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { Lead } from "@/data/mock";
 import { getClientTimezoneOffsetMinutes } from "@/lib/date/client-time";
 import { getDashboardNavItems } from "@/lib/navigation";
@@ -371,8 +372,8 @@ export function DashboardShell({
             aria-label="Novas criações"
             className={`group relative flex h-12 w-12 items-center justify-center rounded-full transition ${
               creationActive
-                ? "bg-signal text-ink shadow-soft"
-                : "bg-signal text-ink hover:bg-signal/90"
+                ? "bg-signal text-ink dark:text-cloud shadow-soft"
+                : "bg-signal text-ink dark:text-cloud hover:bg-signal/90"
             }`}
             href={getHref(creationHref)}
             title="Novas criações"
@@ -628,6 +629,7 @@ export function DashboardShell({
                   </div>
                 </div>
               </div>
+              <ThemeToggle />
               <button
                 className="icon-button"
                 onClick={handleLogout}
@@ -652,7 +654,7 @@ export function DashboardShell({
                   aria-label={item.label}
                   className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition ${
                     active
-                      ? "bg-ink text-white"
+                      ? "bg-ink text-cloud"
                       : "bg-white/42 text-ink/62 hover:bg-white/70 hover:text-ink"
                   }`}
                   href={getHref(item.href)}
@@ -668,7 +670,7 @@ export function DashboardShell({
               aria-label="Novas criações"
               className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition ${
                 creationActive
-                  ? "bg-ink text-white"
+                  ? "bg-ink text-cloud"
                   : "bg-white/42 text-ink/62 hover:bg-white/70 hover:text-ink"
               }`}
               href={getHref(creationHref)}

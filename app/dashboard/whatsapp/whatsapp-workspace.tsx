@@ -204,7 +204,7 @@ export function WhatsAppWorkspace({
       >
         {selectedLead ? (
           <button
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud disabled:cursor-not-allowed disabled:opacity-70"
             disabled={isGenerating || !generateAccess.allowed || currentAiBalance < messageCost}
             onClick={generateMessage}
             type="button"
@@ -218,7 +218,7 @@ export function WhatsAppWorkspace({
           </button>
         ) : (
           <Link
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
             href="/dashboard/leads"
           >
             <Send size={18} aria-hidden="true" />

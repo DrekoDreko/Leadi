@@ -74,7 +74,7 @@ export default function PricingPage() {
               </div>
               <Link
                 className={`mt-8 inline-flex w-full justify-center rounded-full px-5 py-4 font-semibold ${
-                  plan.highlight ? "bg-signal text-ink" : "bg-ink text-white"
+                  plan.highlight ? "bg-signal text-ink dark:text-cloud" : "bg-ink text-cloud"
                 }`}
                 href={plan.href}
               >

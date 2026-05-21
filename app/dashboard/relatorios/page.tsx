@@ -40,7 +40,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
         description="Os indicadores abaixo usam dados reais do Supabase. Quando custo ou receita nao existem, o ROI financeiro aparece como indisponivel em vez de ser inventado."
       >
         <Link
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
           href="/dashboard/relatorios"
         >
           <Download size={18} aria-hidden="true" />
@@ -95,7 +95,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
           />
           <div className="flex items-end gap-2">
             <button
-              className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+              className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
               type="submit"
             >
               <Filter size={18} aria-hidden="true" />

@@ -153,7 +153,7 @@ export function WebhookLogsCard({
 
 function getWebhookFilterClass(current: WebhookLogFilter, target: WebhookLogFilter) {
   if (current === target) {
-    return "rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white";
+    return "rounded-full bg-ink px-4 py-2 text-xs font-semibold text-cloud";
   }
 
   return "rounded-full bg-white/55 px-4 py-2 text-xs font-semibold text-ink/70 transition hover:bg-white/75";

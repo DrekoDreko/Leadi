@@ -110,7 +110,7 @@ export function CreditsWorkspace({
               {snapshot.recentPurchases.length} compras
             </span>
             <button
-              className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white"
+              className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-cloud"
               onClick={() => window.location.reload()}
               type="button"
             >
@@ -139,7 +139,7 @@ export function CreditsWorkspace({
         <article className="glass rounded-[30px] p-5">
           <p className="text-sm text-ink/54">Créditos usados</p>
           <strong className="mt-3 block text-4xl font-semibold">{snapshot.wallet.totalSpent}</strong>
-          <span className="mt-3 inline-flex rounded-full bg-signal px-3 py-1.5 text-xs font-semibold text-ink">
+          <span className="mt-3 inline-flex rounded-full bg-signal px-3 py-1.5 text-xs font-semibold text-ink dark:text-cloud">
             consumo total
           </span>
         </article>
@@ -186,7 +186,7 @@ export function CreditsWorkspace({
                   </div>
                 </div>
                 <button
-                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-cloud disabled:cursor-not-allowed disabled:opacity-70"
                   disabled={loadingKey === product.key || !liveCheckoutEnabled}
                   onClick={() => startCheckout(product.key)}
                   type="button"
@@ -268,7 +268,7 @@ export function CreditsWorkspace({
                         {transaction.source} · {new Date(transaction.createdAt).toLocaleDateString("pt-BR")}
                       </p>
                     </div>
-                    <span className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
+                    <span className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-cloud">
                       -{transaction.amount}
                     </span>
                   </div>

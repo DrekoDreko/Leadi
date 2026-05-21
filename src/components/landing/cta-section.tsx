@@ -15,7 +15,7 @@ export function CTASection() {
             href="https://wa.me/5511920595133?text=Ola!%20Gostaria%20de%20agendar%20uma%20apresenta%C3%A7%C3%A3o%20do%20Leadi!"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-signal px-7 py-4 font-semibold text-ink shadow-soft transition hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-signal px-7 py-4 font-semibold text-ink dark:text-cloud shadow-soft transition hover:-translate-y-0.5"
           >
             Agendar demonstração
             <ArrowRight size={16} aria-hidden="true" />

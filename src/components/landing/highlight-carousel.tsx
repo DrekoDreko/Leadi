@@ -381,7 +381,7 @@ export function HighlightCarousel() {
             <button className="flex-1 rounded-xl border border-ink/5 py-2.5 px-2 text-[10px] font-extrabold text-ink/50 bg-white/50 hover:bg-white/70 transition-colors">
               Ajustar
             </button>
-            <button className="flex-[1.3] rounded-xl bg-ink text-white py-2.5 px-3 text-[10px] font-extrabold shadow-md shadow-black/10 hover:scale-[1.02] transition-transform duration-200 flex items-center justify-center gap-1.5 border border-white/10 relative overflow-hidden group">
+            <button className="flex-[1.3] rounded-xl bg-ink text-cloud py-2.5 px-3 text-[10px] font-extrabold shadow-md shadow-black/10 hover:scale-[1.02] transition-transform duration-200 flex items-center justify-center gap-1.5 border border-white/10 relative overflow-hidden group">
               <Zap size={11} className="fill-yellow-400 text-yellow-400" />
               Turbinar
             </button>

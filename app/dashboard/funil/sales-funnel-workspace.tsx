@@ -59,13 +59,13 @@ const stageToneByValue: Record<LeadStageValue, StageTone> = {
     pulse: "bg-lagoon"
   },
   proposal: {
-    accent: "bg-signal text-ink",
+    accent: "bg-signal text-ink dark:text-cloud",
     card: "border-signal/40 bg-signal/20",
     description: "Simulação enviada",
     pulse: "bg-signal"
   },
   negotiation: {
-    accent: "bg-ink text-white",
+    accent: "bg-ink text-cloud",
     card: "border-ink/14 bg-ink/8",
     description: "Ajustes e objeções",
     pulse: "bg-ink"
@@ -315,7 +315,7 @@ export function SalesFunnelWorkspace({
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-4xl">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
+              <span className="inline-flex items-center gap-2 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-cloud">
                 <Kanban size={14} aria-hidden="true" />
                 Funil de vendas
               </span>
@@ -424,7 +424,7 @@ export function SalesFunnelWorkspace({
       {feedback && (
         <p
           aria-live="polite"
-          className={`flex items-center gap-2 rounded-[24px] px-5 py-3 text-sm font-medium text-ink ${
+          className={`flex items-center gap-2 rounded-[24px] px-5 py-3 text-sm font-medium text-ink dark:text-cloud ${
             feedback.type === "success" ? "bg-lagoon/16" : "bg-signal/30"
           }`}
         >
@@ -599,7 +599,7 @@ function FunnelLeadCard({
           <span className="block text-sm font-semibold leading-tight text-ink">{lead.name}</span>
           <span className="mt-1 block text-xs font-medium text-ink/56">{lead.owner}</span>
         </div>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-cloud">
           {pending ? (
             <Loader2 className="animate-spin" size={16} aria-hidden="true" />
           ) : (
@@ -669,8 +669,8 @@ function FunnelHeroMetric({
   const toneClass = {
     blue: "bg-cobalt text-white",
     teal: "bg-lagoon text-white",
-    dark: "bg-ink text-white",
-    yellow: "bg-signal text-ink"
+    dark: "bg-ink text-cloud",
+    yellow: "bg-signal text-ink dark:text-cloud"
   }[tone];
 
   return (
@@ -747,7 +747,7 @@ function LeadDataNotice({ leadState }: { leadState: LeadDataState }) {
 
   if (leadState.mode === "not-configured") {
     return (
-      <p className="rounded-[24px] bg-signal/30 px-5 py-3 text-sm font-medium text-ink">
+      <p className="rounded-[24px] bg-signal/30 px-5 py-3 text-sm font-medium text-ink dark:text-cloud">
         {leadState.message ?? "Usando dados mockados enquanto a base real nao esta disponivel."}
       </p>
     );
@@ -767,7 +767,7 @@ function LeadWorkspaceErrorState({
     <section className="glass-strong rounded-[34px] p-6 md:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal/28 text-ink">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal/28 text-ink dark:text-cloud">
             <AlertCircle size={20} aria-hidden="true" />
           </div>
           <p className="text-sm font-medium text-cobalt">Funil</p>
@@ -778,7 +778,7 @@ function LeadWorkspaceErrorState({
         </div>
 
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
           onClick={onRetry}
           type="button"
         >

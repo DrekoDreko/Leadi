@@ -91,7 +91,7 @@ export function DashboardHome({
         description="Resumo da conta, conexoes ativas, anuncios criados e prioridades para a operacao comercial."
       >
         <Link
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
           href={relatoriosHref}
         >
           {preview ? "Entrar" : "Relatorios"}

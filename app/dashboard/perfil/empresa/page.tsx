@@ -57,7 +57,7 @@ export default async function PerfilEmpresaPage() {
             </p>
           </div>
           <Link
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
             href="/dashboard/perfil/meta"
           >
             Gerenciar Meta

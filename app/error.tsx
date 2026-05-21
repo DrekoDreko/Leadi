@@ -25,7 +25,7 @@ export default function Error({
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <button
-            className="inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 font-semibold text-white"
+            className="inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 font-semibold text-cloud"
             onClick={reset}
             type="button"
           >

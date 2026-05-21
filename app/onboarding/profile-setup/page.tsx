@@ -43,7 +43,7 @@ export default async function ProfileSetupPage({
           </div>
 
           {error && (
-            <p className="mt-6 rounded-[22px] bg-signal/34 px-4 py-3 text-sm font-medium text-ink">
+            <p className="mt-6 rounded-[22px] bg-signal/34 px-4 py-3 text-sm font-medium text-ink dark:text-cloud">
               {error}
             </p>
           )}
@@ -62,7 +62,7 @@ export default async function ProfileSetupPage({
                 <span className="mt-3 block leading-7 text-ink/62">
                   Você vende fora de uma corretora ou tem uma corretora individual.
                 </span>
-                <span className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white">
+                <span className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud">
                   Continuar como consultor
                 </span>
               </button>

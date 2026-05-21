@@ -427,11 +427,20 @@ export function LeadDetailsPopup({
   }
 
   const profileItems = [
-    { icon: UserRound, label: "Nome", value: lead.name },
+    { icon: UserRound, label: "Responsavel", value: lead.owner },
     { icon: UserRound, label: "Empresa", value: lead.companyName ?? "Empresa nao informada" },
     { icon: PhoneCall, label: "Telefone", value: lead.phone },
     { icon: Mail, label: "Email", value: lead.email },
-    { icon: CheckCircle2, label: "Cidade", value: lead.city ?? "Cidade nao informada" }
+    { icon: CheckCircle2, label: "Cidade", value: lead.city ?? "Cidade nao informada" },
+    { icon: CheckCircle2, label: "Vidas", value: formatLivesCount(lead.livesCount) }
+  ];
+  const sourceItems = [
+    { label: "Etapa", value: lead.stage },
+    { label: "Origem", value: lead.source },
+    { label: "Campanha", value: lead.sourceCampaign ?? "Nao informada" },
+    { label: "Orcamento", value: lead.budget },
+    { label: "Recebido em", value: formatLeadDateTime(lead.receivedAt) ?? lead.createdAt },
+    { label: "Criado em", value: lead.createdAt }
   ];
   return (
     <div
@@ -448,7 +457,7 @@ export function LeadDetailsPopup({
         <div className="flex flex-col gap-4 border-b border-ink/10 pb-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
+              <span className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-cloud">
                 {lead.id}
               </span>
               <span className="rounded-full bg-white/64 px-3 py-1.5 text-xs font-semibold">
@@ -535,7 +544,7 @@ export function LeadDetailsPopup({
           <div
             aria-live="polite"
             className={`mt-5 flex items-start gap-3 rounded-[24px] px-4 py-3 text-sm font-medium ${
-              status.type === "success" ? "bg-lagoon/16 text-ink" : "bg-signal/34 text-ink"
+              status.type === "success" ? "bg-lagoon/16 text-ink dark:text-cloud" : "bg-signal/34 text-ink dark:text-cloud"
             }`}
           >
             {status.type === "success" && (
@@ -550,7 +559,7 @@ export function LeadDetailsPopup({
             <button
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 activePanel === "details"
-                  ? "bg-ink text-white"
+                  ? "bg-ink text-cloud"
                   : "bg-white/70 text-ink hover:bg-white"
               }`}
               onClick={() => setActivePanel("details")}
@@ -729,9 +738,19 @@ export function LeadDetailsPopup({
             />
           </div>
         ) : (
-          <div className="grid gap-4 pt-5 lg:grid-cols-[minmax(0,1.1fr)_360px]">
-            <div className="min-w-0 space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-4 pt-5">
+            <section className="rounded-[28px] bg-white/42 p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-cloud">
+                  <UserRound size={18} aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-sm text-ink/54">Leitura rapida</p>
+                  <h3 className="font-semibold">Dados basicos</h3>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {profileItems.map((item) => (
                   <div className="rounded-[24px] bg-white/44 p-4" key={item.label}>
                     <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/68">
@@ -744,138 +763,149 @@ export function LeadDetailsPopup({
                   </div>
                 ))}
               </div>
+            </section>
 
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.12fr)_minmax(280px,0.88fr)]">
               <section className="rounded-[28px] bg-white/42 p-5">
                 <div className="mb-4 flex items-center gap-3">
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lagoon text-white">
                     <CheckCircle2 size={18} aria-hidden="true" />
                   </span>
                   <div>
-                    <p className="text-sm text-ink/54">Última interação</p>
-                    <h3 className="font-semibold">Resumo comercial</h3>
+                    <p className="text-sm text-ink/54">Leitura comercial</p>
+                    <h3 className="font-semibold">Contexto da oportunidade</h3>
                   </div>
                 </div>
-                <p className="text-sm leading-6 text-ink/68">{lead.lastInteraction}</p>
-                <p className="mt-4 rounded-[20px] bg-white/52 p-4 text-sm leading-6 text-ink/68">
-                  {lead.notes}
-                </p>
+
+                <div className="space-y-4">
+                  <div className="rounded-[22px] bg-white/52 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                      Interesse principal
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-ink/72">{lead.interest}</p>
+                  </div>
+
+                  <div className="rounded-[22px] bg-white/52 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                      Ultima interacao
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-ink/72">{lead.lastInteraction}</p>
+                  </div>
+
+                  <div className="rounded-[22px] bg-white/52 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                      Observacoes
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-ink/72">{lead.notes}</p>
+                  </div>
+                </div>
               </section>
 
-              <section className="rounded-[28px] bg-white/42 p-5">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cobalt text-white">
-                      <MessageCircle size={18} aria-hidden="true" />
-                    </span>
-                    <div>
-                      <p className="text-sm text-ink/54">Historico do lead</p>
-                      <h3 className="font-semibold">Comentarios internos</h3>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-ink/62">
-                    {comments.length}
+              <section className="rounded-[28px] bg-white/44 p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cobalt text-white">
+                    <Clock3 size={18} aria-hidden="true" />
                   </span>
-                </div>
-
-                <form className="mb-4 space-y-3" onSubmit={handleCommentSubmit}>
-                  <textarea
-                    className="liquid-input min-h-[120px] resize-y"
-                    disabled={isSubmittingComment}
-                    maxLength={2000}
-                    onChange={(event) => setCommentDraft(event.target.value)}
-                    placeholder="Escreva um comentario para orientar a próxima abordagem."
-                    value={commentDraft}
-                  />
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-medium text-ink/46">
-                      {commentDraft.trim().length}/2000 caracteres
-                    </span>
-                    <button
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cobalt/90 disabled:cursor-not-allowed disabled:opacity-70"
-                      disabled={isSubmittingComment}
-                      type="submit"
-                    >
-                      {isSubmittingComment ? (
-                        <Loader2 className="animate-spin" size={16} aria-hidden="true" />
-                      ) : (
-                        <Send size={16} aria-hidden="true" />
-                      )}
-                      {isSubmittingComment ? "Enviando..." : "Salvar comentario"}
-                    </button>
+                  <div>
+                    <p className="text-sm text-ink/54">Origem e operacao</p>
+                    <h3 className="font-semibold">Resumo de origem</h3>
                   </div>
-                </form>
-
-                {commentsError && (
-                  <p className="mb-4 rounded-[20px] bg-signal/26 px-4 py-3 text-sm font-medium text-ink">
-                    {commentsError}
-                  </p>
-                )}
-
-                <div className="space-y-3">
-                  {commentsStatus === "loading" ? (
-                    <div className="flex items-center gap-2 rounded-[20px] bg-white/60 px-4 py-3 text-sm text-ink/62">
-                      <Loader2 className="animate-spin" size={16} aria-hidden="true" />
-                      Carregando comentarios...
-                    </div>
-                  ) : comments.length === 0 ? (
-                    <div className="rounded-[20px] border border-dashed border-ink/12 bg-white/54 px-4 py-5 text-sm leading-6 text-ink/56">
-                      Nenhum comentario registrado ainda. Use esse espaço para contexto de ligação,
-                      objeções e próximos passos.
-                    </div>
-                  ) : (
-                    comments.map((comment) => (
-                      <article className="rounded-[22px] bg-white/58 p-4" key={comment.id}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-ink">{comment.authorName}</p>
-                            <p className="mt-1 text-xs text-ink/46">{comment.authorEmail}</p>
-                          </div>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-white/72 px-3 py-1.5 text-[11px] font-semibold text-ink/56">
-                            <Clock3 size={12} aria-hidden="true" />
-                            {formatCommentTimestamp(comment.createdAt)}
-                          </span>
-                        </div>
-                        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-ink/70">
-                          {comment.body}
-                        </p>
-                      </article>
-                    ))
-                  )}
                 </div>
+                <dl className="mt-4 space-y-3 text-sm">
+                  {sourceItems.map((item) => (
+                    <div className="flex items-center justify-between gap-3" key={item.label}>
+                      <dt className="text-ink/54">{item.label}</dt>
+                      <dd className="max-w-[190px] text-right font-semibold">{item.value}</dd>
+                    </div>
+                  ))}
+                </dl>
               </section>
             </div>
 
-            <aside className="space-y-4">
-              <section className="rounded-[28px] bg-white/44 p-5">
-                <h3 className="font-semibold">Comercial</h3>
-                <dl className="mt-4 space-y-3 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-ink/54">Etapa</dt>
-                    <dd className="max-w-[170px] truncate font-semibold">{lead.stage}</dd>
+            <section className="rounded-[28px] bg-white/42 p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cobalt text-white">
+                    <MessageCircle size={18} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="text-sm text-ink/54">Historico do lead</p>
+                    <h3 className="font-semibold">Comentarios internos</h3>
                   </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-ink/54">Empresa</dt>
-                    <dd className="max-w-[170px] truncate font-semibold">
-                      {lead.companyName ?? "Nao informada"}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-ink/54">Vidas</dt>
-                    <dd className="max-w-[170px] truncate font-semibold">
-                      {formatLivesCount(lead.livesCount)}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-ink/54">Orçamento</dt>
-                    <dd className="max-w-[170px] truncate font-semibold">{lead.budget}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-ink/54">Origem</dt>
-                    <dd className="max-w-[170px] truncate font-semibold">{lead.source}</dd>
-                  </div>
-                </dl>
-              </section>
+                </div>
+                <span className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-ink/62">
+                  {comments.length}
+                </span>
+              </div>
 
+              <form className="mb-4 space-y-3" onSubmit={handleCommentSubmit}>
+                <textarea
+                  className="liquid-input min-h-[120px] resize-y"
+                  disabled={isSubmittingComment}
+                  maxLength={2000}
+                  onChange={(event) => setCommentDraft(event.target.value)}
+                  placeholder="Escreva um comentario para orientar a proxima abordagem."
+                  value={commentDraft}
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-medium text-ink/46">
+                    {commentDraft.trim().length}/2000 caracteres
+                  </span>
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cobalt/90 disabled:cursor-not-allowed disabled:opacity-70"
+                    disabled={isSubmittingComment}
+                    type="submit"
+                  >
+                    {isSubmittingComment ? (
+                      <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+                    ) : (
+                      <Send size={16} aria-hidden="true" />
+                    )}
+                    {isSubmittingComment ? "Enviando..." : "Salvar comentario"}
+                  </button>
+                </div>
+              </form>
+
+              {commentsError && (
+                <p className="mb-4 rounded-[20px] bg-signal/26 px-4 py-3 text-sm font-medium text-ink dark:text-cloud">
+                  {commentsError}
+                </p>
+              )}
+
+              <div className="space-y-3">
+                {commentsStatus === "loading" ? (
+                  <div className="flex items-center gap-2 rounded-[20px] bg-white/60 px-4 py-3 text-sm text-ink/62">
+                    <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+                    Carregando comentarios...
+                  </div>
+                ) : comments.length === 0 ? (
+                  <div className="rounded-[20px] border border-dashed border-ink/12 bg-white/54 px-4 py-5 text-sm leading-6 text-ink/56">
+                    Nenhum comentario registrado ainda. Use esse espaco para contexto de ligacao,
+                    objecoes e proximos passos.
+                  </div>
+                ) : (
+                  comments.map((comment) => (
+                    <article className="rounded-[22px] bg-white/58 p-4" key={comment.id}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-ink">{comment.authorName}</p>
+                          <p className="mt-1 text-xs text-ink/46">{comment.authorEmail}</p>
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white/72 px-3 py-1.5 text-[11px] font-semibold text-ink/56">
+                          <Clock3 size={12} aria-hidden="true" />
+                          {formatCommentTimestamp(comment.createdAt)}
+                        </span>
+                      </div>
+                      <p className="mt-3 whitespace-pre-line text-sm leading-6 text-ink/70">
+                        {comment.body}
+                      </p>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <aside className="space-y-4">
               {onDeleted && (
                 <section
                   aria-busy={isDeleting}
@@ -1140,6 +1170,25 @@ function formatLivesCount(value: number | null | undefined) {
   }
 
   return `${value} vidas`;
+}
+
+function formatLeadDateTime(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }
 
 function formatCommentTimestamp(value: string) {

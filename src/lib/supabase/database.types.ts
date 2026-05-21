@@ -1170,6 +1170,12 @@ export type Database = {
           interest: string | null;
           last_interaction: string | null;
           notes: string | null;
+          cpf: string | null;
+          birth_date: string | null;
+          profession: string | null;
+          health_plan_type: string | null;
+          current_health_plan: string | null;
+          dependents_count: number | null;
           source_campaign: string | null;
           source_adset: string | null;
           source_ad: string | null;
@@ -1206,6 +1212,12 @@ export type Database = {
           interest?: string | null;
           last_interaction?: string | null;
           notes?: string | null;
+          cpf?: string | null;
+          birth_date?: string | null;
+          profession?: string | null;
+          health_plan_type?: string | null;
+          current_health_plan?: string | null;
+          dependents_count?: number | null;
           source_campaign?: string | null;
           source_adset?: string | null;
           source_ad?: string | null;
@@ -1242,6 +1254,12 @@ export type Database = {
           interest?: string | null;
           last_interaction?: string | null;
           notes?: string | null;
+          cpf?: string | null;
+          birth_date?: string | null;
+          profession?: string | null;
+          health_plan_type?: string | null;
+          current_health_plan?: string | null;
+          dependents_count?: number | null;
           source_campaign?: string | null;
           source_adset?: string | null;
           source_ad?: string | null;

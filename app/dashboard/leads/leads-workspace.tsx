@@ -318,7 +318,7 @@ export function LeadsWorkspace({
         description="Lista dedicada para qualificar contatos, acompanhar responsáveis e priorizar próximos passos."
       >
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
           onClick={() => setIsMetaImportOpen(true)}
           type="button"
         >
@@ -476,7 +476,7 @@ function LeadPaginationControls({
 
       {pagination.hasMore ? (
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isLoading}
           onClick={onLoadMore}
           type="button"
@@ -831,7 +831,7 @@ function MetaImportState({
       <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/62">{description}</p>
       {actionHref && actionLabel ? (
         <Link
-          className="mt-5 inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+          className="mt-5 inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
           href={actionHref}
         >
           {actionLabel}
@@ -919,7 +919,7 @@ function LeadDataNotice({ leadState }: { leadState: LeadDataState }) {
 
   if (leadState.mode === "not-configured") {
     return (
-      <p className="rounded-[24px] bg-signal/30 px-5 py-3 text-sm font-medium text-ink">
+      <p className="rounded-[24px] bg-signal/30 px-5 py-3 text-sm font-medium text-ink dark:text-cloud">
         {leadState.message ?? "Usando dados mockados enquanto a base real nao esta disponivel."}
       </p>
     );
@@ -1121,7 +1121,7 @@ function LeadWorkspaceErrorState({
     <section className="glass-strong rounded-[34px] p-6 md:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal/28 text-ink">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal/28 text-ink dark:text-cloud">
             <AlertCircle size={20} aria-hidden="true" />
           </div>
           <p className="text-sm font-medium text-cobalt">Leads</p>
@@ -1132,7 +1132,7 @@ function LeadWorkspaceErrorState({
         </div>
 
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
           onClick={onRetry}
           type="button"
         >

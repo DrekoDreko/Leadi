@@ -61,7 +61,7 @@ const statusClasses = {
   approved: "bg-lagoon text-white",
   cancelled: "bg-ink/12 text-ink/70",
   delivered: "bg-cobalt text-white",
-  in_progress: "bg-signal text-ink",
+  in_progress: "bg-signal text-ink dark:text-cloud",
   in_review: "bg-white/70 text-ink",
   requested: "bg-white/62 text-ink"
 } as const;
@@ -326,7 +326,7 @@ export function AdminPedidosWorkspace({
                 Ajuste os filtros para recuperar a fila completa.
               </p>
               <button
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
                 onClick={clearFilters}
                 type="button"
               >
@@ -497,7 +497,7 @@ export function AdminPedidosWorkspace({
                             <span
                               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                                 comment.visibility === "ops_only"
-                                  ? "bg-ink text-white"
+                                  ? "bg-ink text-cloud"
                                   : "bg-white text-ink/68"
                               }`}
                             >
@@ -553,7 +553,7 @@ export function AdminPedidosWorkspace({
                       Comentarios compartilhados aparecem no workspace da organizacao. Comentarios operacionais ficam apenas nesta area.
                     </p>
                     <button
-                      className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                      className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-cloud disabled:cursor-not-allowed disabled:opacity-70"
                       disabled={commentingRequestId === selectedRequest.id}
                       type="submit"
                     >

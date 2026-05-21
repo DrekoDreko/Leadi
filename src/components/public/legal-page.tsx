@@ -71,7 +71,7 @@ export function LegalPage({
               </div>
               <div className="glass rounded-[28px] p-5 text-sm text-ink/70">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-ink text-white">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-ink text-cloud">
                     <ShieldCheck size={18} aria-hidden="true" />
                   </span>
                   <div>

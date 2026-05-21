@@ -72,7 +72,7 @@ export function MockDashboardPreview() {
               </div>
             ))}
           </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-signal text-ink">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-signal text-ink dark:text-cloud">
             <Sparkles size={18} aria-hidden="true" />
           </div>
         </aside>
@@ -173,7 +173,7 @@ export function MockDashboardPreview() {
                 <span className="rounded-full bg-cobalt px-3 py-1.5 text-xs font-medium text-white">
                   Linguagem Consultiva
                 </span>
-                <span className="rounded-full bg-signal px-3 py-1.5 text-xs font-medium text-ink">
+                <span className="rounded-full bg-signal px-3 py-1.5 text-xs font-medium text-ink dark:text-cloud">
                   Preparado para Meta
                 </span>
               </div>

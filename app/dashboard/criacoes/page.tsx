@@ -23,14 +23,14 @@ const primaryCreations = [
     description: "Acompanhe o progresso da solicitacao, revise status e veja quando a campanha estiver pronta.",
     href: "/dashboard/criacoes/validador",
     icon: ClipboardCheck,
-    tone: "bg-ink text-white"
+    tone: "bg-ink text-cloud"
   },
   {
     title: "Solicitacao de criativo",
     description: "Abra um briefing para arte, imagem, video ou outro material ligado a campanha.",
     href: "/dashboard/criacoes/campanhas",
     icon: Palette,
-    tone: "bg-signal text-ink"
+    tone: "bg-signal text-ink dark:text-cloud"
   }
 ];
 
@@ -63,7 +63,7 @@ export default function CriacoesPage() {
         title="Novas criacoes"
         description="Este e o hub de criacao do Leadi: campanhas, validador, solicitacao de criativo e futuras rotinas da operacao."
       >
-        <span className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white">
+        <span className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud">
           <Plus size={18} aria-hidden="true" />
           Escolha o que criar
         </span>

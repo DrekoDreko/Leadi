@@ -15,7 +15,7 @@ export function LGPDSection() {
       <div className="glass-strong rounded-[40px] p-8 md:p-12">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div>
-            <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-white shadow-soft">
+            <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-cloud shadow-soft">
               <Lock size={20} aria-hidden="true" />
             </span>
             <p className="mb-3 text-sm font-medium text-cobalt">Privacidade e LGPD</p>

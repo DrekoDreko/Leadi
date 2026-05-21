@@ -54,7 +54,7 @@ function InviteMessage({ title, message }: { title: string; message: string }) {
         <h1 className="mt-6 text-3xl font-semibold">{title}</h1>
         <p className="mt-4 leading-7 text-ink/62">{message}</p>
         <Link
-          className="mt-8 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+          className="mt-8 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
           href="/dashboard"
         >
           <CheckCircle2 size={17} aria-hidden="true" />

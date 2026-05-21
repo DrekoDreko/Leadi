@@ -15,7 +15,7 @@ export function AISection() {
       <div className="glass-dark rounded-[40px] p-8 text-white md:p-12">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
           <div>
-            <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal text-ink">
+            <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal text-ink dark:text-cloud">
               <BrainCircuit size={22} aria-hidden="true" />
             </span>
             <h2 className="text-3xl font-semibold leading-tight md:text-4xl">

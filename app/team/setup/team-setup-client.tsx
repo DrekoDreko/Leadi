@@ -181,7 +181,7 @@ export function TeamSetupClient({
           {currentRole === "owner" ? "Owner" : currentRole === "admin" ? "Admin" : "Consultor"}
         </div>
         <Link
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
           href="/dashboard"
         >
           Voltar
@@ -217,7 +217,7 @@ export function TeamSetupClient({
                 type="text"
               />
               <button
-                className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90 disabled:opacity-60"
+                className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:opacity-60"
                 disabled={isSavingName}
                 type="submit"
               >
@@ -288,7 +288,7 @@ export function TeamSetupClient({
                         ) : null}
                         {canRemoveMember ? (
                           <button
-                            className="inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2 text-xs font-semibold text-ink disabled:opacity-60"
+                            className="inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2 text-xs font-semibold text-ink dark:text-cloud disabled:opacity-60"
                             disabled={isBusy}
                             onClick={() => removeMember(member.profileId)}
                             type="button"
@@ -329,7 +329,7 @@ export function TeamSetupClient({
                   <option value="seller">Consultor</option>
                 </select>
                 <button
-                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90 disabled:opacity-70"
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:opacity-70"
                   disabled={isGenerating || !inviteAccess.allowed}
                   onClick={generateInvite}
                   type="button"
@@ -350,7 +350,7 @@ export function TeamSetupClient({
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
-                className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-cloud disabled:opacity-50"
                 disabled={!latestInviteUrl}
                 onClick={copyInvite}
                 type="button"

@@ -75,7 +75,7 @@ const statusClasses = {
   approved: "bg-lagoon text-white",
   cancelled: "bg-ink/12 text-ink/70",
   delivered: "bg-cobalt text-white",
-  in_progress: "bg-signal text-ink",
+  in_progress: "bg-signal text-ink dark:text-cloud",
   in_review: "bg-white/70 text-ink",
   requested: "bg-white/62 text-ink"
 } as const;
@@ -447,7 +447,7 @@ export function PedidosWorkspace({
           </Link>
         ) : null}
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud disabled:cursor-not-allowed disabled:opacity-60"
           disabled={!canCreateRequests}
           onClick={() => {
             if (canCreateRequests) {
@@ -596,7 +596,7 @@ export function PedidosWorkspace({
                   : "Abra o formulario para enviar o primeiro briefing e acompanhar os prazos por aqui."}
               </p>
               <button
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={!canCreateRequests}
                 onClick={() => {
                   if (canCreateRequests) {
@@ -623,7 +623,7 @@ export function PedidosWorkspace({
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <button
-                  className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white"
+                  className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
                   onClick={clearFilters}
                   type="button"
                 >
@@ -837,7 +837,7 @@ export function PedidosWorkspace({
                   <label
                     className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold ${
                       currentListMode === "supabase"
-                        ? "bg-ink text-white"
+                        ? "bg-ink text-cloud"
                         : "bg-white/70 text-ink/58"
                     } ${uploadingRequestId === selectedRequest.id ? "opacity-70" : ""}`}
                   >
@@ -958,7 +958,7 @@ export function PedidosWorkspace({
                       Este comentario fica visivel para a equipe do workspace e para a operacao.
                     </p>
                     <button
-                      className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                      className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-cloud disabled:cursor-not-allowed disabled:opacity-70"
                       disabled={!canMutateRequests || commentingRequestId === selectedRequest.id}
                       type="submit"
                     >
@@ -1075,7 +1075,7 @@ export function PedidosWorkspace({
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   <button
-                    className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                    className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud disabled:cursor-not-allowed disabled:opacity-70"
                     disabled={isSubmitting || !canCreateRequests}
                     type="submit"
                   >
@@ -1114,7 +1114,7 @@ export function PedidosWorkspace({
                 </div>
               </div>
               <button
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={!canCreateRequests}
                 onClick={() => {
                   if (canCreateRequests) {
@@ -1258,7 +1258,7 @@ const fieldClassName =
   "w-full rounded-[22px] border border-white/54 bg-white/72 px-4 py-3 text-sm text-ink outline-none transition placeholder:text-ink/36 focus:border-cobalt/40 focus:ring-2 focus:ring-cobalt/15";
 
 const stepClasses: Record<WorkflowStepState, string> = {
-  active: "bg-ink text-white",
+  active: "bg-ink text-cloud",
   complete: "bg-lagoon text-white",
   upcoming: "bg-white/72 text-ink/56"
 };

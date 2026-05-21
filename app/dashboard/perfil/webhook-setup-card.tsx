@@ -116,7 +116,7 @@ export function WebhookSetupCard({
                   type="text"
                 />
                 <button
-                  className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
                   disabled={pending}
                   type="submit"
                 >
@@ -132,7 +132,7 @@ export function WebhookSetupCard({
             )}
 
             {state.error ? (
-              <p className="mt-4 rounded-[20px] bg-signal/34 px-4 py-3 text-sm font-medium text-ink">
+              <p className="mt-4 rounded-[20px] bg-signal/34 px-4 py-3 text-sm font-medium text-ink dark:text-cloud">
                 {state.error}
               </p>
             ) : null}
@@ -192,7 +192,7 @@ export function WebhookSetupCard({
               <li>6. Faça um teste e confira os logs recebidos.</li>
             </ol>
 
-            <div className="mt-4 rounded-[22px] bg-ink px-4 py-4 text-xs leading-6 text-white">
+            <div className="mt-4 rounded-[22px] bg-ink px-4 py-4 text-xs leading-6 text-cloud">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-white">Comando de teste</p>
@@ -239,7 +239,7 @@ export function WebhookSetupCard({
                 <Copy size={16} aria-hidden="true" />
               </button>
             </div>
-            <pre className="mt-3 overflow-x-auto rounded-[22px] bg-ink px-4 py-4 text-xs leading-6 text-white">
+            <pre className="mt-3 overflow-x-auto rounded-[22px] bg-ink px-4 py-4 text-xs leading-6 text-cloud">
               <code>{payloadExample}</code>
             </pre>
             {copiedValue === "payload" ? (

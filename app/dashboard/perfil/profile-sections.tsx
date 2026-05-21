@@ -64,7 +64,7 @@ export function MetaConnectedAccountsSection({
                 </button>
               </form>
               <a
-                className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
                 href={`/api/integrations/meta/connect?returnTo=${encodeURIComponent(PROFILE_META_SECTION_HREF)}`}
               >
                 Gerenciar conexão

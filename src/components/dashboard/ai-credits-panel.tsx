@@ -32,7 +32,7 @@ export function AiCreditsPanel({
       </p>
 
       {balance <= 0 ? (
-        <div className="mt-4 rounded-[22px] bg-signal/20 px-4 py-3 text-sm font-semibold text-ink">
+        <div className="mt-4 rounded-[22px] bg-signal/20 px-4 py-3 text-sm font-semibold text-ink dark:text-cloud">
           Seu saldo de IA acabou. Adicione créditos ou atualize seu plano para continuar usando
           recursos de IA.
         </div>

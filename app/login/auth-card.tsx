@@ -77,7 +77,7 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
             <div className="mt-6 grid rounded-full bg-white/38 p-1 text-sm font-semibold text-ink/68 sm:grid-cols-2">
               <button
                 className={`rounded-full px-5 py-3 text-center transition ${
-                  !isSignUp ? "bg-ink text-white shadow-soft" : "hover:bg-white/46"
+                  !isSignUp ? "bg-ink text-cloud shadow-soft" : "hover:bg-white/46"
                 }`}
                 onClick={() => setMode("login")}
                 type="button"
@@ -86,7 +86,7 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
               </button>
               <button
                 className={`rounded-full px-5 py-3 text-center transition ${
-                  isSignUp ? "bg-ink text-white shadow-soft" : "hover:bg-white/46"
+                  isSignUp ? "bg-ink text-cloud shadow-soft" : "hover:bg-white/46"
                 }`}
                 onClick={() => setMode("signup")}
                 type="button"
@@ -95,7 +95,7 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
               </button>
             </div>
             {error && (
-              <p className="mt-5 rounded-[22px] bg-signal/34 px-4 py-3 text-sm font-medium text-ink">
+              <p className="mt-5 rounded-[22px] bg-signal/34 px-4 py-3 text-sm font-medium text-ink dark:text-cloud">
                 {error}
               </p>
             )}

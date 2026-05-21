@@ -21,7 +21,7 @@ export function WebhookSummaryCard({ summary }: WebhookSummaryCardProps) {
           </div>
           <span
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
-              summary.isConfigured ? "bg-lagoon/16 text-ink" : "bg-signal/30 text-ink"
+              summary.isConfigured ? "bg-lagoon/16 text-ink dark:text-cloud" : "bg-signal/30 text-ink dark:text-cloud"
             }`}
           >
             <Webhook size={16} aria-hidden="true" />
@@ -66,7 +66,7 @@ export function WebhookSummaryCard({ summary }: WebhookSummaryCardProps) {
 
         <div className="flex flex-wrap gap-2">
           <Link
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink/90"
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
             href="/dashboard/integracoes/webhook-leads"
           >
             Configurar integração

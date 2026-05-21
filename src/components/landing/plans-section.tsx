@@ -52,8 +52,8 @@ export function PlansSection() {
               href={plan.href}
               className={`mt-8 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold transition hover:-translate-y-0.5 ${
                 plan.highlight
-                  ? "bg-signal text-ink shadow-soft"
-                  : "bg-ink text-white shadow-soft"
+                  ? "bg-signal text-ink dark:text-cloud shadow-soft"
+                  : "bg-ink text-cloud shadow-soft"
               }`}
             >
               {plan.cta}
