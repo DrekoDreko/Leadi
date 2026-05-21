@@ -1,7 +1,7 @@
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { getCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
-import { getAiBalance } from "@/lib/ai/credits";
+import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { getWhatsAppMessagesCountForCurrentUser } from "@/lib/whatsapp/repository.server";
 import { getOnboardingStateForCurrentUser } from "@/lib/onboarding/repository.server";
 import { getCreativeRequestsCountForCurrentUser } from "@/lib/creative-requests/repository.server";
@@ -26,7 +26,7 @@ export default async function DashboardPage() {
     getCreativeRequestsCountForCurrentUser(),
     getDashboardRemindersForCurrentUser()
   ]);
-  const aiBalance = await getAiBalance(context.workspace?.id ?? "");
+  const aiBalance = await getCurrentAiBalance();
 
   return (
     <DashboardHome

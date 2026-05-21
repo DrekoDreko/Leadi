@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import PerfilPage from "./page";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
-import { getAiBalance } from "@/lib/ai/credits";
+import { getCurrentAiBalance } from "@/lib/ai/credits";
 
 vi.mock("server-only", () => ({}));
 
@@ -22,7 +22,7 @@ vi.mock("@/lib/integrations/repository.server", () => ({
 }));
 
 vi.mock("@/lib/ai/credits", () => ({
-  getAiBalance: vi.fn()
+  getCurrentAiBalance: vi.fn()
 }));
 
 vi.mock("next/navigation", () => ({
@@ -57,7 +57,7 @@ describe("Perfil Page (/dashboard/perfil)", () => {
       openAIConnection: { status: "connected" }
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    vi.mocked(getAiBalance).mockResolvedValue(12);
+    vi.mocked(getCurrentAiBalance).mockResolvedValue(12);
 
     const Page = await PerfilPage({ searchParams: Promise.resolve({}) });
     render(Page);
@@ -96,7 +96,7 @@ describe("Perfil Page (/dashboard/perfil)", () => {
       profileSetupCompleted: true
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    vi.mocked(getAiBalance).mockResolvedValue(0);
+    vi.mocked(getCurrentAiBalance).mockResolvedValue(0);
 
     await expect(
       PerfilPage({ searchParams: Promise.resolve({ webhookStatus: "processed" }) })
@@ -134,7 +134,7 @@ describe("Perfil Page (/dashboard/perfil)", () => {
       openAIConnection: { status: "connected" }
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    vi.mocked(getAiBalance).mockResolvedValue(12);
+    vi.mocked(getCurrentAiBalance).mockResolvedValue(12);
 
     const Page = await PerfilPage({ searchParams: Promise.resolve({ meta: "missing" }) });
     render(Page);

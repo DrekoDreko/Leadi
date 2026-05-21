@@ -23,3 +23,5 @@ vi.mock('next/headers', () => ({
     get: vi.fn(),
   }),
 }));
+
+vi.mock('server-only', () => ({}));

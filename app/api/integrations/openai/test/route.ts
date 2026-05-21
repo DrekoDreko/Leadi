@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server";
 import { resolveCurrentIdentity } from "@/lib/integrations/repository.server";
+import {
+  assertRouteRateLimit,
+  assertSameOrigin,
+  normalizeReturnTo
+} from "@/lib/api/route-security";
 
 export async function POST(request: Request) {
   const requestUrl = new URL(request.url);
+  assertSameOrigin(request);
+  await assertRouteRateLimit({
+    request,
+    keyPrefix: "api-openai-test",
+    limit: 10,
+    windowMs: 60 * 1000
+  });
   const returnTo = await getReturnTo(request);
   const identity = await resolveCurrentIdentity();
 
@@ -10,18 +22,19 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(returnTo)}`, requestUrl));
   }
 
+  if (!identity.canManageConnections) {
+    return redirectBack(requestUrl, returnTo, "openai=forbidden");
+  }
+
   return redirectBack(requestUrl, returnTo, "openai=coming_soon");
 }
 
 async function getReturnTo(request: Request) {
   const formData = await request.formData().catch(() => null);
-  const returnTo = formData?.get("returnTo");
-
-  if (typeof returnTo === "string" && returnTo.startsWith("/")) {
-    return returnTo;
-  }
-
-  return "/dashboard/perfil?openai=coming_soon";
+  return normalizeReturnTo(
+    typeof formData?.get("returnTo") === "string" ? (formData?.get("returnTo") as string) : null,
+    "/dashboard/perfil?openai=coming_soon"
+  );
 }
 
 function redirectBack(url: URL, returnTo: string, query: string) {

@@ -12,7 +12,7 @@ import {
 
 import { logger } from "@/lib/logger";
 import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
-import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
+import { assertDistributedRateLimit, RateLimitError } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
   try {
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     }
   } catch (error) {
     if (error instanceof EnvValidationError) {
-      return NextResponse.json({ error: error.message }, { status: 503 });
+      return NextResponse.json({ error: "Webhook Meta indisponivel." }, { status: 503 });
     }
   }
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   try {
     // Rate Limit por IP
     const ip = request.headers.get("x-forwarded-for") ?? "unknown";
-    assertRateLimit({
+    await assertDistributedRateLimit({
       key: `meta-ip:${ip}`,
       limit: 150, // Um pouco mais generoso para Meta
       windowMs: 60 * 1000
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
       object: payload.object,
       entry_count: payload.entry.length,
       leadgen_events: payload.leadgenEvents.length,
-      processed_events: eventResults
+      processed_events: eventResults.length
     });
   } catch (error) {
     const errorMessage =

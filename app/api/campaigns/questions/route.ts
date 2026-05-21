@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { AiCreditsError, runAiActionWithCredits } from "@/lib/ai/credits";
 import {
   generateComplianceQuestions,
@@ -7,18 +8,26 @@ import {
   type ComplianceQuestionsOutput
 } from "@/lib/openai";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
-
-type QuestionsRequestBody = {
-  audience?: unknown;
-  offer?: unknown;
-  region?: unknown;
-  differentiator?: unknown;
-};
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  logApiError,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
 
 type ComplianceQuestion = ComplianceQuestionsOutput["questions"][number];
 
 const MAX_FIELD_LENGTH = 280;
 const DEFAULT_PRODUCT = "Plano de saude empresarial";
+const questionsRequestSchema = z.object({
+  audience: requiredTrimmedString("Informe o publico do formulario.").max(MAX_FIELD_LENGTH),
+  offer: requiredTrimmedString("Informe a oferta do formulario.").max(MAX_FIELD_LENGTH),
+  region: requiredTrimmedString("Informe a regiao do formulario.").max(MAX_FIELD_LENGTH),
+  differentiator: z.string().trim().max(MAX_FIELD_LENGTH).optional()
+});
 const REQUIRED_TOPICS = [
   "empresa",
   "quantidade de vidas",
@@ -45,7 +54,14 @@ const PROHIBITED_QUESTION_PATTERNS = [
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as QuestionsRequestBody;
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-campaigns-questions",
+      limit: 25,
+      windowMs: 60 * 1000
+    });
+    const body = await parseJsonBody(request, questionsRequestSchema);
     const hasDifferentiator = Boolean(getOptionalString(body.differentiator));
     const input = parseQuestionsRequest(body);
     const billingContext = await getBillingAuthContext();
@@ -83,14 +99,22 @@ export async function POST(request: Request) {
   } catch (error) {
     const { message, status } = getQuestionsError(error);
 
+    logApiError({
+      route: "/api/campaigns/questions",
+      operation: "GENERATE_CAMPAIGN_QUESTIONS",
+      message,
+      status,
+      error
+    });
+
     return NextResponse.json({ error: message }, { status });
   }
 }
 
-function parseQuestionsRequest(body: QuestionsRequestBody): ComplianceQuestionsInput {
-  const audience = getRequiredString(body.audience, "Informe o publico do formulario.");
-  const offer = getRequiredString(body.offer, "Informe a oferta do formulario.");
-  const region = getRequiredString(body.region, "Informe a regiao do formulario.");
+function parseQuestionsRequest(body: z.infer<typeof questionsRequestSchema>): ComplianceQuestionsInput {
+  const audience = body.audience;
+  const offer = body.offer;
+  const region = body.region;
   const differentiator = getOptionalString(body.differentiator);
 
   return {
@@ -107,14 +131,6 @@ function parseQuestionsRequest(body: QuestionsRequestBody): ComplianceQuestionsI
     maxQuestions: 6,
     requiredTopics: REQUIRED_TOPICS
   };
-}
-
-function getRequiredString(value: unknown, message: string) {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error(message);
-  }
-
-  return value.trim().slice(0, MAX_FIELD_LENGTH);
 }
 
 function getOptionalString(value: unknown) {
@@ -138,6 +154,13 @@ function reviewQuestionLocally(question: ComplianceQuestion): ComplianceQuestion
 }
 
 function getQuestionsError(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return {
+      message: error.message,
+      status: getErrorStatus(error)
+    };
+  }
+
   if (error instanceof AiCreditsError) {
     return {
       message: error.message,

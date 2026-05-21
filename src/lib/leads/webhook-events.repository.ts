@@ -1,5 +1,7 @@
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import { isWorkspaceManagerRole } from "@/lib/workspaces/permissions";
 
 type LeadWebhookEventRow = Database["public"]["Tables"]["lead_webhook_events"]["Row"];
 type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
@@ -45,6 +47,8 @@ export async function listLeadWebhookLogsByOrganization(input: {
   if (!hasSupabaseServiceRole()) {
     return [];
   }
+
+  await assertCurrentUserCanReadWebhookLogs(input.organizationId);
 
   const supabase = createSupabaseAdminClient();
   const limit = clampLimit(input.limit ?? 40);
@@ -93,6 +97,8 @@ export async function getLeadWebhookSummaryByOrganization(input: {
   if (!hasSupabaseServiceRole()) {
     return DEFAULT_LEAD_WEBHOOK_SUMMARY;
   }
+
+  await assertCurrentUserCanReadWebhookLogs(input.organizationId);
 
   const supabase = createSupabaseAdminClient();
   const timeZone = input.timeZone ?? "America/Sao_Paulo";
@@ -222,6 +228,34 @@ function getPayloadTextValue(payload: Record<string, unknown>, keys: string[]) {
 
 function clampLimit(value: number) {
   return Math.max(1, Math.min(value, 100));
+}
+
+async function assertCurrentUserCanReadWebhookLogs(organizationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Usuario nao autenticado.");
+  }
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("organization_id,role")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (error || !profile) {
+    throw new Error(error?.message ?? "Perfil nao encontrado.");
+  }
+
+  if (
+    profile.organization_id !== organizationId ||
+    !isWorkspaceManagerRole(profile.role)
+  ) {
+    throw new Error("Sem permissao para visualizar os logs deste webhook.");
+  }
 }
 
 function getTodayRangeInTimeZone(timeZone: string, now = new Date()) {

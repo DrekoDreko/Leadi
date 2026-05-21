@@ -41,7 +41,7 @@ describe("OpenAI client", () => {
     expect(result).toEqual(payload);
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    const [url, init] = fetchMock.mock.calls[0];
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.openai.com/v1/responses");
     expect(init).toMatchObject({
       method: "POST",

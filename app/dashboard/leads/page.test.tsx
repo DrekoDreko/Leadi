@@ -4,7 +4,7 @@ import LeadsPage from './page';
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
-import { getAiBalance } from "@/lib/ai/credits";
+import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { getSystemTemplates } from "@/lib/templates/repository.server";
 
 // Mocks
@@ -24,7 +24,7 @@ vi.mock("@/lib/workspaces/context", () => ({
 }));
 
 vi.mock("@/lib/ai/credits", () => ({
-  getAiBalance: vi.fn()
+  getCurrentAiBalance: vi.fn()
 }));
 
 vi.mock("@/lib/templates/repository.server", () => ({
@@ -57,7 +57,7 @@ describe('Leads Page (/dashboard/leads)', () => {
       allowed: true,
       remaining: 10
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-    vi.mocked(getAiBalance).mockResolvedValue(9);
+    vi.mocked(getCurrentAiBalance).mockResolvedValue(9);
 
     vi.mocked(getSystemTemplates).mockResolvedValue([] as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 

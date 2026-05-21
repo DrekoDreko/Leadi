@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import {
   importMetaLeadsForCurrentUser,
   MetaLeadImportError
@@ -6,6 +7,14 @@ import {
 import type { MetaLeadImportSourceType } from "@/lib/meta/manual-lead-import.types";
 import { logger } from "@/lib/logger";
 import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
 
 type ImportRequestBody = {
   sourceType?: MetaLeadImportSourceType;
@@ -13,12 +22,25 @@ type ImportRequestBody = {
   organizationId?: string | null;
 };
 
+const importRequestSchema = z.object({
+  sourceType: z.enum(["form", "campaign", "ad"]).default("form"),
+  sourceId: requiredTrimmedString("Fonte Meta invalida para importacao.").max(120),
+  organizationId: z.string().trim().max(120).optional()
+});
+
 export async function POST(request: Request) {
   let body: ImportRequestBody | null = null;
 
   try {
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-meta-leads-import",
+      limit: 10,
+      windowMs: 60 * 1000
+    });
     assertPayloadSize(request, "WEBHOOK_JSON");
-    body = (await request.json()) as ImportRequestBody;
+    body = await parseJsonBody(request, importRequestSchema);
 
     const result = await importMetaLeadsForCurrentUser({
       sourceType: body.sourceType ?? "form",
@@ -65,6 +87,10 @@ export async function POST(request: Request) {
 }
 
 function getImportErrorStatus(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return getErrorStatus(error);
+  }
+
   if (error instanceof PayloadTooLargeError) {
     return error.status;
   }
@@ -77,6 +103,10 @@ function getImportErrorStatus(error: unknown) {
 }
 
 function getImportErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return error.message;
+  }
+
   if (error instanceof MetaLeadImportError) {
     if (error.status >= 500) {
       return "Nao foi possivel importar leads Meta agora. Tente novamente em instantes.";

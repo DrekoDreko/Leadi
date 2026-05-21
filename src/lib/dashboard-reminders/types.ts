@@ -13,6 +13,7 @@ export type DashboardReminderItem = {
   reminderDate: string;
   remindAt: string;
   message: string;
+  completed: boolean;
   createdAt: string;
   updatedAt: string;
 };

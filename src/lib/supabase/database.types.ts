@@ -284,6 +284,7 @@ export type Database = {
           reminder_date: string;
           remind_at: string;
           message: string;
+          completed: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -294,6 +295,7 @@ export type Database = {
           reminder_date: string;
           remind_at: string;
           message: string;
+          completed?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -304,6 +306,7 @@ export type Database = {
           reminder_date?: string;
           remind_at?: string;
           message?: string;
+          completed?: boolean;
           created_at?: string;
           updated_at?: string;
         };

@@ -1,5 +1,5 @@
-import { getBillingSnapshot } from "@/lib/billing/admin";
-import { getAiBalance } from "@/lib/ai/credits";
+import { getCurrentBillingSnapshot } from "@/lib/billing/admin";
+import { getCurrentAiBalance } from "@/lib/ai/credits";
 import {
   getCampaignsForCurrentUser,
   getPublishedCampaignsCountForCurrentUser
@@ -11,7 +11,7 @@ import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { CampaignGenerator } from "../../campanhas/campaign-generator";
 
 export default async function CriacoesCampanhasPage() {
-  const context = await requireCompletedProfile();
+  await requireCompletedProfile();
   const [
     campaignState,
     connectedAccounts,
@@ -24,10 +24,10 @@ export default async function CriacoesCampanhasPage() {
     getCampaignsForCurrentUser(4),
     getConnectedAccountsForCurrentUser(),
     getSystemTemplates("campaign"),
-    getAiBalance(context.workspace?.id ?? ""),
+    getCurrentAiBalance(),
     getPublishedCampaignsCountForCurrentUser(),
     getLeadsCountForCurrentUser(),
-    getBillingSnapshot(context.workspace?.id ?? "")
+    getCurrentBillingSnapshot()
   ]);
 
   return (

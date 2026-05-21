@@ -51,7 +51,7 @@ export async function processMetaLeadgenEvent(input: {
   const rawPayload = buildMetaLeadRawPayload({
     event: input.event,
     webhookPayload: input.rawPayload,
-    metaLeadPayload: mappedLead.raw_payload
+    metaLeadSummary: mappedLead.raw_payload.meta_lead_summary
   });
 
   const result = await createLeadFromWebhook({
@@ -178,7 +178,17 @@ function pageConnectionIntegrationFallback(form: MetaFormRow): never {
 function buildMetaLeadRawPayload(input: {
   event: MetaLeadgenEvent;
   webhookPayload: unknown;
-  metaLeadPayload: unknown;
+  metaLeadSummary: {
+    ad_id: string | null;
+    adset_id: string | null;
+    campaign_id: string | null;
+    created_time: string | null;
+    field_names: string[];
+    form_id: string | null;
+    lead_id: string;
+    platform: string | null;
+    unmapped_field_names: string[];
+  };
 }) {
   return {
     source: "meta_lead_ads",
@@ -191,9 +201,51 @@ function buildMetaLeadRawPayload(input: {
       created_time: input.event.createdTime,
       entry_id: input.event.entryId,
       entry_index: input.event.entryIndex,
-      raw_change: input.event.rawChange
+      field: input.event.rawChange.field
     },
-    meta_webhook_payload: input.webhookPayload,
-    meta_lead_payload: input.metaLeadPayload
+    meta_webhook_summary: summarizeMetaWebhookPayload(input.webhookPayload),
+    meta_lead_summary: input.metaLeadSummary
+  };
+}
+
+function summarizeMetaWebhookPayload(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {
+      object: null,
+      entry_count: 0,
+      leadgen_event_count: 0
+    };
+  }
+
+  const payload = value as {
+    object?: unknown;
+    entry?: unknown[];
+  };
+  const entry = Array.isArray(payload.entry) ? payload.entry : [];
+  const leadgenEventCount = entry.reduce<number>((count, entryItem) => {
+    if (!entryItem || typeof entryItem !== "object" || Array.isArray(entryItem)) {
+      return count;
+    }
+
+    const rawChanges = (entryItem as { changes?: unknown[] }).changes;
+    const changes = Array.isArray(rawChanges) ? rawChanges : [];
+
+    return (
+      count +
+      changes.filter((change) => {
+        return (
+          change &&
+          typeof change === "object" &&
+          !Array.isArray(change) &&
+          (change as { field?: unknown }).field === "leadgen"
+        );
+      }).length
+    );
+  }, 0);
+
+  return {
+    object: typeof payload.object === "string" ? payload.object : null,
+    entry_count: entry.length,
+    leadgen_event_count: leadgenEventCount
   };
 }

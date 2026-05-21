@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import {
   getCreativeRequestSetupErrorMessage,
   isCreativeRequestSetupErrorMessage
 } from "@/lib/creative-requests/errors";
 import { createCreativeRequestCommentForAdmin } from "@/lib/creative-requests/repository.server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  logApiError,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
 
 type RouteContext = {
   params: Promise<{
@@ -12,16 +22,34 @@ type RouteContext = {
   }>;
 };
 
+const adminCreativeRequestCommentSchema = z.object({
+  body: requiredTrimmedString("Comentario invalido.").max(2000)
+});
+
 export async function POST(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
-    const body = await request.json();
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-admin-creative-request-comment",
+      suffix: id,
+      limit: 20,
+      windowMs: 60 * 1000
+    });
+    const body = await parseJsonBody(request, adminCreativeRequestCommentSchema);
     const creativeRequest = await createCreativeRequestCommentForAdmin(id, body);
 
     return NextResponse.json({ request: creativeRequest, mode }, { status: 201 });
   } catch (error) {
-    console.error(error);
+    logApiError({
+      route: "/api/admin/creative-requests/[id]/comments",
+      operation: "CREATE_ADMIN_CREATIVE_REQUEST_COMMENT",
+      message: getAdminCreativeRequestCommentErrorMessage(error),
+      status: getAdminCreativeRequestCommentErrorStatus(error),
+      error
+    });
 
     return NextResponse.json(
       { error: getAdminCreativeRequestCommentErrorMessage(error) },
@@ -31,6 +59,10 @@ export async function POST(request: Request, context: RouteContext) {
 }
 
 function getAdminCreativeRequestCommentErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return error.message;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {
@@ -65,6 +97,10 @@ function getAdminCreativeRequestCommentErrorMessage(error: unknown) {
 }
 
 function getAdminCreativeRequestCommentErrorStatus(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return getErrorStatus(error);
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {

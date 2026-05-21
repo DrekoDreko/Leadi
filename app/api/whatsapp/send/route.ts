@@ -1,17 +1,34 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import { sendWhatsAppMessageForCurrentUser } from "@/lib/whatsapp/send.repository.server";
 import type { WhatsAppSendRequest } from "@/lib/whatsapp/types";
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  logApiError,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
 
-type WhatsAppSendBody = Partial<WhatsAppSendRequest> & {
-  messageId?: unknown;
-  leadId?: unknown;
-  recipientPhone?: unknown;
-};
+const whatsappSendSchema = z.object({
+  messageId: requiredTrimmedString("Informe a mensagem que deseja enviar.").max(120),
+  leadId: z.string().trim().max(120).optional(),
+  recipientPhone: z.string().trim().max(40).optional()
+});
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json().catch(() => null)) as WhatsAppSendBody | null;
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-whatsapp-send",
+      limit: 20,
+      windowMs: 60 * 1000
+    });
+    const body = await parseJsonBody(request, whatsappSendSchema);
     const input = parseRequest(body);
     const authContext = await getBillingAuthContext();
 
@@ -27,24 +44,23 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const { message, status } = getSendError(error);
+    logApiError({
+      route: "/api/whatsapp/send",
+      operation: "SEND_WHATSAPP_MESSAGE",
+      message,
+      status,
+      error
+    });
     return NextResponse.json({ error: message }, { status });
   }
 }
 
-function parseRequest(body: WhatsAppSendBody | null): WhatsAppSendRequest {
+function parseRequest(body: z.infer<typeof whatsappSendSchema>): WhatsAppSendRequest {
   return {
-    messageId: getRequiredString(body?.messageId, "Informe a mensagem que deseja enviar."),
-    leadId: getOptionalString(body?.leadId),
-    recipientPhone: getOptionalString(body?.recipientPhone)
+    messageId: body.messageId,
+    leadId: getOptionalString(body.leadId),
+    recipientPhone: getOptionalString(body.recipientPhone)
   };
-}
-
-function getRequiredString(value: unknown, message: string) {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error(message);
-  }
-
-  return value.trim();
 }
 
 function getOptionalString(value: unknown) {
@@ -52,6 +68,13 @@ function getOptionalString(value: unknown) {
 }
 
 function getSendError(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return {
+      message: error.message,
+      status: getErrorStatus(error)
+    };
+  }
+
   if (error instanceof Error && error.message) {
     return {
       message: error.message,

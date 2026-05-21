@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createDashboardReminderForCurrentUser,
   getDashboardRemindersForCurrentUser,
-  resolveDashboardReminderInput
+  resolveDashboardReminderInput,
+  completeDashboardReminderForCurrentUser,
+  snoozeDashboardReminderForCurrentUser
 } from "./repository.server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -339,5 +341,157 @@ describe("dashboard reminders repository", () => {
 
     expect(insertReminders).toHaveBeenCalled();
     expect(updateProfiles).toHaveBeenCalled();
+  });
+
+  it("conclui lembrete usando Supabase", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+
+    const singleUpdate = vi.fn().mockResolvedValue({
+      data: {
+        id: "reminder-1",
+        organization_id: "org-1",
+        created_by_profile_id: "profile-1",
+        reminder_date: "2026-05-20",
+        remind_at: "2026-05-20T09:30:00.000Z",
+        message: "Revisar design",
+        completed: true,
+        created_at: "2026-05-13T10:00:00.000Z",
+        updated_at: "2026-05-13T10:00:00.000Z"
+      },
+      error: null
+    });
+    const selectUpdate = vi.fn(() => ({ single: singleUpdate }));
+    const eqOrg = vi.fn(() => ({ select: selectUpdate }));
+    const eqId = vi.fn(() => ({ eq: eqOrg }));
+    const updateReminders = vi.fn(() => ({ eq: eqId }));
+
+    const maybeSingleProfile = vi.fn().mockResolvedValue({
+      data: {
+        id: "profile-1",
+        organization_id: "org-1"
+      },
+      error: null
+    });
+    const eqProfile = vi.fn(() => ({ maybeSingle: maybeSingleProfile }));
+    const selectProfile = vi.fn(() => ({ eq: eqProfile }));
+
+    const supabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: { id: "auth-1" }
+          }
+        })
+      },
+      from: vi.fn((table: string) =>
+        table === "profiles" ? { select: selectProfile } : { update: updateReminders }
+      )
+    };
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(supabase as never);
+
+    const result = await completeDashboardReminderForCurrentUser("reminder-1");
+
+    expect(updateReminders).toHaveBeenCalledWith(
+      expect.objectContaining({ completed: true })
+    );
+    expect(eqId).toHaveBeenCalledWith("id", "reminder-1");
+    expect(eqOrg).toHaveBeenCalledWith("organization_id", "org-1");
+    expect(result.completed).toBe(true);
+  });
+
+  it("adia lembrete em uma hora usando Supabase", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+
+    const singleFetch = vi.fn().mockResolvedValue({
+      data: {
+        id: "reminder-1",
+        organization_id: "org-1",
+        created_by_profile_id: "profile-1",
+        reminder_date: "2026-05-20",
+        remind_at: "2026-05-20T09:30:00.000Z",
+        message: "Revisar design",
+        completed: false,
+        created_at: "2026-05-13T10:00:00.000Z",
+        updated_at: "2026-05-13T10:00:00.000Z"
+      },
+      error: null
+    });
+    const singleUpdate = vi.fn().mockResolvedValue({
+      data: {
+        id: "reminder-1",
+        organization_id: "org-1",
+        created_by_profile_id: "profile-1",
+        reminder_date: "2026-05-13",
+        remind_at: "2026-05-13T11:00:00.000Z",
+        message: "Revisar design",
+        completed: false,
+        created_at: "2026-05-13T10:00:00.000Z",
+        updated_at: "2026-05-13T10:00:00.000Z"
+      },
+      error: null
+    });
+
+    const eqIdUpdate = vi.fn(() => ({ eq: vi.fn(() => ({ select: () => ({ single: singleUpdate }) })) }));
+    const updateReminders = vi.fn(() => ({ eq: eqIdUpdate }));
+
+    const maybeSingleProfile = vi.fn().mockResolvedValue({
+      data: {
+        id: "profile-1",
+        organization_id: "org-1"
+      },
+      error: null
+    });
+    const eqProfile = vi.fn(() => ({ maybeSingle: maybeSingleProfile }));
+    const selectProfile = vi.fn(() => ({ eq: eqProfile }));
+
+    const supabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: { id: "auth-1" }
+          }
+        })
+      },
+      from: vi.fn((table: string) => {
+        if (table === "profiles") {
+          return { select: selectProfile };
+        }
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: singleFetch
+              }))
+            }))
+          })),
+          update: updateReminders
+        };
+      })
+    };
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(supabase as never);
+
+    const result = await snoozeDashboardReminderForCurrentUser(
+      "reminder-1",
+      "one_hour",
+      0,
+      "2026-05-13T10:00:00.000Z"
+    );
+
+    expect(updateReminders).toHaveBeenCalledWith(
+      expect.objectContaining({
+        remind_at: "2026-05-13T11:00:00.000Z",
+        reminder_date: "2026-05-13"
+      })
+    );
+    expect(result.remindAt).toBe("2026-05-13T11:00:00.000Z");
+  });
+
+  it("conclui lembrete em modo Mock", async () => {
+    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+
+    const result = await completeDashboardReminderForCurrentUser("mock-reminder-1");
+    expect(result.completed).toBe(true);
   });
 });

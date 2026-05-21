@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import {
   getCreativeRequestSetupErrorMessage,
   isCreativeRequestSetupErrorMessage
 } from "@/lib/creative-requests/errors";
 import { updateCreativeRequestStatusForCurrentUser } from "@/lib/creative-requests/repository.server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  logApiError,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
 
 type RouteContext = {
   params: Promise<{
@@ -12,16 +22,34 @@ type RouteContext = {
   }>;
 };
 
+const updateCreativeRequestSchema = z.object({
+  status: requiredTrimmedString("Status do pedido invalido.").max(40)
+});
+
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
-    const body = await request.json();
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-creative-request-patch",
+      suffix: id,
+      limit: 20,
+      windowMs: 60 * 1000
+    });
+    const body = await parseJsonBody(request, updateCreativeRequestSchema);
     const creativeRequest = await updateCreativeRequestStatusForCurrentUser(id, body);
 
     return NextResponse.json({ request: creativeRequest, mode });
   } catch (error) {
-    console.error(error);
+    logApiError({
+      route: "/api/creative-requests/[id]",
+      operation: "UPDATE_CREATIVE_REQUEST_STATUS",
+      message: getUpdateCreativeRequestErrorMessage(error),
+      status: getCreativeRequestMutationErrorStatus(error),
+      error
+    });
 
     return NextResponse.json(
       {
@@ -33,6 +61,10 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 function getUpdateCreativeRequestErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return error.message;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {
@@ -59,6 +91,10 @@ function getUpdateCreativeRequestErrorMessage(error: unknown) {
 }
 
 function getCreativeRequestMutationErrorStatus(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return getErrorStatus(error);
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {

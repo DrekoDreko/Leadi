@@ -4,7 +4,7 @@ import DashboardPage from './page';
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { getCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
-import { getAiBalance } from "@/lib/ai/credits";
+import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { getWhatsAppMessagesCountForCurrentUser } from "@/lib/whatsapp/repository.server";
 import { getOnboardingStateForCurrentUser } from "@/lib/onboarding/repository.server";
 import { getCreativeRequestsCountForCurrentUser } from "@/lib/creative-requests/repository.server";
@@ -42,7 +42,7 @@ vi.mock("@/lib/dashboard-reminders/repository.server", () => ({
 }));
 
 vi.mock("@/lib/ai/credits", () => ({
-  getAiBalance: vi.fn()
+  getCurrentAiBalance: vi.fn()
 }));
 
 vi.mock("./dashboard-home", () => ({
@@ -74,7 +74,7 @@ describe('Dashboard Page (/dashboard)', () => {
       campaigns: [{}, {}, {}]
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    vi.mocked(getAiBalance).mockResolvedValue(18);
+    vi.mocked(getCurrentAiBalance).mockResolvedValue(18);
 
     vi.mocked(getWhatsAppMessagesCountForCurrentUser).mockResolvedValue(0);
     vi.mocked(getOnboardingStateForCurrentUser).mockResolvedValue(null);

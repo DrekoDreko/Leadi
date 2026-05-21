@@ -1,5 +1,5 @@
 import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
-import { getAiBalance } from "@/lib/ai/credits";
+import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { LeadsWorkspace } from "../leads-workspace";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { parseLeadPaginationParams } from "@/lib/leads/repository";
@@ -15,7 +15,7 @@ type ArchivedLeadsPageProps = {
 };
 
 export default async function ArchivedLeadsPage({ searchParams }: ArchivedLeadsPageProps) {
-  const context = await requireCompletedProfile();
+  await requireCompletedProfile();
   const resolvedSearchParams = await searchParams;
   const leadFilters = {
     ...parseLeadUrlFilters(resolvedSearchParams),
@@ -32,7 +32,7 @@ export default async function ArchivedLeadsPage({ searchParams }: ArchivedLeadsP
     getLeadsForCurrentUser(leadFilters, parseLeadPaginationParams(resolvedSearchParams)),
     getCurrentResourceAccess("lead_creation"),
     getSystemTemplates("whatsapp"),
-    getAiBalance(context.workspace?.id ?? "")
+    getCurrentAiBalance()
   ]);
 
   return (

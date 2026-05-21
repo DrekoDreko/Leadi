@@ -3,10 +3,20 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolveCurrentIdentity } from "@/lib/integrations/repository.server";
 import { buildMetaOAuthAuthorizationUrl } from "@/lib/integrations/meta-graph.server";
 import { createMetaOAuthState } from "@/lib/integrations/oauth-state.server";
+import {
+  assertRouteRateLimit,
+  normalizeReturnTo
+} from "@/lib/api/route-security";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-  const returnTo = normalizeReturnTo(requestUrl.searchParams.get("returnTo"));
+  await assertRouteRateLimit({
+    request,
+    keyPrefix: "api-meta-connect",
+    limit: 20,
+    windowMs: 60 * 1000
+  });
+  const returnTo = normalizeReturnTo(requestUrl.searchParams.get("returnTo"), "/dashboard/perfil/meta");
 
   if (!isSupabaseConfigured()) {
     return redirectToReturnPath(requestUrl, returnTo, "meta=missing");
@@ -17,6 +27,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(returnTo)}`, requestUrl));
   }
 
+  if (!identity.canManageConnections) {
+    return redirectToReturnPath(requestUrl, returnTo, "meta=forbidden");
+  }
+
   try {
     const state = createMetaOAuthState({
       organizationId: identity.organization.id,
@@ -24,21 +38,12 @@ export async function GET(request: Request) {
       returnTo
     });
     const authUrl = buildMetaOAuthAuthorizationUrl({ state, returnTo });
-    console.info("[meta-oauth] redirect url", authUrl.toString());
 
     return NextResponse.redirect(authUrl);
   } catch (error) {
     console.error("Falha ao iniciar OAuth da Meta.", error);
     return redirectToReturnPath(requestUrl, returnTo, "meta=missing");
   }
-}
-
-function normalizeReturnTo(value: string | null) {
-  if (!value || !value.startsWith("/")) {
-    return "/dashboard/perfil/meta";
-  }
-
-  return value;
 }
 
 function redirectToReturnPath(url: URL, returnTo: string, query: string) {

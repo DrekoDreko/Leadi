@@ -4,7 +4,7 @@ Este projeto inclui um servidor MCP local para consultar e alterar dados do Supa
 
 ## Requisitos
 
-Configure no ambiente, ou em `.env.local`:
+Configure no ambiente local do servidor ou em um `.env.local` que nao seja compartilhado:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
@@ -13,6 +13,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 Use a service role key apenas no servidor/local MCP. Ela ignora RLS e nunca deve ir para o browser.
 O MCP depende apenas de `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente local/servidor.
+Nao use `vercel env pull` para manter um `.env.production` real versionado, anexado ou sincronizado fora do ambiente seguro.
 
 ## Rodar
 

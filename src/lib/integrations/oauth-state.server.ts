@@ -3,6 +3,8 @@ import "server-only";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { getIntegrationSecretKey } from "./crypto.server";
 
+const META_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
 export type MetaOAuthStatePayload = {
   organizationId: string;
   profileId: string;
@@ -59,6 +61,10 @@ export function parseMetaOAuthState(state: string) {
     throw new Error("State Meta invalido.");
   }
 
+  if (Date.now() - parsed.issuedAt > META_OAUTH_STATE_TTL_MS) {
+    throw new Error("State Meta expirado.");
+  }
+
   return {
     organizationId: parsed.organizationId,
     profileId: parsed.profileId,
@@ -84,7 +90,7 @@ function getStateSigningSecret() {
 function sanitizeReturnTo(value: string) {
   const normalized = value.trim();
 
-  if (!normalized.startsWith("/")) {
+  if (!normalized.startsWith("/") || normalized.startsWith("//")) {
     return "/dashboard/perfil/meta";
   }
 

@@ -2,6 +2,8 @@ import "server-only";
 
 import type { Json } from "@/lib/supabase/database.types";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerEnv } from "@/lib/env/server";
 import { LeadHealthOpenAIError } from "@/lib/openai";
 import { AI_FEATURE_LABELS, getAiCreditCost, type AiFeatureKey } from "./credit-costs";
@@ -70,7 +72,7 @@ export function requirePlatformOpenAIKey() {
   );
 }
 
-export async function getAiBalance(orgId: string): Promise<number> {
+async function getAiBalanceForOrganization(orgId: string): Promise<number> {
   if (!orgId || !hasSupabaseServiceRole()) {
     return 0;
   }
@@ -89,10 +91,37 @@ export async function getAiBalance(orgId: string): Promise<number> {
   return Math.max(0, data.available_credits ?? 0);
 }
 
+export async function getCurrentAiBalance(): Promise<number> {
+  if (!isSupabaseConfigured()) {
+    return 0;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return 0;
+  }
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (error || !profile?.organization_id) {
+    return 0;
+  }
+
+  return getAiBalanceForOrganization(profile.organization_id);
+}
+
 export async function ensureSufficientCredits(orgId: string, requiredCredits: number) {
   validateCreditAmount(requiredCredits);
 
-  const balance = await getAiBalance(orgId);
+  const balance = await getAiBalanceForOrganization(orgId);
 
   if (balance < requiredCredits) {
     throw new AiCreditsError(

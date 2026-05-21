@@ -1,9 +1,59 @@
 import { NextResponse } from "next/server";
-import { createDashboardReminderForCurrentUser } from "@/lib/dashboard-reminders/repository.server";
+import { z } from "zod";
+import {
+  createDashboardReminderForCurrentUser,
+  getDashboardRemindersForCurrentUser,
+  completeDashboardReminderForCurrentUser,
+  snoozeDashboardReminderForCurrentUser
+} from "@/lib/dashboard-reminders/repository.server";
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
+
+const isDevelopment = process.env.NODE_ENV !== "production";
+
+const reminderSchema = z.object({
+  date: requiredTrimmedString("Informe uma data valida para o lembrete.").max(32),
+  message: requiredTrimmedString("Informe do que voce quer ser lembrado.").max(240),
+  preset: z.string().trim().max(32).optional(),
+  time24h: z.string().trim().max(16).optional()
+});
+
+export async function GET(request: Request) {
+  try {
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-dashboard-reminders-get",
+      limit: 60,
+      windowMs: 60 * 1000
+    });
+    const state = await getDashboardRemindersForCurrentUser();
+
+    return NextResponse.json(state);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Nao foi possivel carregar os lembretes." },
+      { status: getCreateDashboardReminderErrorStatus(error) }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-dashboard-reminders",
+      limit: 40,
+      windowMs: 60 * 1000
+    });
+    const body = await parseJsonBody(request, reminderSchema);
     const reminder = await createDashboardReminderForCurrentUser(body);
 
     return NextResponse.json({ reminder }, { status: 201 });
@@ -15,7 +65,57 @@ export async function POST(request: Request) {
   }
 }
 
+const patchSchema = z.object({
+  id: z.string().trim().min(1),
+  action: z.enum(["complete", "snooze"]),
+  snoozeType: z.enum(["one_hour", "tomorrow"]).optional(),
+  timezoneOffsetMinutes: z.number().int().optional(),
+  clientNowIso: z.string().trim().optional()
+});
+
+export async function PATCH(request: Request) {
+  try {
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-dashboard-reminders-patch",
+      limit: 60,
+      windowMs: 60 * 1000
+    });
+    const body = await parseJsonBody(request, patchSchema);
+
+    if (body.action === "complete") {
+      const reminder = await completeDashboardReminderForCurrentUser(body.id);
+      return NextResponse.json({ reminder });
+    }
+
+    if (body.action === "snooze") {
+      if (!body.snoozeType) {
+        return NextResponse.json({ error: "Informe o tipo de adiamento." }, { status: 400 });
+      }
+      const reminder = await snoozeDashboardReminderForCurrentUser(
+        body.id,
+        body.snoozeType,
+        body.timezoneOffsetMinutes ?? 0,
+        body.clientNowIso ?? new Date().toISOString()
+      );
+      return NextResponse.json({ reminder });
+    }
+
+    return NextResponse.json({ error: "Acao invalida." }, { status: 400 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: getCreateDashboardReminderErrorMessage(error) },
+      { status: getCreateDashboardReminderErrorStatus(error) }
+    );
+  }
+}
+
 function getCreateDashboardReminderErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return error.message;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {
@@ -23,6 +123,10 @@ function getCreateDashboardReminderErrorMessage(error: unknown) {
   }
 
   if (message.includes("Perfil nao encontrado")) {
+    if (isDevelopment) {
+      return message;
+    }
+
     return "Nao encontramos seu perfil no CRM. Recarregue a pagina e tente novamente.";
   }
 
@@ -72,6 +176,10 @@ function getCreateDashboardReminderErrorMessage(error: unknown) {
 }
 
 function getCreateDashboardReminderErrorStatus(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return getErrorStatus(error);
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {

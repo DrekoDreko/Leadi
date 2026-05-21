@@ -72,18 +72,13 @@ export function maskIntegrationSecretPreview(secret: string, visibleTail = 4) {
 }
 
 export function getIntegrationSecretKey() {
-  const candidates = [
-    getServerEnv("INTEGRATIONS_SECRET_KEY"),
-    getServerEnv("SUPABASE_SERVICE_ROLE_KEY")
-  ];
+  const dedicatedSeed = getServerEnv("INTEGRATIONS_SECRET_KEY").trim();
 
-  const seed = candidates.find((candidate) => Boolean(candidate.trim()))?.trim();
-
-  if (!seed) {
+  if (!dedicatedSeed) {
     throw new Error(
-      "INTEGRATIONS_SECRET_KEY ou SUPABASE_SERVICE_ROLE_KEY nao configurado para cifrar segredos."
+      "INTEGRATIONS_SECRET_KEY deve estar configurado no servidor para cifrar segredos de integracao."
     );
   }
 
-  return createHash("sha256").update(seed, "utf8").digest();
+  return createHash("sha256").update(dedicatedSeed, "utf8").digest();
 }

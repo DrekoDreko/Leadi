@@ -1,15 +1,32 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import {
   createLeadCommentForCurrentUser,
   listLeadCommentsForCurrentUser
 } from "@/lib/leads/repository.server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  logApiError,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
 
 type RouteContext = {
   params: Promise<{
     id: string;
   }>;
 };
+
+const leadCommentSchema = z.object({
+  body: requiredTrimmedString("Escreva um comentario antes de enviar.").max(
+    2000,
+    "Comentario muito longo. Use ate 2000 caracteres."
+  )
+});
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
@@ -19,7 +36,13 @@ export async function GET(_request: Request, context: RouteContext) {
 
     return NextResponse.json({ comments, mode });
   } catch (error) {
-    console.error(error);
+    logApiError({
+      route: "/api/leads/[id]/comments",
+      operation: "LIST_LEAD_COMMENTS",
+      message: getLeadCommentErrorMessage(error),
+      status: getLeadCommentErrorStatus(error),
+      error
+    });
 
     return NextResponse.json(
       { error: getLeadCommentErrorMessage(error) },
@@ -32,12 +55,26 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
-    const body = await request.json();
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-lead-comments-post",
+      suffix: id,
+      limit: 30,
+      windowMs: 60 * 1000
+    });
+    const body = await parseJsonBody(request, leadCommentSchema);
     const { comment, lead } = await createLeadCommentForCurrentUser(id, body);
 
     return NextResponse.json({ comment, lead, mode }, { status: 201 });
   } catch (error) {
-    console.error(error);
+    logApiError({
+      route: "/api/leads/[id]/comments",
+      operation: "CREATE_LEAD_COMMENT",
+      message: getLeadCommentErrorMessage(error),
+      status: getLeadCommentErrorStatus(error),
+      error
+    });
 
     return NextResponse.json(
       { error: getLeadCommentErrorMessage(error) },
@@ -47,6 +84,10 @@ export async function POST(request: Request, context: RouteContext) {
 }
 
 function getLeadCommentErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return error.message;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {
@@ -77,6 +118,10 @@ function getLeadCommentErrorMessage(error: unknown) {
 }
 
 function getLeadCommentErrorStatus(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return getErrorStatus(error);
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {

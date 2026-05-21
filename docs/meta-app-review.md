@@ -16,7 +16,7 @@ Guia operacional para o Leadi publicar a integracao Meta com o minimo de retraba
 - Definir `NEXT_PUBLIC_APP_URL` com o dominio final em producao, por exemplo `https://app.seudominio.com`
 - Publicar build acessivel sem login para `/privacy`, `/terms` e `/data-deletion`
 - Configurar `META_REDIRECT_URI` apontando para `https://SEU_DOMINIO/api/integrations/meta/callback`
-- Definir `INTEGRATIONS_SECRET_KEY` para cifrar tokens e chaves conectadas, se o ambiente de producao exigir armazenamento seguro
+- Definir `INTEGRATIONS_SECRET_KEY` no servidor para cifrar tokens e chaves conectadas em qualquer ambiente
 - Definir `META_VERIFY_TOKEN`
 - Definir `META_APP_SECRET`
 - Garantir HTTPS no dominio final

@@ -15,9 +15,21 @@ import {
 } from "@/lib/billing/mercadopago";
 import { EnvValidationError } from "@/lib/env/server";
 import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
+import {
+  assertRouteRateLimit,
+  getErrorStatus,
+  jsonError,
+  logApiError
+} from "@/lib/api/route-security";
 
 export async function POST(request: Request) {
   try {
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-billing-webhook-mercadopago",
+      limit: 120,
+      windowMs: 60 * 1000
+    });
     assertPayloadSize(request, "WEBHOOK_JSON");
     const signature = getMercadoPagoWebhookSignature(request);
     const requestId = getMercadoPagoWebhookRequestId(request);
@@ -58,11 +70,20 @@ export async function POST(request: Request) {
                 ? "expired"
                 : "pending",
       providerPayload: {
-        payment,
         webhook: {
           data_id: dataId,
-          request_id: requestId,
-          signature
+          request_id: requestId
+        },
+        payment: {
+          id: paymentId,
+          status: payment.status,
+          status_detail: payment.status_detail ?? null,
+          external_reference: externalReference || null,
+          transaction_amount: payment.transaction_amount ?? null,
+          currency_id: payment.currency_id ?? null,
+          date_approved: payment.date_approved ?? null,
+          date_created: payment.date_created ?? null,
+          date_last_updated: payment.date_last_updated ?? null
         }
       }
     });
@@ -97,15 +118,37 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, status: payment.status, credited: !alreadyCredited });
   } catch (error) {
-    if (error instanceof EnvValidationError || error instanceof PayloadTooLargeError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
+    const status = getMercadoPagoWebhookErrorStatus(error);
+    const message = getMercadoPagoWebhookErrorMessage(error);
 
-    const message =
-      error instanceof Error && error.message
-        ? error.message
-        : "Nao foi possivel processar o webhook.";
+    logApiError({
+      route: "/api/billing/webhooks/mercadopago",
+      operation: "PROCESS_MERCADOPAGO_WEBHOOK",
+      message,
+      status,
+      error
+    });
 
-    return NextResponse.json({ error: message }, { status: 400 });
+    return jsonError(message, status);
   }
+}
+
+function getMercadoPagoWebhookErrorStatus(error: unknown) {
+  if (error instanceof EnvValidationError || error instanceof PayloadTooLargeError) {
+    return getErrorStatus(error, error.status);
+  }
+
+  return 400;
+}
+
+function getMercadoPagoWebhookErrorMessage(error: unknown) {
+  if (error instanceof EnvValidationError) {
+    return "Configuracao de billing indisponivel.";
+  }
+
+  if (error instanceof PayloadTooLargeError) {
+    return "Payload do webhook excede o limite permitido.";
+  }
+
+  return "Nao foi possivel processar o webhook.";
 }

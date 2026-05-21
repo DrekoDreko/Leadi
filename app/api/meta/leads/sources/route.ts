@@ -7,6 +7,13 @@ export async function GET() {
     const state = await listMetaLeadImportSourcesForCurrentUser();
     const status = state.mode === "unauthenticated" ? 401 : 200;
 
+    if (state.mode === "unauthenticated") {
+      return NextResponse.json(
+        { error: "Sua sessao expirou. Entre novamente para listar fontes Meta." },
+        { status }
+      );
+    }
+
     return NextResponse.json(state, { status });
   } catch (error) {
     logger.error(

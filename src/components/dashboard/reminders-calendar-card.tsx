@@ -9,6 +9,8 @@ type ReminderCreateResponse = {
   error?: string;
 };
 
+const DASHBOARD_REMINDERS_UPDATED_EVENT = "dashboard-reminders:updated";
+
 const weekdayLabels = ["D", "S", "T", "Q", "Q", "S", "S"];
 
 const monthFormatter = new Intl.DateTimeFormat("pt-BR", {
@@ -60,7 +62,7 @@ export function RemindersCalendarCard({
       ? { value: "this_afternoon" as const, label: "Lembre-me esta tarde" }
       : { value: "this_evening" as const, label: "Lembre-me esta noite" };
   const upcomingReminder = [...reminders]
-    .filter((item) => new Date(item.remindAt).getTime() >= now.getTime())
+    .filter((item) => !item.completed && new Date(item.remindAt).getTime() >= now.getTime())
     .sort((left, right) => left.remindAt.localeCompare(right.remindAt))[0];
 
   useEffect(() => {
@@ -82,6 +84,31 @@ export function RemindersCalendarCard({
       document.body.style.overflow = "";
     };
   }, [isModalOpen, isSubmitting]);
+
+  const fetchReminders = async () => {
+    try {
+      const response = await fetch("/api/dashboard-reminders");
+      if (response.ok) {
+        const data = await response.json();
+        if (data && Array.isArray(data.reminders)) {
+          setReminders(data.reminders);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao carregar lembretes:", err);
+    }
+  };
+
+  useEffect(() => {
+    const handleRemindersUpdated = () => {
+      void fetchReminders();
+    };
+
+    window.addEventListener(DASHBOARD_REMINDERS_UPDATED_EVENT, handleRemindersUpdated);
+    return () => {
+      window.removeEventListener(DASHBOARD_REMINDERS_UPDATED_EVENT, handleRemindersUpdated);
+    };
+  }, []);
 
   function openDay(date: string) {
     setSelectedDate(date);
@@ -165,13 +192,21 @@ export function RemindersCalendarCard({
         throw new Error(data?.error ?? "Nao foi possivel salvar o lembrete.");
       }
 
-      setReminders((current) =>
-        [...current, data.reminder!].sort((left, right) => left.remindAt.localeCompare(right.remindAt))
+      const nextReminders = [...reminders, data.reminder!].sort((left, right) =>
+        left.remindAt.localeCompare(right.remindAt)
       );
+
+      setReminders(nextReminders);
       setMessage("");
       setTime24h("");
       setPreset(isTodaySelected ? "one_hour" : "");
       setSuccessMessage("Lembrete salvo no calendario.");
+
+      window.dispatchEvent(
+        new CustomEvent(DASHBOARD_REMINDERS_UPDATED_EVENT, {
+          detail: { count: nextReminders.length }
+        })
+      );
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Nao foi possivel salvar o lembrete.");
     } finally {
@@ -363,14 +398,30 @@ export function RemindersCalendarCard({
               ) : (
                 <div className="mt-3 space-y-2">
                   {selectedDayReminders.map((reminder) => (
-                    <article className="rounded-[20px] bg-white/72 px-4 py-3" key={reminder.id}>
+                    <article
+                      className={`rounded-[20px] bg-white/72 px-4 py-3 transition-opacity ${
+                        reminder.completed ? "opacity-60" : ""
+                      }`}
+                      key={reminder.id}
+                    >
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-ink">{timeFormatter.format(new Date(reminder.remindAt))}</p>
-                        <span className="rounded-full bg-cobalt/10 px-2.5 py-1 text-[11px] font-semibold text-cobalt">
-                          lembrete
-                        </span>
+                        <p className={`text-sm font-semibold text-ink ${reminder.completed ? "line-through text-ink/48" : ""}`}>
+                          {timeFormatter.format(new Date(reminder.remindAt))}
+                        </p>
+                        {reminder.completed ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                            <CheckCircle2 size={12} className="text-emerald-600" aria-hidden="true" />
+                            Concluído
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-cobalt/10 px-2.5 py-1 text-[11px] font-semibold text-cobalt">
+                            lembrete
+                          </span>
+                        )}
                       </div>
-                      <p className="mt-2 text-sm leading-6 text-ink/68">{reminder.message}</p>
+                      <p className={`mt-2 text-sm leading-6 text-ink/68 ${reminder.completed ? "line-through text-ink/48" : ""}`}>
+                        {reminder.message}
+                      </p>
                     </article>
                   ))}
                 </div>
@@ -408,7 +459,7 @@ function buildCalendarDays(
       date,
       dateString,
       day: dayFormatter.format(date),
-      reminderCount: remindersByDate[dateString]?.length ?? 0
+      reminderCount: remindersByDate[dateString]?.filter((item) => !item.completed).length ?? 0
     });
   }
 

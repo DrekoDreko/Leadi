@@ -21,6 +21,7 @@ const mockReminderSeed: DashboardReminderItem[] = [
     reminderDate: "2026-05-14",
     remindAt: "2026-05-14T12:00:00.000Z",
     message: "Revisar oferta da campanha PME antes de publicar.",
+    completed: false,
     createdAt: "2026-05-13T12:00:00.000Z",
     updatedAt: "2026-05-13T12:00:00.000Z"
   }
@@ -220,6 +221,7 @@ function createMockDashboardReminder(
     reminderDate: input.date,
     remindAt: input.remindAtIso,
     message: input.message,
+    completed: false,
     createdAt: now,
     updatedAt: now
   };
@@ -235,6 +237,7 @@ function mapDashboardReminderRowToItem(row: DashboardReminderRow): DashboardRemi
     reminderDate: row.reminder_date,
     remindAt: row.remind_at,
     message: row.message,
+    completed: row.completed,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -443,4 +446,114 @@ function getMonthBounds(referenceDate: Date) {
     monthStart: monthStart.toISOString().slice(0, 10),
     monthEnd: monthEnd.toISOString().slice(0, 10)
   };
+}
+
+export async function completeDashboardReminderForCurrentUser(id: string): Promise<DashboardReminderItem> {
+  if (!isSupabaseConfigured()) {
+    const idx = mockReminders.findIndex((item) => item.id === id);
+    if (idx === -1) {
+      throw new Error("Lembrete nao encontrado.");
+    }
+    const updated = {
+      ...mockReminders[idx],
+      completed: true,
+      updatedAt: new Date().toISOString()
+    };
+    mockReminders[idx] = updated;
+    return updated;
+  }
+
+  const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("dashboard_reminders")
+    .update({ completed: true, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("organization_id", profile.organization_id)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error("Nao foi possivel concluir o lembrete.");
+  }
+
+  return mapDashboardReminderRowToItem(data);
+}
+
+export async function snoozeDashboardReminderForCurrentUser(
+  id: string,
+  snoozeType: "one_hour" | "tomorrow",
+  timezoneOffsetMinutes: number,
+  clientNowIso: string
+): Promise<DashboardReminderItem> {
+  let remindAt: Date;
+  let reminderDate: string;
+
+  if (!isSupabaseConfigured()) {
+    const idx = mockReminders.findIndex((item) => item.id === id);
+    if (idx === -1) {
+      throw new Error("Lembrete nao encontrado.");
+    }
+    const reminder = mockReminders[idx];
+
+    if (snoozeType === "one_hour") {
+      const clientNow = new Date(clientNowIso);
+      remindAt = new Date(clientNow.getTime() + 60 * 60 * 1000);
+    } else {
+      const currentRemindAt = new Date(reminder.remindAt);
+      remindAt = new Date(currentRemindAt.getTime() + 24 * 60 * 60 * 1000);
+    }
+    reminderDate = formatDateForOffset(remindAt, timezoneOffsetMinutes);
+
+    const updated = {
+      ...reminder,
+      remindAt: remindAt.toISOString(),
+      reminderDate,
+      updatedAt: new Date().toISOString()
+    };
+    mockReminders[idx] = updated;
+    return updated;
+  }
+
+  const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+
+  // Fetch the current reminder first to get its current remindAt for tomorrow's calculation
+  const { data: reminderData, error: fetchError } = await supabase
+    .from("dashboard_reminders")
+    .select("*")
+    .eq("id", id)
+    .eq("organization_id", profile.organization_id)
+    .single();
+
+  if (fetchError || !reminderData) {
+    throw new Error("Lembrete nao encontrado.");
+  }
+
+  if (snoozeType === "one_hour") {
+    const clientNow = new Date(clientNowIso);
+    remindAt = new Date(clientNow.getTime() + 60 * 60 * 1000);
+  } else {
+    const currentRemindAt = new Date(reminderData.remind_at);
+    remindAt = new Date(currentRemindAt.getTime() + 24 * 60 * 60 * 1000);
+  }
+  reminderDate = formatDateForOffset(remindAt, timezoneOffsetMinutes);
+
+  const { data, error } = await supabase
+    .from("dashboard_reminders")
+    .update({
+      remind_at: remindAt.toISOString(),
+      reminder_date: reminderDate,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", id)
+    .eq("organization_id", profile.organization_id)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error("Nao foi possivel adiar o lembrete.");
+  }
+
+  return mapDashboardReminderRowToItem(data);
 }

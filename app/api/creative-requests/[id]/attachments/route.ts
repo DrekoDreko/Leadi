@@ -5,6 +5,7 @@ import {
 } from "@/lib/creative-requests/errors";
 import { addCreativeRequestAttachmentForCurrentUser } from "@/lib/creative-requests/repository.server";
 import { PayloadTooLargeError, validateFilePayloadSize } from "@/lib/payload-limits";
+import { assertRouteRateLimit, assertSameOrigin } from "@/lib/api/route-security";
 
 type RouteContext = {
   params: Promise<{
@@ -15,6 +16,14 @@ type RouteContext = {
 export async function POST(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-creative-request-attachments-post",
+      suffix: id,
+      limit: 20,
+      windowMs: 60 * 1000
+    });
     const formData = await request.formData();
     const uploadedFile = formData.get("file");
 

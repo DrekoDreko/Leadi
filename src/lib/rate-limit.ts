@@ -1,4 +1,5 @@
 import { logger } from "./logger";
+import { createSupabaseAdminClient, hasSupabaseServiceRole } from "./supabase/admin";
 
 /**
  * Erro lançado quando o limite de requisições é excedido.
@@ -71,6 +72,68 @@ export function assertRateLimit(options: RateLimitOptions) {
 
   // Incrementa contador
   record.count += 1;
+}
+
+type DistributedRateLimitResult = {
+  allowed: boolean;
+  remaining: number;
+  reset_at: string;
+};
+
+export async function assertDistributedRateLimit(options: RateLimitOptions) {
+  if (!hasSupabaseServiceRole()) {
+    assertRateLimit(options);
+    return;
+  }
+
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase.rpc("consume_rate_limit" as never, {
+      p_key: options.key,
+      p_limit: options.limit,
+      p_window_ms: options.windowMs
+    } as never);
+
+    if (error) {
+      throw error;
+    }
+
+    const result = Array.isArray(data)
+      ? (data[0] as DistributedRateLimitResult | null | undefined)
+      : (data as DistributedRateLimitResult | null | undefined);
+
+    if (!result?.allowed) {
+      logger.info({
+        route: "system/rate-limit",
+        operation: "RATE_LIMIT_EXCEEDED",
+        message: `Limite distribuido de requisicoes excedido para a chave: ${options.key}`,
+        data: {
+          key: options.key,
+          limit: options.limit,
+          windowMs: options.windowMs,
+          remaining: result?.remaining ?? 0,
+          resetAt: result?.reset_at ?? null
+        }
+      });
+      throw new RateLimitError();
+    }
+  } catch (error) {
+    logger.error(
+      {
+        route: "system/rate-limit",
+        operation: "DISTRIBUTED_RATE_LIMIT_FALLBACK",
+        message: "Falha ao consultar o rate limit distribuido. Aplicando fallback local.",
+        data: {
+          key: options.key,
+          limit: options.limit,
+          windowMs: options.windowMs
+        }
+      },
+      error
+    );
+
+    assertRateLimit(options);
+  }
 }
 
 function cleanupExpiredRecords() {

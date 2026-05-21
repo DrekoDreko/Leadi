@@ -35,6 +35,7 @@ type MercadoPagoPaymentResponse = {
   currency_id?: string;
   date_approved?: string | null;
   date_created?: string | null;
+  date_last_updated?: string | null;
   payer?: {
     email?: string | null;
   };

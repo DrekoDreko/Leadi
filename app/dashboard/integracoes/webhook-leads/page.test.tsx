@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import WebhookLeadsPage from "./page";
-import { requireCompletedProfile } from "@/lib/workspaces/context";
+import { requireWorkspaceManager } from "@/lib/workspaces/context";
 import { listLeadWebhookLogsByOrganization } from "@/lib/leads/webhook-events.repository";
 
 vi.mock("server-only", () => ({}));
@@ -11,7 +11,7 @@ vi.mock("next/headers", () => ({
 }));
 
 vi.mock("@/lib/workspaces/context", () => ({
-  requireCompletedProfile: vi.fn()
+  requireWorkspaceManager: vi.fn()
 }));
 
 vi.mock("@/lib/leads/webhook-events.repository", () => ({
@@ -38,7 +38,7 @@ vi.mock("../../perfil/webhook-logs-card", () => ({
 
 describe("Webhook Leads Page (/dashboard/integracoes/webhook-leads)", () => {
   it("monta a URL publica do webhook e repassa o filtro de logs", async () => {
-    vi.mocked(requireCompletedProfile).mockResolvedValue({
+    vi.mocked(requireWorkspaceManager).mockResolvedValue({
       mode: "supabase",
       workspace: { id: "org-1" },
       workspaceName: "Aliança Corretora",

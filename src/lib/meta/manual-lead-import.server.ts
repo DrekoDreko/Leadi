@@ -290,7 +290,7 @@ function buildLeadInputFromMetaLead(
     source: "meta_lead_ads",
     raw_payload: {
       source: "manual_meta_import",
-      meta_lead_payload: mappedLead.raw_payload,
+      meta_lead_summary: mappedLead.raw_payload.meta_lead_summary,
       meta_import_context: {
         form_id: form?.form_id ?? metaLead.form_id,
         page_id: form?.page_id ?? null,

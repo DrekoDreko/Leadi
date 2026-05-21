@@ -56,6 +56,10 @@ export async function uploadMetaAdImageForCurrentUser(input: {
     throw new MetaAdImageUploadError("Sua sessao expirou. Entre novamente para enviar a imagem.", 401);
   }
 
+  if (!identity.canManageConnections) {
+    throw new MetaAdImageUploadError("Apenas owners e admins podem enviar imagens para a Meta.", 403);
+  }
+
   if (!input.metaAdAccountId.trim()) {
     throw new MetaAdImageUploadError("Informe a conta de anuncio da Meta para concluir o upload.");
   }

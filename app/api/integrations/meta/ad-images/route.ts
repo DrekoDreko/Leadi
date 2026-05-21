@@ -5,12 +5,23 @@ import {
   MetaAdImageUploadError,
   uploadMetaAdImageForCurrentUser
 } from "@/lib/meta/ad-image-upload.server";
+import {
+  assertRouteRateLimit,
+  assertSameOrigin
+} from "@/lib/api/route-security";
 
 export async function POST(request: Request) {
   let formData: FormData | null = null;
   let file: File | null = null;
 
   try {
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-meta-ad-images",
+      limit: 15,
+      windowMs: 60 * 1000
+    });
     formData = await request.formData();
     file = parseFile(formData);
     validateFilePayloadSize(file, "META_AD_IMAGE");

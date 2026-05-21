@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 import { requireIntegrationEnv } from "@/lib/env/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isWorkspaceManagerRole } from "@/lib/workspaces/permissions";
 import { isBillingConfigured } from "./config";
 
 export type BillingWalletRow = {
@@ -100,7 +102,7 @@ export function createBillingAdminClient() {
   });
 }
 
-export async function getBillingSnapshot(organizationId: string): Promise<BillingSnapshot | null> {
+async function getBillingSnapshotForOrganization(organizationId: string): Promise<BillingSnapshot | null> {
   if (!isBillingConfigured()) {
     return null;
   }
@@ -141,6 +143,33 @@ export async function getBillingSnapshot(organizationId: string): Promise<Billin
     recentTransactions: (transactionsResponse.data ?? []).map(mapTransactionRow),
     recentPurchases: (purchasesResponse.data ?? []).map(mapPurchaseRow)
   };
+}
+
+export async function getCurrentBillingSnapshot(): Promise<BillingSnapshot | null> {
+  if (!isBillingConfigured()) {
+    return null;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("organization_id,role")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (error || !profile?.organization_id || !isWorkspaceManagerRole(profile.role)) {
+    return null;
+  }
+
+  return getBillingSnapshotForOrganization(profile.organization_id);
 }
 
 export async function getOrCreateBillingWallet(organizationId: string) {

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import PerfilCreditosPage from "./page";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
-import { getAiBalance } from "@/lib/ai/credits";
+import { getCurrentAiBalance } from "@/lib/ai/credits";
 
 vi.mock("server-only", () => ({}));
 
@@ -11,7 +11,7 @@ vi.mock("@/lib/workspaces/context", () => ({
 }));
 
 vi.mock("@/lib/ai/credits", () => ({
-  getAiBalance: vi.fn()
+  getCurrentAiBalance: vi.fn()
 }));
 
 describe("Perfil Créditos Page (/dashboard/perfil/creditos)", () => {
@@ -20,7 +20,7 @@ describe("Perfil Créditos Page (/dashboard/perfil/creditos)", () => {
       workspace: { id: "org-1" }
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    vi.mocked(getAiBalance).mockResolvedValue(42);
+    vi.mocked(getCurrentAiBalance).mockResolvedValue(42);
 
     const Page = await PerfilCreditosPage();
     render(Page);

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { AiCreditsError, runAiActionWithCredits } from "@/lib/ai/credits";
 import {
   DEFAULT_COMPLIANCE_DISCLAIMER,
@@ -11,13 +12,15 @@ import {
   type ComplianceReviewOutput
 } from "@/lib/openai";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
-
-type ComplianceRequestBody = {
-  text?: unknown;
-  channel?: unknown;
-  audience?: unknown;
-  objective?: unknown;
-};
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  logApiError,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
 
 type ReviewReason = ComplianceReviewOutput["reasons"][number];
 type RiskLevel = ComplianceReviewOutput["riskLevel"];
@@ -31,6 +34,12 @@ type ComplianceReviewResponse = ComplianceReviewOutput & {
 
 const MAX_TEXT_LENGTH = 4000;
 const MAX_CONTEXT_LENGTH = 280;
+const complianceRequestSchema = z.object({
+  text: requiredTrimmedString("Cole o texto da campanha para validar.").max(MAX_TEXT_LENGTH),
+  channel: z.enum(["meta_ads", "lead_form", "landing_page", "whatsapp", "other"]).optional(),
+  audience: z.string().trim().max(MAX_CONTEXT_LENGTH).optional(),
+  objective: z.string().trim().max(MAX_CONTEXT_LENGTH).optional()
+});
 
 const RISK_ORDER: Record<RiskLevel, number> = {
   high: 3,
@@ -40,7 +49,14 @@ const RISK_ORDER: Record<RiskLevel, number> = {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as ComplianceRequestBody;
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-compliance-validate",
+      limit: 20,
+      windowMs: 60 * 1000
+    });
+    const body = await parseJsonBody(request, complianceRequestSchema);
     const input = parseComplianceRequest(body);
     const localReview = reviewTextLocally(input.text);
     const billingContext = await getBillingAuthContext();
@@ -66,46 +82,27 @@ export async function POST(request: Request) {
       aiBalance: remainingCredits
     });
   } catch (error) {
-    if (error instanceof AiCreditsError) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
+    const { message, status } = getComplianceError(error);
 
-    if (error instanceof LeadHealthOpenAIError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.code === "missing_api_key" ? 503 : 502 }
-      );
-    }
+    logApiError({
+      route: "/api/compliance/validate",
+      operation: "VALIDATE_COMPLIANCE_TEXT",
+      message,
+      status,
+      error
+    });
 
-    const message =
-      error instanceof Error && error.message
-        ? error.message
-        : "Nao foi possivel validar o texto. Revise os dados e tente novamente.";
-
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
-function parseComplianceRequest(body: ComplianceRequestBody): ComplianceReviewInput {
-  const text = getRequiredString(body.text, "Cole o texto da campanha para validar.").slice(
-    0,
-    MAX_TEXT_LENGTH
-  );
-
+function parseComplianceRequest(body: z.infer<typeof complianceRequestSchema>): ComplianceReviewInput {
   return {
-    text,
+    text: body.text,
     channel: getChannel(body.channel),
     audience: getOptionalString(body.audience),
     objective: getOptionalString(body.objective)
   };
-}
-
-function getRequiredString(value: unknown, message: string) {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error(message);
-  }
-
-  return value.trim();
 }
 
 function getOptionalString(value: unknown) {
@@ -183,4 +180,39 @@ function getScore(riskLevel: RiskLevel, reasonCount: number) {
 
 function dedupeStrings(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
+}
+
+function getComplianceError(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return {
+      message: error.message,
+      status: getErrorStatus(error)
+    };
+  }
+
+  if (error instanceof AiCreditsError) {
+    return {
+      message: error.message,
+      status: 400
+    };
+  }
+
+  if (error instanceof LeadHealthOpenAIError) {
+    return {
+      message: error.message,
+      status: error.code === "missing_api_key" ? 503 : 502
+    };
+  }
+
+  if (error instanceof Error && error.message) {
+    return {
+      message: error.message,
+      status: 400
+    };
+  }
+
+  return {
+    message: "Nao foi possivel validar o texto. Revise os dados e tente novamente.",
+    status: 400
+  };
 }

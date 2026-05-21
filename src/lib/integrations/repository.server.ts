@@ -40,7 +40,43 @@ type MutationIdentity = {
   canManageConnections: boolean;
 };
 
+type ConnectedAccountsLoadOptions = {
+  includeOpenAIConnection: boolean;
+  includeSyncLogs: boolean;
+};
+
 const DEMO_STATE = getDemoConnectedAccountsState();
+const PUBLIC_META_CONNECTION_COLUMNS = [
+  "id",
+  "organization_id",
+  "connected_by_profile_id",
+  "connected_at",
+  "expires_at",
+  "meta_user_id",
+  "meta_user_name",
+  "meta_account_id",
+  "meta_account_name",
+  "token_expires_at",
+  "scopes",
+  "connection_status",
+  "status",
+  "last_synced_at",
+  "last_error",
+  "created_at",
+  "updated_at"
+].join(",");
+const PUBLIC_OPENAI_CONNECTION_COLUMNS = [
+  "id",
+  "organization_id",
+  "connected_by_profile_id",
+  "provider",
+  "status",
+  "connected_at",
+  "last_validated_at",
+  "last_error",
+  "created_at",
+  "updated_at"
+].join(",");
 
 export async function getConnectedAccountsForCurrentUser(): Promise<ConnectedAccountsState> {
   if (!isSupabaseConfigured()) {
@@ -50,22 +86,36 @@ export async function getConnectedAccountsForCurrentUser(): Promise<ConnectedAcc
   const identity = await resolveCurrentIdentity();
 
   if (!identity) {
-    return {
-      mode: "unauthenticated",
-      organizationId: null,
-      organizationName: null,
-      canManageConnections: false,
-      connectedAccounts: [],
-      metaConnection: null,
-      openAIConnection: null,
-      metaPages: [],
-      metaAdAccounts: [],
-      metaLeadForms: [],
-      syncLogs: [],
-      message: "Usuario nao autenticado."
-    };
+    return buildUnauthenticatedConnectedAccountsState();
   }
 
+  return loadConnectedAccountsState(identity, {
+    includeOpenAIConnection: false,
+    includeSyncLogs: false
+  });
+}
+
+export async function getManagedConnectedAccountsForCurrentUser(): Promise<ConnectedAccountsState> {
+  if (!isSupabaseConfigured()) {
+    return DEMO_STATE;
+  }
+
+  const identity = await resolveCurrentIdentity();
+
+  if (!identity) {
+    return buildUnauthenticatedConnectedAccountsState();
+  }
+
+  return loadConnectedAccountsState(identity, {
+    includeOpenAIConnection: true,
+    includeSyncLogs: true
+  });
+}
+
+async function loadConnectedAccountsState(
+  identity: MutationIdentity,
+  options: ConnectedAccountsLoadOptions
+): Promise<ConnectedAccountsState> {
   const admin = createSupabaseAdminClient();
 
   try {
@@ -73,14 +123,16 @@ export async function getConnectedAccountsForCurrentUser(): Promise<ConnectedAcc
       await Promise.all([
         admin
           .from("meta_integrations")
-          .select("*")
+          .select(PUBLIC_META_CONNECTION_COLUMNS)
           .eq("organization_id", identity.organization.id)
           .order("created_at", { ascending: false }),
-        admin
-          .from("openai_connections")
-          .select("*")
-          .eq("organization_id", identity.organization.id)
-          .maybeSingle(),
+        options.includeOpenAIConnection
+          ? admin
+              .from("openai_connections")
+              .select(PUBLIC_OPENAI_CONNECTION_COLUMNS)
+              .eq("organization_id", identity.organization.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
         admin
           .from("meta_pages")
           .select("*")
@@ -96,12 +148,14 @@ export async function getConnectedAccountsForCurrentUser(): Promise<ConnectedAcc
           .select("*")
           .eq("organization_id", identity.organization.id)
           .order("created_at", { ascending: false }),
-        admin
-          .from("integration_sync_logs")
-          .select("*")
-          .eq("organization_id", identity.organization.id)
-          .order("created_at", { ascending: false })
-          .limit(8)
+        options.includeSyncLogs
+          ? admin
+              .from("integration_sync_logs")
+              .select("*")
+              .eq("organization_id", identity.organization.id)
+              .order("created_at", { ascending: false })
+              .limit(8)
+          : Promise.resolve({ data: [], error: null })
       ]);
 
     if (
@@ -123,8 +177,12 @@ export async function getConnectedAccountsForCurrentUser(): Promise<ConnectedAcc
       );
     }
 
-    const metaConnection = mapMetaConnectionRow(metaConnections.data?.[0] ?? null);
-    const openAiConnection = mapOpenAIConnectionRow(openAIConnection.data ?? null);
+    const metaConnection = mapMetaConnectionRow(
+      (metaConnections.data?.[0] ?? null) as unknown as MetaConnectionRow | null
+    );
+    const openAiConnection = mapOpenAIConnectionRow(
+      (openAIConnection.data ?? null) as unknown as OpenAIConnectionRow | null
+    );
     const mappedMetaPages = mapMetaPageRows(metaPages.data ?? []);
     const mappedMetaAdAccounts = mapMetaAdAccountRows(metaAdAccounts.data ?? []);
     const mappedMetaLeadForms = mapMetaLeadFormRows(metaLeadForms.data ?? [], mappedMetaPages);
@@ -206,7 +264,79 @@ export async function resolveCurrentIdentity(): Promise<MutationIdentity | null>
   };
 }
 
+export async function resolveMetaOAuthStateIdentity(input: {
+  profileId: string;
+  organizationId: string;
+}): Promise<MutationIdentity | null> {
+  if (!isSupabaseConfigured() || !hasSupabaseServiceRole()) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const [{ data: profile, error: profileError }, { data: organization, error: organizationError }] =
+    await Promise.all([
+      admin.from("profiles").select("*").eq("id", input.profileId).maybeSingle(),
+      admin.from("organizations").select("*").eq("id", input.organizationId).maybeSingle()
+    ]);
+
+  if (profileError || organizationError || !profile || !organization) {
+    return null;
+  }
+
+  if (profile.organization_id !== organization.id) {
+    return null;
+  }
+
+  const identity = {
+    profile,
+    organization,
+    canManageConnections: canManageConnections(profile, organization)
+  };
+
+  return identity.canManageConnections ? identity : null;
+}
+
 export async function getMetaConnectionForOrganization(organizationId: string) {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("meta_integrations")
+    .select(PUBLIC_META_CONNECTION_COLUMNS)
+    .eq("organization_id", organizationId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return mapMetaConnectionRow(data as unknown as MetaConnectionRow);
+}
+
+export async function getOpenAIConnectionForOrganization(organizationId: string) {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("openai_connections")
+    .select(PUBLIC_OPENAI_CONNECTION_COLUMNS)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return mapOpenAIConnectionRow(data as unknown as OpenAIConnectionRow);
+}
+
+async function getMetaConnectionSecretForOrganization(organizationId: string) {
   if (!isSupabaseConfigured()) {
     return null;
   }
@@ -224,10 +354,10 @@ export async function getMetaConnectionForOrganization(organizationId: string) {
     return null;
   }
 
-  return mapMetaConnectionRow(data);
+  return data;
 }
 
-export async function getOpenAIConnectionForOrganization(organizationId: string) {
+async function getOpenAIConnectionSecretForOrganization(organizationId: string) {
   if (!isSupabaseConfigured()) {
     return null;
   }
@@ -243,23 +373,24 @@ export async function getOpenAIConnectionForOrganization(organizationId: string)
     return null;
   }
 
-  return mapOpenAIConnectionRow(data);
+  return data;
 }
 
 export async function resolveMetaAccessTokenForOrganization(organizationId: string) {
-  const connection = await getMetaConnectionForOrganization(organizationId);
+  const connection = await getMetaConnectionSecretForOrganization(organizationId);
 
   if (!connection) {
     return null;
   }
 
-  if (connection.status === "disconnected" || connection.status === "expired") {
+  const status = mapMetaConnectionStatus(connection);
+  if (status === "disconnected" || status === "expired") {
     return null;
   }
 
-  if (connection.accessTokenCiphertext) {
+  if (connection.access_token_ciphertext) {
     try {
-      return decryptIntegrationSecret(connection.accessTokenCiphertext);
+      return decryptIntegrationSecret(connection.access_token_ciphertext);
     } catch (error) {
       console.error("Falha ao descriptografar o token da Meta.", error);
       return null;
@@ -270,19 +401,20 @@ export async function resolveMetaAccessTokenForOrganization(organizationId: stri
 }
 
 export async function resolveOpenAIKeyForOrganization(organizationId: string) {
-  const connection = await getOpenAIConnectionForOrganization(organizationId);
+  const connection = await getOpenAIConnectionSecretForOrganization(organizationId);
 
   if (!connection) {
     return null;
   }
 
-  if (connection.status === "disconnected" || connection.status === "expired") {
+  const status = mapIntegrationStatus(connection.status);
+  if (status === "disconnected" || status === "expired") {
     return null;
   }
 
-  if (connection.apiKeyCiphertext) {
+  if (connection.api_key_ciphertext) {
     try {
-      return decryptIntegrationSecret(connection.apiKeyCiphertext);
+      return decryptIntegrationSecret(connection.api_key_ciphertext);
     } catch (error) {
       console.error("Falha ao descriptografar a chave OpenAI.", error);
       return null;
@@ -786,10 +918,10 @@ function mapMetaConnectionRow(row: MetaConnectionRow | null): MetaConnection | n
     expiresAt: row.expires_at ?? row.token_expires_at,
     lastSyncAt: row.last_synced_at,
     scopes: row.scopes ?? [],
-    accessTokenCiphertext: row.access_token_ciphertext,
-    accessTokenReference: row.access_token_reference,
-    tokenLastFour: row.token_last_four,
-    tokenPreview: row.token_last_four ? `meta-...${row.token_last_four}` : null,
+    accessTokenCiphertext: null,
+    accessTokenReference: null,
+    tokenLastFour: null,
+    tokenPreview: null,
     metaUserId: row.meta_user_id ?? row.meta_account_id,
     metaUserName: row.meta_user_name ?? row.meta_account_name,
     permissions: row.scopes ?? [],
@@ -846,17 +978,16 @@ function mapOpenAIConnectionRow(row: OpenAIConnectionRow | null): OpenAIConnecti
   }
 
   const status = mapIntegrationStatus(row.status);
-  const keyPreview = row.key_preview ?? (row.api_key_ciphertext ? "sk-..." : "Nenhuma chave");
 
   return {
     id: row.id,
     organizationId: row.organization_id,
     provider: "openai",
     status,
-    apiKeyCiphertext: row.api_key_ciphertext,
-    apiKeyReference: row.api_key_reference,
-    keyPreview,
-    keyLastFour: row.key_last_four,
+    apiKeyCiphertext: null,
+    apiKeyReference: null,
+    keyPreview: "Chave cadastrada",
+    keyLastFour: null,
     connectedAt: row.connected_at,
     expiresAt: null,
     lastSyncAt: row.last_validated_at,
@@ -1074,6 +1205,23 @@ function canManageConnections(profile: ProfileRow, organization: OrganizationRow
     normalizedRole === "owner" ||
     normalizedRole === "admin"
   );
+}
+
+function buildUnauthenticatedConnectedAccountsState(): ConnectedAccountsState {
+  return {
+    mode: "unauthenticated",
+    organizationId: null,
+    organizationName: null,
+    canManageConnections: false,
+    connectedAccounts: [],
+    metaConnection: null,
+    openAIConnection: null,
+    metaPages: [],
+    metaAdAccounts: [],
+    metaLeadForms: [],
+    syncLogs: [],
+    message: "Usuario nao autenticado."
+  };
 }
 
 function buildIntegrationQueryError(message: string) {

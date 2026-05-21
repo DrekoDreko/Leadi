@@ -6,14 +6,31 @@ import {
   resolveMetaAccessTokenForOrganization
 } from "@/lib/integrations/repository.server";
 import { syncMetaOrganizationAssets } from "@/lib/integrations/meta-graph.server";
+import {
+  assertRouteRateLimit,
+  assertSameOrigin,
+  logApiError,
+  normalizeReturnTo
+} from "@/lib/api/route-security";
 
 export async function POST(request: Request) {
   const requestUrl = new URL(request.url);
+  assertSameOrigin(request);
+  await assertRouteRateLimit({
+    request,
+    keyPrefix: "api-meta-sync",
+    limit: 10,
+    windowMs: 60 * 1000
+  });
   const returnTo = await getReturnTo(request);
   const identity = await resolveCurrentIdentity();
 
   if (!identity) {
     return redirectBack(requestUrl, returnTo, "sync=failed");
+  }
+
+  if (!identity.canManageConnections) {
+    return redirectBack(requestUrl, returnTo, "sync=forbidden");
   }
 
   const accessToken = await resolveMetaAccessTokenForOrganization(identity.organization.id);
@@ -38,7 +55,16 @@ export async function POST(request: Request) {
       syncResult.warnings.length > 0 ? "sync=partial" : "sync=updated"
     );
   } catch (error) {
-    console.error("Falha ao sincronizar ativos Meta.", error);
+    logApiError({
+      route: "/api/integrations/meta/sync",
+      operation: "SYNC_META_ASSETS",
+      message: "Falha ao sincronizar ativos Meta.",
+      status: 400,
+      error,
+      data: {
+        organizationId: identity.organization.id
+      }
+    });
 
     try {
       await recordIntegrationSyncLog({
@@ -67,13 +93,10 @@ export async function POST(request: Request) {
 
 async function getReturnTo(request: Request) {
   const formData = await request.formData().catch(() => null);
-  const returnTo = formData?.get("returnTo");
-
-  if (typeof returnTo === "string" && returnTo.startsWith("/")) {
-    return returnTo;
-  }
-
-  return "/dashboard/perfil/meta";
+  return normalizeReturnTo(
+    typeof formData?.get("returnTo") === "string" ? (formData?.get("returnTo") as string) : null,
+    "/dashboard/perfil/meta"
+  );
 }
 
 function redirectBack(url: URL, returnTo: string, query: string) {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RemindersCalendarCard } from "./reminders-calendar-card";
 
@@ -85,11 +85,17 @@ describe("RemindersCalendarCard", () => {
     fireEvent.change(screen.getByLabelText("Horario do lembrete (24 horas)"), {
       target: { value: futureTime }
     });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar lembrete" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Salvar lembrete" }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
 
-    await Promise.resolve();
+    const postCalls = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
 
-    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(postCalls).toHaveLength(1);
+
+    const requestBody = JSON.parse(postCalls[0][1].body as string);
 
     expect(requestBody.time24h).toBe(futureTime);
     expect(requestBody.preset).toBeUndefined();
@@ -148,13 +154,56 @@ describe("RemindersCalendarCard", () => {
     fireEvent.change(screen.getByLabelText("Horario do lembrete (24 horas)"), {
       target: { value: "09:30" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar lembrete" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Salvar lembrete" }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
 
-    await Promise.resolve();
+    const postCalls = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
 
-    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(postCalls).toHaveLength(1);
+
+    const requestBody = JSON.parse(postCalls[0][1].body as string);
     expect(requestBody.date).toBe("2026-05-20");
     expect(requestBody.time24h).toBe("09:30");
+  });
+
+  it("dispara atualizacao de notificacoes ao salvar um novo lembrete", async () => {
+    vi.setSystemTime(new Date("2026-05-13T10:00:00.000Z"));
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        reminder: {
+          id: "reminder-4",
+          reminderDate: "2026-05-13",
+          remindAt: "2026-05-13T14:30:00.000Z",
+          message: "Ligar para cliente",
+          createdAt: "2026-05-13T10:00:00.000Z",
+          updatedAt: "2026-05-13T10:00:00.000Z"
+        }
+      })
+    });
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<RemindersCalendarCard initialReminders={[]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Abrir lembretes de 13 de maio/i }));
+    fireEvent.change(screen.getByLabelText("Do que voce quer ser lembrado"), {
+      target: { value: "Ligar para cliente" }
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Salvar lembrete" }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "dashboard-reminders:updated"
+      })
+    );
   });
 });
 

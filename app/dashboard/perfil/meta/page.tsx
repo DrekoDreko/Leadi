@@ -1,12 +1,14 @@
 import { IntegrationNotice } from "@/components/dashboard/integration-notice";
 import { PageHeading } from "@/components/dashboard/widgets";
-import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
-import { requireCompletedProfile } from "@/lib/workspaces/context";
+import { getManagedConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
+import { requireWorkspaceManager } from "@/lib/workspaces/context";
 import { MetaConnectedAccountsSection, MetaOverviewCard } from "../profile-sections";
 
 const integrationFeedbackMessages: Record<string, string> = {
   connected: "Conta Meta conectada com sucesso.",
   disconnected: "Conta Meta desconectada com sucesso.",
+  forbidden:
+    "Sua permissao para gerenciar a conexao Meta mudou antes da conclusao do fluxo. Reconecte com um owner ou admin valido.",
   coming_soon:
     "A conta OpenAI própria está em breve. Hoje as gerações usam os Créditos de IA da plataforma.",
   success: "Sincronizacao concluida com sucesso.",
@@ -25,9 +27,9 @@ export default async function PerfilMetaPage({
     sync?: string;
   }>;
 }) {
-  const context = await requireCompletedProfile();
+  const context = await requireWorkspaceManager();
   const params = await searchParams;
-  const connectedAccounts = await getConnectedAccountsForCurrentUser();
+  const connectedAccounts = await getManagedConnectedAccountsForCurrentUser();
 
   const companyMessage =
     (params?.meta && integrationFeedbackMessages[params.meta]) ||
@@ -71,4 +73,3 @@ export default async function PerfilMetaPage({
     </div>
   );
 }
-

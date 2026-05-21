@@ -1,26 +1,26 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import PerfilMetaPage from "./page";
-import { requireCompletedProfile } from "@/lib/workspaces/context";
-import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
+import { requireWorkspaceManager } from "@/lib/workspaces/context";
+import { getManagedConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/workspaces/context", () => ({
-  requireCompletedProfile: vi.fn()
+  requireWorkspaceManager: vi.fn()
 }));
 
 vi.mock("@/lib/integrations/repository.server", () => ({
-  getConnectedAccountsForCurrentUser: vi.fn()
+  getManagedConnectedAccountsForCurrentUser: vi.fn()
 }));
 
 describe("Perfil Meta Page (/dashboard/perfil/meta)", () => {
   it("renderiza a area detalhada de Meta e os ativos conectados", async () => {
-    vi.mocked(requireCompletedProfile).mockResolvedValue({
+    vi.mocked(requireWorkspaceManager).mockResolvedValue({
       workspaceName: "Aliança Corretora"
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    vi.mocked(getConnectedAccountsForCurrentUser).mockResolvedValue({
+    vi.mocked(getManagedConnectedAccountsForCurrentUser).mockResolvedValue({
       message: null,
       canManageConnections: true,
       metaConnection: {
@@ -66,4 +66,3 @@ describe("Perfil Meta Page (/dashboard/perfil/meta)", () => {
     expect(screen.getByText("Formulario Principal")).toBeInTheDocument();
   });
 });
-

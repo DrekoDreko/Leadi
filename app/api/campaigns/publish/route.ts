@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolveCurrentIdentity } from "@/lib/integrations/repository.server";
 import {
@@ -6,11 +7,20 @@ import {
   publishPausedMetaCampaign
 } from "@/lib/meta/campaign-publication.server";
 import type { CampaignPublishMode } from "@/lib/campaigns/types";
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  logApiError,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
 
-type CampaignPublishRequestBody = {
-  campaignId?: unknown;
-  publishMode?: unknown;
-};
+const publishCampaignSchema = z.object({
+  campaignId: requiredTrimmedString("Informe o id da campanha.").max(120),
+  publishMode: z.enum(["draft", "manual_review", "scheduled", "paused"]).optional()
+});
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -19,6 +29,14 @@ export async function POST(request: Request) {
       { status: 503 }
     );
   }
+
+  assertSameOrigin(request);
+  await assertRouteRateLimit({
+    request,
+    keyPrefix: "api-campaigns-publish",
+    limit: 20,
+    windowMs: 60 * 1000
+  });
 
   const identity = await resolveCurrentIdentity();
   if (!identity) {
@@ -32,13 +50,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => null)) as CampaignPublishRequestBody | null;
-  const campaignId = typeof body?.campaignId === "string" ? body.campaignId.trim() : "";
+  const body = await parseJsonBody(request, publishCampaignSchema);
+  const campaignId = body.campaignId;
   const publishMode = normalizePublishMode(body?.publishMode);
-
-  if (!campaignId) {
-    return NextResponse.json({ error: "Informe o id da campanha." }, { status: 400 });
-  }
 
   try {
     const result = await publishPausedMetaCampaign({
@@ -54,6 +68,18 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const { message, status } = getCampaignPublishError(error);
+
+    logApiError({
+      route: "/api/campaigns/publish",
+      operation: "PUBLISH_META_CAMPAIGN",
+      message,
+      status,
+      error,
+      data: {
+        campaignId,
+        organizationId: identity.organization.id
+      }
+    });
 
     return NextResponse.json({ error: message }, { status });
   }
@@ -73,6 +99,13 @@ function normalizePublishMode(value: unknown): CampaignPublishMode {
 }
 
 function getCampaignPublishError(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return {
+      message: error.message,
+      status: getErrorStatus(error)
+    };
+  }
+
   if (error instanceof MetaMarketingPermissionError) {
     return {
       message: error.message,

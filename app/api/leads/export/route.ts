@@ -1,15 +1,33 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { buildCsv } from "@/lib/exports/csv";
 import { parseLeadUrlFilters } from "@/lib/leads/filters";
 import { getLeadExportRowsForCurrentUser } from "@/lib/leads/repository.server";
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  getErrorStatus,
+  parseSearchParams
+} from "@/lib/api/route-security";
 
 type ExportLeadSearchParams = URLSearchParams;
 
+const exportQuerySchema = z.object({
+  seller: z.string().trim().max(120).optional()
+});
+
 export async function GET(request: Request) {
   try {
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-leads-export",
+      limit: 15,
+      windowMs: 60 * 1000
+    });
     const searchParams = new URL(request.url).searchParams as ExportLeadSearchParams;
+    const query = parseSearchParams(searchParams, exportQuerySchema);
     const filters = parseLeadUrlFilters(searchParams);
-    const sellerProfileId = normalizeSellerProfileId(searchParams.get("seller"));
+    const sellerProfileId = normalizeSellerProfileId(query.seller ?? null);
     const leads = await getLeadExportRowsForCurrentUser(filters, sellerProfileId);
     const csv = buildCsv(leads, leadExportColumns);
     const filename = buildFilename(filters, sellerProfileId);
@@ -22,8 +40,8 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Nao foi possivel exportar os leads.";
-    const status = message.includes("Usuario nao autenticado") ? 401 : 500;
+    const message = getExportErrorMessage(error);
+    const status = getExportErrorStatus(error);
 
     return NextResponse.json({ error: message }, { status });
   }
@@ -64,6 +82,29 @@ function normalizeSellerProfileId(value: string | null) {
   }
 
   return value;
+}
+
+function getExportErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return error.message;
+  }
+
+  const message = error instanceof Error ? error.message : "";
+
+  if (message.includes("Usuario nao autenticado")) {
+    return "Sua sessao expirou. Entre novamente para exportar leads.";
+  }
+
+  return "Nao foi possivel exportar os leads.";
+}
+
+function getExportErrorStatus(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return getErrorStatus(error);
+  }
+
+  const message = error instanceof Error ? error.message : "";
+  return message.includes("Usuario nao autenticado") ? 401 : 500;
 }
 
 function buildFilename(filters: ReturnType<typeof parseLeadUrlFilters>, sellerProfileId: string | null) {

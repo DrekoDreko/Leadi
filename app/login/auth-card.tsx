@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Mail, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
-import { signInAction, signInWithGoogleAction, signUpAction } from "./actions";
+import { signInAction, signUpAction } from "./actions";
 
 type AuthMode = "login" | "signup";
 
@@ -47,17 +47,19 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
             className="campaign-liquid-grid absolute inset-0"
           />
 
-          <div className="relative z-10">
-            <BrandMark tone="dark" />
-            <div className="mt-14 transition-[margin] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:mt-24">
-              <ShieldCheck className="text-signal" size={38} aria-hidden="true" />
-              <h1 className="mt-8 text-4xl font-semibold leading-tight sm:text-5xl">
-                Acesse seu painel Leadi
-              </h1>
-              <p className="mt-5 max-w-md leading-8 text-white/64">
-                Autenticação conectada ao Supabase Auth, com configuração guiada
-                de perfil, workspace e permissões da equipe.
-              </p>
+          <div className="relative z-10 h-full">
+            <div className="absolute left-0 top-0">
+              <BrandMark tone="dark" />
+            </div>
+            <div className="flex h-full items-center">
+              <div className="max-w-md text-left">
+                <h1 className="text-3xl font-semibold leading-[1.02] tracking-tight text-white sm:text-4xl lg:text-5xl">
+                  Anúncios com IA para consultores de plano de saúde.
+                </h1>
+                <p className="mt-4 max-w-[31rem] text-base leading-7 text-white/74 sm:text-lg">
+                  Crie campanhas, importe leads do Meta e acompanhe tudo no CRM da Leadi.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -65,12 +67,10 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
         <section
           className={`glass-strong overflow-hidden rounded-[38px] p-6 transition-[min-height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:p-8 ${panelHeight}`}
         >
-          <Link className="inline-flex items-center gap-2 text-sm font-semibold" href="/">
+          <Link className="inline-flex items-center text-sm font-semibold" href="/">
             <ArrowLeft size={17} aria-hidden="true" />
-            Voltar para landing
           </Link>
-          <div className="mt-12 lg:mt-16">
-            <p className="text-sm font-medium text-cobalt">Supabase Auth</p>
+          <div className="mt-8 lg:mt-12">
             <h2 className="mt-2 text-4xl font-semibold">
               {isSignUp ? "Criar conta" : "Login"}
             </h2>
@@ -99,27 +99,9 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
                 {error}
               </p>
             )}
-            <form action={signInWithGoogleAction} className="mt-8">
-              <input name="next" type="hidden" value={next} />
-              <input name="mode" type="hidden" value={mode} />
-              <button
-                className="flex w-full items-center justify-center gap-3 rounded-full border border-white/60 bg-white/54 px-5 py-4 font-semibold text-ink transition hover:bg-white/76"
-                type="submit"
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-bold text-cobalt">
-                  G
-                </span>
-                {isSignUp ? "Criar conta com Google" : "Entrar com Google"}
-              </button>
-            </form>
-            <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-ink/38">
-              <span className="h-px flex-1 bg-ink/10" />
-              ou
-              <span className="h-px flex-1 bg-ink/10" />
-            </div>
             <form
               action={isSignUp ? signUpAction : signInAction}
-              className="flex flex-col gap-4"
+              className="mt-12 flex flex-col gap-4"
             >
               <input name="next" type="hidden" value={next} />
               <div

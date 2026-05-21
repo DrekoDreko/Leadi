@@ -12,7 +12,7 @@ import type { LeadSource } from "@/lib/supabase/database.types";
 
 import { logger } from "@/lib/logger";
 import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
-import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
+import { assertDistributedRateLimit, RateLimitError } from "@/lib/rate-limit";
 
 const safeWebhookLeadSources = new Set<LeadSource>(["make_zapier", "api"]);
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   try {
     // 1. Rate Limit por IP (proteção básica contra flood)
     const ip = request.headers.get("x-forwarded-for") ?? "unknown";
-    assertRateLimit({
+    await assertDistributedRateLimit({
       key: `ip:${ip}`,
       limit: 100,
       windowMs: 60 * 1000 // 100 req/min por IP
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     webhookAuth = await authenticateLeadWebhookRequest(request);
 
     // 2. Rate Limit por Integração (proteção específica)
-    assertRateLimit({
+    await assertDistributedRateLimit({
       key: `int:${webhookAuth.integrationId}`,
       limit: 30,
       windowMs: 10 * 1000 // 30 req/10s por integração (acomoda bursts)
@@ -65,11 +65,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        lead: result.lead,
-        organization_id: webhookAuth.organizationId,
-        integration_id: webhookAuth.integrationId,
-        mode: hasSupabaseServiceRole() ? "supabase" : "not-configured",
-        status: result.status
+        ok: true,
+        lead_id: result.lead.id,
+        status: result.status,
+        mode: hasSupabaseServiceRole() ? "supabase" : "not-configured"
       },
       { status: result.status === "created" ? 201 : 200 }
     );

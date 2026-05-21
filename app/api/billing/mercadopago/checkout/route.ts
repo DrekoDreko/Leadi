@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { EnvValidationError, requireIntegrationEnv } from "@/lib/env/server";
 import {
   BILLING_PRODUCTS,
@@ -10,19 +11,35 @@ import { isBillingConfigured } from "@/lib/billing/config";
 import { createBillingPurchase, updateBillingPurchase } from "@/lib/billing/admin";
 import { createMercadoPagoCheckout } from "@/lib/billing/mercadopago";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  logApiError,
+  parseJsonBody
+} from "@/lib/api/route-security";
 
-type CheckoutRequestBody = {
-  productKey?: unknown;
-};
+const checkoutSchema = z.object({
+  productKey: z.string().trim().min(1, "Selecione um plano ou pacote de créditos valido.")
+});
 
 export async function POST(request: Request) {
   try {
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-billing-checkout",
+      limit: 10,
+      windowMs: 60 * 1000
+    });
+
     if (!isBillingConfigured()) {
       requireIntegrationEnv("billing");
     }
 
-    const body = (await request.json().catch(() => null)) as CheckoutRequestBody | null;
-    const productKey = parseProductKey(body?.productKey);
+    const body = await parseJsonBody(request, checkoutSchema);
+    const productKey = parseProductKey(body.productKey);
     const product = getBillingProduct(productKey);
     const context = await getBillingAuthContext();
 
@@ -69,17 +86,45 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    if (error instanceof EnvValidationError) {
-      return NextResponse.json({ error: error.message }, { status: 503 });
-    }
+    const status = getCheckoutErrorStatus(error);
+    const message = getCheckoutErrorMessage(error);
 
-    const message =
-      error instanceof Error && error.message
-        ? error.message
-        : "Nao foi possivel iniciar a compra no Mercado Pago.";
+    logApiError({
+      route: "/api/billing/mercadopago/checkout",
+      operation: "CREATE_MERCADOPAGO_CHECKOUT",
+      message,
+      status,
+      error
+    });
 
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message }, { status });
   }
+}
+
+function getCheckoutErrorStatus(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return getErrorStatus(error);
+  }
+
+  if (error instanceof EnvValidationError) {
+    return 503;
+  }
+
+  return 400;
+}
+
+function getCheckoutErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return error.message;
+  }
+
+  if (error instanceof EnvValidationError) {
+    return error.message;
+  }
+
+  return error instanceof Error && error.message
+    ? error.message
+    : "Nao foi possivel iniciar a compra no Mercado Pago.";
 }
 
 function parseProductKey(value: unknown): BillingProductKey {

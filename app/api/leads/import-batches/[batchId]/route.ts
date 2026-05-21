@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { undoCsvImportBatchForCurrentUser } from "@/lib/leads/repository.server";
+import { assertRouteRateLimit, assertSameOrigin, logApiError } from "@/lib/api/route-security";
 
 type RouteContext = {
   params: Promise<{
@@ -8,15 +9,29 @@ type RouteContext = {
   }>;
 };
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
   try {
     const { batchId } = await context.params;
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-leads-import-batches-delete",
+      suffix: batchId,
+      limit: 10,
+      windowMs: 60 * 1000
+    });
     const deletedCount = await undoCsvImportBatchForCurrentUser(batchId);
 
     return NextResponse.json({ ok: true, mode, deletedCount });
   } catch (error) {
-    console.error(error);
+    logApiError({
+      route: "/api/leads/import-batches/[batchId]",
+      operation: "UNDO_CSV_IMPORT_BATCH",
+      message: getUndoImportErrorMessage(error),
+      status: getUndoImportErrorStatus(error),
+      error
+    });
 
     return NextResponse.json(
       {

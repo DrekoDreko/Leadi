@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import {
   archiveLeadForCurrentUser,
   updateLeadForCurrentUser,
@@ -13,13 +14,49 @@ type RouteContext = {
 };
 
 import { logger } from "@/lib/logger";
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
+
+const leadUpdateSchema = z.object({
+  name: requiredTrimmedString("Informe o nome do lead antes de salvar.").max(160).optional(),
+  phone: z.string().trim().max(40).optional(),
+  email: z.email("Informe um e-mail valido.").optional(),
+  city: z.string().trim().max(120).optional(),
+  company_name: z.string().trim().max(160).optional(),
+  lives_count: z.union([z.number(), z.string()]).optional(),
+  stage: z.string().trim().max(40).optional(),
+  source: z.string().trim().max(60).optional(),
+  budget: z.string().trim().max(120).optional(),
+  interest: z.string().trim().max(120).optional(),
+  last_interaction: z.string().trim().max(500).optional(),
+  notes: z.string().trim().max(2000).optional(),
+  source_campaign: z.string().trim().max(160).optional(),
+  source_adset: z.string().trim().max(160).optional(),
+  source_ad: z.string().trim().max(160).optional()
+}).refine((value) => Object.keys(value).length > 0, {
+  message: "Informe ao menos um campo para atualizar o lead."
+});
 
 export async function PATCH(request: Request, context: RouteContext) {
   const { id } = await context.params;
   let body: unknown;
   try {
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
-    body = await request.json();
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-lead-patch",
+      suffix: id,
+      limit: 40,
+      windowMs: 60 * 1000
+    });
+    body = await parseJsonBody(request, leadUpdateSchema);
     const lead = await updateLeadForCurrentUser(id, body as LeadCreateInput);
 
     return NextResponse.json({ lead, mode });
@@ -44,10 +81,18 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
   const { id } = await context.params;
   try {
     const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-lead-delete",
+      suffix: id,
+      limit: 30,
+      windowMs: 60 * 1000
+    });
     await archiveLeadForCurrentUser(id);
 
     return NextResponse.json({ ok: true, mode });
@@ -72,6 +117,10 @@ export async function DELETE(_request: Request, context: RouteContext) {
 }
 
 function getUpdateLeadErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return error.message;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {
@@ -102,6 +151,10 @@ function getUpdateLeadErrorMessage(error: unknown) {
 }
 
 function getDeleteLeadErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return error.message;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {
@@ -132,6 +185,10 @@ function getDeleteLeadErrorMessage(error: unknown) {
 }
 
 function getLeadMutationErrorStatus(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return getErrorStatus(error);
+  }
+
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("Usuario nao autenticado")) {

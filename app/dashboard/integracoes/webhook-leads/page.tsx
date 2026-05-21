@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { listLeadWebhookLogsByOrganization, type WebhookLogFilter } from "@/lib/leads/webhook-events.repository";
-import { requireCompletedProfile } from "@/lib/workspaces/context";
+import { requireWorkspaceManager } from "@/lib/workspaces/context";
 import { getRequestOrigin } from "@/lib/site/config";
 import { WebhookLogsCard } from "../../perfil/webhook-logs-card";
 import { WebhookSetupCard } from "../../perfil/webhook-setup-card";
@@ -15,7 +15,7 @@ export default async function WebhookLeadsPage({
     webhookStatus?: string;
   }>;
 }) {
-  const context = await requireCompletedProfile();
+  const context = await requireWorkspaceManager();
   const params = await searchParams;
   const webhookFilter = normalizeWebhookStatusFilter(params?.webhookStatus);
   const webhookUrl = await getLeadWebhookUrl();
@@ -27,8 +27,6 @@ export default async function WebhookLeadsPage({
           filter: webhookFilter
         })
       : [];
-
-  const canManageToken = context.isManager || context.isSoloOwner;
 
   return (
     <div className="space-y-4">
@@ -47,7 +45,7 @@ export default async function WebhookLeadsPage({
       </PageHeading>
 
       <WebhookSetupCard
-        canManageToken={canManageToken}
+        canManageToken
         isSupabaseMode={context.mode === "supabase"}
         webhookUrl={webhookUrl}
       />

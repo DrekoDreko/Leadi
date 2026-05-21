@@ -1,11 +1,11 @@
 import { AiCreditsPanel } from "@/components/dashboard/ai-credits-panel";
 import { PageHeading } from "@/components/dashboard/widgets";
-import { getAiBalance } from "@/lib/ai/credits";
+import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 
 export default async function PerfilCreditosPage() {
-  const context = await requireCompletedProfile();
-  const aiBalance = await getAiBalance(context.workspace?.id ?? "");
+  await requireCompletedProfile();
+  const aiBalance = await getCurrentAiBalance();
 
   return (
     <div className="space-y-4">
@@ -24,4 +24,3 @@ export default async function PerfilCreditosPage() {
     </div>
   );
 }
-

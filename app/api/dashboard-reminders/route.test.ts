@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
 import { POST } from "./route";
 import { createDashboardReminderForCurrentUser } from "@/lib/dashboard-reminders/repository.server";
 

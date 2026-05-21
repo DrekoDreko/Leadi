@@ -12,7 +12,7 @@ import {
 import type { ReactNode } from "react";
 import { IntegrationNotice } from "@/components/dashboard/integration-notice";
 import { PageHeading } from "@/components/dashboard/widgets";
-import { getAiBalance } from "@/lib/ai/credits";
+import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { updateBrokerageNameAction } from "./actions";
@@ -29,6 +29,8 @@ const brokerageFeedbackMessages: Record<string, string> = {
 const integrationFeedbackMessages: Record<string, string> = {
   connected: "Conta Meta conectada com sucesso.",
   disconnected: "Conta Meta desconectada com sucesso.",
+  forbidden:
+    "Sua permissao para gerenciar a conexao Meta mudou antes da conclusao do fluxo. Peca para um owner ou admin reconectar a conta.",
   coming_soon:
     "A conta OpenAI própria está em breve. Hoje as gerações usam os Créditos de IA da plataforma.",
   success: "Sincronizacao concluida com sucesso.",
@@ -67,7 +69,7 @@ export default async function PerfilPage({
     ? brokerageFeedbackMessages[params.brokerage] ?? null
     : null;
   const connectedAccounts = await getConnectedAccountsForCurrentUser();
-  const aiBalance = await getAiBalance(context.workspace?.id ?? "");
+  const aiBalance = await getCurrentAiBalance();
   const integrationFeedback =
     (params?.meta && integrationFeedbackMessages[params.meta]) ||
     (params?.openai && integrationFeedbackMessages[params.openai]) ||
@@ -191,14 +193,24 @@ export default async function PerfilPage({
             title="Créditos de IA"
             statusText={aiBalance > 0 ? `${aiBalance.toLocaleString("pt-BR")} créditos` : "Sem saldo"}
           />
-          <ManageLinkCard
-            cta="Gerenciar Meta"
-            description="Gerencie perfil Meta, páginas, formulários, contas de anúncio e permissões."
-            href="/dashboard/perfil/meta"
-            icon={<ArrowUpRight size={20} aria-hidden="true" />}
-            title="Meta e contas conectadas"
-            statusText={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
-          />
+          {connectedAccounts.canManageConnections ? (
+            <ManageLinkCard
+              cta="Gerenciar Meta"
+              description="Gerencie perfil Meta, páginas, formulários, contas de anúncio e permissões."
+              href="/dashboard/perfil/meta"
+              icon={<ArrowUpRight size={20} aria-hidden="true" />}
+              title="Meta e contas conectadas"
+              statusText={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
+            />
+          ) : (
+            <ManageDisabledCard
+              cta="Acesso restrito"
+              description="Owner e admins gerenciam a conexão Meta e os ativos sincronizados do workspace."
+              icon={<ArrowUpRight size={20} aria-hidden="true" />}
+              title="Meta e contas conectadas"
+              statusText={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
+            />
+          )}
           <ManageLinkCard
             cta="Gerenciar empresa"
             description="Gerencie os dados principais da empresa usados na operação."

@@ -26,11 +26,15 @@ export async function middleware(request: NextRequest) {
     (isApiRoute && !isLeadWebhookRoute && !isMetaWebhookRoute && !isMetaDataDeletionRoute);
 
   if (isLeadWebhookRoute || isMetaWebhookRoute || isMetaDataDeletionRoute) {
-    return NextResponse.next({ request });
+    const response = NextResponse.next({ request });
+    applySecurityHeaders(request, response);
+    return response;
   }
 
   if (!isSupabaseConfigured()) {
-    return NextResponse.next({ request });
+    const response = NextResponse.next({ request });
+    applySecurityHeaders(request, response);
+    return response;
   }
 
   let response = NextResponse.next({ request });
@@ -57,16 +61,24 @@ export async function middleware(request: NextRequest) {
 
   if (isProtectedRoute && !user) {
     if (isApiRoute) {
-      return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
-    }
+        const unauthorizedResponse = NextResponse.json(
+          { error: "Usuario nao autenticado." },
+          { status: 401 }
+        );
+        applySecurityHeaders(request, unauthorizedResponse);
+        return unauthorizedResponse;
+      }
 
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${search}`);
 
-    return NextResponse.redirect(loginUrl);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    applySecurityHeaders(request, redirectResponse);
+    return redirectResponse;
   }
 
   if (!user) {
+    applySecurityHeaders(request, response);
     return response;
   }
 
@@ -78,13 +90,23 @@ export async function middleware(request: NextRequest) {
 
   if (!profile) {
     if (isApiRoute) {
-      return NextResponse.json({ error: "Perfil nao encontrado." }, { status: 403 });
+      const forbiddenResponse = NextResponse.json(
+        { error: "Perfil nao encontrado." },
+        { status: 403 }
+      );
+      applySecurityHeaders(request, forbiddenResponse);
+      return forbiddenResponse;
     }
 
     if (isProtectedRoute && !isProfileSetupRoute && !isInviteRoute) {
-      return NextResponse.redirect(new URL("/onboarding/profile-setup", request.url));
+      const redirectResponse = NextResponse.redirect(
+        new URL("/onboarding/profile-setup", request.url)
+      );
+      applySecurityHeaders(request, redirectResponse);
+      return redirectResponse;
     }
 
+    applySecurityHeaders(request, response);
     return response;
   }
 
@@ -101,29 +123,81 @@ export async function middleware(request: NextRequest) {
 
   if (isProtectedRoute && !profileSetupCompleted && !isProfileSetupRoute && !isInviteRoute) {
     if (isApiRoute) {
-      return NextResponse.json({ error: "Configuracao inicial pendente." }, { status: 403 });
+      const pendingSetupResponse = NextResponse.json(
+        { error: "Configuracao inicial pendente." },
+        { status: 403 }
+      );
+      applySecurityHeaders(request, pendingSetupResponse);
+      return pendingSetupResponse;
     }
 
-    return NextResponse.redirect(new URL("/onboarding/profile-setup", request.url));
+    const redirectResponse = NextResponse.redirect(
+      new URL("/onboarding/profile-setup", request.url)
+    );
+    applySecurityHeaders(request, redirectResponse);
+    return redirectResponse;
   }
 
   if (profileSetupCompleted && isProfileSetupRoute) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
+    applySecurityHeaders(request, redirectResponse);
+    return redirectResponse;
   }
 
   if (isTeamRoute && !isManager) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
+    applySecurityHeaders(request, redirectResponse);
+    return redirectResponse;
   }
 
   if (isImportRoute && !isManager && workspaceType !== "solo") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
+    applySecurityHeaders(request, redirectResponse);
+    return redirectResponse;
   }
 
   if (isCreateTeamRoute && !(role === "owner" && workspaceType === "solo")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
+    applySecurityHeaders(request, redirectResponse);
+    return redirectResponse;
   }
 
+  applySecurityHeaders(request, response);
   return response;
+}
+
+function applySecurityHeaders(request: NextRequest, response: NextResponse) {
+  response.headers.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'",
+      "form-action 'self'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: https:",
+      "style-src 'self' 'unsafe-inline' https:",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+      "connect-src 'self' https: wss:",
+      "frame-src 'self' https:",
+      "object-src 'none'",
+      "upgrade-insecure-requests"
+    ].join("; ")
+  );
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+
+  if (
+    request.nextUrl.protocol === "https:" ||
+    request.headers.get("x-forwarded-proto")?.toLowerCase() === "https"
+  ) {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload"
+    );
+  }
 }
 
 export const config = {

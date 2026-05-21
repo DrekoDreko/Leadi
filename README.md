@@ -107,6 +107,12 @@ O ambiente local é destinado apenas para desenvolvimento, scripts administrativ
 | `INTEGRATIONS_SECRET_KEY` | Chave para cifrar tokens de clientes |
 | `MERCADO_PAGO_ACCESS_TOKEN` | Token de integração financeira |
 
+Notas operacionais:
+
+- Guarde segredos reais no painel da Vercel ou no ambiente seguro do servidor. Evite manter `.env.production` real no workspace.
+- `INTEGRATIONS_SECRET_KEY` e `SUPABASE_SERVICE_ROLE_KEY` são estritamente server-side e nunca devem aparecer em arquivos `"use client"`.
+- Rode `npm run security:check` antes de publicar mudanças que mexam em autenticação, integrações ou configuração de ambiente.
+
 ## Documentação Técnica Complementar
 
 - [Guia de Migrations e Banco de Dados](docs/MIGRATIONS.md)

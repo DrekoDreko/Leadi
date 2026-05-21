@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { EnvValidationError } from "@/lib/env/server";
 import { containsSensitiveCompliancePattern } from "@/lib/openai/compliance-guardrails";
 import { AiCreditsError, runAiActionWithCredits } from "@/lib/ai/credits";
@@ -17,26 +18,15 @@ import type {
   CampaignPublishMode,
   CampaignPublicationStatus
 } from "@/lib/campaigns/types";
-
-type CampaignRequestBody = {
-  audience?: unknown;
-  offer?: unknown;
-  region?: unknown;
-  differentiator?: unknown;
-  tone?: unknown;
-  metaPageId?: unknown;
-  metaAdAccountId?: unknown;
-  metaLeadFormId?: unknown;
-  publishMode?: unknown;
-  metaCampaignId?: unknown;
-  metaAdSetId?: unknown;
-  metaAdId?: unknown;
-  notes?: unknown;
-  creativeAssetType?: unknown;
-  creativeRequestMode?: unknown;
-  creativeBrief?: unknown;
-  creativeFileNames?: unknown;
-};
+import {
+  ApiRouteError,
+  assertRouteRateLimit,
+  assertSameOrigin,
+  getErrorStatus,
+  logApiError,
+  parseJsonBody,
+  requiredTrimmedString
+} from "@/lib/api/route-security";
 
 type CampaignRequestInput = CampaignTextInput & {
   creativeAssetType: string | null;
@@ -58,10 +48,37 @@ type CampaignRequestInput = CampaignTextInput & {
 
 const MAX_FIELD_LENGTH = 280;
 const DEFAULT_PRODUCT = "Plano de saude empresarial";
+const publishModeSchema = z.enum(["draft", "manual_review", "scheduled", "paused"]).optional();
+const campaignRequestSchema = z.object({
+  audience: requiredTrimmedString("Informe o publico da campanha.").max(MAX_FIELD_LENGTH),
+  offer: requiredTrimmedString("Informe a oferta da campanha.").max(MAX_FIELD_LENGTH),
+  region: requiredTrimmedString("Informe a regiao da campanha.").max(MAX_FIELD_LENGTH),
+  differentiator: requiredTrimmedString("Informe o diferencial da oferta.").max(MAX_FIELD_LENGTH),
+  tone: requiredTrimmedString("Informe o tom da campanha.").max(MAX_FIELD_LENGTH),
+  metaPageId: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  metaAdAccountId: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  metaLeadFormId: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  publishMode: publishModeSchema,
+  metaCampaignId: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  metaAdSetId: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  metaAdId: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  notes: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  creativeAssetType: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  creativeRequestMode: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  creativeBrief: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  creativeFileNames: z.array(z.string().trim().min(1).max(MAX_FIELD_LENGTH)).max(10).optional()
+});
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as CampaignRequestBody;
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-campaigns-generate",
+      limit: 20,
+      windowMs: 60 * 1000
+    });
+    const body = await parseJsonBody(request, campaignRequestSchema);
     const billingContext = await getBillingAuthContext();
 
     if (!billingContext) {
@@ -152,19 +169,27 @@ export async function POST(request: Request) {
   } catch (error) {
     const { message, status } = getCampaignError(error);
 
+    logApiError({
+      route: "/api/campaigns/generate",
+      operation: "GENERATE_CAMPAIGN",
+      message,
+      status,
+      error
+    });
+
     return NextResponse.json({ error: message }, { status });
   }
 }
 
 function parseCampaignRequest(
-  body: CampaignRequestBody,
+  body: z.infer<typeof campaignRequestSchema>,
   connectedAccountId: string | null
 ): CampaignRequestInput {
-  const audience = getRequiredString(body.audience, "Informe o publico da campanha.");
-  const offer = getRequiredString(body.offer, "Informe a oferta da campanha.");
-  const region = getRequiredString(body.region, "Informe a regiao da campanha.");
-  const differentiator = getRequiredString(body.differentiator, "Informe o diferencial da oferta.");
-  const tone = getRequiredString(body.tone, "Informe o tom da campanha.");
+  const audience = body.audience;
+  const offer = body.offer;
+  const region = body.region;
+  const differentiator = body.differentiator;
+  const tone = body.tone;
   const metaPageId = getOptionalString(body.metaPageId);
   const metaAdAccountId = getOptionalString(body.metaAdAccountId);
   const metaLeadFormId = getOptionalString(body.metaLeadFormId);
@@ -223,14 +248,6 @@ function parseCampaignRequest(
       "Priorizar empresas, decisores comerciais, quantidade de vidas, regiao e necessidade de cotacao."
     ]
   };
-}
-
-function getRequiredString(value: unknown, message: string) {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error(message);
-  }
-
-  return value.trim().slice(0, MAX_FIELD_LENGTH);
 }
 
 function getOptionalString(value: unknown) {
@@ -296,6 +313,13 @@ function getLocalComplianceNotes(values: string[]) {
 }
 
 function getCampaignError(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return {
+      message: error.message,
+      status: getErrorStatus(error)
+    };
+  }
+
   if (error instanceof EnvValidationError) {
     return {
       message: error.message,

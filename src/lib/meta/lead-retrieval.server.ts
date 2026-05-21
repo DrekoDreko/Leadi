@@ -66,9 +66,17 @@ export type MetaLeadMappedPayload = {
   meta_adset_id?: string;
   meta_ad_id?: string;
   raw_payload: {
-    meta_lead: MetaLeadRecord;
-    normalized_field_data: Record<string, string[]>;
-    unmapped_field_data: MetaLeadFieldDataEntry[];
+    meta_lead_summary: {
+      ad_id: string | null;
+      adset_id: string | null;
+      campaign_id: string | null;
+      created_time: string | null;
+      field_names: string[];
+      form_id: string | null;
+      lead_id: string;
+      platform: string | null;
+      unmapped_field_names: string[];
+    };
   };
 };
 
@@ -270,9 +278,17 @@ export function mapMetaLeadToLeadPayload(metaLead: MetaLeadRecord): MetaLeadMapp
     meta_adset_id: metaLead.adset_id ?? undefined,
     meta_ad_id: metaLead.ad_id ?? undefined,
     raw_payload: {
-      meta_lead: metaLead,
-      normalized_field_data: normalizedFieldData,
-      unmapped_field_data: unmappedFieldData
+      meta_lead_summary: {
+        lead_id: metaLead.id,
+        created_time: metaLead.created_time,
+        form_id: metaLead.form_id,
+        campaign_id: metaLead.campaign_id,
+        adset_id: metaLead.adset_id,
+        ad_id: metaLead.ad_id,
+        platform: metaLead.platform,
+        field_names: metaLead.field_data.map((field) => field.name),
+        unmapped_field_names: unmappedFieldData.map((field) => field.name)
+      }
     }
   });
 }
