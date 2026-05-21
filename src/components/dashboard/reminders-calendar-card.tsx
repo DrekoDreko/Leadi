@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, CheckCircle2, Clock3, Loader2, X } from "lucide-react";
 import type { DashboardReminderItem, DashboardReminderPreset } from "@/lib/dashboard-reminders/types";
+import { buildLocalDateTimeIso, getClientTimezoneOffsetMinutes } from "@/lib/date/client-time";
 
 type ReminderCreateResponse = {
   reminder?: DashboardReminderItem;
@@ -132,6 +133,7 @@ export function RemindersCalendarCard({
     const trimmedMessage = message.trim();
     const manualTime = time24h.trim();
     const currentNow = new Date();
+    const timezoneOffsetMinutes = getClientTimezoneOffsetMinutes(currentNow);
 
     if (!trimmedMessage) {
       setError("Informe do que voce quer ser lembrado.");
@@ -165,11 +167,17 @@ export function RemindersCalendarCard({
     setSuccessMessage("");
     setIsSubmitting(true);
 
+    const remindAtIso = manualTime
+      ? buildLocalDateTimeIso(selectedDate, manualTime)
+      : isTodaySelected && preset
+        ? resolvePresetRemindAtIso(selectedDate, preset, currentNow)
+        : null;
+
     try {
       const payload: Record<string, string | number> = {
         date: selectedDate,
         message: trimmedMessage,
-        timezoneOffsetMinutes: currentNow.getTimezoneOffset(),
+        timezoneOffsetMinutes,
         clientNowIso: currentNow.toISOString()
       };
 
@@ -177,6 +185,10 @@ export function RemindersCalendarCard({
         payload.time24h = manualTime;
       } else if (isTodaySelected && preset) {
         payload.preset = preset;
+      }
+
+      if (remindAtIso) {
+        payload.remindAtIso = remindAtIso;
       }
 
       const response = await fetch("/api/dashboard-reminders", {
@@ -483,6 +495,19 @@ function formatCalendarDate(year: number, monthIndex: number, day: number) {
 
 function formatLocalDate(date: Date) {
   return formatCalendarDate(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function resolvePresetRemindAtIso(date: string, preset: DashboardReminderPreset, currentNow: Date) {
+  if (preset === "one_hour") {
+    return new Date(currentNow.getTime() + 60 * 60 * 1000).toISOString();
+  }
+
+  if (preset === "two_hours") {
+    return new Date(currentNow.getTime() + 2 * 60 * 60 * 1000).toISOString();
+  }
+
+  const presetTime = preset === "this_afternoon" ? "15:00" : "20:00";
+  return buildLocalDateTimeIso(date, presetTime);
 }
 
 function capitalize(value: string) {

@@ -21,7 +21,8 @@ const reminderSchema = z.object({
   date: requiredTrimmedString("Informe uma data valida para o lembrete.").max(32),
   message: requiredTrimmedString("Informe do que voce quer ser lembrado.").max(240),
   preset: z.string().trim().max(32).optional(),
-  time24h: z.string().trim().max(16).optional()
+  time24h: z.string().trim().max(16).optional(),
+  remindAtIso: z.string().trim().max(64).optional()
 });
 
 export async function GET(request: Request) {

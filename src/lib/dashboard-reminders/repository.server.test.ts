@@ -41,6 +41,20 @@ describe("dashboard reminders repository", () => {
     ).toThrow("Informe um horario valido no formato 24 horas.");
   });
 
+  it("usa remindAtIso informado pelo cliente quando disponivel", () => {
+    const resolved = resolveDashboardReminderInput({
+      date: "2026-05-20",
+      message: "Lembrete",
+      remindAtIso: "2026-05-20T14:30:00.000Z"
+    });
+
+    expect(resolved).toEqual({
+      date: "2026-05-20",
+      message: "Lembrete",
+      remindAtIso: "2026-05-20T14:30:00.000Z"
+    });
+  });
+
   it("bloqueia horario passado para hoje", () => {
     expect(() =>
       resolveDashboardReminderInput({
@@ -360,8 +374,9 @@ describe("dashboard reminders repository", () => {
       },
       error: null
     });
-    const selectUpdate = vi.fn(() => ({ single: singleUpdate }));
-    const eqOrg = vi.fn(() => ({ select: selectUpdate }));
+    const selectUpdate = vi.fn(() => ({ maybeSingle: singleUpdate }));
+    const eqCreatedBy = vi.fn(() => ({ select: selectUpdate }));
+    const eqOrg = vi.fn(() => ({ eq: eqCreatedBy }));
     const eqId = vi.fn(() => ({ eq: eqOrg }));
     const updateReminders = vi.fn(() => ({ eq: eqId }));
 
@@ -432,7 +447,9 @@ describe("dashboard reminders repository", () => {
       error: null
     });
 
-    const eqIdUpdate = vi.fn(() => ({ eq: vi.fn(() => ({ select: () => ({ single: singleUpdate }) })) }));
+    const eqCreatedByUpdate = vi.fn(() => ({ select: () => ({ maybeSingle: singleUpdate }) }));
+    const eqOrgUpdate = vi.fn(() => ({ eq: eqCreatedByUpdate }));
+    const eqIdUpdate = vi.fn(() => ({ eq: eqOrgUpdate }));
     const updateReminders = vi.fn(() => ({ eq: eqIdUpdate }));
 
     const maybeSingleProfile = vi.fn().mockResolvedValue({

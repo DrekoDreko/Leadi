@@ -99,6 +99,7 @@ describe("RemindersCalendarCard", () => {
 
     expect(requestBody.time24h).toBe(futureTime);
     expect(requestBody.preset).toBeUndefined();
+    expect(typeof requestBody.remindAtIso).toBe("string");
   });
 
   it("bloqueia horario passado para hoje", () => {
@@ -167,6 +168,7 @@ describe("RemindersCalendarCard", () => {
     const requestBody = JSON.parse(postCalls[0][1].body as string);
     expect(requestBody.date).toBe("2026-05-20");
     expect(requestBody.time24h).toBe("09:30");
+    expect(typeof requestBody.remindAtIso).toBe("string");
   });
 
   it("dispara atualizacao de notificacoes ao salvar um novo lembrete", async () => {

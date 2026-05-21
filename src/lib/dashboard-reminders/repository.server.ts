@@ -129,6 +129,16 @@ export function resolveDashboardReminderInput(input: DashboardReminderCreateInpu
   const message = normalizeMessage(input.message);
   const time24h = normalizeOptionalTime24h(input.time24h);
   const preset = normalizeOptionalPreset(input.preset);
+  const remindAtIso = normalizeOptionalRemindAtIso(input.remindAtIso);
+
+  if (remindAtIso) {
+    return {
+      date,
+      message,
+      remindAtIso: remindAtIso.toISOString()
+    };
+  }
+
   const timezoneOffsetMinutes = normalizeTimezoneOffsetMinutes(input.timezoneOffsetMinutes);
   const clientNow = normalizeClientNow(input.clientNowIso);
   const today = formatDateForOffset(clientNow, timezoneOffsetMinutes);
@@ -399,6 +409,24 @@ function normalizeOptionalPreset(value: unknown): DashboardReminderPreset | null
   }
 
   throw new Error("Escolha uma opcao valida para o lembrete.");
+}
+
+function normalizeOptionalRemindAtIso(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed;
 }
 
 function normalizeTimezoneOffsetMinutes(value: unknown) {

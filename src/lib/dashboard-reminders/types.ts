@@ -29,6 +29,7 @@ export type DashboardReminderCreateInput = {
   message?: unknown;
   preset?: unknown;
   time24h?: unknown;
+  remindAtIso?: unknown;
   timezoneOffsetMinutes?: unknown;
   clientNowIso?: unknown;
 };

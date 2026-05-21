@@ -7,6 +7,7 @@ import { Bell, Check, ChevronDown, Clock, Loader2, LogOut, Plus, Search, X } fro
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { BrandMark } from "@/components/brand-mark";
 import type { Lead } from "@/data/mock";
+import { getClientTimezoneOffsetMinutes } from "@/lib/date/client-time";
 import { getDashboardNavItems } from "@/lib/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -167,7 +168,7 @@ export function DashboardShell({
           id,
           action: "snooze",
           snoozeType,
-          timezoneOffsetMinutes: new Date().getTimezoneOffset(),
+          timezoneOffsetMinutes: getClientTimezoneOffsetMinutes(),
           clientNowIso: new Date().toISOString()
         })
       });
