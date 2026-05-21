@@ -467,14 +467,19 @@ export async function completeDashboardReminderForCurrentUser(id: string): Promi
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("dashboard_reminders")
-    .update({ completed: true, updated_at: new Date().toISOString() })
+    .update({ completed: true })
     .eq("id", id)
     .eq("organization_id", profile.organization_id)
+    .eq("created_by_profile_id", profile.id)
     .select("*")
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
-    throw new Error("Nao foi possivel concluir o lembrete.");
+  if (error) {
+    throw new Error(error.message || "Nao foi possivel concluir o lembrete.");
+  }
+
+  if (!data) {
+    throw new Error("Lembrete nao encontrado ou sem permissao para concluir.");
   }
 
   return mapDashboardReminderRowToItem(data);
@@ -543,16 +548,20 @@ export async function snoozeDashboardReminderForCurrentUser(
     .from("dashboard_reminders")
     .update({
       remind_at: remindAt.toISOString(),
-      reminder_date: reminderDate,
-      updated_at: new Date().toISOString()
+      reminder_date: reminderDate
     })
     .eq("id", id)
     .eq("organization_id", profile.organization_id)
+    .eq("created_by_profile_id", profile.id)
     .select("*")
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
-    throw new Error("Nao foi possivel adiar o lembrete.");
+  if (error) {
+    throw new Error(error.message || "Nao foi possivel adiar o lembrete.");
+  }
+
+  if (!data) {
+    throw new Error("Lembrete nao encontrado ou sem permissao para adiar.");
   }
 
   return mapDashboardReminderRowToItem(data);
