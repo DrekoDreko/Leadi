@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BrandMark } from "@/components/brand-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { HeroSection } from "@/components/landing/hero-section";
 import { HighlightCarousel } from "@/components/landing/highlight-carousel";
 import { EssentialFeatures } from "@/components/landing/essential-features";
@@ -42,12 +43,15 @@ export default function Home() {
               </Link>
             ))}
           </div>
-          <Link
-            className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5"
-            href="/login"
-          >
-            Entrar
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link
+              className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud shadow-soft transition hover:-translate-y-0.5"
+              href="/login"
+            >
+              Entrar
+            </Link>
+          </div>
         </nav>
       </header>
 

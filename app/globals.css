@@ -3,11 +3,85 @@
 @tailwind utilities;
 
 :root {
-  color: #121721;
-  background: #d7dde2;
+  --color-ink: 18 23 33;
+  --color-cobalt: 52 98 238;
+  --color-signal: 239 227 71;
+  --color-lagoon: 74 145 168;
+  --color-mist: 234 240 220;
+  --color-cloud: 246 248 242;
+
+  --bg-color: #d7dde2;
+  --bg-gradient: linear-gradient(120deg, rgba(217, 229, 244, 0.92), rgba(234, 240, 220, 0.9) 48%, rgba(248, 248, 244, 0.96)), #d7dde2;
+
+  --glass-border: rgba(255, 255, 255, 0.48);
+  --glass-bg: rgba(255, 255, 255, 0.38);
+  --glass-shadow: rgba(18, 23, 33, 0.12);
+
+  --glass-strong-border: rgba(255, 255, 255, 0.72);
+  --glass-strong-bg: rgba(255, 255, 255, 0.82);
+  --glass-strong-shadow: rgba(18, 23, 33, 0.14);
+
+  --glass-dark-border: rgba(255, 255, 255, 0.12);
+  --glass-dark-bg: rgba(18, 23, 33, 0.92);
+  --glass-dark-shadow: rgba(18, 23, 33, 0.2);
+
+  --icon-btn-border: rgba(255, 255, 255, 0.52);
+  --icon-btn-bg: rgba(255, 255, 255, 0.38);
+  --icon-btn-hover-bg: rgba(255, 255, 255, 0.68);
+  --icon-btn-shadow: 0 12px 30px rgba(18, 23, 33, 0.08);
+
+  --input-border: rgba(255, 255, 255, 0.5);
+  --input-bg: rgba(255, 255, 255, 0.46);
+  --input-focus-border: rgba(52, 98, 238, 0.45);
+  --input-focus-bg: rgba(255, 255, 255, 0.7);
+  --input-focus-shadow: rgba(52, 98, 238, 0.12);
+
+  --glass-shadow-custom: 0 24px 80px rgba(18, 23, 33, 0.14);
+  --glass-soft-shadow: 0 16px 48px rgba(18, 23, 33, 0.1);
+
+  color: rgb(var(--color-ink));
+  background: var(--bg-color);
   font-family:
     "Lufga", "Manrope", Inter, ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.dark {
+  --color-ink: 246 248 242;    /* cloud */
+  --color-cloud: 18 23 33;     /* ink */
+  --color-mist: 30 37 50;      /* dark blue/gray */
+  --color-cobalt: 75 116 240;  /* lighter cobalt for contrast */
+  --color-signal: 239 227 71;  /* same */
+  --color-lagoon: 95 161 183;  /* lighter lagoon */
+
+  --bg-color: #0c1017;
+  --bg-gradient: linear-gradient(120deg, rgba(14, 19, 31, 0.92), rgba(20, 27, 43, 0.9) 48%, rgba(10, 14, 22, 0.96)), #0c1017;
+
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-shadow: rgba(0, 0, 0, 0.4);
+
+  --glass-strong-border: rgba(255, 255, 255, 0.15);
+  --glass-strong-bg: rgba(255, 255, 255, 0.08);
+  --glass-strong-shadow: rgba(0, 0, 0, 0.5);
+
+  --glass-dark-border: rgba(255, 255, 255, 0.12);
+  --glass-dark-bg: rgba(18, 23, 33, 0.92);
+  --glass-dark-shadow: rgba(0, 0, 0, 0.6);
+
+  --icon-btn-border: rgba(255, 255, 255, 0.1);
+  --icon-btn-bg: rgba(255, 255, 255, 0.05);
+  --icon-btn-hover-bg: rgba(255, 255, 255, 0.12);
+  --icon-btn-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+
+  --input-border: rgba(255, 255, 255, 0.12);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-focus-border: rgba(75, 116, 240, 0.45);
+  --input-focus-bg: rgba(255, 255, 255, 0.08);
+  --input-focus-shadow: rgba(75, 116, 240, 0.12);
+
+  --glass-shadow-custom: 0 24px 80px rgba(0, 0, 0, 0.4);
+  --glass-soft-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -21,10 +95,8 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
-  background:
-    linear-gradient(120deg, rgba(217, 229, 244, 0.92), rgba(234, 240, 220, 0.9) 48%, rgba(248, 248, 244, 0.96)),
-    #d7dde2;
-  color: #121721;
+  background: var(--bg-gradient);
+  color: rgb(var(--color-ink));
 }
 
 a {
@@ -40,28 +112,28 @@ select {
 }
 
 ::selection {
-  background: rgba(52, 98, 238, 0.2);
+  background: rgba(var(--color-cobalt), 0.2);
 }
 
 @layer components {
   .glass {
-    border: 1px solid rgba(255, 255, 255, 0.48);
-    background: rgba(255, 255, 255, 0.38);
-    box-shadow: 0 24px 80px rgba(18, 23, 33, 0.12);
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    box-shadow: 0 24px 80px var(--glass-shadow);
     backdrop-filter: blur(28px) saturate(1.25);
   }
 
   .glass-strong {
-    border: 1px solid rgba(255, 255, 255, 0.72);
-    background: rgba(255, 255, 255, 0.82);
-    box-shadow: 0 18px 60px rgba(18, 23, 33, 0.14);
+    border: 1px solid var(--glass-strong-border);
+    background: var(--glass-strong-bg);
+    box-shadow: 0 18px 60px var(--glass-strong-shadow);
     backdrop-filter: blur(34px) saturate(1.32);
   }
 
   .glass-dark {
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(18, 23, 33, 0.92);
-    box-shadow: 0 28px 70px rgba(18, 23, 33, 0.2);
+    border: 1px solid var(--glass-dark-border);
+    background: var(--glass-dark-bg);
+    box-shadow: 0 28px 70px var(--glass-dark-shadow);
   }
 
   .icon-button {
@@ -71,9 +143,9 @@ select {
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.52);
-    background: rgba(255, 255, 255, 0.38);
-    color: #121721;
+    border: 1px solid var(--icon-btn-border);
+    background: var(--icon-btn-bg);
+    color: rgb(var(--color-ink));
     transition:
       transform 180ms ease,
       background 180ms ease,
@@ -82,8 +154,8 @@ select {
 
   .icon-button:hover {
     transform: translateY(-1px);
-    background: rgba(255, 255, 255, 0.68);
-    box-shadow: 0 12px 30px rgba(18, 23, 33, 0.08);
+    background: var(--icon-btn-hover-bg);
+    box-shadow: var(--icon-btn-shadow);
   }
 
   .section-shell {
@@ -94,10 +166,10 @@ select {
   .liquid-input {
     width: 100%;
     border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.46);
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
     padding: 0.95rem 1rem;
-    color: #121721;
+    color: rgb(var(--color-ink));
     outline: none;
     transition:
       border-color 160ms ease,
@@ -106,9 +178,9 @@ select {
   }
 
   .liquid-input:focus {
-    border-color: rgba(52, 98, 238, 0.45);
-    background: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 0 0 4px rgba(52, 98, 238, 0.12);
+    border-color: var(--input-focus-border);
+    background: var(--input-focus-bg);
+    box-shadow: 0 0 0 4px var(--input-focus-shadow);
   }
 
   .campaign-liquid-hero {

@@ -10,16 +10,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#121721",
-        cobalt: "#3462EE",
-        signal: "#EFE347",
-        lagoon: "#4A91A8",
-        mist: "#EAF0DC",
-        cloud: "#F6F8F2"
+        ink: "rgb(var(--color-ink) / <alpha-value>)",
+        cobalt: "rgb(var(--color-cobalt) / <alpha-value>)",
+        signal: "rgb(var(--color-signal) / <alpha-value>)",
+        lagoon: "rgb(var(--color-lagoon) / <alpha-value>)",
+        mist: "rgb(var(--color-mist) / <alpha-value>)",
+        cloud: "rgb(var(--color-cloud) / <alpha-value>)"
       },
       boxShadow: {
-        glass: "0 24px 80px rgba(18, 23, 33, 0.14)",
-        soft: "0 16px 48px rgba(18, 23, 33, 0.1)"
+        glass: "var(--glass-shadow-custom)",
+        soft: "var(--glass-soft-shadow)"
       }
     }
   },
