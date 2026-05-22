@@ -473,7 +473,8 @@ export async function listOverdueLeadTasksForCurrentUser(): Promise<OverdueLeadT
     .order("due_at", { ascending: true });
 
   if (error) {
-    throw new Error(error.message);
+    console.error("[listOverdueLeadTasksForCurrentUser] Erro ao buscar tarefas atrasadas:", error);
+    return [];
   }
 
   return (data ?? []).map((row) => {
