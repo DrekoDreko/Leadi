@@ -23,6 +23,7 @@ import {
   normalizePhone,
   stringOrNull
 } from "./normalization";
+import { getLeadStageLabel, getLeadStageValue } from "./stages";
 import {
   buildLeadPaginationMeta,
   normalizeLeadPaginationOptions,
@@ -132,15 +133,6 @@ export type LeadTaskUpdateInput = {
   status?: unknown;
 };
 
-const stageLabels: Record<LeadRow["stage"], string> = {
-  new: "Novo lead",
-  qualification: "Qualificação",
-  proposal: "Proposta",
-  negotiation: "Negociação",
-  won: "Venda",
-  lost: "Perdido"
-};
-
 const sourceLabels: Record<LeadRow["source"], string> = {
   manual: "Cadastro manual",
   csv_import: "CSV importado",
@@ -172,7 +164,7 @@ const mockLeadComments: LeadComment[] = mockLeads.slice(0, 3).map((lead, index) 
     authorName: lead.owner,
     authorEmail: `${lead.owner.toLowerCase()}@demo.leadi.local`,
     body: lead.lastInteraction,
-    type: "comment",
+    type: index < 2 ? "contact" : "comment",
     createdAt,
     updatedAt: createdAt
   };
@@ -332,11 +324,18 @@ export async function getLeadExportRowsForCurrentUser(
   );
   const supabase = await createSupabaseServerClient();
   const exportProfiles = await loadLeadExportProfiles(supabase, profile.organization_id);
+  const ownerProfileIdsFilter = await resolveOwnerProfileIdsFilter(
+    supabase,
+    profile.organization_id,
+    filters.owner
+  );
+  
   const query = buildLeadQuery(
     supabase.from("leads").select("*").eq("organization_id", profile.organization_id),
     profile,
     filters,
-    sellerProfileId
+    sellerProfileId,
+    ownerProfileIdsFilter
   ).order("received_at", { ascending: false });
 
   const { data, error } = await query;
@@ -387,6 +386,113 @@ export async function getLeadsCountForCurrentUser(): Promise<number> {
   }
 
   return count ?? 0;
+}
+
+export async function listLeadIdsWithRecordedContactForCurrentUser(
+  leadIds?: string[]
+): Promise<string[]> {
+  const scopedLeadIds = leadIds ? [...new Set(leadIds.filter(Boolean))] : undefined;
+
+  if (scopedLeadIds && scopedLeadIds.length === 0) {
+    return [];
+  }
+
+  if (!isSupabaseConfigured()) {
+    return getRecordedContactLeadIdsFromComments(mockLeadComments, scopedLeadIds);
+  }
+
+  const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+  let query = supabase
+    .from("lead_comments")
+    .select("lead_id")
+    .eq("organization_id", profile.organization_id)
+    .like("body", "[CONTACT_LOG] %");
+
+  if (scopedLeadIds) {
+    query = query.in("lead_id", scopedLeadIds);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return [...new Set((data ?? []).map((row) => row.lead_id))];
+}
+
+export type OverdueLeadTaskItem = {
+  id: string;
+  title: string;
+  dueAt: string;
+  leadId: string;
+  leadName: string;
+  leadStage: string;
+};
+
+export async function listOverdueLeadTasksForCurrentUser(): Promise<OverdueLeadTaskItem[]> {
+  if (!isSupabaseConfigured()) {
+    const now = new Date().toISOString();
+    return mockLeadTasks
+      .filter((task) => task.status !== "completed" && task.status !== "cancelled" && task.dueAt && task.dueAt < now)
+      .map(task => {
+        const lead = mockLeads.find(l => l.id === task.leadId);
+        return {
+          id: task.id,
+          title: task.title,
+          dueAt: task.dueAt as string,
+          leadId: task.leadId,
+          leadName: lead?.name ?? "Lead desconhecido",
+          leadStage: lead?.stage ?? "Sem etapa"
+        };
+      })
+      .sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+  }
+
+  const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("lead_tasks")
+    .select(`
+      id,
+      title,
+      due_at,
+      lead_id,
+      leads (
+        name,
+        stage
+      )
+    `)
+    .eq("organization_id", profile.organization_id)
+    .neq("status", "completed")
+    .neq("status", "cancelled")
+    .lt("due_at", now)
+    .order("due_at", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map((row) => {
+    const task = row as unknown as {
+      id: string;
+      title: string;
+      due_at: string;
+      lead_id: string;
+      leads: { name: string; stage: string } | null;
+    };
+    return {
+      id: task.id,
+      title: task.title,
+      dueAt: task.due_at,
+      leadId: task.lead_id,
+      leadName: task.leads?.name ?? "Lead desconhecido",
+      leadStage: task.leads?.stage ?? "Sem etapa"
+    };
+  });
 }
 
 export async function createLeadForCurrentUser(input: LeadCreateInput): Promise<LeadCreationResult> {
@@ -618,6 +724,20 @@ export async function updateLeadForCurrentUser(id: string, input: LeadCreateInpu
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  if (payload.stage && payload.stage !== existingLead.stage) {
+    const { error: historyError } = await supabase.from("lead_stage_history").insert({
+      organization_id: profile.organization_id,
+      lead_id: id,
+      changed_by_profile_id: profile.id,
+      old_stage: existingLead.stage,
+      new_stage: payload.stage
+    });
+
+    if (historyError) {
+      console.error("[updateLeadForCurrentUser] Falha ao registrar historico de etapa:", historyError);
+    }
   }
 
   return mapLeadRowToLead(data, profile);
@@ -1171,16 +1291,43 @@ async function getCurrentProfile() {
   return profile;
 }
 
+async function resolveOwnerProfileIdsFilter(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  organizationId: string,
+  ownerName?: string
+) {
+  if (!ownerName) return null;
+  const { data } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .ilike("full_name", `%${ownerName}%`);
+  
+  if (data && data.length > 0) {
+    return data.map(p => p.id);
+  }
+  return ["00000000-0000-0000-0000-000000000000"];
+}
+
 function buildLeadQuery(
   query: ReturnType<ServerClient["from"]>,
   profile: ProfileRow,
   filters: LeadUrlFilters,
-  sellerProfileId: string | null = null
+  sellerProfileId: string | null = null,
+  ownerProfileIdsFilter: string[] | null = null
 ) {
   const ownerProfileId = resolveLeadOwnerProfileId(profile, sellerProfileId);
 
   if (ownerProfileId && !isWorkspaceManagerRole(profile.role)) {
     query = query.eq("owner_profile_id", ownerProfileId);
+  }
+
+  if (ownerProfileIdsFilter) {
+    query = query.in("owner_profile_id", ownerProfileIdsFilter);
+  }
+
+  if (filters.campaign) {
+    query = query.ilike("source_campaign", `%${filters.campaign}%`);
   }
 
   const stageValue = getSupabaseStageValue(filters.stage);
@@ -1226,10 +1373,18 @@ async function runLeadListQuery(input: {
   pagination: ReturnType<typeof normalizeLeadPaginationOptions>;
   includeArchivedFilter: boolean;
 }) {
+  const ownerProfileIdsFilter = await resolveOwnerProfileIdsFilter(
+    input.supabase,
+    input.profile.organization_id,
+    input.filters.owner
+  );
+
   let query = buildLeadQuery(
     input.supabase.from("leads").select("*", { count: "exact" }).eq("organization_id", input.profile.organization_id),
     input.profile,
-    input.filters
+    input.filters,
+    null,
+    ownerProfileIdsFilter
   );
 
   if (input.includeArchivedFilter) {
@@ -1242,7 +1397,9 @@ async function runLeadListQuery(input: {
     query = buildLeadQuery(
       input.supabase.from("leads").select("*").eq("organization_id", input.profile.organization_id),
       input.profile,
-      input.filters
+      input.filters,
+      null,
+      ownerProfileIdsFilter
     );
 
     if (input.includeArchivedFilter) {
@@ -1677,7 +1834,7 @@ function createMockLead(input: LeadCreateInput): Lead {
     owner: "Demo",
     canEdit: true,
     canDelete: true,
-    stage: stageLabels[stage],
+    stage: getLeadStageLabel(stage),
     source: sourceLabels[source],
     phone: phone.display ?? "Sem telefone",
     email: email ?? "Sem email",
@@ -1702,7 +1859,8 @@ function createMockLead(input: LeadCreateInput): Lead {
     metaAdsetId: stringOrNull(input.meta_adset_id),
     metaAdId: stringOrNull(input.meta_ad_id),
     metaConnectedAccountId: stringOrNull(input.meta_connected_account_id),
-    receivedAt: now.toISOString()
+    receivedAt: now.toISOString(),
+    updatedAt: now.toISOString()
   };
 }
 
@@ -1729,7 +1887,7 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
     owner: existingLead?.owner ?? "Demo",
     canEdit: true,
     canDelete: true,
-    stage: stage ? stageLabels[stage] : existingLead?.stage ?? "Novo lead",
+    stage: stage ? getLeadStageLabel(stage) : existingLead?.stage ?? getLeadStageLabel("new"),
     source: source ? sourceLabels[source] : existingLead?.source ?? "Cadastro manual",
     phone:
       input.phone === undefined
@@ -1804,7 +1962,8 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
       input.meta_connected_account_id === undefined
         ? existingLead?.metaConnectedAccountId ?? null
         : stringOrNull(input.meta_connected_account_id),
-    receivedAt: existingLead?.receivedAt ?? now.toISOString()
+    receivedAt: existingLead?.receivedAt ?? now.toISOString(),
+    updatedAt: now.toISOString()
   };
   return updatedLeadBase;
 }
@@ -1893,7 +2052,7 @@ function mapLeadRowToLead(
     ownerProfileId: row.owner_profile_id,
     canEdit: canManage,
     canDelete: canManage,
-    stage: stageLabels[row.stage],
+    stage: getLeadStageLabel(row.stage),
     source: sourceLabels[row.source],
     phone: row.phone ?? "Sem telefone",
     email: row.email ?? "Sem email",
@@ -1918,6 +2077,7 @@ function mapLeadRowToLead(
     metaAdId: row.meta_ad_id,
     metaConnectedAccountId: row.meta_connected_account_id,
     receivedAt: row.received_at,
+    updatedAt: row.updated_at,
     archivedAt: row.archived_at,
     archiveReason: row.archive_reason,
     duplicateOfLeadId: row.duplicate_of_lead_id
@@ -1925,22 +2085,7 @@ function mapLeadRowToLead(
 }
 
 function getLeadStageValueForMock(stage: string | undefined) {
-  switch (stage) {
-    case "Novo lead":
-      return "new";
-    case "Qualificação":
-      return "qualification";
-    case "Proposta":
-      return "proposal";
-    case "Negociação":
-      return "negotiation";
-    case "Venda":
-      return "won";
-    case "Perdido":
-      return "lost";
-    default:
-      return "new";
-  }
+  return getLeadStageValue(stage ?? "") ?? "new";
 }
 
 function resolveLeadLossReason(input: {
@@ -1968,6 +2113,22 @@ function updateMockLeadCommentLead(id: string, commentBody: string) {
 
 function buildLeadInteractionSummary(body?: string | null) {
   return body ? `Comentário: ${body.slice(0, 120)}` : "Comentário registrado.";
+}
+
+function getRecordedContactLeadIdsFromComments(
+  comments: LeadComment[],
+  scopedLeadIds?: string[]
+) {
+  const scopedLeadIdSet = scopedLeadIds ? new Set(scopedLeadIds) : null;
+
+  return [
+    ...new Set(
+      comments
+        .filter((comment) => comment.type === "contact")
+        .filter((comment) => (scopedLeadIdSet ? scopedLeadIdSet.has(comment.leadId) : true))
+        .map((comment) => comment.leadId)
+    )
+  ];
 }
 
 function getSupabaseLeadSearchPattern(value: string) {

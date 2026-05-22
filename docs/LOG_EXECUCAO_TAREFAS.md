@@ -176,6 +176,132 @@ O script `typecheck` nao existe no `package.json`.
 - Nenhuma alteracao funcional foi realizada nesta execucao.
 
 ### Data
+2026-05-21 23:43
+
+### Tarefa
+`TASK-025 — Mostrar campanhas ativas`
+
+### Status
+Parcial.
+
+### Arquivos alterados
+- `app/dashboard/dashboard-home.tsx`
+- `app/dashboard/page.tsx`
+- `app/dashboard/page.test.tsx`
+- `app/dashboard/dashboard-home.test.tsx`
+- `src/lib/campaigns/repository.server.ts`
+- `src/lib/campaigns/types.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi adicionado ao dashboard um indicador operacional para campanhas ativas ou prontas, alimentado por um novo resumo server-side de campanhas da organizacao atual.
+
+O repositório de campanhas passou a calcular contagens de campanhas publicadas, prontas para a proxima acao e pausadas com base em `publication_status` e `publish_mode`, preservando o filtro multi-tenant por `organization_id`.
+
+Na interface, a lateral do dashboard agora exibe um card dedicado com contagem consolidada e lista curta das campanhas mais recentes em operacao, sem alterar publicacao real, billing, Meta Ads ou metricas financeiras.
+
+Tambem foram atualizados os testes do dashboard para cobrir a passagem do resumo operacional e a renderizacao do novo bloco.
+
+### Comandos executados
+- `git status --short`
+- `rg -n "publicationStatus|publishMode|pending_review|ready_to_prepare|draft_created|published|paused" app/dashboard src/lib/campaigns -g'*.ts' -g'*.tsx'`
+- `sed -n '260,520p' src/lib/campaigns/repository.server.ts`
+- `git diff -- app/dashboard/dashboard-home.tsx`
+- `git diff -- app/dashboard/page.tsx`
+- `git diff -- app/dashboard/page.test.tsx`
+- `sed -n '1,220p' docs/LOG_EXECUCAO_TAREFAS.md`
+- `sed -n '1,120p' app/dashboard/page.tsx`
+- `sed -n '1,120p' app/dashboard/page.test.tsx`
+- `sed -n '1,220p' app/dashboard/dashboard-home.tsx`
+- `sed -n '220,420p' app/dashboard/dashboard-home.tsx`
+- `sed -n '420,520p' app/dashboard/dashboard-home.tsx`
+- `sed -n '1,240p' src/lib/campaigns/repository.server.ts`
+- `sed -n '240,520p' src/lib/campaigns/repository.server.ts`
+- `sed -n '1,220p' src/lib/campaigns/types.ts`
+- `sed -n '1,220p' app/dashboard/dashboard-home.test.tsx`
+- `npm run test -- app/dashboard/page.test.tsx app/dashboard/dashboard-home.test.tsx`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+
+### Resultado dos comandos
+`package.json` foi conferido antes das validacoes. Os scripts relevantes disponiveis nesta execucao foram `lint`, `test` e `build`. O script `typecheck` nao existe no `package.json`.
+
+`npm run lint` concluiu com sucesso e reportou apenas warnings preexistentes fora do escopo em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+
+`npm run test -- app/dashboard/page.test.tsx app/dashboard/dashboard-home.test.tsx` e `npm run test` falharam no ambiente local com `sh: vitest: command not found`, sem indicio de regressao especifica da `TASK-025`.
+
+`npm run build` iniciou normalmente e chegou em `Creating an optimized production build ...`, mas nao concluiu nem retornou saida adicional dentro da janela de monitoramento desta execucao, entao o resultado ficou inconclusivo no ambiente atual.
+
+### Pendências
+- Restaurar a disponibilidade local do binario `vitest` para reexecutar os testes.
+- Reexecutar `npm run build` ate a conclusao para confirmar a validacao final da tarefa.
+- Somente depois dessas validacoes a `TASK-025` deve ser marcada como concluida no roadmap.
+
+### Observações técnicas
+- Esta rodada foi mantida fora de areas sensiveis de Meta Ads, billing, webhooks, autenticação e variaveis de ambiente.
+- Havia alteracoes locais preexistentes no dashboard relacionadas a outras tarefas; a implementacao da `TASK-025` foi encaixada sem reverter essas mudancas.
+
+### Data
+2026-05-21 23:22
+
+### Tarefa
+`TASK-022 — Mostrar novos leads`
+
+### Status
+Concluida.
+
+### Arquivos alterados
+- `app/dashboard/dashboard-home.tsx`
+- `app/dashboard/dashboard-home.test.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi adicionada ao dashboard principal uma nova metrica operacional de `Novos leads`, mantendo o conjunto anterior de indicadores e preservando o layout principal da tela.
+
+O calculo passou a considerar leads recebidos nos ultimos sete dias por `receivedAt`, e a nota operacional do card informa quantos desses leads ainda estao na etapa `Novo lead` com base no `stage` atual. A mesma normalizacao de etapas do projeto passou a ser usada tambem nas metricas de propostas, vendas e leads ativos para evitar inconsistencias entre labels e valores tecnicos.
+
+Tambem foi criado um teste unitario focado na regra de calculo dessa metrica para cobrir o recorte temporal e a leitura da etapa atual sem depender da renderizacao completa da tela.
+
+### Comandos executados
+- `sed -n '1,220p' AGENTS.md`
+- `sed -n '1,260p' docs/AGENTE_LEADI_TAREFAS.md`
+- `rg -n "TASK-022|^- \\[ \\]|^## \\[ \\]|Pendente" docs/tarefas-leadi-roadmap-normalizado.md`
+- `sed -n '730,810p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `sed -n '810,860p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `sed -n '1,260p' app/dashboard/dashboard-home.tsx`
+- `sed -n '1,260p' src/components/dashboard/widgets.tsx`
+- `sed -n '1,240p' app/dashboard/page.tsx`
+- `sed -n '1,240p' src/lib/leads/stages.ts`
+- `sed -n '1028,1082p' docs/tarefas-leadi-roadmap.md`
+- `npm run test -- app/dashboard/dashboard-home.test.ts`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+
+### Resultado dos comandos
+`package.json` foi conferido antes das validacoes. Os scripts relevantes disponiveis nesta execucao foram `lint`, `test` e `build`.
+
+`npm run lint` concluiu com sucesso e reportou apenas warnings preexistentes fora do escopo em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+
+`npm run build` concluiu com sucesso. O processo repetiu os mesmos warnings de lint fora do escopo e exibiu a mensagem informativa de `Dynamic server usage` para `/dashboard`, sem impedir a compilacao final.
+
+`npm run test -- app/dashboard/dashboard-home.test.ts` e `npm run test` falharam no ambiente local com `sh: vitest: command not found`, indicando indisponibilidade do binario de testes nesta maquina.
+
+O script `npm run typecheck` nao existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binario `vitest` para executar a suite e validar o teste novo automaticamente.
+
+### Observações técnicas
+- A tarefa nao alterou autenticacao, Supabase, schema, billing, webhooks, integracoes externas ou variaveis de ambiente.
+- O ajuste ficou concentrado no dashboard e em teste unitario de regra de negocio leve.
+
+### Data
 2026-05-21 12:52
 
 ### Tarefa
@@ -1084,3 +1210,309 @@ Tambem foram adicionados testes para validar o repasse dos templates ao dashboar
 ### Observações técnicas
 - A tarefa ficou restrita a UI server/client do prontuario e ao carregamento de templates, sem alterar `app/api/whatsapp/generate/route.ts`, billing de creditos, OpenAI, webhooks, Supabase schema ou variaveis de ambiente.
 - O worktree ja continha alteracoes anteriores nao relacionadas em outros arquivos; elas foram preservadas e nao foram revertidas.
+
+### Data
+2026-05-21 23:08
+
+### Tarefa
+`TASK-018 — Permitir mover lead entre etapas com feedback claro`
+
+### Status
+Concluída.
+
+### Arquivos alterados
+- `app/dashboard/funil/sales-funnel-workspace.tsx`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+A lógica de atualização otimista durante o drag and drop no funil de vendas foi refinada. A variável de estado simples `updatingLeadId` foi substituída por `updatingLeadIds` (um `Set<string>`). Isso permite que múltiplos cards de lead sejam movidos e tenham seu feedback otimista e spinner de carregamento geridos individualmente e de forma concorrente sem perder o estado caso outro lead seja movido simultaneamente. O rollback continuou operando com a restauração baseada na etapa prévia.
+
+### Comandos executados
+- `npm run lint`
+- `npm run build`
+
+### Resultado dos comandos
+- `npm run lint`: concluído com sucesso, com warnings preexistentes fora do escopo desta tarefa.
+- `npm run build`: concluído com sucesso. O build registrou a mensagem informativa já existente de `Dynamic server usage` em `/dashboard`, sem bloquear a geração final.
+
+### Pendências
+- Nenhuma.
+
+### Observações técnicas
+- A API (`app/api/leads/[id]/route.ts`) já possuía o tratamento correto e retorno amigável de erro de rollback, então a correção ficou isolada no frontend do funil.
+
+### Data
+2026-05-21 23:09
+
+### Tarefa
+`TASK-017 — Padronizar etapas do funil`
+
+### Status
+Concluida.
+
+### Arquivos alterados
+- `src/lib/leads/stages.ts`
+- `src/lib/leads/filters.ts`
+- `src/lib/leads/repository.server.ts`
+- `src/lib/reports/commercial-report.server.ts`
+- `app/dashboard/leads/leads-workspace.tsx`
+- `app/dashboard/funil/sales-funnel-workspace.tsx`
+- `src/lib/leads/stages.test.ts`
+- `src/lib/leads/filters.test.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi criada uma fonte compartilhada para ordem, labels e significado das etapas comerciais em `src/lib/leads/stages.ts`, incluindo helpers reutilizaveis para normalizar `value` tecnico e label comercial sem drift.
+
+O CRM passou a usar essa fonte unica nas metricas, badges e filtros, inclusive quando o lead chega com etapa tecnica em vez da label exibida.
+
+O funil passou a usar as mesmas descricoes centrais nas colunas e metricas, e os relatorios comerciais passaram a contar vendas e etapas qualificadas com os mesmos helpers compartilhados.
+
+Tambem foram adicionados testes unitarios para cobrir a ordem oficial das etapas e a compatibilidade entre filtros do CRM e `values` tecnicos.
+
+### Comandos executados
+- `git status --short`
+- `sed -n '1,260p' src/lib/leads/stages.ts`
+- `sed -n '1,260p' app/dashboard/funil/sales-funnel-workspace.tsx`
+- `sed -n '1,260p' app/dashboard/leads/leads-workspace.tsx`
+- `sed -n '1,260p' src/lib/reports/commercial-report.server.ts`
+- `rg -n 'Novo lead|Qualificação|Proposta|Negociação|Venda|Perdido|stage === "new"|stage === "qualification"|stage === "proposal"|stage === "negotiation"|stage === "won"|stage === "lost"|getLeadStageLabel|leadStageOptions|leadStageFilterOptions' src app --glob '!**/.next/**'`
+- `sed -n '1,240p' src/lib/leads/filters.ts`
+- `git diff -- app/dashboard/funil/sales-funnel-workspace.tsx`
+- `git diff -- app/dashboard/leads/leads-workspace.tsx`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `git status --short`
+- `date '+%Y-%m-%d %H:%M'`
+
+### Resultado dos comandos
+- `npm run lint`: concluido com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, repetindo um problema de ambiente ja observado em tarefas anteriores e sem indicio de regressao especifica desta entrega.
+- `npm run build`: concluido com sucesso; alem dos warnings ja conhecidos de lint, o build registrou novamente a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear a geracao final.
+- `npm run typecheck`: nao existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binario `vitest` para reexecutar `npm run test`.
+
+### Observações técnicas
+- A tarefa ficou restrita a CRM, funil e relatorios, sem alterar enum do banco, migrations, schema do Supabase, billing, OpenAI, Meta Ads, webhooks ou variaveis de ambiente.
+- O worktree ja continha alteracoes anteriores nao relacionadas em `src/components/dashboard/shell.tsx`, `src/components/dashboard/shell.test.tsx`, `app/dashboard/funil/sales-funnel-workspace.tsx`, `app/dashboard/leads/leads-workspace.tsx`, `docs/tarefas-leadi-roadmap-normalizado.md` e `docs/LOG_EXECUCAO_TAREFAS.md`; elas foram preservadas e nao foram revertidas.
+
+### Data
+2026-05-22 02:15
+
+### Tarefa
+`TASK-019 — Salvar histórico da mudança de etapa`
+
+### Status
+Concluída.
+
+### Arquivos alterados
+- `supabase/migrations/202605210007_lead_stage_history.sql`
+- `src/lib/supabase/database.types.ts`
+- `src/lib/leads/repository.server.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi adicionada a tabela `lead_stage_history` via migration para salvar as transições de etapa de leads no funil, preservando o histórico de quem realizou a mudança e a etapa de origem e destino.
+A tipagem do Supabase (`src/lib/supabase/database.types.ts`) foi atualizada.
+Em `src/lib/leads/repository.server.ts`, a função `updateLeadForCurrentUser` foi ajustada para registrar uma nova entrada no histórico sempre que a etapa do lead for modificada, garantindo rastreabilidade silenciosa das alterações realizadas pela interface de drag and drop ou de edição de detalhes.
+
+### Comandos executados
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+
+### Resultado dos comandos
+- `npm run lint`: concluído com sucesso, mantendo os warnings preexistentes.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, repetindo problema de ambiente já registrado anteriormente.
+- `npm run build`: concluído com sucesso (com aviso informativo já esperado em relação a dynamic server usage de cookies na rota `/dashboard`).
+
+### Pendências
+- Exibir os históricos capturados diretamente no prontuário do lead, caso a timeline seja priorizada no futuro.
+- Restaurar a disponibilidade local do binário `vitest` para reexecutar testes no ambiente atual.
+
+### Observações técnicas
+- A alteração introduziu o armazenamento de histórico e foi acoplada ao repository do backend que realiza as atualizações primárias (e as seguras, sob RLS validado e permissionamento apropriado) de leads do CRM.
+
+### Data
+2026-05-21 23:16
+
+### Tarefa
+`TASK-020 — Mostrar leads parados`
+
+### Status
+Concluida.
+
+### Arquivos alterados
+- `app/dashboard/funil/sales-funnel-workspace.tsx`
+- `app/dashboard/funil/sales-funnel-workspace.test.tsx`
+- `src/lib/leads/repository.server.ts`
+- `src/data/mock.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi adicionada ao funil uma sinalizacao inicial de estagnacao para leads em etapas abertas sem atualizacao ha pelo menos sete dias. A interface agora exibe uma metrica de `Leads parados`, documenta a regra diretamente na tela e marca os cards impactados com badge visual de quantidade de dias sem atualizacao.
+
+Para sustentar a regra sem alterar CRUD nem schema nesta tarefa, o contrato de `Lead` passou a expor `updatedAt`, com fallback para `receivedAt` quando necessario. O mapeamento do repository e os dados mockados foram ajustados para refletir essa informacao tanto no modo Supabase quanto no modo demonstracao.
+
+Tambem foi adicionado um teste de interface cobrindo a marcacao de leads parados e a exclusao de leads fechados dessa contagem.
+
+### Comandos executados
+- `git status --short`
+- `sed -n '620,980p' app/dashboard/funil/sales-funnel-workspace.tsx`
+- `sed -n '980,1220p' src/lib/leads/repository.server.ts`
+- `git diff -- app/dashboard/funil/sales-funnel-workspace.tsx`
+- `git diff -- src/lib/leads/repository.server.ts`
+- `git diff -- docs/tarefas-leadi-roadmap-normalizado.md docs/LOG_EXECUCAO_TAREFAS.md`
+- `sed -n '1650,1815p' src/lib/leads/repository.server.ts`
+- `sed -n '1,220p' src/lib/leads/stages.ts`
+- `rg -n "updatedAt" app src | head -n 200`
+- `sed -n '1,220p' src/lib/leads/repository.ts`
+- `sed -n '1,220p' src/lib/billing/subscription-limits.server.ts`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+
+### Resultado dos comandos
+- `npm run lint`: concluido com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, repetindo um problema de ambiente ja observado em tarefas anteriores e sem indicio de regressao especifica desta entrega.
+- `npm run build`: concluido com sucesso; alem dos warnings ja conhecidos de lint, o build registrou novamente a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear a geracao final.
+- `npm run typecheck`: nao existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binario `vitest` para reexecutar `npm run test`.
+- Se a leitura de estagnacao precisar refletir estritamente transicoes de etapa, evoluir a regra para consumir diretamente o historico salvo em `lead_stage_history`.
+
+### Observações técnicas
+- A tarefa ficou restrita ao contrato do lead e a UI do funil, sem alterar autenticacao, billing, OpenAI, Meta Ads, webhooks, variaveis de ambiente ou CRUD basico de leads.
+- O worktree ja continha alteracoes anteriores nao relacionadas, inclusive em arquivos do proprio fluxo de leads e do roadmap; elas foram preservadas e nao foram revertidas.
+
+### Data
+2026-05-21 23:26
+
+### Tarefa
+`TASK-023 — Mostrar leads sem contato`
+
+### Status
+Concluida.
+
+### Arquivos alterados
+- `app/dashboard/dashboard-home.tsx`
+- `app/dashboard/page.tsx`
+- `app/dashboard/page.test.tsx`
+- `app/dashboard/dashboard-home.test.tsx`
+- `src/lib/leads/repository.server.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi adicionada ao dashboard uma prioridade operacional de `Sem primeiro contato`, com contagem total e lista resumida dos leads mais recentes aguardando abordagem.
+
+A regra inicial foi mantida simples e explicita no codigo: um lead e considerado sem contato quando nao possui nenhum registro manual do tipo `contact` no historico comercial. Isso evita usar `last_interaction` como fonte de verdade, ja que esse campo tambem pode refletir comentarios gerais.
+
+No carregamento server-side do dashboard, os leads ja visiveis para o usuario passaram a ser cruzados com os ids que possuem contato registrado no workspace atual, preservando o recorte de permissao existente sem alterar auth, schema ou RLS nesta tarefa.
+
+Tambem foram adicionados ajustes de teste para a pagina e um teste dedicado ao novo bloco visual do dashboard.
+
+### Comandos executados
+- `git status --short`
+- `date '+%Y-%m-%d %H:%M'`
+- `sed -n '1,220p' app/dashboard/dashboard-home.tsx`
+- `sed -n '1,260p' app/dashboard/page.tsx`
+- `sed -n '1,360p' src/lib/leads/repository.server.ts`
+- `sed -n '220,360p' app/dashboard/dashboard-home.tsx`
+- `sed -n '360,520p' app/dashboard/dashboard-home.tsx`
+- `sed -n '1,140p' src/lib/leads/repository.ts`
+- `sed -n '1,140p' src/lib/leads/filters.ts`
+- `sed -n '1157,1365p' src/lib/leads/repository.server.ts`
+- `sed -n '1365,1485p' src/lib/leads/repository.server.ts`
+- `rg -n 'text-coral|bg-coral|text-signal|bg-signal' app src | sed -n '1,80p'`
+- `sed -n '1,220p' app/dashboard/dashboard-home.test.tsx`
+- `sed -n '1,220p' app/dashboard/page.test.tsx`
+- `npm run test -- app/dashboard/page.test.tsx app/dashboard/dashboard-home.test.tsx`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+
+### Resultado dos comandos
+- `npm run lint`: concluido com sucesso, mantendo apenas warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run build`: concluido com sucesso; repetiu apenas os warnings ja conhecidos e a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear o build.
+- `npm run test -- app/dashboard/page.test.tsx app/dashboard/dashboard-home.test.tsx`: falhou no ambiente local com `sh: vitest: command not found`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`.
+- `npm run typecheck`: nao existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binario `vitest` para executar os testes automatizados da tarefa.
+- Se a operacao precisar priorizar por SLA no futuro, evoluir o bloco para considerar tempo desde `receivedAt` e ordenacao mais rica, sem depender apenas da ausencia de contato.
+
+### Observações técnicas
+- O modo mock passou a simular parte dos historicos como `contact` para que a nova prioridade tambem faca sentido no ambiente demonstrativo.
+- O worktree ja continha alteracoes previas em arquivos do dashboard, leads, roadmap e migrations; elas foram preservadas e nao foram revertidas.
+
+## 2026-05-21 23:32
+- **Tarefa**: TASK-024 — Mostrar tarefas vencidas
+- **Arquivos alterados**:
+  - `src/lib/leads/repository.server.ts`
+  - `app/dashboard/page.tsx`
+  - `app/dashboard/dashboard-home.tsx`
+- **Resumo**: Foi criada a função `listOverdueLeadTasksForCurrentUser` para buscar tarefas atrasadas diretamente da tabela `lead_tasks`, mapeando lead e etapa. O dashboard foi atualizado para consumir esses dados via server component em `page.tsx` e exibir um novo bloco "Tarefas pendentes" logo acima de "Sem primeiro contato", contendo a listagem resumida de atrasos operacionais.
+- **Comandos executados**: `npm run lint` e `npm run build`
+- **Resultado dos comandos**: `npm run lint` sem erros (apenas 5 warnings preexistentes); `npm run build` executado com sucesso e mantendo apenas os avisos conhecidos.
+- **Pendências**: O binário local do `vitest` não estava disponível para executar `npm run test` com sucesso; restaurar ambiente de testes nas próximas sessões.
+- **Riscos**: A leitura de tarefas atrasadas depende de Supabase configurado (do contrário usa `mockLeadTasks`) e está exposta no dashboard; a verificação via RLS blinda o acesso a tasks de outros leads, mas o código servidor faz uma busca global para a organização (que também está contida pelo Row Level Security).
+- **Próximos passos**: A próxima tarefa pendente do roadmap deve ser executada após o usuário iniciar uma nova requisição.
+
+### Data
+2026-05-21 23:38
+
+### Tarefa
+`TASK-026 — Mostrar custo por lead inicial`
+
+### Status
+Concluida.
+
+### Arquivos alterados
+- `app/dashboard/dashboard-home.tsx`
+- `app/dashboard/page.tsx`
+- `app/dashboard/page.test.tsx`
+- `app/dashboard/dashboard-home.test.tsx`
+- `src/lib/reports/commercial-report.server.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi adicionado ao dashboard um card de `CPL inicial` com transparência explícita sobre limitação de dados.
+
+O valor agora só aparece como mock controlado quando já existe uma base operacional mínima de leads e campanhas ativas ou prontas. Quando essa base não existe, o card mostra `N/D`, evitando inventar um custo financeiro definitivo.
+
+Para manter o comportamento centralizado, a regra foi encapsulada em `src/lib/reports/commercial-report.server.ts` e consumida no carregamento server-side do dashboard.
+
+### Comandos executados
+- `rg -n "TASK-026|custo por lead|CPL|roi|estimated_cost|cost per lead|custo real|orcamento" docs src app supabase -g '!**/node_modules/**'`
+- `sed -n '1230,1288p' docs/tarefas-leadi-roadmap.md`
+- `git diff -- app/dashboard/dashboard-home.tsx app/dashboard/page.tsx src/lib/reports/commercial-report.server.ts app/dashboard/page.test.tsx app/dashboard/dashboard-home.test.tsx docs/tarefas-leadi-roadmap-normalizado.md docs/LOG_EXECUCAO_TAREFAS.md`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+
+### Resultado dos comandos
+- `npm run lint`: concluido com sucesso, mantendo apenas warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, repetindo um bloqueio de ambiente ja observado em execucoes anteriores.
+- `npm run build`: concluido com sucesso; repetiu apenas warnings ja conhecidos e a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear o build.
+- `npm run typecheck`: nao existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binario `vitest` para executar os testes automatizados do dashboard.
+- Evoluir o card para custo parcial baseado em dados reais quando a modelagem de custo de campanha existir no produto.
+
+### Observações técnicas
+- A tarefa ficou restrita ao dashboard e à camada de relatório server-side, sem alterar autenticação, Supabase, banco, billing, Meta Ads, OpenAI, webhooks ou variáveis de ambiente.
+- O worktree já continha alterações prévias em arquivos do dashboard, relatórios, roadmap e testes; elas foram preservadas e não foram revertidas.

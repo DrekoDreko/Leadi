@@ -191,6 +191,7 @@ describe("DashboardShell", () => {
     expect(dropdown).toHaveClass("opacity-100");
     expect(dropdown).toHaveClass("max-h-[420px]");
     expect(screen.getByText("Ligar para o lead Kleber")).toBeInTheDocument();
+    expect(screen.queryByText("Ver calendário completo")).not.toBeInTheDocument();
   });
 
   it("mostra os botoes inline de +1h e Amanha ao clicar em Adiar e permite adiar", async () => {

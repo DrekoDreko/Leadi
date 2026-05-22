@@ -52,6 +52,7 @@ export type Lead = {
   metaAdId?: string | null;
   metaConnectedAccountId?: string | null;
   receivedAt?: string | null;
+  updatedAt?: string | null;
   archivedAt?: string | null;
   archiveReason?: string | null;
   duplicateOfLeadId?: string | null;
@@ -72,6 +73,7 @@ export const leads: Lead[] = [
     quality: "high",
     createdAt: "27 abr 2026",
     receivedAt: "2026-04-27T15:30:00-03:00",
+    updatedAt: "2026-05-20T17:00:00-03:00",
     budget: "R$ 18k/mês",
     interest: "Plano empresarial com coparticipação",
     sourceCampaign: "Campanha PME conectada",
@@ -101,6 +103,7 @@ export const leads: Lead[] = [
     quality: "medium",
     createdAt: "26 abr 2026",
     receivedAt: "2026-04-26T10:00:00-03:00",
+    updatedAt: "2026-05-11T09:15:00-03:00",
     budget: "R$ 6k/mês",
     interest: "Revisão de alternativas para o plano atual",
     lastInteraction: "Respondeu ao WhatsApp com faixa de vidas e pediu simulação objetiva sem odontológico.",
@@ -120,6 +123,7 @@ export const leads: Lead[] = [
     quality: "medium",
     createdAt: "24 abr 2026",
     receivedAt: "2026-04-24T09:15:00-03:00",
+    updatedAt: "2026-05-06T14:00:00-03:00",
     budget: "R$ 2.8k/mês",
     interest: "Primeiro plano empresarial para equipe pequena",
     lastInteraction: "Recebeu a proposta inicial e quer entender carência para novas vidas.",
@@ -139,6 +143,7 @@ export const leads: Lead[] = [
     quality: "high",
     createdAt: "23 abr 2026",
     receivedAt: "2026-04-23T16:00:00-03:00",
+    updatedAt: "2026-05-18T11:20:00-03:00",
     budget: "R$ 42k/mês",
     interest: "Migração de contrato com maior rede hospitalar",
     sourceCampaign: "Campanha empresarial conectada",

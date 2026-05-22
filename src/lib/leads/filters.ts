@@ -1,19 +1,23 @@
 import type { Lead } from "@/data/mock";
+import { getLeadStageLabel, getLeadStageValue, leadStageOptions } from "./stages";
 
 type LeadSearchParamsInput =
   | URLSearchParams
   | Record<string, string | string[] | undefined>
   | undefined;
 
-export const leadStageFilterOptions = [
+export type LeadStageFilterValue = "all" | (typeof leadStageOptions)[number]["label"];
+
+export const leadStageFilterOptions: ReadonlyArray<{
+  value: LeadStageFilterValue;
+  label: string;
+}> = [
   { value: "all", label: "Todos os estagios" },
-  { value: "Novo lead", label: "Novo lead" },
-  { value: "Qualificação", label: "Qualificação" },
-  { value: "Proposta", label: "Proposta" },
-  { value: "Negociação", label: "Negociação" },
-  { value: "Venda", label: "Venda" },
-  { value: "Perdido", label: "Perdido" }
-] as const;
+  ...leadStageOptions.map((option) => ({
+    value: option.label as LeadStageFilterValue,
+    label: option.label
+  }))
+];
 
 export const leadSourceFilterOptions = [
   { value: "all", label: "Todas as origens" },
@@ -32,7 +36,6 @@ export const leadPeriodFilterOptions = [
   { value: "month", label: "Este mes" }
 ] as const;
 
-export type LeadStageFilterValue = (typeof leadStageFilterOptions)[number]["value"];
 export type LeadSourceFilterValue = (typeof leadSourceFilterOptions)[number]["value"];
 export type LeadPeriodFilterValue = (typeof leadPeriodFilterOptions)[number]["value"];
 
@@ -43,7 +46,20 @@ export type LeadUrlFilters = {
   period: LeadPeriodFilterValue;
   search: string;
   archived: boolean;
+  owner: string;
+  campaign: string;
 };
+
+export const filterKeys: Array<keyof LeadUrlFilters> = [
+  "stage",
+  "source",
+  "city",
+  "period",
+  "search",
+  "archived",
+  "owner",
+  "campaign"
+];
 
 export const defaultLeadUrlFilters: LeadUrlFilters = {
   stage: "all",
@@ -51,7 +67,9 @@ export const defaultLeadUrlFilters: LeadUrlFilters = {
   city: "",
   period: "all",
   search: "",
-  archived: false
+  archived: false,
+  owner: "",
+  campaign: ""
 };
 
 const stageValues = new Set<string>(leadStageFilterOptions.map((option) => option.value));
@@ -65,7 +83,9 @@ export function parseLeadUrlFilters(input: LeadSearchParamsInput): LeadUrlFilter
     city: normalizeFilterText(readSearchParam(input, "city")),
     period: parseFilterValue(input, "period", periodValues, defaultLeadUrlFilters.period),
     search: normalizeLeadSearchTerm(readSearchParam(input, "search")),
-    archived: readSearchParam(input, "archived") === "true"
+    archived: readSearchParam(input, "archived") === "true",
+    owner: normalizeFilterText(readSearchParam(input, "owner")),
+    campaign: normalizeFilterText(readSearchParam(input, "campaign")),
   };
 }
 
@@ -75,12 +95,14 @@ export function hasActiveLeadUrlFilters(filters: LeadUrlFilters) {
     filters.source !== defaultLeadUrlFilters.source ||
     filters.city.trim().length > 0 ||
     filters.period !== defaultLeadUrlFilters.period ||
-    filters.search.trim().length > 0
+    filters.search.trim().length > 0 ||
+    filters.owner.trim().length > 0 ||
+    filters.campaign.trim().length > 0
   );
 }
 
 export function applyLeadUrlFilters(lead: Lead, filters: LeadUrlFilters) {
-  if (filters.stage !== "all" && lead.stage !== filters.stage) {
+  if (filters.stage !== "all" && getLeadStageLabel(lead.stage) !== filters.stage) {
     return false;
   }
 
@@ -89,6 +111,14 @@ export function applyLeadUrlFilters(lead: Lead, filters: LeadUrlFilters) {
   }
 
   if (filters.city && !lead.city?.toLowerCase().includes(filters.city.toLowerCase())) {
+    return false;
+  }
+
+  if (filters.owner && !lead.owner?.toLowerCase().includes(filters.owner.toLowerCase())) {
+    return false;
+  }
+
+  if (filters.campaign && !lead.sourceCampaign?.toLowerCase().includes(filters.campaign.toLowerCase())) {
     return false;
   }
 
@@ -118,7 +148,7 @@ export function normalizeLeadSearchTerm(value: string | null) {
 }
 
 export function getSupabaseStageValue(value: LeadStageFilterValue) {
-  return value === "all" ? null : toRawStageValue(value);
+  return value === "all" ? null : getLeadStageValue(value);
 }
 
 export function getSupabaseSourceValue(value: LeadSourceFilterValue) {
@@ -216,23 +246,6 @@ function matchesLeadPeriod(receivedAt: string | null | undefined, value: LeadPer
   }
 
   return receivedDate >= start;
-}
-
-function toRawStageValue(value: Exclude<LeadStageFilterValue, "all">) {
-  switch (value) {
-    case "Novo lead":
-      return "new";
-    case "Qualificação":
-      return "qualification";
-    case "Proposta":
-      return "proposal";
-    case "Negociação":
-      return "negotiation";
-    case "Venda":
-      return "won";
-    case "Perdido":
-      return "lost";
-  }
 }
 
 function toRawSourceValue(value: Exclude<LeadSourceFilterValue, "all">) {

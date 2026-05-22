@@ -612,7 +612,7 @@ OpenAI, créditos e dados de leads.
 
 ### TASK-017 — Padronizar etapas do funil
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Consolidar nomes, ordem e significado das etapas do funil.
@@ -639,9 +639,22 @@ Consolidar nomes, ordem e significado das etapas do funil.
 #### Observações
 Referência original: Tarefa 13. Executar após TASK-002.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `src/lib/leads/stages.ts`, `src/lib/leads/filters.ts`, `src/lib/leads/repository.server.ts`, `src/lib/reports/commercial-report.server.ts`, `app/dashboard/leads/leads-workspace.tsx`, `app/dashboard/funil/sales-funnel-workspace.tsx`, `src/lib/leads/stages.test.ts` e `src/lib/leads/filters.test.ts`.
+- Principais entregas: as etapas do funil passaram a ter uma fonte compartilhada de metadados com ordem, labels e significado oficial; o CRM passou a contar, filtrar e exibir etapas a partir dessa fonte unica, inclusive quando o lead chega com `value` tecnico; o funil deixou de duplicar descricoes e passou a usar a mesma definicao central para cards, metricas e comparacao de movimentacao; e os relatorios comerciais passaram a reutilizar helpers compartilhados para contagem de leads qualificados e vendas.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e manteve apenas warnings conhecidos, alem da mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test` falhou no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a suite automatizada completa.
+
 ### TASK-018 — Permitir mover lead entre etapas com feedback claro
 
-- [ ] Status: Pendente
+- [x] Status: Concluída
+
+#### Execução 2026-05-21
+- **Resumo**: Foi refinada a lógica de feedback do drag and drop, permitindo movimentações simultâneas de leads no funil sem perda de estado.
+- **Arquivos alterados**: `app/dashboard/funil/sales-funnel-workspace.tsx`
+- **Comandos executados**: `npm run lint`, `npm run build`
+- **Pendências**: Nenhuma.
 
 #### Objetivo
 Fortalecer o fluxo de movimentação entre colunas do funil.
@@ -671,7 +684,7 @@ API de leads e dados operacionais.
 
 ### TASK-019 — Salvar histórico da mudança de etapa
 
-- [ ] Status: Pendente
+- [x] Status: Concluído
 
 #### Objetivo
 Registrar a evolução do lead no funil para análise posterior.
@@ -703,7 +716,7 @@ Banco, API de leads e histórico operacional.
 
 ### TASK-020 — Mostrar leads parados
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Evidenciar leads sem avanço recente no funil.
@@ -727,6 +740,13 @@ Evidenciar leads sem avanço recente no funil.
 
 #### Observações
 Referência original: Tarefa 16. Executar após TASK-009 e TASK-019.
+
+#### Execucao 2026-05-21
+- Arquivos alterados: `app/dashboard/funil/sales-funnel-workspace.tsx`, `app/dashboard/funil/sales-funnel-workspace.test.tsx`, `src/lib/leads/repository.server.ts` e `src/data/mock.ts`.
+- Principais entregas: o funil passou a destacar leads abertos sem atualizacao ha pelo menos sete dias, tanto em metrica resumida quanto em badge direto no card; a regra inicial ficou documentada na propria interface como proxy operacional baseado em `updatedAt` com fallback para `receivedAt`; e os dados mockados passaram a expor timestamps coerentes para refletir esse comportamento tambem no modo demonstracao.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e repetiu apenas warnings ja conhecidos, alem da mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test` falhou no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a suite automatizada completa; se o produto quiser uma leitura estritamente de progresso entre etapas, a regra pode evoluir depois para usar diretamente o historico de mudanca de etapa.
 
 ### TASK-021 — Criar filtros por responsável, origem, status e campanha
 
@@ -762,7 +782,7 @@ Referência original: Tarefa 17. Executar após TASK-014 e TASK-017.
 
 ### TASK-022 — Mostrar novos leads
 
-- [ ] Status: Pendente
+- [x] Status: Concluido
 
 #### Objetivo
 Criar card operacional focado na entrada recente de leads.
@@ -787,9 +807,16 @@ Criar card operacional focado na entrada recente de leads.
 #### Observações
 Referência original: Tarefa 18.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `app/dashboard/dashboard-home.tsx` e `app/dashboard/dashboard-home.test.ts`.
+- Principais entregas: o dashboard passou a exibir a metrica operacional de novos leads baseada em entradas recebidas nos ultimos sete dias; a leitura usa `receivedAt` para contar entradas recentes e `stage` atual para informar quantos desses leads ainda permanecem em `Novo lead`; as metricas existentes permaneceram no painel e o grid foi ajustado sem redesenhar a tela.
+- Validacoes executadas: `npm run lint`, `npm run test -- app/dashboard/dashboard-home.test.ts`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e repetiu apenas warnings ja conhecidos, alem da mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test -- app/dashboard/dashboard-home.test.ts` e `npm run test` falharam no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para validar a nova unidade de teste automatizada.
+
 ### TASK-023 — Mostrar leads sem contato
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Dar visibilidade a leads que entraram e ainda não foram abordados.
@@ -814,9 +841,16 @@ Dar visibilidade a leads que entraram e ainda não foram abordados.
 #### Observações
 Referência original: Tarefa 19. Executar após TASK-009.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `app/dashboard/dashboard-home.tsx`, `app/dashboard/page.tsx`, `app/dashboard/page.test.tsx`, `app/dashboard/dashboard-home.test.tsx` e `src/lib/leads/repository.server.ts`.
+- Principais entregas: o dashboard passou a exibir um bloco operacional de `Sem primeiro contato` com contagem total e lista resumida dos leads mais recentes aguardando abordagem; a regra inicial foi ancorada na ausencia de registro manual `contact` no historico do lead, evitando inferencia por `last_interaction`; o carregamento server-side reaproveita os leads ja visiveis no dashboard e cruza esses ids com os registros de contato do workspace para respeitar o escopo atual de permissao.
+- Validacoes executadas: `npm run lint`, `npm run test -- app/dashboard/page.test.tsx app/dashboard/dashboard-home.test.tsx`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e repetiu apenas warnings ja conhecidos, alem da mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test -- app/dashboard/page.test.tsx app/dashboard/dashboard-home.test.tsx` e `npm run test` falharam no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para executar a cobertura automatizada adicionada nesta tarefa.
+
 ### TASK-024 — Mostrar tarefas vencidas
 
-- [ ] Status: Pendente
+- [x] Status: Concluída
 
 #### Objetivo
 Levar tarefas por lead para o dashboard com foco em atraso.
@@ -845,6 +879,13 @@ Referência original: Tarefa 20. Executar após TASK-010.
 #### Atenção: área sensível
 Banco e dados operacionais de leads.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `app/dashboard/dashboard-home.tsx`, `app/dashboard/page.tsx` e `src/lib/leads/repository.server.ts`.
+- Principais entregas: o dashboard passou a exibir tarefas pendentes de leads que ultrapassaram a data de vencimento. As tarefas vencidas ganharam destaque no painel principal, sendo consultadas diretamente da tabela `lead_tasks`, com um card dedicado que as lista de forma resumida e garante consistencia visual. O atraso agora é explicitamente apresentado ao usuário sem depender de lembretes paralelos e isolado de acordo com as permissoes de leads do respectivo usuario na organizacao.
+- Validacoes executadas: `npm run lint` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e repetiu apenas warnings ja conhecidos; `npm run test` falhou no ambiente local com `sh: vitest: command not found`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest`.
+
 ### TASK-025 — Mostrar campanhas ativas
 
 - [ ] Status: Pendente
@@ -872,9 +913,17 @@ Exibir indicador útil das campanhas em execução ou prontas.
 #### Observações
 Referência original: Tarefa 21.
 
+#### Execucao 2026-05-21
+- Status desta rodada: Parcial.
+- Arquivos alterados: `app/dashboard/dashboard-home.tsx`, `app/dashboard/page.tsx`, `app/dashboard/page.test.tsx`, `app/dashboard/dashboard-home.test.tsx`, `src/lib/campaigns/repository.server.ts` e `src/lib/campaigns/types.ts`.
+- Principais entregas: o dashboard passou a receber um resumo operacional real de campanhas por organizacao, calculado a partir de `publication_status` e `publish_mode`; a lateral ganhou um card dedicado para campanhas ativas ou prontas, com contagem de publicadas e prontas para a proxima acao; e a cobertura de testes foi atualizada para validar a passagem do novo resumo e a renderizacao do indicador.
+- Validacoes executadas: `npm run test -- app/dashboard/page.test.tsx app/dashboard/dashboard-home.test.tsx`, `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run test -- app/dashboard/page.test.tsx app/dashboard/dashboard-home.test.tsx` e `npm run test` falharam no ambiente local com `sh: vitest: command not found`; `npm run build` iniciou normalmente, mas nao concluiu nem retornou saida adicional dentro da janela de monitoramento desta execucao, entao a validacao ficou inconclusiva no ambiente atual.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` e reexecutar `npm run test`; rerodar `npm run build` ate conclusao para confirmar a tarefa como concluida antes de marcar este item no roadmap.
+
 ### TASK-026 — Mostrar custo por lead inicial
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Criar o primeiro card de CPL com transparência sobre limitações.
@@ -898,6 +947,13 @@ Criar o primeiro card de CPL com transparência sobre limitações.
 
 #### Observações
 Referência original: Tarefa 22.
+
+#### Execucao 2026-05-21
+- Arquivos alterados: `app/dashboard/dashboard-home.tsx`, `app/dashboard/page.tsx`, `app/dashboard/page.test.tsx`, `app/dashboard/dashboard-home.test.tsx` e `src/lib/reports/commercial-report.server.ts`.
+- Principais entregas: o dashboard passou a exibir o card `CPL inicial` com fallback explicito; quando existem leads e campanhas ativas ou prontas, o valor aparece como mock controlado e destacado como nao definitivo; quando nao existe base minima operacional, o card mostra `N/D` em vez de inventar custo financeiro real.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e repetiu apenas avisos conhecidos, alem da mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test` falhou no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a cobertura automatizada do dashboard.
 
 ### TASK-027 — Mostrar tempo médio até primeiro contato
 

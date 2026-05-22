@@ -28,11 +28,9 @@ import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.se
 import {
   defaultLeadUrlFilters,
   hasActiveLeadUrlFilters,
-  leadPeriodFilterOptions,
-  leadSourceFilterOptions,
-  leadStageFilterOptions,
   type LeadUrlFilters
 } from "@/lib/leads/filters";
+import { getLeadStageLabel, getLeadStageValue } from "@/lib/leads/stages";
 import {
   DEFAULT_LEAD_PAGE_SIZE,
   type LeadDataMode,
@@ -40,6 +38,7 @@ import {
   type LeadPaginationMeta
 } from "@/lib/leads/repository";
 import { LeadCreateModal } from "./lead-create-modal";
+import { LeadFiltersPopup } from "@/components/dashboard/lead-filters-popup";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 import type { SystemTemplate } from "@/lib/templates/types";
 import type {
@@ -59,7 +58,9 @@ const filterKeys: Array<keyof LeadUrlFilters> = [
   "city",
   "period",
   "search",
-  "archived"
+  "archived",
+  "owner",
+  "campaign"
 ];
 const paginationQueryKeys = ["limit", "offset"];
 
@@ -105,9 +106,9 @@ export function LeadsWorkspace({
   const isErrorState = leadState.mode === "error" || leadState.mode === "unauthenticated";
   const isEmptyWithoutFilters = !isErrorState && leads.length === 0 && !hasActiveFilters;
   const isEmptyWithFilters = !isErrorState && hasActiveFilters && leads.length === 0;
-  const newLeads = visibleLeads.filter((lead) => lead.stage === "Novo lead").length;
-  const qualifiedLeads = visibleLeads.filter((lead) => lead.stage === "Qualificação").length;
-  const proposalLeads = visibleLeads.filter((lead) => lead.stage === "Proposta").length;
+  const newLeads = visibleLeads.filter((lead) => getLeadStageValue(lead.stage) === "new").length;
+  const qualifiedLeads = visibleLeads.filter((lead) => getLeadStageValue(lead.stage) === "qualification").length;
+  const proposalLeads = visibleLeads.filter((lead) => getLeadStageValue(lead.stage) === "proposal").length;
   const selectedLeadCanEdit = selectedLead?.canEdit ?? true;
   const selectedLeadCanDelete = selectedLead?.canDelete ?? leadState.canDeleteLeads;
   const canCreateLeads = createLeadAccess.allowed;
@@ -366,13 +367,23 @@ export function LeadsWorkspace({
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Metric
-              label="Novos leads"
+              label={getLeadStageLabel("new")}
               value={String(newLeads)}
               note={`${visibleLeads.length} exibidos`}
               tone="blue"
             />
-            <Metric label="Qualificação" value={String(qualifiedLeads)} note="em diagnóstico" tone="teal" />
-            <Metric label="Propostas" value={String(proposalLeads)} note="em negociação" tone="yellow" />
+            <Metric
+              label={getLeadStageLabel("qualification")}
+              value={String(qualifiedLeads)}
+              note="em diagnostico"
+              tone="teal"
+            />
+            <Metric
+              label={getLeadStageLabel("proposal")}
+              value={String(proposalLeads)}
+              note="em negociacao"
+              tone="yellow"
+            />
           </div>
 
           <LeadFiltersPopup
@@ -933,187 +944,7 @@ function LeadDataNotice({ leadState }: { leadState: LeadDataState }) {
   return null;
 }
 
-function LeadFiltersPopup({
-  open,
-  value,
-  onChange,
-  onApply,
-  onClear,
-  onClose
-}: {
-  open: boolean;
-  value: LeadUrlFilters;
-  onChange: (value: LeadUrlFilters) => void;
-  onApply: () => void;
-  onClear: () => void;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
-    };
-  }, [onClose, open]);
-
-  if (!open) {
-    return null;
-  }
-
-  return (
-    <div
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end bg-ink/42 px-3 py-4 backdrop-blur-md sm:items-center sm:px-5"
-      onClick={onClose}
-      role="dialog"
-    >
-      <section
-        className="mx-auto w-full max-w-3xl overflow-y-auto rounded-[32px] border border-white/70 bg-cloud/95 p-4 shadow-glass sm:p-6"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4 border-b border-ink/10 pb-5">
-          <div>
-            <p className="text-sm font-medium text-cobalt">CRM</p>
-            <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">Filtros de leads</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/62">
-              Ajuste os filtros e aplique em uma unica etapa.
-            </p>
-          </div>
-          <button className="icon-button shrink-0" onClick={onClose} type="button" title="Fechar">
-            <X size={18} aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className="pt-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <LeadFilterField label="Etapa">
-              <select
-                className="liquid-input text-sm"
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    stage: event.target.value as LeadUrlFilters["stage"]
-                  })
-                }
-                value={value.stage}
-              >
-                {leadStageFilterOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </LeadFilterField>
-
-            <LeadFilterField label="Origem">
-              <select
-                className="liquid-input text-sm"
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    source: event.target.value as LeadUrlFilters["source"]
-                  })
-                }
-                value={value.source}
-              >
-                {leadSourceFilterOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </LeadFilterField>
-
-            <LeadFilterField label="Cidade">
-              <input
-                className="liquid-input text-sm"
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    city: event.target.value
-                  })
-                }
-                placeholder="Cidade"
-                type="text"
-                value={value.city}
-              />
-            </LeadFilterField>
-
-            <LeadFilterField label="Período">
-              <select
-                className="liquid-input text-sm"
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    period: event.target.value as LeadUrlFilters["period"]
-                  })
-                }
-                value={value.period}
-              >
-                {leadPeriodFilterOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </LeadFilterField>
-          </div>
-
-          <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-ink/10 pt-5">
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-white/54 px-5 py-3 text-sm font-semibold text-ink"
-              onClick={onClear}
-              type="button"
-            >
-              Limpar filtros
-            </button>
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-ink/10 bg-white/72 px-5 py-3 text-sm font-semibold text-ink"
-              onClick={onClose}
-              type="button"
-            >
-              Cancelar
-            </button>
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white"
-              onClick={onApply}
-              type="button"
-            >
-              Aplicar filtros
-            </button>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function LeadFilterField({
-  label,
-  children
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <label className="block space-y-2">
-      <span className="text-sm font-medium text-ink/72">{label}</span>
-      {children}
-    </label>
-  );
-}
 
 function LeadWorkspaceErrorState({
   message,
@@ -1335,10 +1166,16 @@ function LeadTablePanel({
               aria-hidden="true"
             />
             <input
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect="off"
               aria-label="Buscar leads"
               className="liquid-input pl-11 text-sm"
+              enterKeyHint="search"
+              name="leads-search"
               onChange={(event) => onSearchChange(event.target.value)}
               placeholder="Buscar por nome, email, telefone, cidade ou empresa"
+              spellCheck={false}
               type="search"
               value={searchTerm}
             />
@@ -1477,7 +1314,7 @@ function LeadStageBadge({
             : "bg-white/80 text-ink ring-black/5 shadow-sm"
         }`}
       >
-        {stage}
+        {getLeadStageLabel(stage)}
       </div>
     </div>
   );

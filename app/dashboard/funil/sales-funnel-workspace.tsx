@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useEffect, useState, type DragEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, type DragEvent } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Filter } from "lucide-react";
 import {
   AlertCircle,
   ArrowRight,
   BriefcaseBusiness,
   CheckCircle2,
+  Clock3,
   GripVertical,
   Kanban,
   Loader2,
@@ -22,10 +24,20 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { Lead } from "@/data/mock";
 import { LeadDetailsPopup } from "@/components/dashboard/lead-details-popup";
+import { LeadFiltersPopup } from "@/components/dashboard/lead-filters-popup";
+import {
+  defaultLeadUrlFilters,
+  filterKeys,
+  hasActiveLeadUrlFilters,
+  type LeadUrlFilters
+} from "@/lib/leads/filters";
 import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import {
   getLeadStageLabel,
+  getLeadStageMeta,
   getLeadStageValue,
+  isLeadClosedStage,
+  isLeadWonStage,
   leadStageOptions,
   type LeadStageValue
 } from "@/lib/leads/stages";
@@ -36,7 +48,6 @@ import { LeadCreateModal } from "../leads/lead-create-modal";
 type StageTone = {
   accent: string;
   card: string;
-  description: string;
   pulse: string;
 };
 
@@ -46,41 +57,38 @@ type LeadStageUpdateResponse = {
   mode?: LeadDataMode;
 };
 
+const STALLED_LEAD_DAYS = 7;
+const DAY_IN_MS = 1000 * 60 * 60 * 24;
+
 const stageToneByValue: Record<LeadStageValue, StageTone> = {
   new: {
     accent: "bg-cobalt text-white",
     card: "border-cobalt/18 bg-cobalt/10",
-    description: "Entrada e primeira abordagem",
     pulse: "bg-cobalt"
   },
   qualification: {
     accent: "bg-lagoon text-white",
     card: "border-lagoon/20 bg-lagoon/12",
-    description: "Diagnóstico comercial",
     pulse: "bg-lagoon"
   },
   proposal: {
     accent: "bg-signal text-ink dark:text-cloud",
     card: "border-signal/40 bg-signal/20",
-    description: "Simulação enviada",
     pulse: "bg-signal"
   },
   negotiation: {
     accent: "bg-ink text-cloud",
     card: "border-ink/14 bg-ink/8",
-    description: "Ajustes e objeções",
     pulse: "bg-ink"
   },
   won: {
     accent: "bg-emerald-600 text-white",
     card: "border-emerald-500/20 bg-emerald-500/12",
-    description: "Venda ganha",
     pulse: "bg-emerald-600"
   },
   lost: {
     accent: "bg-red-600 text-white",
     card: "border-red-500/18 bg-red-500/10",
-    description: "Perdidos ou sem avanço",
     pulse: "bg-red-600"
   }
 };
@@ -89,36 +97,40 @@ export function SalesFunnelWorkspace({
   aiBalance,
   createLeadAccess,
   leadState,
+  leadFilters,
   whatsappTemplates = []
 }: {
   aiBalance: number;
   createLeadAccess: ResourceAccessSummary;
   leadState: LeadDataState;
+  leadFilters: LeadUrlFilters;
   whatsappTemplates?: SystemTemplate[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [draftLeadFilters, setDraftLeadFilters] = useState(leadFilters);
+  const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
   const [leads, setLeads] = useState(leadState.leads);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(leadFilters.search);
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [activeDropStage, setActiveDropStage] = useState<LeadStageValue | null>(null);
-  const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
+  const [updatingLeadIds, setUpdatingLeadIds] = useState<Set<string>>(new Set());
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
-  const deferredSearchTerm = useDeferredValue(searchTerm.trim().toLowerCase());
 
-  const visibleLeads = leads.filter((lead) => matchesFunnelSearch(lead, deferredSearchTerm));
+  const visibleLeads = leads;
+  const hasActiveFilters = searchTerm.trim().length > 0 || hasActiveLeadUrlFilters(leadFilters);
   const columns = buildFunnelColumns(visibleLeads);
   const totalLeads = visibleLeads.length;
-  const openLeads = visibleLeads.filter((lead) => {
-    const stageValue = getLeadStageValue(lead.stage);
-    return stageValue !== "won" && stageValue !== "lost";
-  }).length;
-  const wonLeads = visibleLeads.filter((lead) => getLeadStageValue(lead.stage) === "won").length;
+  const openLeads = visibleLeads.filter((lead) => !isLeadClosedStage(lead.stage)).length;
+  const wonLeads = visibleLeads.filter((lead) => isLeadWonStage(lead.stage)).length;
   const proposalLeads = visibleLeads.filter((lead) => getLeadStageValue(lead.stage) === "proposal").length;
+  const stalledOpenLeads = visibleLeads.filter((lead) => getLeadStalledState(lead).isStalled).length;
   const selectedLeadCanEdit = selectedLead?.canEdit ?? true;
   const selectedLeadCanDelete = selectedLead?.canDelete ?? leadState.canDeleteLeads;
   const isErrorState = leadState.mode === "error" || leadState.mode === "unauthenticated";
@@ -132,6 +144,51 @@ export function SalesFunnelWorkspace({
       setSelectedLead(null);
     }
   }, [leads, selectedLead]);
+
+  useEffect(() => {
+    if (!isFilterPopupOpen) {
+      setDraftLeadFilters(leadFilters);
+    }
+  }, [isFilterPopupOpen, leadFilters]);
+
+  const replaceLeadUrlFilters = useCallback((nextFilters: LeadUrlFilters) => {
+    const nextSearchParams = new URLSearchParams(searchParams?.toString() ?? "");
+
+    for (const key of filterKeys) {
+      const value = nextFilters[key];
+
+      if (isDefaultLeadUrlFilterValue(key, value as string | boolean)) {
+        nextSearchParams.delete(key);
+      } else {
+        nextSearchParams.set(key, String(value));
+      }
+    }
+
+    const query = nextSearchParams.toString();
+    const currentPathname = pathname ?? "/dashboard/funil";
+    router.replace(query ? `${currentPathname}?${query}` : currentPathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    setSearchTerm(leadFilters.search);
+  }, [leadFilters.search]);
+
+  useEffect(() => {
+    const nextSearch = searchTerm.trim();
+
+    if (nextSearch === leadFilters.search) {
+      return;
+    }
+
+    const debounceId = window.setTimeout(() => {
+      replaceLeadUrlFilters({
+        ...leadFilters,
+        search: nextSearch
+      });
+    }, 350);
+
+    return () => window.clearTimeout(debounceId);
+  }, [leadFilters, replaceLeadUrlFilters, searchTerm]);
 
   function handleRefresh() {
     router.refresh();
@@ -180,6 +237,35 @@ export function SalesFunnelWorkspace({
     if (mode === "supabase" || mode === undefined) {
       router.refresh();
     }
+  }
+
+
+
+  function openFilterPopup() {
+    setDraftLeadFilters(leadFilters);
+    setIsFilterPopupOpen(true);
+  }
+
+  function closeFilterPopup() {
+    setIsFilterPopupOpen(false);
+  }
+
+  function applyDraftFilters() {
+    replaceLeadUrlFilters(draftLeadFilters);
+    setIsFilterPopupOpen(false);
+  }
+
+  function clearDraftFilters() {
+    const nextFilters = defaultLeadUrlFilters;
+    setDraftLeadFilters(nextFilters);
+    replaceLeadUrlFilters(nextFilters);
+    setIsFilterPopupOpen(false);
+  }
+
+  function clearAllFilters() {
+    setSearchTerm("");
+    replaceLeadUrlFilters(defaultLeadUrlFilters);
+    setDraftLeadFilters(defaultLeadUrlFilters);
   }
 
   function handleDragStart(event: DragEvent<HTMLElement>, lead: Lead) {
@@ -233,7 +319,7 @@ export function SalesFunnelWorkspace({
   async function handleLeadStageChange(lead: Lead, nextStage: LeadStageValue) {
     const nextStageLabel = getLeadStageLabel(nextStage);
 
-    if (lead.stage === nextStageLabel || updatingLeadId === lead.id) {
+    if (getLeadStageValue(lead.stage) === nextStage || updatingLeadIds.has(lead.id)) {
       return;
     }
 
@@ -259,7 +345,11 @@ export function SalesFunnelWorkspace({
     }
 
     const previousStage = lead.stage;
-    setUpdatingLeadId(lead.id);
+    setUpdatingLeadIds((prev) => {
+      const next = new Set(prev);
+      next.add(lead.id);
+      return next;
+    });
     setFeedback(null);
 
     setLeads((currentLeads) =>
@@ -311,7 +401,11 @@ export function SalesFunnelWorkspace({
             : "Nao foi possivel mover o lead. Tente novamente."
       });
     } finally {
-      setUpdatingLeadId(null);
+      setUpdatingLeadIds((prev) => {
+        const next = new Set(prev);
+        next.delete(lead.id);
+        return next;
+      });
     }
   }
 
@@ -347,16 +441,30 @@ export function SalesFunnelWorkspace({
                 aria-hidden="true"
               />
               <input
+                autoCapitalize="none"
+                autoComplete="off"
+                autoCorrect="off"
                 aria-label="Buscar no funil"
                 className="liquid-input pl-11 text-sm"
+                enterKeyHint="search"
+                name="sales-funnel-search"
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar por nome, telefone, cidade ou interesse"
+                spellCheck={false}
                 type="search"
                 value={searchTerm}
               />
             </label>
 
             <div className="flex w-full flex-wrap gap-2 xl:justify-end">
+              <button
+                className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/54 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white"
+                onClick={openFilterPopup}
+                type="button"
+              >
+                <Filter size={18} aria-hidden="true" />
+                {hasActiveLeadUrlFilters(leadFilters) ? "Filtros ativos" : "Filtros"}
+              </button>
               <Link
                 className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white/78"
                 href="/dashboard/leads"
@@ -376,7 +484,7 @@ export function SalesFunnelWorkspace({
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-3">
+        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <FunnelHeroMetric
             icon={BriefcaseBusiness}
             label="Leads no funil"
@@ -386,19 +494,31 @@ export function SalesFunnelWorkspace({
           />
           <FunnelHeroMetric
             icon={Sparkles}
-            label="Propostas"
+            label={getLeadStageLabel("proposal")}
             note="em simulacao"
             tone="teal"
             value={String(proposalLeads)}
           />
           <FunnelHeroMetric
             icon={TrendingUp}
-            label="Vendas"
+            label={getLeadStageLabel("won")}
             note="fechados no periodo"
             tone="dark"
             value={String(wonLeads)}
           />
+          <FunnelHeroMetric
+            icon={Clock3}
+            label="Leads parados"
+            note={`${STALLED_LEAD_DAYS}+ dias sem atualizar`}
+            tone="yellow"
+            value={String(stalledOpenLeads)}
+          />
         </div>
+
+        <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/58 px-4 py-2 text-xs font-semibold text-ink/64">
+          <Clock3 className="text-signal" size={14} aria-hidden="true" />
+          Parado = lead em etapa aberta sem atualizacao ha pelo menos {STALLED_LEAD_DAYS} dias.
+        </p>
 
         <div className="mt-6 grid gap-3 xl:grid-cols-6">
           {columns.map((column) => {
@@ -413,7 +533,7 @@ export function SalesFunnelWorkspace({
                   <div>
                     <span className={`mb-3 block h-2.5 w-14 rounded-full ${tone.pulse}`} />
                     <h2 className="text-base font-semibold">{column.label}</h2>
-                    <p className="mt-1 text-xs leading-5 text-ink/56">{tone.description}</p>
+                    <p className="mt-1 text-xs leading-5 text-ink/56">{column.description}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone.accent}`}>
                     {column.cards.length}
@@ -471,9 +591,9 @@ export function SalesFunnelWorkspace({
 
           {visibleLeads.length === 0 ? (
             <FunnelEmptyState
-              hasSearch={searchTerm.trim().length > 0}
+              hasActiveFilters={hasActiveFilters}
               onCreateOpen={() => setIsCreateOpen(true)}
-              onSearchClear={() => setSearchTerm("")}
+              onClearFilters={clearAllFilters}
             />
           ) : (
             <div className="-mx-1 overflow-x-auto pb-2">
@@ -500,7 +620,7 @@ export function SalesFunnelWorkspace({
                           <div>
                             <span className={`mb-3 block h-2.5 w-14 rounded-full ${tone.pulse}`} />
                             <h3 className="text-lg font-semibold">{column.label}</h3>
-                            <p className="mt-1 text-sm leading-6 text-ink/56">{tone.description}</p>
+                            <p className="mt-1 text-sm leading-6 text-ink/56">{column.description}</p>
                           </div>
                           <span
                             className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-sm font-semibold ${tone.accent}`}
@@ -519,7 +639,7 @@ export function SalesFunnelWorkspace({
                             onDragEnd={handleDragEnd}
                             onDragStart={handleDragStart}
                             onLeadOpen={setSelectedLead}
-                            pending={updatingLeadId === lead.id}
+                            pending={updatingLeadIds.has(lead.id)}
                           />
                         ))}
 
@@ -554,6 +674,14 @@ export function SalesFunnelWorkspace({
         onUpdated={selectedLeadCanEdit ? handleLeadUpdated : undefined}
         whatsappTemplates={whatsappTemplates}
       />
+      <LeadFiltersPopup
+        open={isFilterPopupOpen}
+        onApply={applyDraftFilters}
+        onClose={closeFilterPopup}
+        onClear={clearDraftFilters}
+        onChange={setDraftLeadFilters}
+        value={draftLeadFilters}
+      />
     </div>
   );
 }
@@ -575,11 +703,14 @@ function FunnelLeadCard({
 }) {
   const canEditLead = lead.canEdit ?? true;
   const phoneHref = buildPhoneHref(lead.phone);
+  const stalledState = getLeadStalledState(lead);
 
   return (
     <article
       aria-busy={pending}
       className={`rounded-[18px] border border-white/72 bg-white/72 p-3.5 text-ink shadow-soft transition ${
+        stalledState.isStalled ? "ring-1 ring-signal/35" : ""
+      } ${
         active
           ? "scale-[0.985] opacity-60"
           : "hover:-translate-y-1 hover:bg-white/84 hover:shadow-[0_24px_44px_rgba(18,23,33,0.12)]"
@@ -606,6 +737,12 @@ function FunnelLeadCard({
         <div className="min-w-0">
           <span className="block text-sm font-semibold leading-tight text-ink">{lead.name}</span>
           <span className="mt-1 block text-xs font-medium text-ink/56">{lead.owner}</span>
+          {stalledState.isStalled && stalledState.daysWithoutUpdate !== null ? (
+            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-signal/26 px-2.5 py-1 text-[11px] font-semibold text-ink">
+              <Clock3 size={12} aria-hidden="true" />
+              Parado ha {stalledState.daysWithoutUpdate} dias
+            </span>
+          ) : null}
         </div>
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-cloud">
           {pending ? (
@@ -700,13 +837,13 @@ function FunnelHeroMetric({
 }
 
 function FunnelEmptyState({
-  hasSearch,
+  hasActiveFilters,
   onCreateOpen,
-  onSearchClear
+  onClearFilters
 }: {
-  hasSearch: boolean;
+  hasActiveFilters: boolean;
   onCreateOpen: () => void;
-  onSearchClear: () => void;
+  onClearFilters: () => void;
 }) {
   return (
     <section className="rounded-[30px] border border-white/60 bg-white/36 p-8 text-center">
@@ -714,21 +851,21 @@ function FunnelEmptyState({
         <Sparkles size={22} aria-hidden="true" />
       </div>
       <h3 className="text-2xl font-semibold">
-        {hasSearch ? "Nenhum lead encontrado" : "Seu funil ainda esta vazio"}
+        {hasActiveFilters ? "Nenhum resultado com estes filtros" : "Seu funil ainda esta vazio"}
       </h3>
       <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-ink/62">
-        {hasSearch
-          ? "Limpe a busca para voltar a ver os cards do funil."
+        {hasActiveFilters
+          ? "Ajuste a busca ou limpe os filtros para voltar a ver os cards do funil."
           : "Crie um lead e comece a acompanhar cada etapa comercial em formato kanban."}
       </p>
       <div className="mt-5 flex flex-wrap justify-center gap-2">
-        {hasSearch && (
+        {hasActiveFilters && (
           <button
             className="inline-flex items-center justify-center rounded-full bg-white/64 px-5 py-3 text-sm font-semibold text-ink"
-            onClick={onSearchClear}
+            onClick={onClearFilters}
             type="button"
           >
-            Limpar busca
+            Limpar filtros
           </button>
         )}
         <button
@@ -801,29 +938,14 @@ function LeadWorkspaceErrorState({
 function buildFunnelColumns(leads: Lead[]) {
   return leadStageOptions.map((option) => ({
     ...option,
+    description: getLeadStageMeta(option.value)?.description ?? "",
     cards: leads.filter((lead) => getLeadStageValue(lead.stage) === option.value)
   }));
 }
 
-function matchesFunnelSearch(lead: Lead, searchTerm: string) {
-  if (!searchTerm) {
-    return true;
-  }
-
-  return [
-    lead.name,
-    lead.phone,
-    lead.email,
-    lead.owner,
-    lead.stage,
-    lead.source,
-    lead.city ?? "",
-    lead.interest,
-    lead.budget
-  ]
-    .join(" ")
-    .toLowerCase()
-    .includes(searchTerm);
+function isDefaultLeadUrlFilterValue(key: keyof LeadUrlFilters, value: string | boolean) {
+  if (key === "search") return value === "";
+  return value === defaultLeadUrlFilters[key];
 }
 
 function buildPhoneHref(phone: string) {
@@ -845,4 +967,34 @@ function getLeadStageUpdateErrorMessage(error?: string) {
   }
 
   return error;
+}
+
+type LeadStalledState = {
+  isStalled: boolean;
+  daysWithoutUpdate: number | null;
+};
+
+function getLeadStalledState(lead: Lead, now = new Date()): LeadStalledState {
+  if (isLeadClosedStage(lead.stage)) {
+    return { isStalled: false, daysWithoutUpdate: null };
+  }
+
+  const activityAt = lead.updatedAt ?? lead.receivedAt;
+
+  if (!activityAt) {
+    return { isStalled: false, daysWithoutUpdate: null };
+  }
+
+  const activityDate = new Date(activityAt);
+
+  if (Number.isNaN(activityDate.getTime())) {
+    return { isStalled: false, daysWithoutUpdate: null };
+  }
+
+  const daysWithoutUpdate = Math.max(0, Math.floor((now.getTime() - activityDate.getTime()) / DAY_IN_MS));
+
+  return {
+    isStalled: daysWithoutUpdate >= STALLED_LEAD_DAYS,
+    daysWithoutUpdate
+  };
 }

@@ -1325,6 +1325,58 @@ export type Database = {
         };
         Relationships: [];
       };
+      lead_stage_history: {
+        Row: {
+          id: string;
+          organization_id: string;
+          lead_id: string;
+          changed_by_profile_id: string | null;
+          old_stage: string | null;
+          new_stage: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          lead_id: string;
+          changed_by_profile_id?: string | null;
+          old_stage?: string | null;
+          new_stage: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          lead_id?: string;
+          changed_by_profile_id?: string | null;
+          old_stage?: string | null;
+          new_stage?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lead_stage_history_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lead_stage_history_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lead_stage_history_changed_by_profile_id_fkey";
+            columns: ["changed_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       lead_tasks: {
         Row: {
           id: string;

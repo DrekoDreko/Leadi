@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Palette, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  ArrowUpRight,
+  Megaphone,
+  Palette,
+  PhoneOff,
+  ShieldCheck,
+  Sparkles
+} from "lucide-react";
 import { leads as mockLeads, type Lead } from "@/data/mock";
 import {
   KanbanBoard,
@@ -17,6 +26,13 @@ import type { OnboardingState } from "@/lib/onboarding/types";
 import type { DashboardReminderItem } from "@/lib/dashboard-reminders/types";
 import type { SystemTemplate } from "@/lib/templates/types";
 import { RemindersCalendarCard } from "@/components/dashboard/reminders-calendar-card";
+import { getLeadStageValue, isLeadClosedStage } from "@/lib/leads/stages";
+import type { OverdueLeadTaskItem } from "@/lib/leads/repository.server";
+import type { CampaignActivitySummary } from "@/lib/campaigns/types";
+import type { DashboardCplSummary } from "@/lib/reports/commercial-report.server";
+
+const NEW_LEADS_WINDOW_DAYS = 7;
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 type DashboardHomeProps = {
   leads?: Lead[];
@@ -30,6 +46,22 @@ type DashboardHomeProps = {
   onboardingState?: OnboardingState | null;
   dashboardReminders?: DashboardReminderItem[];
   whatsappTemplates?: SystemTemplate[];
+  leadNoContactSummary?: DashboardLeadNoContactSummary;
+  campaignActivitySummary?: CampaignActivitySummary;
+  overdueTasks?: OverdueLeadTaskItem[];
+  cplSummary?: DashboardCplSummary;
+};
+
+export type DashboardLeadNoContactSummary = {
+  total: number;
+  leads: Array<{
+    id: string;
+    name: string;
+    owner: string;
+    source: string;
+    stage: string;
+    createdAtLabel: string;
+  }>;
 };
 
 export function DashboardHome({
@@ -41,12 +73,25 @@ export function DashboardHome({
   creativeRequestsCount = 0,
   onboardingState = null,
   dashboardReminders = [],
-  whatsappTemplates = []
+  whatsappTemplates = [],
+  leadNoContactSummary,
+  campaignActivitySummary,
+  overdueTasks = [],
+  cplSummary
 }: DashboardHomeProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const metrics = preview
     ? getPreviewMetrics()
     : getDashboardMetrics(leads, campaignsCount, aiBalance);
+  const campaignSummary = preview
+    ? getPreviewCampaignActivitySummary()
+    : campaignActivitySummary ?? getFallbackCampaignActivitySummary();
+  const noContactSummary = preview
+    ? getPreviewNoContactSummary()
+    : leadNoContactSummary ?? getFallbackNoContactSummary();
+  const dashboardCplSummary = preview
+    ? getPreviewDashboardCplSummary()
+    : cplSummary ?? getFallbackDashboardCplSummary();
   const relatoriosHref = preview ? "/login" : "/dashboard/relatorios";
   const campaignHref = preview ? "/login" : "/dashboard/criacoes/campanhas";
   const funnelHref = preview ? "/login" : "/dashboard/funil";
@@ -112,11 +157,18 @@ export function DashboardHome({
         />
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-7">
         <Metric label="Leads ativos" value={metrics.activeLeads} note={metrics.totalNote} tone="blue" />
+        <Metric label="Novos leads" value={metrics.newLeads} note={metrics.newLeadsNote} tone="yellow" />
         <Metric label="Propostas" value={metrics.proposals} note={metrics.proposalsNote} tone="yellow" />
         <Metric label="Vendas" value={metrics.sales} note={metrics.salesNote} tone="teal" />
         <Metric label="Anuncios" value={metrics.campaigns} note={metrics.campaignsNote} tone="dark" />
+        <Metric
+          label="CPL inicial"
+          value={dashboardCplSummary.value}
+          note={dashboardCplSummary.note}
+          tone="dark"
+        />
         <Metric label="Saldo de IA" value={metrics.aiBalance} note={metrics.aiBalanceNote} tone="blue" />
       </div>
 
@@ -161,7 +213,168 @@ export function DashboardHome({
             </div>
           </Link>
 
+          <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm text-ink/54">Campanhas ativas</p>
+                <h2 className="mt-1 text-xl font-semibold">
+                  {campaignSummary.activeCount + campaignSummary.readyCount === 0
+                    ? "Nenhuma campanha ativa ou pronta"
+                    : `${campaignSummary.activeCount + campaignSummary.readyCount} campanha${campaignSummary.activeCount + campaignSummary.readyCount > 1 ? "s" : ""} ativa${campaignSummary.activeCount + campaignSummary.readyCount > 1 ? "s" : ""} ou pronta${campaignSummary.activeCount + campaignSummary.readyCount > 1 ? "s" : ""}`}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-ink/62">
+                  {getCampaignActivityHeadline(campaignSummary, campaignsCount)}
+                </p>
+              </div>
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-lagoon/18 text-lagoon">
+                <Megaphone size={19} aria-hidden="true" />
+              </span>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {campaignSummary.campaigns.length > 0 ? (
+                campaignSummary.campaigns.map((campaign) => (
+                  <Link
+                    className="block rounded-[24px] bg-white/52 p-4 transition hover:bg-white/72 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/40"
+                    href={anunciosHref}
+                    key={campaign.id}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-ink line-clamp-1">{campaign.campaignName}</p>
+                        <p className="mt-1 text-sm leading-6 text-ink/62">
+                          {getCampaignPublicationStatusLabel(campaign.publicationStatus)} •{" "}
+                          {getCampaignPublishModeLabel(campaign.publishMode)}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-cloud px-3 py-1.5 text-xs font-semibold text-ink/62 whitespace-nowrap">
+                        {campaign.publicationStatus === "published" ? "Ativa" : "Pronta"}
+                      </span>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="rounded-[24px] bg-white/44 p-4 text-sm leading-6 text-ink/62">
+                  {getCampaignActivityEmptyState(campaignSummary, campaignsCount)}
+                </div>
+              )}
+
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-cobalt">
+                Acompanhe publicacao, revisao e retomada na area de anuncios
+              </span>
+            </div>
+          </section>
+
           <RemindersCalendarCard initialReminders={dashboardReminders} />
+
+          {overdueTasks.length > 0 && (
+            <section className="glass !bg-cloud/95 rounded-[34px] p-5 border border-signal/20">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm text-ink/54">Tarefas pendentes</p>
+                  <h2 className="mt-1 text-xl font-semibold text-signal">
+                    {overdueTasks.length} tarefa{overdueTasks.length > 1 ? "s" : ""} em atraso
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-ink/62">
+                    Atrasos operacionais no relacionamento com os leads.
+                  </p>
+                </div>
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-signal/10 text-signal">
+                  <AlertCircle size={19} aria-hidden="true" />
+                </span>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {overdueTasks.slice(0, 3).map((task) => (
+                  <button
+                    className="w-full rounded-[24px] bg-white/52 p-4 text-left transition hover:bg-white/72 focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal/40"
+                    key={task.id}
+                    onClick={() => {
+                      const matchingLead = leads.find((lead) => lead.id === task.leadId) ?? null;
+                      if (matchingLead) {
+                        setSelectedLead(matchingLead);
+                      }
+                    }}
+                    type="button"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-ink line-clamp-1">{task.title}</p>
+                        <p className="mt-1 text-sm leading-6 text-ink/62 line-clamp-1">
+                          {task.leadName} • {task.leadStage}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-signal/10 px-3 py-1.5 text-xs font-semibold text-signal whitespace-nowrap">
+                        {new Date(task.dueAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+
+                {overdueTasks.length > 3 && (
+                  <div className="text-sm font-semibold text-signal text-center mt-2">
+                    + {overdueTasks.length - 3} tarefas vencidas
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm text-ink/54">Sem primeiro contato</p>
+                <h2 className="mt-1 text-xl font-semibold">
+                  {noContactSummary.total === 0
+                    ? "Nenhum lead aguardando abordagem"
+                    : `${noContactSummary.total} lead${noContactSummary.total > 1 ? "s" : ""} aguardando abordagem`}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-ink/62">
+                  Regra inicial: lead sem registro manual de contato no histórico comercial.
+                </p>
+              </div>
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-signal/30 text-ink dark:text-cloud">
+                <PhoneOff size={19} aria-hidden="true" />
+              </span>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {noContactSummary.leads.length > 0 ? (
+                noContactSummary.leads.map((leadSummary) => (
+                  <button
+                    className="w-full rounded-[24px] bg-white/52 p-4 text-left transition hover:bg-white/72 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/40"
+                    key={leadSummary.id}
+                    onClick={() => {
+                      const matchingLead = leads.find((lead) => lead.id === leadSummary.id) ?? null;
+                      setSelectedLead(matchingLead);
+                    }}
+                    type="button"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-ink">{leadSummary.name}</p>
+                        <p className="mt-1 text-sm leading-6 text-ink/62">
+                          {leadSummary.owner} • {leadSummary.source}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-cloud px-3 py-1.5 text-xs font-semibold text-ink/62">
+                        {leadSummary.createdAtLabel}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm text-ink/54">{leadSummary.stage}</p>
+                  </button>
+                ))
+              ) : (
+                <div className="rounded-[24px] bg-white/44 p-4 text-sm leading-6 text-ink/62">
+                  Todos os leads visiveis no dashboard ja contam com ao menos um contato registrado.
+                </div>
+              )}
+
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-cobalt">
+                Priorize os mais recentes para acelerar o primeiro retorno
+              </span>
+            </div>
+          </section>
 
           <section className="glass !bg-cloud/95 rounded-[34px] p-5">
             <div className="flex items-start justify-between gap-3">
@@ -241,21 +454,29 @@ export function DashboardHome({
   );
 }
 
-function getDashboardMetrics(
+export function getDashboardMetrics(
   leads: Lead[],
   campaignsCount: number,
-  aiBalance: number
+  aiBalance: number,
+  referenceDate = new Date()
 ) {
-  const activeLeads = leads.filter((lead) => !["Venda", "Perdido"].includes(lead.stage)).length;
-  const proposals = leads.filter((lead) => lead.stage === "Proposta").length;
-  const sales = leads.filter((lead) => lead.stage === "Venda").length;
+  const activeLeads = leads.filter((lead) => !isLeadClosedStage(lead.stage)).length;
+  const proposals = leads.filter((lead) => getLeadStageValue(lead.stage) === "proposal").length;
+  const sales = leads.filter((lead) => getLeadStageValue(lead.stage) === "won").length;
+  const recentLeads = leads.filter((lead) => isLeadRecent(lead.receivedAt, referenceDate));
+  const recentLeadsStillNew = recentLeads.filter((lead) => getLeadStageValue(lead.stage) === "new").length;
 
   return {
     activeLeads: String(activeLeads),
+    newLeads: String(recentLeads.length),
     proposals: String(proposals),
     sales: String(sales),
     campaigns: String(campaignsCount),
     totalNote: `${leads.length} leads no CRM`,
+    newLeadsNote:
+      recentLeads.length > 0
+        ? `ultimos ${NEW_LEADS_WINDOW_DAYS} dias • ${recentLeadsStillNew} ainda em Novo lead`
+        : `sem entradas nos ultimos ${NEW_LEADS_WINDOW_DAYS} dias`,
     proposalsNote: `${proposals} em proposta`,
     salesNote: `${sales} vendas`,
     campaignsNote: campaignsCount > 0 ? "historico ativo" : "sem criacoes ainda",
@@ -270,14 +491,197 @@ function getDashboardMetrics(
 function getPreviewMetrics() {
   return {
     activeLeads: "128",
+    newLeads: "14",
     proposals: "31",
     sales: "12",
     campaigns: "9",
     aiBalance: "48",
     totalNote: "+18% no mes",
+    newLeadsNote: "ultimos 7 dias • 8 ainda em Novo lead",
     proposalsNote: "+6 hoje",
     salesNote: "R$ 84k pipeline",
     campaignsNote: "anuncios ativos",
     aiBalanceNote: "saldo demo de IA"
   };
+}
+
+function getPreviewCampaignActivitySummary(): CampaignActivitySummary {
+  return {
+    activeCount: 3,
+    readyCount: 2,
+    pausedCount: 1,
+    campaigns: [
+      {
+        id: "preview-campaign-1",
+        campaignName: "Plano PME Campinas",
+        publicationStatus: "published",
+        publishMode: "scheduled"
+      },
+      {
+        id: "preview-campaign-2",
+        campaignName: "Troca de Operadora Interior",
+        publicationStatus: "pending_review",
+        publishMode: "manual_review"
+      },
+      {
+        id: "preview-campaign-3",
+        campaignName: "Lead Form Empresarial",
+        publicationStatus: "draft_created",
+        publishMode: "draft"
+      }
+    ],
+    mode: "supabase"
+  };
+}
+
+function getPreviewNoContactSummary(): DashboardLeadNoContactSummary {
+  return {
+    total: 5,
+    leads: [
+      {
+        id: "preview-1",
+        name: "Clinica Aurora",
+        owner: "Gabriel",
+        source: "Meta Lead Form",
+        stage: "Novo lead",
+        createdAtLabel: "Hoje"
+      },
+      {
+        id: "preview-2",
+        name: "Grupo Vale Verde",
+        owner: "Beatriz",
+        source: "CSV importado",
+        stage: "Novo lead",
+        createdAtLabel: "Ontem"
+      }
+    ]
+  };
+}
+
+function getFallbackNoContactSummary(): DashboardLeadNoContactSummary {
+  return {
+    total: 0,
+    leads: []
+  };
+}
+
+function getPreviewDashboardCplSummary(): DashboardCplSummary {
+  return {
+    value: "~R$ 18,40",
+    note: "demo controlada • sem custo real",
+    status: "mocked"
+  };
+}
+
+function getFallbackDashboardCplSummary(): DashboardCplSummary {
+  return {
+    value: "N/D",
+    note: "custo inicial indisponivel",
+    status: "unavailable"
+  };
+}
+
+function getFallbackCampaignActivitySummary(): CampaignActivitySummary {
+  return {
+    activeCount: 0,
+    readyCount: 0,
+    pausedCount: 0,
+    campaigns: [],
+    mode: "error"
+  };
+}
+
+function getCampaignActivityHeadline(
+  campaignSummary: CampaignActivitySummary,
+  campaignsCount: number
+) {
+  if (campaignSummary.mode === "error" && campaignSummary.message) {
+    return campaignSummary.message;
+  }
+
+  if (campaignSummary.activeCount + campaignSummary.readyCount > 0) {
+    return `${campaignSummary.activeCount} publicada${campaignSummary.activeCount === 1 ? "" : "s"} • ${campaignSummary.readyCount} pronta${campaignSummary.readyCount === 1 ? "" : "s"} para proxima acao`;
+  }
+
+  if (campaignSummary.pausedCount > 0) {
+    return `${campaignSummary.pausedCount} campanha${campaignSummary.pausedCount > 1 ? "s" : ""} pausada${campaignSummary.pausedCount > 1 ? "s" : ""} aguardando retomada.`;
+  }
+
+  if (campaignsCount > 0) {
+    return "Voce ja tem campanhas salvas, mas nenhuma esta publicada ou pronta no momento.";
+  }
+
+  return "Quando houver campanhas prontas ou publicadas, elas aparecem aqui para a operacao.";
+}
+
+function getCampaignActivityEmptyState(
+  campaignSummary: CampaignActivitySummary,
+  campaignsCount: number
+) {
+  if (campaignSummary.mode === "error" && campaignSummary.message) {
+    return campaignSummary.message;
+  }
+
+  if (campaignSummary.pausedCount > 0) {
+    return "As campanhas pausadas seguem fora da operacao ate serem retomadas na area de anuncios.";
+  }
+
+  if (campaignsCount > 0) {
+    return "As campanhas salvas ainda precisam avancar para revisao, preparo ou publicacao para entrar neste indicador.";
+  }
+
+  return "Crie a primeira campanha em Criações para começar a acompanhar o status operacional por aqui.";
+}
+
+function getCampaignPublicationStatusLabel(publicationStatus: CampaignActivitySummary["campaigns"][number]["publicationStatus"]) {
+  switch (publicationStatus) {
+    case "published":
+      return "Publicada";
+    case "pending_review":
+      return "Aguardando revisao";
+    case "draft_created":
+      return "Rascunho criado";
+    case "ready_to_prepare":
+      return "Pronta para preparar";
+    case "paused":
+      return "Pausada";
+    case "failed":
+      return "Falhou";
+    case "not_connected":
+      return "Sem conexao";
+    default:
+      return "Em preparacao";
+  }
+}
+
+function getCampaignPublishModeLabel(publishMode: CampaignActivitySummary["campaigns"][number]["publishMode"]) {
+  switch (publishMode) {
+    case "draft":
+      return "Rascunho";
+    case "manual_review":
+      return "Revisao manual";
+    case "scheduled":
+      return "Agendada";
+    case "paused":
+      return "Pausada";
+    default:
+      return "Operacional";
+  }
+}
+
+function isLeadRecent(receivedAt: Lead["receivedAt"], referenceDate: Date) {
+  if (!receivedAt) {
+    return false;
+  }
+
+  const receivedAtMs = Date.parse(receivedAt);
+  const referenceMs = referenceDate.getTime();
+
+  if (!Number.isFinite(receivedAtMs)) {
+    return false;
+  }
+
+  const ageInMs = referenceMs - receivedAtMs;
+
+  return ageInMs >= 0 && ageInMs <= NEW_LEADS_WINDOW_DAYS * DAY_IN_MS;
 }

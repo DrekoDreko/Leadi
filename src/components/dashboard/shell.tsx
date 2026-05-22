@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Check, ChevronDown, Clock, Loader2, LogOut, Plus, Search, X } from "lucide-react";
+import { Bell, Check, Clock, Loader2, LogOut, Plus, Search, X } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { BrandMark } from "@/components/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -401,8 +401,13 @@ export function DashboardShell({
                       aria-hidden="true"
                     />
                     <input
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect="off"
                       aria-label="Buscar leads do CRM"
                       className="h-full w-full border-0 bg-transparent pl-11 pr-11 text-sm text-ink placeholder-ink/38 focus:outline-none focus:ring-0"
+                      enterKeyHint="search"
+                      name="dashboard-lead-search"
                       onChange={(event) => {
                         setSearchTerm(event.target.value);
                         setIsSearchOpen(true);
@@ -414,7 +419,8 @@ export function DashboardShell({
                       }}
                       placeholder="Buscar lead, telefone ou email"
                       role="searchbox"
-                      type="text"
+                      spellCheck={false}
+                      type="search"
                       value={searchTerm}
                     />
                     {searchTerm ? (
@@ -498,10 +504,10 @@ export function DashboardShell({
                 </button>
 
                 <div
-                  className={`absolute right-0 z-40 overflow-hidden transition-all duration-300 ease-in-out border flex flex-col rounded-[28px] ${
+                  className={`absolute right-0 top-14 z-40 flex w-[320px] origin-top-right flex-col overflow-hidden rounded-[28px] border transition-all duration-300 ease-in-out md:w-[360px] ${
                     isNotificationsOpen
-                      ? "top-14 w-[320px] md:w-[360px] glass-strong border-white/60 shadow-soft opacity-100 visible translate-y-0 max-h-[420px]"
-                      : "top-12 w-[320px] md:w-[360px] max-h-0 border-transparent bg-transparent shadow-none opacity-0 invisible pointer-events-none translate-y-[-8px]"
+                      ? "glass-strong max-h-[420px] border-white/60 shadow-soft opacity-100 visible translate-y-0"
+                      : "glass max-h-0 border-white/48 shadow-none opacity-0 invisible pointer-events-none -translate-y-2"
                   }`}
                 >
                   <div className="border-b border-ink/8 px-4 py-3 flex items-center justify-between">
@@ -543,7 +549,7 @@ export function DashboardShell({
 
                           return (
                             <li key={reminder.id}>
-                              <div className="group flex flex-col items-start gap-2 rounded-[20px] bg-white/40 px-4 py-3 transition hover:bg-white/72 relative">
+                              <div className="group relative flex flex-col items-start gap-2 rounded-[20px] border border-white/48 bg-white/68 px-4 py-3 transition hover:bg-white/78">
                                 <div className="flex w-full items-center justify-between gap-2">
                                   <span className="text-[10px] font-semibold uppercase tracking-wider text-cobalt bg-cobalt/8 px-2 py-0.5 rounded-full">
                                     {formattedDate} às {formattedTime}
@@ -618,15 +624,6 @@ export function DashboardShell({
                     )}
                   </div>
 
-                  <div className="border-t border-ink/8 bg-white/30 p-2 text-center">
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setIsNotificationsOpen(false)}
-                      className="block w-full rounded-[18px] py-2 text-xs font-semibold text-cobalt transition hover:bg-white/60"
-                    >
-                      Ver calendário completo
-                    </Link>
-                  </div>
                 </div>
               </div>
               <ThemeToggle />

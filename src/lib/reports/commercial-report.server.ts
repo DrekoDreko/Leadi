@@ -8,6 +8,7 @@ import {
   type LeadPeriodFilterValue,
   type LeadSourceFilterValue
 } from "@/lib/leads/filters";
+import { isLeadQualifiedStage, isLeadWonStage } from "@/lib/leads/stages";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Database } from "@/lib/supabase/database.types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -88,6 +89,12 @@ export type CommercialReportData = {
   message?: string;
 };
 
+export type DashboardCplSummary = {
+  value: string;
+  note: string;
+  status: "mocked" | "unavailable";
+};
+
 const periodOptions = new Set(leadPeriodFilterOptions.map((option) => option.value));
 const sourceOptions = new Set(leadSourceFilterOptions.map((option) => option.value));
 const reportDateFormatter = new Intl.DateTimeFormat("pt-BR", {
@@ -95,6 +102,12 @@ const reportDateFormatter = new Intl.DateTimeFormat("pt-BR", {
   month: "short",
   year: "numeric"
 });
+const dashboardCurrencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  minimumFractionDigits: 2
+});
+const INITIAL_CPL_MOCK_VALUE = 24;
 
 export function parseCommercialReportFilters(
   input: URLSearchParams | Record<string, string | string[] | undefined> | undefined
@@ -103,6 +116,34 @@ export function parseCommercialReportFilters(
     period: parseAllowedValue(input, "period", periodOptions, "30d"),
     source: parseAllowedValue(input, "source", sourceOptions, "all"),
     seller: parseSellerValue(input)
+  };
+}
+
+export function buildInitialDashboardCplSummary(input: {
+  leadCount: number;
+  activeCampaignCount: number;
+  readyCampaignCount: number;
+}): DashboardCplSummary {
+  if (input.leadCount <= 0) {
+    return {
+      value: "N/D",
+      note: "sem leads para leitura inicial",
+      status: "unavailable"
+    };
+  }
+
+  if (input.activeCampaignCount + input.readyCampaignCount <= 0) {
+    return {
+      value: "N/D",
+      note: "sem campanhas ativas ou prontas",
+      status: "unavailable"
+    };
+  }
+
+  return {
+    value: `~${dashboardCurrencyFormatter.format(INITIAL_CPL_MOCK_VALUE)}`,
+    note: "mock inicial • sem custo Meta real",
+    status: "mocked"
   };
 }
 
@@ -157,7 +198,7 @@ export async function getCommercialReportForCurrentUser(
     const sellerRows = buildSellerRows(leads, sellerMap);
     const leadsWithoutOwner = leads.filter((lead) => !lead.owner_profile_id).length;
     const qualified = countQualifiedLeads(leads);
-    const won = leads.filter((lead) => lead.stage === "won").length;
+    const won = leads.filter((lead) => isLeadWonStage(lead.stage)).length;
     const conversionRate = leads.length ? won / leads.length : 0;
 
     return {
@@ -400,8 +441,8 @@ function buildSellerRows(leads: LeadRow[], sellerMap: Map<string, ProfileRow>): 
 }
 
 function buildBreakdownRow(label: string, leads: LeadRow[]): CommercialReportBreakdownRow {
-  const won = leads.filter((lead) => lead.stage === "won").length;
-  const qualified = leads.filter((lead) => ["qualification", "proposal", "negotiation", "won"].includes(lead.stage)).length;
+  const won = leads.filter((lead) => isLeadWonStage(lead.stage)).length;
+  const qualified = leads.filter((lead) => isLeadQualifiedStage(lead.stage)).length;
   const conversionRate = leads.length ? won / leads.length : 0;
 
   return {
@@ -442,7 +483,7 @@ function normalizeSourceLabel(source: LeadRow["source"]) {
 }
 
 function countQualifiedLeads(leads: LeadRow[]) {
-  return leads.filter((lead) => ["qualification", "proposal", "negotiation", "won"].includes(lead.stage)).length;
+  return leads.filter((lead) => isLeadQualifiedStage(lead.stage)).length;
 }
 
 function countCampaignMentions(leads: LeadRow[]) {

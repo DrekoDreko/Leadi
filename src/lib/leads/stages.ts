@@ -57,10 +57,14 @@ const leadStageMetaByValue: Record<LeadStage, LeadStageMeta> = {
   }
 };
 
+export const leadStageMetas = leadStageOptions.map((option) => leadStageMetaByValue[option.value]);
+
 const leadStageValueByLabel = new Map<string, LeadStage>(
   leadStageOptions.map((option) => [option.label, option.value])
 );
 const leadStageValues = new Set<LeadStage>(leadStageOptions.map((option) => option.value));
+const leadQualifiedStageValues = new Set<LeadStage>(["qualification", "proposal", "negotiation", "won"]);
+const leadClosedStageValues = new Set<LeadStage>(["won", "lost"]);
 
 export function getLeadStageLabel(value: LeadStage | string) {
   return getLeadStageMeta(value)?.label ?? value;
@@ -82,4 +86,18 @@ export function getLeadStageMeta(input: LeadStage | string) {
   }
 
   return leadStageMetaByValue[value];
+}
+
+export function isLeadQualifiedStage(input: LeadStage | string) {
+  const value = getLeadStageValue(input);
+  return value ? leadQualifiedStageValues.has(value) : false;
+}
+
+export function isLeadClosedStage(input: LeadStage | string) {
+  const value = getLeadStageValue(input);
+  return value ? leadClosedStageValues.has(value) : false;
+}
+
+export function isLeadWonStage(input: LeadStage | string) {
+  return getLeadStageValue(input) === "won";
 }

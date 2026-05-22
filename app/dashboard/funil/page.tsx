@@ -26,6 +26,7 @@ export default async function SalesFunnelPage({ searchParams }: SalesFunnelPageP
       aiBalance={aiBalance}
       createLeadAccess={createLeadAccess}
       leadState={leadState}
+      leadFilters={leadFilters}
       whatsappTemplates={whatsappTemplates}
     />
   );

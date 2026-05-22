@@ -78,6 +78,20 @@ export type CampaignListState = {
   message?: string;
 };
 
+export type CampaignActivitySummary = {
+  activeCount: number;
+  readyCount: number;
+  pausedCount: number;
+  campaigns: Array<{
+    id: string;
+    campaignName: string;
+    publicationStatus: CampaignPublicationStatus;
+    publishMode: CampaignPublishMode;
+  }>;
+  mode: "supabase" | "not-configured" | "unauthenticated" | "error";
+  message?: string;
+};
+
 export type CampaignSaveInput = {
   form: CampaignGenerationForm;
   campaign: CampaignTextOutput;

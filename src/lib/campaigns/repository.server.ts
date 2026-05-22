@@ -3,6 +3,7 @@ import type { Database, Json } from "@/lib/supabase/database.types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
+  CampaignActivitySummary,
   CampaignGenerationForm,
   CampaignHistoryItem,
   CampaignListState,
@@ -14,6 +15,10 @@ import type {
 type CampaignRow = Database["public"]["Tables"]["campaigns"]["Row"];
 type CampaignInsert = Database["public"]["Tables"]["campaigns"]["Insert"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type CampaignOperationalRow = Pick<
+  CampaignRow,
+  "id" | "campaign_name" | "publication_status" | "publish_mode" | "updated_at"
+>;
 
 const DEFAULT_PRODUCT = "Plano de saude empresarial";
 const DEFAULT_BROKERAGE_NAME = "Corretora Demo";
@@ -143,6 +148,76 @@ export async function getPublishedCampaignsCountForCurrentUser(): Promise<number
   }
 
   return count ?? 0;
+}
+
+export async function getCampaignActivitySummaryForCurrentUser(
+  limit = 3
+): Promise<CampaignActivitySummary> {
+  const safeLimit = Math.max(1, Math.trunc(limit));
+
+  if (!isSupabaseConfigured()) {
+    return {
+      ...buildCampaignActivitySummary(buildMockCampaigns(6), safeLimit),
+      mode: "not-configured",
+      message: "Supabase ainda nao configurado. Exibindo resumo demonstrativo."
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      activeCount: 0,
+      readyCount: 0,
+      pausedCount: 0,
+      campaigns: [],
+      mode: "unauthenticated",
+      message: "Usuario nao autenticado."
+    };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (profileError || !profile) {
+    return {
+      activeCount: 0,
+      readyCount: 0,
+      pausedCount: 0,
+      campaigns: [],
+      mode: "error",
+      message: "Nao foi possivel carregar o resumo operacional das campanhas."
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .select("id, campaign_name, publication_status, publish_mode, updated_at")
+    .eq("organization_id", profile.organization_id)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    return {
+      activeCount: 0,
+      readyCount: 0,
+      pausedCount: 0,
+      campaigns: [],
+      mode: "error",
+      message: "Nao foi possivel carregar o resumo operacional das campanhas."
+    };
+  }
+
+  return {
+    ...buildCampaignActivitySummary(data ?? [], safeLimit),
+    mode: "supabase"
+  };
 }
 
 export async function saveCampaignForCurrentUser(
@@ -429,6 +504,73 @@ function createMockCampaignHistoryItem(
     createdAt: timestamp,
     updatedAt: timestamp
   };
+}
+
+function buildCampaignActivitySummary(
+  campaigns: Array<CampaignOperationalRow | CampaignHistoryItem>,
+  limit: number
+) {
+  const safeLimit = Math.max(1, Math.trunc(limit));
+  const operationalCampaigns = campaigns.map((campaign) => ({
+    id: campaign.id,
+    campaignName: "campaign_name" in campaign ? campaign.campaign_name : campaign.campaignName,
+    publicationStatus:
+      "publication_status" in campaign ? campaign.publication_status : campaign.publicationStatus,
+    publishMode: "publish_mode" in campaign ? campaign.publish_mode : campaign.publishMode,
+    updatedAt: "updated_at" in campaign ? campaign.updated_at : campaign.updatedAt
+  }));
+  const visibleCampaigns = operationalCampaigns.filter(
+    (campaign) =>
+      isCampaignOperationallyActive(campaign.publicationStatus, campaign.publishMode) ||
+      isCampaignOperationallyReady(campaign.publicationStatus, campaign.publishMode)
+  );
+
+  return {
+    activeCount: operationalCampaigns.filter((campaign) =>
+      isCampaignOperationallyActive(campaign.publicationStatus, campaign.publishMode)
+    ).length,
+    readyCount: operationalCampaigns.filter((campaign) =>
+      isCampaignOperationallyReady(campaign.publicationStatus, campaign.publishMode)
+    ).length,
+    pausedCount: operationalCampaigns.filter((campaign) =>
+      isCampaignOperationallyPaused(campaign.publicationStatus, campaign.publishMode)
+    ).length,
+    campaigns: visibleCampaigns
+      .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+      .slice(0, safeLimit)
+      .map(({ id, campaignName, publicationStatus, publishMode }) => ({
+        id,
+        campaignName,
+        publicationStatus,
+        publishMode
+      }))
+  };
+}
+
+function isCampaignOperationallyActive(
+  publicationStatus: CampaignHistoryItem["publicationStatus"],
+  publishMode: CampaignHistoryItem["publishMode"]
+) {
+  return publicationStatus === "published" && publishMode !== "paused";
+}
+
+function isCampaignOperationallyReady(
+  publicationStatus: CampaignHistoryItem["publicationStatus"],
+  publishMode: CampaignHistoryItem["publishMode"]
+) {
+  return (
+    publishMode !== "paused" &&
+    (publicationStatus === "ready_to_prepare" ||
+      publicationStatus === "draft_created" ||
+      publicationStatus === "pending_review")
+  );
+}
+
+function isCampaignOperationallyPaused(
+  publicationStatus: CampaignHistoryItem["publicationStatus"],
+  publishMode: CampaignHistoryItem["publishMode"]
+) {
+  return publicationStatus === "paused" || publishMode === "paused";
 }
 
 function normalizeCampaignStatus(value: string | null): CampaignStatus {
