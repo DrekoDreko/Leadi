@@ -25,7 +25,8 @@ const leadCommentSchema = z.object({
   body: requiredTrimmedString("Escreva um comentario antes de enviar.").max(
     2000,
     "Comentario muito longo. Use ate 2000 caracteres."
-  )
+  ),
+  type: z.enum(["comment", "contact"]).optional().default("comment")
 });
 
 export async function GET(_request: Request, context: RouteContext) {

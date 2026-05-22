@@ -314,7 +314,9 @@ Dados de leads. Limitar a alteração à visualização e integrações já exis
 
 ### TASK-009 — Adicionar histórico manual de contato
 
-- [ ] Status: Pendente
+- [x] Status: Concluído
+- Fase: Funcionalidades Core - Setup e Organização
+- Prioridade: Alta
 
 #### Objetivo
 Registrar interações manuais do lead de forma mais operacional.
@@ -345,7 +347,7 @@ API de leads e dados de usuários/leads.
 
 ### TASK-010 — Adicionar tarefas por lead
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Criar a entidade própria de tarefa operacional por lead.
@@ -374,9 +376,16 @@ Referência original: Tarefa 05. Executar após TASK-001 e TASK-007.
 #### Atenção: área sensível
 Banco, multi-tenant, permissões e dados de leads.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `supabase/migrations/202605210004_lead_tasks.sql`, `src/lib/supabase/database.types.ts`, `src/lib/leads/repository.server.ts`.
+- Principais entregas: foi criada a entidade propria `lead_tasks` com isolamento por organizacao, relacao direta com `lead`, responsavel opcional por perfil, enums de status/prioridade, indices, trigger de `updated_at` e policies de RLS separadas de `dashboard_reminders`; `database.types.ts` passou a refletir a nova tabela e enums; o repositorio de leads ganhou contratos minimos para listar, criar e atualizar tarefas por lead, inclusive com fallback mock quando o Supabase nao estiver configurado.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e manteve apenas o aviso informativo ja conhecido de `Dynamic server usage` em `/dashboard`; `npm run test` falhou no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a suite de testes; construir a API/UI operacional das tarefas por lead em tarefas futuras, sem reutilizar `dashboard_reminders`.
+
 ### TASK-011 — Adicionar status do funil ao prontuário
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Padronizar e destacar a etapa comercial do lead no prontuário.
@@ -402,9 +411,16 @@ Padronizar e destacar a etapa comercial do lead no prontuário.
 #### Observações
 Referência original: Tarefa 06. Executar após TASK-008.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `src/lib/leads/stages.ts`, `src/components/dashboard/lead-details-popup.tsx`, `src/components/dashboard/lead-details-popup.test.tsx`, `app/dashboard/funil/sales-funnel-workspace.tsx`.
+- Principais entregas: a etapa comercial do lead passou a usar uma fonte compartilhada de metadados em `src/lib/leads/stages.ts`, com label, value, descricao e tolerancia para receber tanto o value tecnico quanto o label da UI; o prontuario ganhou badge e bloco de destaque da etapa atual com leitura comercial consistente; o funil deixou de depender de comparacoes locais por label em metricas resumidas.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e manteve apenas warnings conhecidos e a mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test` falhou no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a suite automatizada completa.
+
 ### TASK-012 — Adicionar motivo de perda
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Permitir registrar motivo de perda para leads perdidos.
@@ -434,9 +450,16 @@ Referência original: Tarefa 07. Executar após TASK-007 e TASK-011.
 #### Atenção: área sensível
 Banco, API de leads e dados operacionais.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `supabase/migrations/202605210005_add_lead_loss_reason.sql`, `src/lib/supabase/database.types.ts`, `src/lib/leads/repository.server.ts`, `app/api/leads/route.ts`, `app/api/leads/[id]/route.ts`, `src/components/dashboard/lead-details-popup.tsx`, `src/components/dashboard/lead-details-popup.test.tsx`, `src/data/mock.ts`.
+- Principais entregas: o schema de leads ganhou o campo opcional `loss_reason`; o repositório e as rotas passaram a aceitar e persistir o motivo de perda apenas no contexto de leads em etapa `lost`, limpando o valor quando a etapa efetiva não é perdida; e o prontuário passou a exibir e editar esse motivo somente para leads perdidos, sem exigir o campo nas demais etapas.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e manteve apenas warnings conhecidos, alem da mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test` falhou no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a suite automatizada completa.
+
 ### TASK-013 — Adicionar qualidade do lead
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Criar classificação simples de qualidade do lead.
@@ -466,9 +489,16 @@ Referência original: Tarefa 08. Executar após TASK-007.
 #### Atenção: área sensível
 Banco e dados de leads.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `supabase/migrations/202605210006_add_lead_quality.sql`, `src/lib/supabase/database.types.ts`, `src/lib/leads/normalization.ts`, `src/lib/leads/repository.server.ts`, `src/lib/leads/quality.ts`, `app/api/leads/route.ts`, `app/api/leads/[id]/route.ts`, `app/dashboard/leads/leads-workspace.tsx`, `src/components/dashboard/lead-details-popup.tsx`, `src/components/dashboard/lead-details-popup.test.tsx`, `app/api/leads/route.test.ts`, `app/api/leads/[id]/route.test.ts` e `src/data/mock.ts`.
+- Principais entregas: o schema de leads ganhou o campo opcional `quality` com validacao simples para `high`, `medium` e `low`; o repositório, os tipos compartilhados e as rotas de criacao/edicao passaram a aceitar e persistir essa classificacao sem reintroduzir score numerico; a listagem de leads passou a mostrar um badge de qualidade logo na linha do lead; e o prontuario passou a exibir e editar a classificacao com labels comerciais em portugues.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e manteve apenas warnings conhecidos, alem da mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test` falhou no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a suite automatizada completa.
+
 ### TASK-014 — Vincular lead à campanha, anúncio e formulário
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Melhorar a leitura da origem do lead usando os campos Meta já existentes.
@@ -497,9 +527,16 @@ Referência original: Tarefa 09. Executar após TASK-008.
 #### Atenção: área sensível
 Dados de leads e rastreabilidade da Meta.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `src/data/mock.ts`, `src/lib/leads/repository.server.ts`, `src/lib/leads/source.ts`, `src/lib/leads/source.test.ts`, `src/components/dashboard/lead-details-popup.tsx`, `src/components/dashboard/lead-details-popup.test.tsx` e `app/dashboard/leads/leads-workspace.tsx`.
+- Principais entregas: o contrato `Lead` e o mapeamento server-side passaram a preservar tambem `meta_campaign_id`, `meta_adset_id` e `meta_ad_id`, evitando perda de rastreabilidade quando a origem vem da Meta; a listagem de leads ganhou um badge de origem e um resumo curto que diferencia cadastro manual, CSV e Meta; e o popup do lead passou a consolidar campanha, conjunto, anuncio e formulario com fallback seguro para os identificadores Meta ja existentes.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e repetiu apenas warnings conhecidos, alem da mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test` falhou no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a suite automatizada.
+
 ### TASK-015 — Criar botão de WhatsApp com mensagem pronta
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Abrir o WhatsApp a partir do lead com mensagem inicial preenchida.
@@ -524,9 +561,16 @@ Abrir o WhatsApp a partir do lead com mensagem inicial preenchida.
 #### Observações
 Referência original: Tarefa 10. Executar após TASK-008.
 
+#### Execucao 2026-05-21
+- Arquivos alterados: `src/components/dashboard/lead-details-popup.tsx`, `src/components/dashboard/lead-details-popup.test.tsx`.
+- Principais entregas: o detalhe do lead ganhou um CTA dedicado para abrir o WhatsApp externo com mensagem inicial preenchida a partir do nome, interesse e empresa do lead; o link reutiliza o telefone normalizado do CRM para montar `wa.me` e permanece visualmente desabilitado quando nao ha telefone valido; o atalho foi mantido separado do gerador com IA e nao alterou o fluxo existente de mensagens.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e manteve warnings conhecidos, alem da mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test` falhou no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a suite automatizada completa.
+
 ### TASK-016 — Criar botão para gerar mensagem com IA
 
-- [ ] Status: Pendente
+- [x] Status: Concluida
 
 #### Objetivo
 Trazer o atalho de IA para dentro do prontuário do lead.
@@ -554,6 +598,13 @@ Referência original: Tarefa 11. Executar após TASK-008 e TASK-015.
 
 #### Atenção: área sensível
 OpenAI, créditos e dados de leads.
+
+#### Execucao 2026-05-21
+- Arquivos alterados: `app/dashboard/page.tsx`, `app/dashboard/dashboard-home.tsx`, `app/dashboard/funil/page.tsx`, `app/dashboard/funil/sales-funnel-workspace.tsx`, `app/dashboard/page.test.tsx`, `app/dashboard/funil/page.test.tsx`, `src/components/dashboard/lead-details-popup.test.tsx`.
+- Principais entregas: o atalho de geracao de mensagem com IA, que ja estava integrado ao prontuario na tela de leads, passou a ficar disponivel tambem quando o mesmo `LeadDetailsPopup` e aberto pelo dashboard inicial e pelo funil; as duas entradas agora carregam o saldo atual de IA e os templates de WhatsApp existentes sem criar fluxo paralelo nem reescrever o endpoint `/api/whatsapp/generate`.
+- Validacoes executadas: `npm run lint`, `npm run test` e `npm run build`, apos conferencia dos scripts em `package.json`.
+- Resultado das validacoes: `npm run lint` concluiu com warnings preexistentes fora do escopo; `npm run build` concluiu com sucesso e manteve apenas warnings conhecidos, incluindo a mensagem informativa de `Dynamic server usage` em `/dashboard`; `npm run test` falhou no ambiente local com `sh: vitest: command not found`; `npm run typecheck` nao existe no `package.json`.
+- Pendencias: restaurar a disponibilidade local do binario `vitest` para reexecutar a suite automatizada completa.
 
 ---
 

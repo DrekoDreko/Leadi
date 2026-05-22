@@ -2,6 +2,7 @@ import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.serv
 import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { parseLeadUrlFilters } from "@/lib/leads/filters";
 import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
+import { getSystemTemplates } from "@/lib/templates/repository.server";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { SalesFunnelWorkspace } from "./sales-funnel-workspace";
 
@@ -13,10 +14,11 @@ export default async function SalesFunnelPage({ searchParams }: SalesFunnelPageP
   await requireCompletedProfile();
   const resolvedSearchParams = await searchParams;
   const leadFilters = parseLeadUrlFilters(resolvedSearchParams);
-  const [leadState, createLeadAccess, aiBalance] = await Promise.all([
+  const [leadState, createLeadAccess, aiBalance, whatsappTemplates] = await Promise.all([
     getLeadsForCurrentUser(leadFilters),
     getCurrentResourceAccess("lead_creation"),
-    getCurrentAiBalance()
+    getCurrentAiBalance(),
+    getSystemTemplates("whatsapp")
   ]);
 
   return (
@@ -24,6 +26,7 @@ export default async function SalesFunnelPage({ searchParams }: SalesFunnelPageP
       aiBalance={aiBalance}
       createLeadAccess={createLeadAccess}
       leadState={leadState}
+      whatsappTemplates={whatsappTemplates}
     />
   );
 }

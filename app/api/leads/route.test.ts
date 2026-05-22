@@ -55,7 +55,7 @@ describe('Leads API - /api/leads', () => {
   describe('POST', () => {
     it('cria um novo lead com sucesso', async () => {
       vi.mocked(isSupabaseConfigured).mockReturnValue(true);
-      const mockLead = { id: '123', name: 'Test Lead' };
+      const mockLead = { id: '123', name: 'Test Lead', quality: 'high' };
       vi.mocked(createLeadForCurrentUser).mockResolvedValue({
         lead: mockLead as never,
         status: 'created'
@@ -63,7 +63,7 @@ describe('Leads API - /api/leads', () => {
 
       const request = new Request('http://localhost:3000/api/leads', {
         method: 'POST',
-        body: JSON.stringify({ name: 'Test Lead', email: 'test@example.com' })
+        body: JSON.stringify({ name: 'Test Lead', email: 'test@example.com', quality: 'high' })
       });
 
       const response = await POST(request);
@@ -73,6 +73,11 @@ describe('Leads API - /api/leads', () => {
       expect(data.lead).toEqual(mockLead);
       expect(data.mode).toBe('supabase');
       expect(data.status).toBe('created');
+      expect(createLeadForCurrentUser).toHaveBeenCalledWith({
+        name: 'Test Lead',
+        email: 'test@example.com',
+        quality: 'high'
+      });
     });
 
     it('retorna erro de validacao (ex: nome do lead nao informado)', async () => {

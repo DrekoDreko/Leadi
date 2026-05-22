@@ -7,6 +7,7 @@ import {
   UserPlus,
   WalletCards
 } from "lucide-react";
+import type { LeadQualityValue } from "@/lib/leads/quality";
 
 export const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -38,12 +39,17 @@ export type Lead = {
   interest: string;
   lastInteraction: string;
   notes: string;
+  lossReason?: string | null;
+  quality?: LeadQualityValue | null;
   sourceCampaign?: string | null;
   sourceAdset?: string | null;
   sourceAd?: string | null;
   metaLeadId?: string | null;
   metaFormId?: string | null;
   metaPageId?: string | null;
+  metaCampaignId?: string | null;
+  metaAdsetId?: string | null;
+  metaAdId?: string | null;
   metaConnectedAccountId?: string | null;
   receivedAt?: string | null;
   archivedAt?: string | null;
@@ -63,14 +69,20 @@ export const leads: Lead[] = [
     city: "Campinas",
     companyName: "Azevedo Clinica",
     livesCount: 48,
+    quality: "high",
     createdAt: "27 abr 2026",
     receivedAt: "2026-04-27T15:30:00-03:00",
     budget: "R$ 18k/mês",
     interest: "Plano empresarial com coparticipação",
     sourceCampaign: "Campanha PME conectada",
+    sourceAdset: "Conjunto decisores Campinas",
+    sourceAd: "Anuncio rede premium",
     metaLeadId: "demo-meta-lead-1042",
     metaFormId: "form_445566",
     metaPageId: "page_123456",
+    metaCampaignId: "cmp_445566",
+    metaAdsetId: "adset_112233",
+    metaAdId: "ad_998877",
     metaConnectedAccountId: "demo-meta-connection",
     lastInteraction: "Solicitou comparação entre duas operadoras e pediu retorno no fim da tarde.",
     notes: "Lead em expansão, decisora direta e com urgência para fechar ainda este mês."
@@ -86,6 +98,7 @@ export const leads: Lead[] = [
     city: "Sao Paulo",
     companyName: "RC Engenharia",
     livesCount: 32,
+    quality: "medium",
     createdAt: "26 abr 2026",
     receivedAt: "2026-04-26T10:00:00-03:00",
     budget: "R$ 6k/mês",
@@ -104,6 +117,7 @@ export const leads: Lead[] = [
     city: "Santos",
     companyName: "Mendes Studio",
     livesCount: 11,
+    quality: "medium",
     createdAt: "24 abr 2026",
     receivedAt: "2026-04-24T09:15:00-03:00",
     budget: "R$ 2.8k/mês",
@@ -122,14 +136,20 @@ export const leads: Lead[] = [
     city: "Sorocaba",
     companyName: "Lins Logistica",
     livesCount: 126,
+    quality: "high",
     createdAt: "23 abr 2026",
     receivedAt: "2026-04-23T16:00:00-03:00",
     budget: "R$ 42k/mês",
     interest: "Migração de contrato com maior rede hospitalar",
     sourceCampaign: "Campanha empresarial conectada",
+    sourceAdset: "Conjunto empresas Sorocaba",
+    sourceAd: "Anuncio migracao executiva",
     metaLeadId: "demo-meta-lead-1028",
     metaFormId: "form_778899",
     metaPageId: "page_789012",
+    metaCampaignId: "cmp_778899",
+    metaAdsetId: "adset_445566",
+    metaAdId: "ad_221100",
     metaConnectedAccountId: "demo-meta-connection",
     lastInteraction: "Comparou proposta final com contrato atual e pediu ajuste para diretoria.",
     notes: "Alto potencial. Preparar argumento de rede credenciada e risco de reajuste."

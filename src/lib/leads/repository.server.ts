@@ -17,6 +17,7 @@ import {
 } from "./filters";
 import {
   normalizeEmail,
+  normalizeLeadQuality,
   normalizeLeadSource,
   normalizeLeadStage,
   normalizePhone,
@@ -36,11 +37,32 @@ type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
 type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 type LeadCommentRow = Database["public"]["Tables"]["lead_comments"]["Row"];
 type LeadCommentInsert = Database["public"]["Tables"]["lead_comments"]["Insert"];
+type LeadTaskRow = Database["public"]["Tables"]["lead_tasks"]["Row"];
+type LeadTaskInsert = Database["public"]["Tables"]["lead_tasks"]["Insert"];
+type LeadTaskUpdate = Database["public"]["Tables"]["lead_tasks"]["Update"];
 type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 export type LeadDuplicateReason = "meta_lead_id" | "phone_e164" | "email";
+export type LeadTaskStatusValue = Database["public"]["Enums"]["lead_task_status"];
+export type LeadTaskPriorityValue = Database["public"]["Enums"]["lead_task_priority"];
+
+export type LeadTaskItem = {
+  id: string;
+  organizationId: string;
+  leadId: string;
+  createdByProfileId: string;
+  assignedToProfileId: string | null;
+  title: string;
+  description: string | null;
+  status: LeadTaskStatusValue;
+  priority: LeadTaskPriorityValue;
+  dueAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 type LeadCreationResult = {
   lead: Lead;
@@ -57,10 +79,12 @@ export type LeadCreateInput = {
   lives_count?: unknown;
   stage?: unknown;
   source?: unknown;
+  quality?: unknown;
   budget?: unknown;
   interest?: unknown;
   last_interaction?: unknown;
   notes?: unknown;
+  loss_reason?: unknown;
   cpf?: unknown;
   birth_date?: unknown;
   profession?: unknown;
@@ -89,6 +113,23 @@ export type LeadWebhookCreateInput = LeadCreateInput & {
   organization_slug?: unknown;
   owner_profile_id?: unknown;
   owner_email?: unknown;
+};
+
+export type LeadTaskCreateInput = {
+  title?: unknown;
+  description?: unknown;
+  due_at?: unknown;
+  assigned_to_profile_id?: unknown;
+  priority?: unknown;
+};
+
+export type LeadTaskUpdateInput = {
+  title?: unknown;
+  description?: unknown;
+  due_at?: unknown;
+  assigned_to_profile_id?: unknown;
+  priority?: unknown;
+  status?: unknown;
 };
 
 const stageLabels: Record<LeadRow["stage"], string> = {
@@ -131,10 +172,25 @@ const mockLeadComments: LeadComment[] = mockLeads.slice(0, 3).map((lead, index) 
     authorName: lead.owner,
     authorEmail: `${lead.owner.toLowerCase()}@demo.leadi.local`,
     body: lead.lastInteraction,
+    type: "comment",
     createdAt,
     updatedAt: createdAt
   };
 });
+
+const mockLeadTasks = getMockLeadTaskStore();
+
+function getMockLeadTaskStore() {
+  const globalScope = globalThis as typeof globalThis & {
+    __leadHealthLeadTasksMock?: LeadTaskItem[];
+  };
+
+  if (!globalScope.__leadHealthLeadTasksMock) {
+    globalScope.__leadHealthLeadTasksMock = [];
+  }
+
+  return globalScope.__leadHealthLeadTasksMock;
+}
 
 export async function getLeadsForCurrentUser(
   filters: LeadUrlFilters = defaultLeadUrlFilters,
@@ -633,9 +689,11 @@ export async function listLeadCommentsForCurrentUser(id: string): Promise<LeadCo
 
 export async function createLeadCommentForCurrentUser(
   id: string,
-  input: { body?: unknown }
+  input: { body?: unknown; type?: "comment" | "contact" }
 ): Promise<{ comment: LeadComment; lead: Lead }> {
-  const body = normalizeLeadCommentBody(input.body);
+  const rawBody = normalizeLeadCommentBody(input.body);
+  const isContact = input.type === "contact";
+  const bodyToSave = isContact ? `[CONTACT_LOG] ${rawBody}` : rawBody;
 
   if (!isSupabaseConfigured()) {
     const comment: LeadComment = {
@@ -644,7 +702,8 @@ export async function createLeadCommentForCurrentUser(
       authorProfileId: "mock-profile",
       authorName: "Equipe demo",
       authorEmail: "demo@leadi.local",
-      body,
+      body: rawBody,
+      type: isContact ? "contact" : "comment",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -653,7 +712,7 @@ export async function createLeadCommentForCurrentUser(
 
     return {
       comment,
-      lead: updateMockLeadCommentLead(id, body)
+      lead: updateMockLeadCommentLead(id, rawBody)
     };
   }
 
@@ -663,7 +722,7 @@ export async function createLeadCommentForCurrentUser(
   assertCanAccessLead(profile, lead, "comentar");
 
   const supabase = await createSupabaseServerClient();
-  const updatedInteraction = buildLeadInteractionSummary(body);
+  const updatedInteraction = buildLeadInteractionSummary(rawBody);
   const { data: updatedLeadRow, error: updateError } = await supabase
     .from("leads")
     .update({
@@ -680,7 +739,7 @@ export async function createLeadCommentForCurrentUser(
 
   const { data, error } = await supabase
     .from("lead_comments")
-    .insert(buildLeadCommentInsert(updatedLeadRow, profile, body))
+    .insert(buildLeadCommentInsert(updatedLeadRow, profile, bodyToSave))
     .select("*")
     .single();
 
@@ -692,6 +751,129 @@ export async function createLeadCommentForCurrentUser(
     comment: mapLeadCommentRowToItem(data),
     lead: mapLeadRowToLead(updatedLeadRow, profile)
   };
+}
+
+export async function listLeadTasksForCurrentUser(leadId: string): Promise<LeadTaskItem[]> {
+  if (!isSupabaseConfigured()) {
+    return mockLeadTasks
+      .filter((task) => task.leadId === leadId)
+      .sort(compareLeadTasks);
+  }
+
+  const profile = await getCurrentProfile();
+  const lead = await getLeadForMutation(leadId, profile.organization_id);
+
+  assertCanAccessLead(profile, lead, "visualizar");
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("lead_tasks")
+    .select("*")
+    .eq("organization_id", profile.organization_id)
+    .eq("lead_id", lead.id)
+    .order("due_at", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (error.code === "42P01") {
+      throw new Error("A tabela de tarefas por lead ainda nao foi criada no banco de dados.");
+    }
+
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map(mapLeadTaskRowToItem);
+}
+
+export async function createLeadTaskForCurrentUser(
+  leadId: string,
+  input: LeadTaskCreateInput
+): Promise<LeadTaskItem> {
+  const resolvedInput = resolveLeadTaskCreateInput(input);
+
+  if (!isSupabaseConfigured()) {
+    return createMockLeadTask(leadId, resolvedInput);
+  }
+
+  const profile = await getCurrentProfile();
+  const lead = await getLeadForMutation(leadId, profile.organization_id);
+
+  assertCanAccessLead(profile, lead, "criar tarefas para");
+
+  const assignedProfile = await resolveLeadTaskAssigneeProfile(
+    profile.organization_id,
+    resolvedInput.assignedToProfileId ?? profile.id
+  );
+
+  if (!isWorkspaceManagerRole(profile.role) && assignedProfile.id !== profile.id) {
+    throw new Error("Sem permissao para atribuir tarefas a outro usuario.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("lead_tasks")
+    .insert(buildLeadTaskInsert(lead, profile, assignedProfile.id, resolvedInput))
+    .select("*")
+    .single();
+
+  if (error) {
+    if (error.code === "42P01") {
+      throw new Error("A tabela de tarefas por lead ainda nao foi criada no banco de dados.");
+    }
+
+    throw new Error(error.message);
+  }
+
+  return mapLeadTaskRowToItem(data);
+}
+
+export async function updateLeadTaskForCurrentUser(
+  taskId: string,
+  input: LeadTaskUpdateInput
+): Promise<LeadTaskItem> {
+  const resolvedInput = resolveLeadTaskUpdateInput(input);
+
+  if (!isSupabaseConfigured()) {
+    return updateMockLeadTask(taskId, resolvedInput);
+  }
+
+  const profile = await getCurrentProfile();
+  const task = await getLeadTaskForMutation(taskId, profile.organization_id);
+  const lead = await getLeadForMutation(task.lead_id, profile.organization_id);
+
+  assertCanAccessLead(profile, lead, "gerenciar tarefas de");
+  assertCanMutateLeadTask(profile, task);
+
+  const assignedProfile =
+    resolvedInput.assignedToProfileId === undefined
+      ? undefined
+      : await resolveLeadTaskAssigneeProfile(
+          profile.organization_id,
+          resolvedInput.assignedToProfileId
+        );
+
+  if (!isWorkspaceManagerRole(profile.role) && assignedProfile && assignedProfile.id !== profile.id) {
+    throw new Error("Sem permissao para reatribuir tarefas para outro usuario.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("lead_tasks")
+    .update(buildLeadTaskUpdate(task, resolvedInput, assignedProfile?.id))
+    .eq("id", task.id)
+    .eq("organization_id", profile.organization_id)
+    .select("*")
+    .single();
+
+  if (error) {
+    if (error.code === "42P01") {
+      throw new Error("A tabela de tarefas por lead ainda nao foi criada no banco de dados.");
+    }
+
+    throw new Error(error.message);
+  }
+
+  return mapLeadTaskRowToItem(data);
 }
 
 async function findDuplicateLead(
@@ -826,14 +1008,77 @@ function buildLeadCommentInsert(
   };
 }
 
+function buildLeadTaskInsert(
+  lead: LeadRow,
+  profile: ProfileRow,
+  assignedToProfileId: string,
+  input: ReturnType<typeof resolveLeadTaskCreateInput>
+): LeadTaskInsert {
+  return {
+    organization_id: lead.organization_id,
+    lead_id: lead.id,
+    created_by_profile_id: profile.id,
+    assigned_to_profile_id: assignedToProfileId,
+    title: input.title,
+    description: input.description,
+    priority: input.priority,
+    due_at: input.dueAt
+  };
+}
+
+function buildLeadTaskUpdate(
+  task: LeadTaskRow,
+  input: ReturnType<typeof resolveLeadTaskUpdateInput>,
+  assignedToProfileId?: string
+): LeadTaskUpdate {
+  const nextStatus = input.status ?? task.status;
+
+  return removeUndefinedValues({
+    title: input.title,
+    description: input.description,
+    assigned_to_profile_id: assignedToProfileId,
+    due_at: input.dueAt,
+    priority: input.priority,
+    status: input.status,
+    completed_at:
+      input.status === undefined
+        ? undefined
+        : nextStatus === "completed"
+          ? task.completed_at ?? new Date().toISOString()
+          : null
+  });
+}
+
 function mapLeadCommentRowToItem(row: LeadCommentRow): LeadComment {
+  const isContact = row.body.startsWith("[CONTACT_LOG] ");
+  const body = isContact ? row.body.replace("[CONTACT_LOG] ", "") : row.body;
+
   return {
     id: row.id,
     leadId: row.lead_id,
     authorProfileId: row.author_profile_id,
     authorName: row.author_name,
     authorEmail: row.author_email,
-    body: row.body,
+    body,
+    type: isContact ? "contact" : "comment",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function mapLeadTaskRowToItem(row: LeadTaskRow): LeadTaskItem {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    leadId: row.lead_id,
+    createdByProfileId: row.created_by_profile_id,
+    assignedToProfileId: row.assigned_to_profile_id,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    priority: row.priority,
+    dueAt: row.due_at,
+    completedAt: row.completed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -854,6 +1099,50 @@ async function getLeadForMutation(id: string, organizationId: string) {
 
   if (!data) {
     throw new Error("Lead nao encontrado.");
+  }
+
+  return data;
+}
+
+async function getLeadTaskForMutation(id: string, organizationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("lead_tasks")
+    .select("*")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "42P01") {
+      throw new Error("A tabela de tarefas por lead ainda nao foi criada no banco de dados.");
+    }
+
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Tarefa do lead nao encontrada.");
+  }
+
+  return data;
+}
+
+async function resolveLeadTaskAssigneeProfile(organizationId: string, profileId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", profileId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Responsavel da tarefa nao encontrado nesta organizacao.");
   }
 
   return data;
@@ -1150,7 +1439,8 @@ function getMissingLeadColumnName(message: string) {
   const fallbackColumns = [
     "import_batch_id",
     "archive_reason",
-    "duplicate_of_lead_id"
+    "duplicate_of_lead_id",
+    "loss_reason"
   ] as const;
 
   return fallbackColumns.find((column) =>
@@ -1228,7 +1518,7 @@ function assertCanManageLead(
   throw new Error(`Sem permissao para ${action} este lead.`);
 }
 
-function assertCanAccessLead(profile: ProfileRow, lead: LeadRow, action: "visualizar" | "comentar") {
+function assertCanAccessLead(profile: ProfileRow, lead: LeadRow, action: string) {
   if (isWorkspaceManagerRole(profile.role)) {
     return;
   }
@@ -1238,6 +1528,18 @@ function assertCanAccessLead(profile: ProfileRow, lead: LeadRow, action: "visual
   }
 
   throw new Error(`Sem permissao para ${action} este lead.`);
+}
+
+function assertCanMutateLeadTask(profile: ProfileRow, task: LeadTaskRow) {
+  if (isWorkspaceManagerRole(profile.role)) {
+    return;
+  }
+
+  if (task.created_by_profile_id === profile.id || task.assigned_to_profile_id === profile.id) {
+    return;
+  }
+
+  throw new Error("Sem permissao para alterar esta tarefa do lead.");
 }
 
 function normalizeWebhookLeadSource(
@@ -1266,10 +1568,40 @@ function normalizeLeadCommentBody(value: unknown) {
   return body;
 }
 
+function resolveLeadTaskCreateInput(input: LeadTaskCreateInput) {
+  return {
+    title: normalizeLeadTaskTitle(input.title),
+    description: normalizeLeadTaskDescription(input.description),
+    dueAt: normalizeLeadTaskDueAt(input.due_at),
+    assignedToProfileId: normalizeOptionalLeadTaskProfileId(input.assigned_to_profile_id),
+    priority: normalizeLeadTaskPriority(input.priority)
+  };
+}
+
+function resolveLeadTaskUpdateInput(input: LeadTaskUpdateInput) {
+  return {
+    title: input.title === undefined ? undefined : normalizeLeadTaskTitle(input.title),
+    description:
+      input.description === undefined
+        ? undefined
+        : normalizeLeadTaskDescription(input.description),
+    dueAt: input.due_at === undefined ? undefined : normalizeLeadTaskDueAt(input.due_at),
+    assignedToProfileId:
+      input.assigned_to_profile_id === undefined
+        ? undefined
+        : normalizeRequiredLeadTaskProfileId(input.assigned_to_profile_id),
+    priority:
+      input.priority === undefined ? undefined : normalizeLeadTaskPriority(input.priority),
+    status: input.status === undefined ? undefined : normalizeLeadTaskStatus(input.status)
+  };
+}
+
 function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInsert {
   const name = getRequiredLeadName(input.name);
   const phone = normalizePhone(input.phone);
   const rawPayload = toJson(input.raw_payload);
+  const stage = normalizeLeadStage(input.stage);
+  const lossReason = stage === "lost" ? stringOrNull(input.loss_reason) : null;
 
   return {
     organization_id: profile.organization_id,
@@ -1281,12 +1613,14 @@ function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInser
     city: stringOrNull(input.city),
     company_name: stringOrNull(input.company_name),
     lives_count: normalizeInteger(input.lives_count),
-    stage: normalizeLeadStage(input.stage),
+    stage,
     source: normalizeLeadSource(input.source),
     budget: stringOrNull(input.budget),
     interest: stringOrNull(input.interest),
     last_interaction: stringOrNull(input.last_interaction),
     notes: stringOrNull(input.notes),
+    loss_reason: lossReason,
+    quality: normalizeLeadQuality(input.quality),
     cpf: stringOrNull(input.cpf),
     birth_date: stringOrNull(input.birth_date),
     profession: stringOrNull(input.profession),
@@ -1334,6 +1668,7 @@ function createMockLead(input: LeadCreateInput): Lead {
   const email = normalizeEmail(input.email);
   const stage = normalizeLeadStage(input.stage);
   const source = normalizeLeadSource(input.source);
+  const lossReason = stage === "lost" ? stringOrNull(input.loss_reason) : null;
   const now = new Date();
 
   return {
@@ -1355,12 +1690,17 @@ function createMockLead(input: LeadCreateInput): Lead {
     lastInteraction:
       stringOrNull(input.last_interaction) ?? "Lead cadastrado manualmente no modo demonstracao.",
     notes: stringOrNull(input.notes) ?? "Sem observacoes registradas.",
+    lossReason,
+    quality: normalizeLeadQuality(input.quality),
     sourceCampaign: stringOrNull(input.source_campaign),
     sourceAdset: stringOrNull(input.source_adset),
     sourceAd: stringOrNull(input.source_ad),
     metaLeadId: stringOrNull(input.meta_lead_id),
     metaFormId: stringOrNull(input.meta_form_id),
     metaPageId: stringOrNull(input.meta_page_id),
+    metaCampaignId: stringOrNull(input.meta_campaign_id),
+    metaAdsetId: stringOrNull(input.meta_adset_id),
+    metaAdId: stringOrNull(input.meta_ad_id),
     metaConnectedAccountId: stringOrNull(input.meta_connected_account_id),
     receivedAt: now.toISOString()
   };
@@ -1371,9 +1711,14 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
   const phone = input.phone === undefined ? null : normalizePhone(input.phone);
   const email = input.email === undefined ? undefined : normalizeEmail(input.email);
   const stage = input.stage === undefined ? undefined : normalizeLeadStage(input.stage);
+  const effectiveStage = stage ?? getLeadStageValueForMock(existingLead?.stage);
   const source = input.source === undefined ? undefined : normalizeLeadSource(input.source);
   const livesCount =
     input.lives_count === undefined ? existingLead?.livesCount : normalizeInteger(input.lives_count);
+  const quality =
+    input.quality === undefined
+      ? existingLead?.quality ?? null
+      : normalizeLeadQuality(input.quality);
   const now = new Date();
   const updatedLeadBase = {
     id,
@@ -1414,6 +1759,13 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
       input.notes === undefined
         ? existingLead?.notes ?? "Sem observacoes registradas."
         : stringOrNull(input.notes) ?? "Sem observacoes registradas.",
+    lossReason: resolveLeadLossReason({
+      currentStage: effectiveStage,
+      currentValue: existingLead?.lossReason ?? null,
+      nextStageProvided: input.stage !== undefined,
+      nextValue: input.loss_reason
+    }),
+    quality,
     sourceCampaign:
       input.source_campaign === undefined
         ? existingLead?.sourceCampaign ?? null
@@ -1436,6 +1788,18 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
       input.meta_page_id === undefined
         ? existingLead?.metaPageId ?? null
         : stringOrNull(input.meta_page_id),
+    metaCampaignId:
+      input.meta_campaign_id === undefined
+        ? existingLead?.metaCampaignId ?? null
+        : stringOrNull(input.meta_campaign_id),
+    metaAdsetId:
+      input.meta_adset_id === undefined
+        ? existingLead?.metaAdsetId ?? null
+        : stringOrNull(input.meta_adset_id),
+    metaAdId:
+      input.meta_ad_id === undefined
+        ? existingLead?.metaAdId ?? null
+        : stringOrNull(input.meta_ad_id),
     metaConnectedAccountId:
       input.meta_connected_account_id === undefined
         ? existingLead?.metaConnectedAccountId ?? null
@@ -1458,6 +1822,13 @@ function getRequiredLeadName(value: unknown) {
 function buildLeadUpdate(existingLead: LeadRow, input: LeadCreateInput): Database["public"]["Tables"]["leads"]["Update"] {
   const phone = normalizePhone(input.phone);
   const rawPayload = toJson(input.raw_payload);
+  const effectiveStage = input.stage === undefined ? existingLead.stage : normalizeLeadStage(input.stage);
+  const nextLossReason = resolveLeadLossReason({
+    currentStage: effectiveStage,
+    currentValue: existingLead.loss_reason,
+    nextStageProvided: input.stage !== undefined,
+    nextValue: input.loss_reason
+  });
 
   return removeUndefinedValues({
     name: stringOrNull(input.name) ?? undefined,
@@ -1474,6 +1845,8 @@ function buildLeadUpdate(existingLead: LeadRow, input: LeadCreateInput): Databas
     last_interaction:
       input.last_interaction === undefined ? undefined : stringOrNull(input.last_interaction),
     notes: input.notes === undefined ? undefined : stringOrNull(input.notes),
+    loss_reason: nextLossReason,
+    quality: input.quality === undefined ? undefined : normalizeLeadQuality(input.quality),
     cpf: input.cpf === undefined ? undefined : stringOrNull(input.cpf),
     birth_date: input.birth_date === undefined ? undefined : stringOrNull(input.birth_date),
     profession: input.profession === undefined ? undefined : stringOrNull(input.profession),
@@ -1532,18 +1905,59 @@ function mapLeadRowToLead(
     interest: row.interest ?? "Interesse ainda nao qualificado",
     lastInteraction: row.last_interaction ?? "Lead recebido no CRM.",
     notes: row.notes ?? "Sem observacoes registradas.",
+    lossReason: row.loss_reason,
+    quality: normalizeLeadQuality(row.quality),
     sourceCampaign: row.source_campaign,
     sourceAdset: row.source_adset,
     sourceAd: row.source_ad,
     metaLeadId: row.meta_lead_id,
     metaFormId: row.meta_form_id,
     metaPageId: row.meta_page_id,
+    metaCampaignId: row.meta_campaign_id,
+    metaAdsetId: row.meta_adset_id,
+    metaAdId: row.meta_ad_id,
     metaConnectedAccountId: row.meta_connected_account_id,
     receivedAt: row.received_at,
     archivedAt: row.archived_at,
     archiveReason: row.archive_reason,
     duplicateOfLeadId: row.duplicate_of_lead_id
   };
+}
+
+function getLeadStageValueForMock(stage: string | undefined) {
+  switch (stage) {
+    case "Novo lead":
+      return "new";
+    case "Qualificação":
+      return "qualification";
+    case "Proposta":
+      return "proposal";
+    case "Negociação":
+      return "negotiation";
+    case "Venda":
+      return "won";
+    case "Perdido":
+      return "lost";
+    default:
+      return "new";
+  }
+}
+
+function resolveLeadLossReason(input: {
+  currentStage: LeadRow["stage"];
+  currentValue: string | null;
+  nextStageProvided: boolean;
+  nextValue: unknown;
+}) {
+  if (input.currentStage !== "lost") {
+    return input.nextStageProvided || input.nextValue !== undefined ? null : undefined;
+  }
+
+  if (input.nextValue === undefined) {
+    return undefined;
+  }
+
+  return stringOrNull(input.nextValue);
 }
 
 function updateMockLeadCommentLead(id: string, commentBody: string) {
@@ -1604,6 +2018,155 @@ function normalizeInteger(value: unknown) {
   const numberValue = typeof value === "number" ? value : Number(value);
 
   return Number.isFinite(numberValue) ? Math.max(0, Math.round(numberValue)) : null;
+}
+
+function normalizeLeadTaskTitle(value: unknown) {
+  const title = stringOrNull(value)?.trim();
+
+  if (!title) {
+    throw new Error("Titulo da tarefa e obrigatorio.");
+  }
+
+  if (title.length > 160) {
+    throw new Error("Titulo da tarefa muito longo. Use ate 160 caracteres.");
+  }
+
+  return title;
+}
+
+function normalizeLeadTaskDescription(value: unknown) {
+  const description = stringOrNull(value)?.trim() ?? null;
+
+  if (description && description.length > 4000) {
+    throw new Error("Descricao da tarefa muito longa. Use ate 4000 caracteres.");
+  }
+
+  return description;
+}
+
+function normalizeLeadTaskDueAt(value: unknown) {
+  const rawValue = stringOrNull(value);
+
+  if (!rawValue) {
+    return null;
+  }
+
+  const parsedDate = new Date(rawValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new Error("Prazo da tarefa invalido.");
+  }
+
+  return parsedDate.toISOString();
+}
+
+function normalizeOptionalLeadTaskProfileId(value: unknown) {
+  const profileId = stringOrNull(value);
+  return profileId?.trim() || null;
+}
+
+function normalizeRequiredLeadTaskProfileId(value: unknown) {
+  const profileId = stringOrNull(value)?.trim();
+
+  if (!profileId) {
+    throw new Error("Responsavel da tarefa invalido.");
+  }
+
+  return profileId;
+}
+
+function normalizeLeadTaskPriority(value: unknown): LeadTaskPriorityValue {
+  if (value === null || value === undefined || value === "") {
+    return "medium";
+  }
+
+  if (value === "low" || value === "medium" || value === "high") {
+    return value;
+  }
+
+  throw new Error("Prioridade da tarefa invalida.");
+}
+
+function normalizeLeadTaskStatus(value: unknown): LeadTaskStatusValue {
+  if (value === "open" || value === "in_progress" || value === "completed" || value === "cancelled") {
+    return value;
+  }
+
+  throw new Error("Status da tarefa invalido.");
+}
+
+function createMockLeadTask(
+  leadId: string,
+  input: ReturnType<typeof resolveLeadTaskCreateInput>
+): LeadTaskItem {
+  const now = new Date().toISOString();
+  const task: LeadTaskItem = {
+    id: `mock-lead-task-${crypto.randomUUID()}`,
+    organizationId: "mock-organization",
+    leadId,
+    createdByProfileId: "mock-profile",
+    assignedToProfileId: input.assignedToProfileId ?? "mock-profile",
+    title: input.title,
+    description: input.description,
+    status: "open",
+    priority: input.priority,
+    dueAt: input.dueAt,
+    completedAt: null,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  mockLeadTasks.unshift(task);
+
+  return task;
+}
+
+function updateMockLeadTask(
+  taskId: string,
+  input: ReturnType<typeof resolveLeadTaskUpdateInput>
+): LeadTaskItem {
+  const existingTask = mockLeadTasks.find((task) => task.id === taskId);
+
+  if (!existingTask) {
+    throw new Error("Tarefa do lead nao encontrada.");
+  }
+
+  const nextStatus = input.status ?? existingTask.status;
+  const updatedTask: LeadTaskItem = {
+    ...existingTask,
+    title: input.title ?? existingTask.title,
+    description: input.description === undefined ? existingTask.description : input.description,
+    assignedToProfileId:
+      input.assignedToProfileId === undefined
+        ? existingTask.assignedToProfileId
+        : input.assignedToProfileId,
+    dueAt: input.dueAt === undefined ? existingTask.dueAt : input.dueAt,
+    priority: input.priority ?? existingTask.priority,
+    status: nextStatus,
+    completedAt:
+      input.status === undefined
+        ? existingTask.completedAt
+        : nextStatus === "completed"
+          ? existingTask.completedAt ?? new Date().toISOString()
+          : null,
+    updatedAt: new Date().toISOString()
+  };
+
+  const taskIndex = mockLeadTasks.findIndex((task) => task.id === taskId);
+  mockLeadTasks[taskIndex] = updatedTask;
+
+  return updatedTask;
+}
+
+function compareLeadTasks(left: LeadTaskItem, right: LeadTaskItem) {
+  const leftDueAt = left.dueAt ? new Date(left.dueAt).getTime() : Number.MAX_SAFE_INTEGER;
+  const rightDueAt = right.dueAt ? new Date(right.dueAt).getTime() : Number.MAX_SAFE_INTEGER;
+
+  if (leftDueAt !== rightDueAt) {
+    return leftDueAt - rightDueAt;
+  }
+
+  return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
 }
 
 function getProfileWebhookPriority(role: ProfileRow["role"]) {

@@ -15,6 +15,7 @@ import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist
 import { dismissOnboardingChecklist, toggleOnboardingStep } from "./onboarding-actions";
 import type { OnboardingState } from "@/lib/onboarding/types";
 import type { DashboardReminderItem } from "@/lib/dashboard-reminders/types";
+import type { SystemTemplate } from "@/lib/templates/types";
 import { RemindersCalendarCard } from "@/components/dashboard/reminders-calendar-card";
 
 type DashboardHomeProps = {
@@ -28,6 +29,7 @@ type DashboardHomeProps = {
   creativeRequestsCount?: number;
   onboardingState?: OnboardingState | null;
   dashboardReminders?: DashboardReminderItem[];
+  whatsappTemplates?: SystemTemplate[];
 };
 
 export function DashboardHome({
@@ -38,7 +40,8 @@ export function DashboardHome({
   whatsappMessagesCount = 0,
   creativeRequestsCount = 0,
   onboardingState = null,
-  dashboardReminders = []
+  dashboardReminders = [],
+  whatsappTemplates = []
 }: DashboardHomeProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const metrics = preview
@@ -227,7 +230,13 @@ export function DashboardHome({
         </aside>
       </section>
 
-      <LeadDetailsPopup aiBalance={aiBalance} lead={selectedLead} onClose={() => setSelectedLead(null)} />
+      <LeadDetailsPopup
+        aiBalance={aiBalance}
+        lead={selectedLead}
+        messageGeneratorEnabled
+        onClose={() => setSelectedLead(null)}
+        whatsappTemplates={whatsappTemplates}
+      />
     </div>
   );
 }

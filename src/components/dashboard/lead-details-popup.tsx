@@ -17,6 +17,22 @@ import {
 } from "lucide-react";
 import type { Lead } from "@/data/mock";
 import type { LeadComment } from "@/lib/leads/comments";
+import {
+  getLeadQualityLabel,
+  getLeadQualityMeta,
+  leadQualityOptions
+} from "@/lib/leads/quality";
+import {
+  getLeadStageLabel,
+  getLeadStageMeta,
+  getLeadStageValue,
+  type LeadStageTone
+} from "@/lib/leads/stages";
+import {
+  getLeadOriginDescription,
+  getLeadOriginDetails
+} from "@/lib/leads/source";
+import { normalizePhone } from "@/lib/leads/normalization";
 import { LeadMessageGenerator } from "./lead-message-generator";
 import type { SystemTemplate } from "@/lib/templates/types";
 
@@ -40,11 +56,13 @@ type LeadEditValues = {
   city: string;
   company_name: string;
   lives_count: string;
+  quality: string;
   stage: string;
   interest: string;
   budget: string;
   last_interaction: string;
   notes: string;
+  loss_reason: string;
 };
 
 type LeadEditErrors = Partial<Record<keyof LeadEditValues | "contact", string>>;
@@ -73,15 +91,6 @@ type LeadCommentResponse = {
   error?: string;
   mode?: LeadUpdateMode;
 };
-
-const stageOptions = [
-  { value: "new", label: "Novo lead" },
-  { value: "qualification", label: "Qualificação" },
-  { value: "proposal", label: "Proposta" },
-  { value: "negotiation", label: "Negociação" },
-  { value: "won", label: "Venda" },
-  { value: "lost", label: "Perdido" }
-];
 
 const emptyDisplayValues = new Set([
   "Sem telefone",
@@ -115,6 +124,7 @@ export function LeadDetailsPopup({
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [commentsStatus, setCommentsStatus] = useState<"idle" | "loading" | "ready">("idle");
   const [commentDraft, setCommentDraft] = useState("");
+  const [commentType, setCommentType] = useState<"comment" | "contact">("comment");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [status, setStatus] = useState<{
     type: "error" | "success";
@@ -145,6 +155,7 @@ export function LeadDetailsPopup({
     setCommentsStatus("idle");
     setActivePanel(messageGeneratorEnabled && initialPanel === "message" ? "message" : "details");
     setCommentDraft("");
+    setCommentType("comment");
     setIsSubmittingComment(false);
   }, [initialPanel, lead, messageGeneratorEnabled]);
 
@@ -238,6 +249,16 @@ export function LeadDetailsPopup({
   const activeLead = lead;
   const emailHref = buildEmailHref(lead.email);
   const phoneHref = buildPhoneHref(lead.phone);
+  const whatsappHref = buildWhatsAppHref(lead);
+  const activeStageMeta = getLeadStageMeta(activeLead.stage);
+  const activeStageLabel = getLeadStageLabel(activeLead.stage);
+  const isLostLead = activeStageMeta?.value === "lost";
+  const activeStageDescription =
+    activeStageMeta?.description ?? "Etapa comercial atual do lead no CRM.";
+  const stageBadgeClassName = getLeadStageBadgeClassName(activeStageMeta?.tone);
+  const stagePanelClassName = getLeadStagePanelClassName(activeStageMeta?.tone);
+  const leadQualityMeta = getLeadQualityMeta(activeLead.quality);
+  const lossReasonDescription = lead.lossReason?.trim() || "Motivo de perda ainda nao registrado.";
 
   const closePopup = () => {
     if (!isSubmitting && !isDeleting) {
@@ -396,7 +417,7 @@ export function LeadDetailsPopup({
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ body })
+        body: JSON.stringify({ body, type: commentType })
       });
       const data = await parseLeadCommentResponse(response);
 
@@ -406,6 +427,7 @@ export function LeadDetailsPopup({
 
       setComments((currentComments) => [...currentComments, data.comment!]);
       setCommentDraft("");
+      setCommentType("comment");
       setCommentsStatus("ready");
       setStatus({
         type: "success",
@@ -432,12 +454,15 @@ export function LeadDetailsPopup({
     { icon: PhoneCall, label: "Telefone", value: lead.phone },
     { icon: Mail, label: "Email", value: lead.email },
     { icon: CheckCircle2, label: "Cidade", value: lead.city ?? "Cidade nao informada" },
-    { icon: CheckCircle2, label: "Vidas", value: formatLivesCount(lead.livesCount) }
+    { icon: CheckCircle2, label: "Vidas", value: formatLivesCount(lead.livesCount) },
+    { icon: CheckCircle2, label: "Qualidade", value: getLeadQualityLabel(lead.quality) }
   ];
+  const originDetails = getLeadOriginDetails(activeLead);
   const sourceItems = [
-    { label: "Etapa", value: lead.stage },
+    { label: "Etapa", value: activeStageLabel },
     { label: "Origem", value: lead.source },
-    { label: "Campanha", value: lead.sourceCampaign ?? "Nao informada" },
+    { label: "Leitura da origem", value: getLeadOriginDescription(activeLead.source) },
+    ...originDetails,
     { label: "Orcamento", value: lead.budget },
     { label: "Recebido em", value: formatLeadDateTime(lead.receivedAt) ?? lead.createdAt },
     { label: "Criado em", value: lead.createdAt }
@@ -460,9 +485,10 @@ export function LeadDetailsPopup({
               <span className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-cloud">
                 {lead.id}
               </span>
-              <span className="rounded-full bg-white/64 px-3 py-1.5 text-xs font-semibold">
-                {lead.stage}
+              <span className={stageBadgeClassName}>
+                Etapa: {activeStageLabel}
               </span>
+              <LeadQualityBadge quality={lead.quality} />
             </div>
             <h2 className="text-2xl font-semibold sm:text-3xl" id="lead-popup-title">
               {isEditing ? "Editar lead" : lead.name}
@@ -514,6 +540,26 @@ export function LeadDetailsPopup({
                     <MessageCircle size={18} aria-hidden="true" />
                   </button>
                 ) : null}
+                <a
+                  aria-disabled={!whatsappHref}
+                  aria-label="Abrir WhatsApp com mensagem pronta"
+                  className={`icon-button ${
+                    whatsappHref
+                      ? "border-emerald-200/80 bg-emerald-50/85 text-emerald-700 hover:bg-emerald-100/90"
+                      : "cursor-not-allowed border-white/60 bg-white/45 text-ink/35 hover:bg-white/45"
+                  }`}
+                  href={whatsappHref ?? "#"}
+                  onClick={(event) => {
+                    if (!whatsappHref) {
+                      event.preventDefault();
+                    }
+                  }}
+                  rel="noreferrer"
+                  target="_blank"
+                  title="Abrir WhatsApp com mensagem pronta"
+                >
+                  <Send size={18} aria-hidden="true" />
+                </a>
                 <a
                   className="icon-button"
                   href={phoneHref ?? "#"}
@@ -659,8 +705,24 @@ export function LeadDetailsPopup({
 
               <LeadField label="Etapa">
                 <div className="liquid-input flex items-center bg-white/40 text-sm font-medium opacity-70">
-                  {activeLead.stage}
+                  {activeStageLabel}
                 </div>
+              </LeadField>
+
+              <LeadField label="Qualidade do lead">
+                <select
+                  className={fieldClass(false)}
+                  disabled={isSubmitting}
+                  onChange={(event) => updateField("quality", event.target.value)}
+                  value={formValues.quality}
+                >
+                  <option value="">Nao classificada</option>
+                  {leadQualityOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </LeadField>
 
               <LeadField error={errors.budget} label="Orçamento">
@@ -704,6 +766,20 @@ export function LeadDetailsPopup({
                   value={formValues.notes}
                 />
               </LeadField>
+
+              {isLostLead ? (
+                <LeadField className="md:col-span-2" error={errors.loss_reason} label="Motivo de perda">
+                  <textarea
+                    aria-invalid={Boolean(errors.loss_reason)}
+                    className={`${fieldClass(Boolean(errors.loss_reason))} min-h-[116px] resize-y`}
+                    disabled={isSubmitting}
+                    maxLength={500}
+                    onChange={(event) => updateField("loss_reason", event.target.value)}
+                    placeholder="Registre por que esta oportunidade foi perdida."
+                    value={formValues.loss_reason}
+                  />
+                </LeadField>
+              ) : null}
             </div>
 
             <div className="mt-6 flex flex-col-reverse gap-3 border-t border-ink/10 pt-5 sm:flex-row sm:justify-end">
@@ -778,6 +854,29 @@ export function LeadDetailsPopup({
                 </div>
 
                 <div className="space-y-4">
+                  <div className={stagePanelClassName}>
+                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                      Etapa atual
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <span className={stageBadgeClassName}>{activeStageLabel}</span>
+                      <LeadQualityBadge quality={lead.quality} />
+                      <p className="text-sm font-medium text-ink/68">{activeStageDescription}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[22px] bg-white/52 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                      Qualidade do lead
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <LeadQualityBadge quality={lead.quality} />
+                      <p className="text-sm font-medium text-ink/68">
+                        {leadQualityMeta?.description ?? "Classificacao comercial ainda nao definida."}
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="rounded-[22px] bg-white/52 p-4">
                     <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
                       Interesse principal
@@ -798,6 +897,15 @@ export function LeadDetailsPopup({
                     </p>
                     <p className="mt-2 text-sm leading-6 text-ink/72">{lead.notes}</p>
                   </div>
+
+                  {isLostLead ? (
+                    <div className="rounded-[22px] bg-white/52 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                        Motivo de perda
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-ink/72">{lossReasonDescription}</p>
+                    </div>
+                  ) : null}
                 </div>
               </section>
 
@@ -839,6 +947,30 @@ export function LeadDetailsPopup({
               </div>
 
               <form className="mb-4 space-y-3" onSubmit={handleCommentSubmit}>
+                <div className="flex items-center gap-4 px-1 pb-1">
+                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <input
+                      type="radio"
+                      name="commentType"
+                      value="comment"
+                      checked={commentType === "comment"}
+                      onChange={() => setCommentType("comment")}
+                      className="text-cobalt focus:ring-cobalt"
+                    />
+                    Comentário
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <input
+                      type="radio"
+                      name="commentType"
+                      value="contact"
+                      checked={commentType === "contact"}
+                      onChange={() => setCommentType("contact")}
+                      className="text-cobalt focus:ring-cobalt"
+                    />
+                    Contato realizado
+                  </label>
+                </div>
                 <textarea
                   className="liquid-input min-h-[120px] resize-y"
                   disabled={isSubmittingComment}
@@ -885,10 +1017,23 @@ export function LeadDetailsPopup({
                   </div>
                 ) : (
                   comments.map((comment) => (
-                    <article className="rounded-[22px] bg-white/58 p-4" key={comment.id}>
+                    <article
+                      className={`rounded-[22px] p-4 ${
+                        comment.type === "contact" ? "bg-amber-50 border border-amber-200/60" : "bg-white/58"
+                      }`}
+                      key={comment.id}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-ink">{comment.authorName}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-ink">{comment.authorName}</p>
+                            {comment.type === "contact" && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 uppercase tracking-wide">
+                                <PhoneCall size={10} aria-hidden="true" />
+                                Contato
+                              </span>
+                            )}
+                          </div>
                           <p className="mt-1 text-xs text-ink/46">{comment.authorEmail}</p>
                         </div>
                         <span className="inline-flex items-center gap-1 rounded-full bg-white/72 px-3 py-1.5 text-[11px] font-semibold text-ink/56">
@@ -998,6 +1143,20 @@ function LeadField({
   );
 }
 
+function LeadQualityBadge({ quality }: { quality: Lead["quality"] }) {
+  const meta = getLeadQualityMeta(quality);
+
+  if (!meta) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-white/78 px-3 py-1.5 text-xs font-semibold text-ink/58 ring-1 ring-inset ring-black/5">
+        Qualidade: Nao classificada
+      </span>
+    );
+  }
+
+  return <span className={meta.badgeClassName}>Qualidade: {meta.label}</span>;
+}
+
 function getLeadEditValues(lead: Lead): LeadEditValues {
   return {
     name: editableValue(lead.name),
@@ -1007,11 +1166,13 @@ function getLeadEditValues(lead: Lead): LeadEditValues {
     company_name: editableValue(lead.companyName ?? ""),
     lives_count:
       lead.livesCount === undefined || lead.livesCount === null ? "" : String(lead.livesCount),
+    quality: lead.quality ?? "",
     stage: stageToValue(lead.stage),
     interest: editableValue(lead.interest),
     budget: editableValue(lead.budget),
     last_interaction: editableValue(lead.lastInteraction),
-    notes: editableValue(lead.notes)
+    notes: editableValue(lead.notes),
+    loss_reason: editableValue(lead.lossReason ?? "")
   };
 }
 
@@ -1053,11 +1214,13 @@ function buildLeadUpdatePayload(values: LeadEditValues) {
     city: values.city,
     company_name: values.company_name,
     lives_count: values.lives_count ? Number(values.lives_count) : null,
+    quality: values.quality || null,
     stage: values.stage,
     interest: values.interest,
     budget: values.budget,
     last_interaction: values.last_interaction,
-    notes: values.notes
+    notes: values.notes,
+    loss_reason: values.loss_reason
   };
 }
 
@@ -1148,7 +1311,49 @@ function getFriendlyLeadCommentError(error: string | undefined, action: "load" |
 }
 
 function stageToValue(stage: string) {
-  return stageOptions.find((option) => option.label === stage)?.value ?? "new";
+  return getLeadStageValue(stage) ?? "new";
+}
+
+function getLeadStageBadgeClassName(tone?: LeadStageTone) {
+  const sharedClassName = "rounded-full px-3 py-1.5 text-xs font-semibold";
+
+  switch (tone) {
+    case "cobalt":
+      return `${sharedClassName} bg-cobalt text-white`;
+    case "lagoon":
+      return `${sharedClassName} bg-lagoon text-white`;
+    case "signal":
+      return `${sharedClassName} bg-signal text-ink dark:text-cloud`;
+    case "ink":
+      return `${sharedClassName} bg-ink text-cloud`;
+    case "emerald":
+      return `${sharedClassName} bg-emerald-600 text-white`;
+    case "red":
+      return `${sharedClassName} bg-red-600 text-white`;
+    default:
+      return `${sharedClassName} bg-white/64 text-ink`;
+  }
+}
+
+function getLeadStagePanelClassName(tone?: LeadStageTone) {
+  const sharedClassName = "rounded-[22px] p-4";
+
+  switch (tone) {
+    case "cobalt":
+      return `${sharedClassName} border border-cobalt/18 bg-cobalt/10`;
+    case "lagoon":
+      return `${sharedClassName} border border-lagoon/20 bg-lagoon/12`;
+    case "signal":
+      return `${sharedClassName} border border-signal/40 bg-signal/20`;
+    case "ink":
+      return `${sharedClassName} border border-ink/14 bg-ink/8`;
+    case "emerald":
+      return `${sharedClassName} border border-emerald-500/20 bg-emerald-500/12`;
+    case "red":
+      return `${sharedClassName} border border-red-500/18 bg-red-500/10`;
+    default:
+      return `${sharedClassName} bg-white/52`;
+  }
 }
 
 function editableValue(value: string) {
@@ -1156,12 +1361,43 @@ function editableValue(value: string) {
 }
 
 function buildPhoneHref(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  return digits ? `tel:${digits}` : undefined;
+  const normalizedPhone = normalizePhone(phone).e164;
+  return normalizedPhone ? `tel:${normalizedPhone}` : undefined;
 }
 
 function buildEmailHref(email: string) {
   return email && !emptyDisplayValues.has(email) ? `mailto:${email}` : undefined;
+}
+
+function buildWhatsAppHref(lead: Lead) {
+  const normalizedPhone = normalizePhone(lead.phone).e164;
+
+  if (!normalizedPhone) {
+    return undefined;
+  }
+
+  const phone = normalizedPhone.replace(/\D/g, "");
+  const text = encodeURIComponent(buildWhatsAppMessage(lead));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+function buildWhatsAppMessage(lead: Lead) {
+  const firstName = getLeadFirstName(lead.name);
+  const hasInterest = hasMeaningfulDisplayValue(lead.interest);
+  const hasCompanyName = hasMeaningfulDisplayValue(lead.companyName);
+  const interestSnippet = hasInterest ? ` sobre ${lead.interest}` : "";
+  const companySnippet = hasCompanyName ? ` para ${lead.companyName}` : "";
+
+  return `Ola, ${firstName}! Tudo bem? Vi seu interesse${interestSnippet}${companySnippet} e posso te ajudar por aqui.`;
+}
+
+function getLeadFirstName(name: string) {
+  const [firstName] = name.trim().split(/\s+/);
+  return firstName || "ola";
+}
+
+function hasMeaningfulDisplayValue(value: string | null | undefined) {
+  return typeof value === "string" && value.trim() !== "" && !emptyDisplayValues.has(value);
 }
 
 function formatLivesCount(value: number | null | undefined) {

@@ -1,6 +1,13 @@
 import type { LeadStage } from "@/lib/supabase/database.types";
 
 export type LeadStageValue = LeadStage;
+export type LeadStageTone = "cobalt" | "lagoon" | "signal" | "ink" | "emerald" | "red";
+export type LeadStageMeta = {
+  value: LeadStage;
+  label: string;
+  description: string;
+  tone: LeadStageTone;
+};
 
 export const leadStageOptions = [
   { value: "new", label: "Novo lead" },
@@ -11,23 +18,68 @@ export const leadStageOptions = [
   { value: "lost", label: "Perdido" }
 ] as const satisfies ReadonlyArray<{ value: LeadStage; label: string }>;
 
-const leadStageLabelByValue: Record<LeadStage, string> = {
-  new: "Novo lead",
-  qualification: "Qualificação",
-  proposal: "Proposta",
-  negotiation: "Negociação",
-  won: "Venda",
-  lost: "Perdido"
+const leadStageMetaByValue: Record<LeadStage, LeadStageMeta> = {
+  new: {
+    value: "new",
+    label: "Novo lead",
+    description: "Entrada e primeira abordagem",
+    tone: "cobalt"
+  },
+  qualification: {
+    value: "qualification",
+    label: "Qualificação",
+    description: "Diagnóstico comercial",
+    tone: "lagoon"
+  },
+  proposal: {
+    value: "proposal",
+    label: "Proposta",
+    description: "Simulação enviada",
+    tone: "signal"
+  },
+  negotiation: {
+    value: "negotiation",
+    label: "Negociação",
+    description: "Ajustes e objeções",
+    tone: "ink"
+  },
+  won: {
+    value: "won",
+    label: "Venda",
+    description: "Venda ganha",
+    tone: "emerald"
+  },
+  lost: {
+    value: "lost",
+    label: "Perdido",
+    description: "Perdidos ou sem avanço",
+    tone: "red"
+  }
 };
 
 const leadStageValueByLabel = new Map<string, LeadStage>(
   leadStageOptions.map((option) => [option.label, option.value])
 );
+const leadStageValues = new Set<LeadStage>(leadStageOptions.map((option) => option.value));
 
 export function getLeadStageLabel(value: LeadStage | string) {
-  return leadStageLabelByValue[value as LeadStage] ?? value;
+  return getLeadStageMeta(value)?.label ?? value;
 }
 
-export function getLeadStageValue(label: string): LeadStage | null {
-  return leadStageValueByLabel.get(label) ?? null;
+export function getLeadStageValue(input: string): LeadStage | null {
+  if (leadStageValues.has(input as LeadStage)) {
+    return input as LeadStage;
+  }
+
+  return leadStageValueByLabel.get(input) ?? null;
+}
+
+export function getLeadStageMeta(input: LeadStage | string) {
+  const value = getLeadStageValue(input);
+
+  if (!value) {
+    return null;
+  }
+
+  return leadStageMetaByValue[value];
 }

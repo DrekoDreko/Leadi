@@ -30,6 +30,7 @@ import {
   type LeadStageValue
 } from "@/lib/leads/stages";
 import type { LeadDataMode, LeadDataState } from "@/lib/leads/repository";
+import type { SystemTemplate } from "@/lib/templates/types";
 import { LeadCreateModal } from "../leads/lead-create-modal";
 
 type StageTone = {
@@ -87,11 +88,13 @@ const stageToneByValue: Record<LeadStageValue, StageTone> = {
 export function SalesFunnelWorkspace({
   aiBalance,
   createLeadAccess,
-  leadState
+  leadState,
+  whatsappTemplates = []
 }: {
   aiBalance: number;
   createLeadAccess: ResourceAccessSummary;
   leadState: LeadDataState;
+  whatsappTemplates?: SystemTemplate[];
 }) {
   const router = useRouter();
   const [leads, setLeads] = useState(leadState.leads);
@@ -110,9 +113,12 @@ export function SalesFunnelWorkspace({
   const visibleLeads = leads.filter((lead) => matchesFunnelSearch(lead, deferredSearchTerm));
   const columns = buildFunnelColumns(visibleLeads);
   const totalLeads = visibleLeads.length;
-  const openLeads = visibleLeads.filter((lead) => !["Venda", "Perdido"].includes(lead.stage)).length;
-  const wonLeads = visibleLeads.filter((lead) => lead.stage === "Venda").length;
-  const proposalLeads = visibleLeads.filter((lead) => lead.stage === "Proposta").length;
+  const openLeads = visibleLeads.filter((lead) => {
+    const stageValue = getLeadStageValue(lead.stage);
+    return stageValue !== "won" && stageValue !== "lost";
+  }).length;
+  const wonLeads = visibleLeads.filter((lead) => getLeadStageValue(lead.stage) === "won").length;
+  const proposalLeads = visibleLeads.filter((lead) => getLeadStageValue(lead.stage) === "proposal").length;
   const selectedLeadCanEdit = selectedLead?.canEdit ?? true;
   const selectedLeadCanDelete = selectedLead?.canDelete ?? leadState.canDeleteLeads;
   const isErrorState = leadState.mode === "error" || leadState.mode === "unauthenticated";
@@ -542,9 +548,11 @@ export function SalesFunnelWorkspace({
       <LeadDetailsPopup
         aiBalance={aiBalance}
         lead={selectedLead}
+        messageGeneratorEnabled
         onClose={() => setSelectedLead(null)}
         onDeleted={selectedLeadCanDelete ? handleLeadDeleted : undefined}
         onUpdated={selectedLeadCanEdit ? handleLeadUpdated : undefined}
+        whatsappTemplates={whatsappTemplates}
       />
     </div>
   );

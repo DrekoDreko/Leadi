@@ -32,10 +32,12 @@ const leadUpdateSchema = z.object({
   lives_count: z.union([z.number(), z.string()]).optional(),
   stage: z.string().trim().max(40).optional(),
   source: z.string().trim().max(60).optional(),
+  quality: z.enum(["high", "medium", "low"]).nullable().optional(),
   budget: z.string().trim().max(120).optional(),
   interest: z.string().trim().max(120).optional(),
   last_interaction: z.string().trim().max(500).optional(),
   notes: z.string().trim().max(2000).optional(),
+  loss_reason: z.string().trim().max(500).optional(),
   source_campaign: z.string().trim().max(160).optional(),
   source_adset: z.string().trim().max(160).optional(),
   source_ad: z.string().trim().max(160).optional()

@@ -9,6 +9,7 @@ import { getWhatsAppMessagesCountForCurrentUser } from "@/lib/whatsapp/repositor
 import { getOnboardingStateForCurrentUser } from "@/lib/onboarding/repository.server";
 import { getCreativeRequestsCountForCurrentUser } from "@/lib/creative-requests/repository.server";
 import { getDashboardRemindersForCurrentUser } from "@/lib/dashboard-reminders/repository.server";
+import { getSystemTemplates } from "@/lib/templates/repository.server";
 
 // Mocks
 vi.mock("server-only", () => ({}));
@@ -45,6 +46,10 @@ vi.mock("@/lib/ai/credits", () => ({
   getCurrentAiBalance: vi.fn()
 }));
 
+vi.mock("@/lib/templates/repository.server", () => ({
+  getSystemTemplates: vi.fn()
+}));
+
 vi.mock("./dashboard-home", () => ({
   DashboardHome: (props: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
     <div data-testid="dashboard-home">
@@ -52,6 +57,7 @@ vi.mock("./dashboard-home", () => ({
       <span>Leads: {props.leads.length}</span>
       <span>Reminders: {props.dashboardReminders.length}</span>
       <span>AI Balance: {props.aiBalance}</span>
+      <span>WhatsApp templates: {props.whatsappTemplates.length}</span>
     </div>
   )
 }));
@@ -83,6 +89,7 @@ describe('Dashboard Page (/dashboard)', () => {
       reminders: [{ id: "reminder-1" }],
       mode: "supabase"
     } as never);
+    vi.mocked(getSystemTemplates).mockResolvedValue([{ id: "tpl-1" }] as never);
 
     const Page = await DashboardPage();
     render(Page);
@@ -92,5 +99,6 @@ describe('Dashboard Page (/dashboard)', () => {
     expect(screen.getByText(/Leads: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Reminders: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/AI Balance: 18/i)).toBeInTheDocument();
+    expect(screen.getByText(/WhatsApp templates: 1/i)).toBeInTheDocument();
   });
 });

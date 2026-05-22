@@ -47,6 +47,11 @@ import type {
   MetaLeadImportSource,
   MetaLeadImportSourcesState
 } from "@/lib/meta/manual-lead-import.types";
+import { getLeadQualityLabel, getLeadQualityMeta } from "@/lib/leads/quality";
+import {
+  getLeadOriginBadgeClassName,
+  getLeadOriginSummary
+} from "@/lib/leads/source";
 
 const filterKeys: Array<keyof LeadUrlFilters> = [
   "stage",
@@ -1380,7 +1385,14 @@ function LeadTablePanel({
                 type="button"
               >
                 <span className="block font-semibold leading-tight">{lead.name}</span>
-                <span className="mt-1 block text-sm text-ink/54 md:hidden">{lead.phone}</span>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <LeadQualityBadge quality={lead.quality} />
+                  <LeadOriginBadge source={lead.source} />
+                </div>
+                <div className="mt-2 space-y-1">
+                  <span className="block text-sm text-ink/58">{getLeadOriginSummary(lead)}</span>
+                  <span className="block text-sm text-ink/54 md:hidden">{lead.phone}</span>
+                </div>
               </button>
 
               <button
@@ -1469,4 +1481,23 @@ function LeadStageBadge({
       </div>
     </div>
   );
+}
+
+function LeadQualityBadge({ quality }: { quality: Lead["quality"] }) {
+  const meta = getLeadQualityMeta(quality);
+
+  return (
+    <span
+      className={
+        meta?.badgeClassName ??
+        "inline-flex items-center rounded-full bg-white/78 px-2.5 py-1 text-[11px] font-semibold text-ink/58 ring-1 ring-inset ring-black/5"
+      }
+    >
+      {meta ? meta.label : getLeadQualityLabel(quality)}
+    </span>
+  );
+}
+
+function LeadOriginBadge({ source }: { source: Lead["source"] }) {
+  return <span className={getLeadOriginBadgeClassName(source)}>{source}</span>;
 }

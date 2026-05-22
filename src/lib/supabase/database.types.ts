@@ -21,6 +21,8 @@ export type CreativeRequestStatus =
   | "cancelled";
 export type CreativeRequestPriority = "low" | "medium" | "high" | "urgent";
 export type LeadSource = "manual" | "csv_import" | "meta_lead_ads" | "make_zapier" | "api";
+export type LeadTaskStatus = "open" | "in_progress" | "completed" | "cancelled";
+export type LeadTaskPriority = "low" | "medium" | "high";
 export type MetaConnectionStatus = "active" | "inactive" | "error" | "revoked";
 export type LeadWebhookEventStatus = "processed" | "failed";
 export type LeadStage = "new" | "qualification" | "proposal" | "negotiation" | "won" | "lost";
@@ -1170,6 +1172,8 @@ export type Database = {
           interest: string | null;
           last_interaction: string | null;
           notes: string | null;
+          loss_reason: string | null;
+          quality: string | null;
           cpf: string | null;
           birth_date: string | null;
           profession: string | null;
@@ -1212,6 +1216,8 @@ export type Database = {
           interest?: string | null;
           last_interaction?: string | null;
           notes?: string | null;
+          loss_reason?: string | null;
+          quality?: string | null;
           cpf?: string | null;
           birth_date?: string | null;
           profession?: string | null;
@@ -1254,6 +1260,8 @@ export type Database = {
           interest?: string | null;
           last_interaction?: string | null;
           notes?: string | null;
+          loss_reason?: string | null;
+          quality?: string | null;
           cpf?: string | null;
           birth_date?: string | null;
           profession?: string | null;
@@ -1312,6 +1320,54 @@ export type Database = {
           author_name?: string;
           author_email?: string;
           body?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      lead_tasks: {
+        Row: {
+          id: string;
+          organization_id: string;
+          lead_id: string;
+          created_by_profile_id: string;
+          assigned_to_profile_id: string | null;
+          title: string;
+          description: string | null;
+          status: LeadTaskStatus;
+          priority: LeadTaskPriority;
+          due_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          lead_id: string;
+          created_by_profile_id: string;
+          assigned_to_profile_id?: string | null;
+          title: string;
+          description?: string | null;
+          status?: LeadTaskStatus;
+          priority?: LeadTaskPriority;
+          due_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          lead_id?: string;
+          created_by_profile_id?: string;
+          assigned_to_profile_id?: string | null;
+          title?: string;
+          description?: string | null;
+          status?: LeadTaskStatus;
+          priority?: LeadTaskPriority;
+          due_at?: string | null;
+          completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1609,6 +1665,8 @@ export type Database = {
     Enums: {
       lead_source: LeadSource;
       lead_stage: LeadStage;
+      lead_task_status: LeadTaskStatus;
+      lead_task_priority: LeadTaskPriority;
     };
     CompositeTypes: Record<string, never>;
   };

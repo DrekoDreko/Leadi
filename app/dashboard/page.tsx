@@ -6,6 +6,7 @@ import { getWhatsAppMessagesCountForCurrentUser } from "@/lib/whatsapp/repositor
 import { getOnboardingStateForCurrentUser } from "@/lib/onboarding/repository.server";
 import { getCreativeRequestsCountForCurrentUser } from "@/lib/creative-requests/repository.server";
 import { getDashboardRemindersForCurrentUser } from "@/lib/dashboard-reminders/repository.server";
+import { getSystemTemplates } from "@/lib/templates/repository.server";
 import { DashboardHome } from "./dashboard-home";
 
 export default async function DashboardPage() {
@@ -16,7 +17,8 @@ export default async function DashboardPage() {
     whatsappMessagesCount,
     onboardingState,
     creativeRequestsCount,
-    reminderState
+    reminderState,
+    whatsappTemplates
   ] = await Promise.all([
     requireCompletedProfile(),
     getLeadsForCurrentUser(),
@@ -24,7 +26,8 @@ export default async function DashboardPage() {
     getWhatsAppMessagesCountForCurrentUser(),
     getOnboardingStateForCurrentUser(),
     getCreativeRequestsCountForCurrentUser(),
-    getDashboardRemindersForCurrentUser()
+    getDashboardRemindersForCurrentUser(),
+    getSystemTemplates("whatsapp")
   ]);
   const aiBalance = await getCurrentAiBalance();
 
@@ -38,6 +41,7 @@ export default async function DashboardPage() {
       creativeRequestsCount={creativeRequestsCount}
       dashboardReminders={reminderState.reminders}
       onboardingState={onboardingState}
+      whatsappTemplates={whatsappTemplates}
     />
   );
 }

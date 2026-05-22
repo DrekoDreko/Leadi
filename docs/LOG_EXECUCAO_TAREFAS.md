@@ -636,3 +636,451 @@ Também foi criado `src/components/dashboard/lead-details-popup.test.tsx` para v
 ### Observações técnicas
 - A alteração ficou restrita à visualização do prontuário do lead e ao teste do componente.
 - Nenhuma camada sensível de autenticação, Supabase, schema, billing, webhooks, Meta Ads, OpenAI ou variáveis de ambiente foi alterada nesta tarefa.
+
+### Data
+2026-05-21 17:15
+
+### Tarefa
+`TASK-009 — Adicionar histórico manual de contato`
+
+### Status
+Concluída.
+
+### Arquivos alterados
+- `src/lib/leads/comments.ts`
+- `src/lib/leads/repository.server.ts`
+- `app/api/leads/[id]/comments/route.ts`
+- `src/components/dashboard/lead-details-popup.tsx`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi adicionada a funcionalidade de registrar interações manuais de contato no prontuário do lead. 
+Sem alterar o schema do Supabase, o backend foi ajustado para utilizar um prefixo interno (`[CONTACT_LOG]`) na coluna `body` da tabela de `lead_comments`, permitindo diferenciar os tipos (`comment` vs `contact`). A API e a UI foram atualizadas para expor essa distinção, adicionando um seletor visual na hora do registro e um destaque com o selo "Contato" na listagem de comentários.
+
+### Comandos executados
+- `npm run lint`
+- `npm run build`
+
+### Resultado dos comandos
+- `npm run lint`: concluído com sucesso, com warnings preexistentes fora do escopo desta tarefa.
+- `npm run build`: concluído com sucesso. O build registrou a mensagem informativa já existente de `Dynamic server usage` em `/dashboard`, sem bloquear a geração final.
+
+### Pendências
+- Nenhuma.
+
+### Observações técnicas
+- A abordagem do prefixo (`[CONTACT_LOG]`) atendeu aos requisitos sem precisar alterar o banco de dados (que é uma área sensível).
+
+### Data
+2026-05-21 17:18
+
+### Tarefa
+`TASK-010 — Adicionar tarefas por lead`
+
+### Status
+Concluída.
+
+### Arquivos alterados
+- `supabase/migrations/202605210004_lead_tasks.sql`
+- `src/lib/supabase/database.types.ts`
+- `src/lib/leads/repository.server.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi criada a base de tarefas operacionais por lead sem reaproveitar `dashboard_reminders`. A migration nova adiciona a tabela `public.lead_tasks`, enums de status e prioridade, índices, trigger de `updated_at` e policies de RLS alinhadas ao isolamento por organização e ao vínculo obrigatório com `leads`.
+
+Em `src/lib/supabase/database.types.ts`, a tipagem compartilhada passou a refletir a nova entidade e seus enums. Em `src/lib/leads/repository.server.ts`, foram adicionados contratos mínimos para listar, criar e atualizar tarefas por lead, com validação de título, prazo, prioridade, responsável e controle de permissão por perfil, além de fallback mock para ambientes sem Supabase configurado.
+
+### Comandos executados
+- `sed -n '1,260p' AGENTS.md`
+- `sed -n '1,260p' docs/AGENTE_LEADI_TAREFAS.md`
+- `sed -n '1,320p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `rg -n "\[ \]|Status: Pendente|## \[ \]" docs/tarefas-leadi-roadmap-normalizado.md`
+- `sed -n '320,620p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `sed -n '1,260p' package.json`
+- `rg --files supabase/migrations src/lib/supabase src/lib/leads | rg "repository\.server|database\.types|migrations"`
+- `rg -n "dashboard_reminders|lead task|lead_tasks|taska|tarefa" src app supabase`
+- `sed -n '1,280p' src/lib/leads/repository.server.ts`
+- `sed -n '1,240p' supabase/migrations/202605140002_dashboard_reminders.sql`
+- `sed -n '1,260p' src/lib/dashboard-reminders/repository.server.ts`
+- `sed -n '240,420p' src/lib/supabase/database.types.ts`
+- `sed -n '1,260p' supabase/migrations/202605060002_lead_comments.sql`
+- `sed -n '430,620p' src/lib/supabase/database.types.ts`
+- `sed -n '300,430p' docs/tarefas-leadi-roadmap.md`
+- `git status --short`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+
+### Resultado dos comandos
+- `npm run lint`: concluído com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, impedindo a execução da suíte automatizada.
+- `npm run build`: concluído com sucesso; além dos warnings já conhecidos de lint, o build registrou novamente a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear a geração final.
+- `npm run typecheck`: não existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binário `vitest` para reexecutar `npm run test`.
+- Expor essa nova base em API e UI futuras sem misturar a entidade com `dashboard_reminders`.
+
+### Observações técnicas
+- A modelagem nova mantém a separação entre tarefa operacional por lead e lembrete de calendário do dashboard.
+- A migration mexe em banco, multi-tenant, permissões e dados de leads, mas ficou restrita ao escopo mínimo pedido pela tarefa.
+- O repositório já deixa a base pronta para fluxos futuros de UI/dashboard sem alterar autenticação, billing, integrações Meta, OpenAI ou variáveis de ambiente.
+
+### Data
+2026-05-21 17:59
+
+### Tarefa
+`TASK-011 — Adicionar status do funil ao prontuário`
+
+### Status
+Concluída.
+
+### Arquivos alterados
+- `src/lib/leads/stages.ts`
+- `src/components/dashboard/lead-details-popup.tsx`
+- `src/components/dashboard/lead-details-popup.test.tsx`
+- `app/dashboard/funil/sales-funnel-workspace.tsx`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi centralizado o metadado da etapa comercial do lead em `src/lib/leads/stages.ts`, adicionando descrição, tom visual e normalização para aceitar tanto o `value` técnico quanto o label exibido na UI.
+
+No prontuário, `src/components/dashboard/lead-details-popup.tsx` passou a destacar a etapa atual com badge e bloco próprio dentro do contexto comercial, além de reaproveitar a nomenclatura compartilhada no cabeçalho, no resumo de origem e no modo de edição. Em `app/dashboard/funil/sales-funnel-workspace.tsx`, os indicadores resumidos deixaram de comparar labels hardcoded e passaram a usar os values compartilhados, reduzindo drift entre CRM e funil. A cobertura de teste do popup foi ampliada para validar esse destaque e a normalização de etapa.
+
+### Comandos executados
+- `git status --short`
+- `sed -n '1,220p' package.json`
+- `sed -n '1,240p' src/lib/leads/stages.ts`
+- `sed -n '1,120p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '400,760p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '760,1125p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1180,1265p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1,120p' app/dashboard/funil/sales-funnel-workspace.tsx`
+- `sed -n '120,220p' app/dashboard/funil/sales-funnel-workspace.tsx`
+- `sed -n '780,860p' app/dashboard/funil/sales-funnel-workspace.tsx`
+- `sed -n '1,220p' src/components/dashboard/lead-details-popup.test.tsx`
+- `rg -n "stage|etapa|pipeline" src/lib/leads/stages.ts src/components/dashboard/lead-details-popup.tsx app/dashboard/funil/sales-funnel-workspace.tsx`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+
+### Resultado dos comandos
+- `npm run lint`: concluído com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, impedindo a execução da suíte automatizada.
+- `npm run build`: concluído com sucesso; além dos warnings já conhecidos de lint, o build registrou novamente a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear a geração final.
+- `npm run typecheck`: não existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binário `vitest` para reexecutar `npm run test`.
+
+### Observações técnicas
+- A tarefa permaneceu restrita à UI e aos helpers de etapa, sem alterar banco, autenticação, Supabase, billing, Meta Ads, OpenAI ou variáveis de ambiente.
+- A normalização compartilhada reduz o risco de drift entre labels em português e values técnicos nas telas que consomem `lead.stage`.
+
+### Data
+2026-05-21 18:18
+
+### Tarefa
+`TASK-012 — Adicionar motivo de perda`
+
+### Status
+Concluída.
+
+### Arquivos alterados
+- `supabase/migrations/202605210005_add_lead_loss_reason.sql`
+- `src/lib/supabase/database.types.ts`
+- `src/lib/leads/repository.server.ts`
+- `app/api/leads/route.ts`
+- `app/api/leads/[id]/route.ts`
+- `src/components/dashboard/lead-details-popup.tsx`
+- `src/components/dashboard/lead-details-popup.test.tsx`
+- `src/data/mock.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi adicionado o campo opcional `loss_reason` ao schema de leads por meio de uma migration pequena e compatível, com reflexo nos tipos compartilhados do Supabase e no contrato server-side do repositório de leads.
+
+As rotas `app/api/leads/route.ts` e `app/api/leads/[id]/route.ts` passaram a aceitar o novo campo no CRUD, enquanto `src/lib/leads/repository.server.ts` ficou responsável por persistir o motivo apenas quando a etapa efetiva do lead é `lost`, limpando o valor quando a etapa não representa perda.
+
+No prontuário, `src/components/dashboard/lead-details-popup.tsx` passou a mostrar um bloco de "Motivo de perda" somente para leads perdidos e a liberar a edição desse texto no modo de edição apenas nesse contexto. A cobertura de `src/components/dashboard/lead-details-popup.test.tsx` foi ampliada para verificar a exibição e edição condicional do motivo.
+
+### Comandos executados
+- `sed -n '1,260p' src/components/dashboard/lead-details-popup.test.tsx`
+- `sed -n '1,220p' docs/LOG_EXECUCAO_TAREFAS.md`
+- `ls supabase/migrations | tail -n 20`
+- `rg -n "loss_reason|archiveReason|lastInteraction|mapLeadRowToLead|type LeadCreateInput" src/lib/leads/repository.server.ts src/data/mock.ts src/components/dashboard/lead-details-popup.test.tsx`
+- `sed -n '740,940p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1,220p' src/lib/leads/normalization.ts`
+- `sed -n '1,220p' supabase/migrations/202605210003_add_commercial_lead_fields.sql`
+- `sed -n '1400,1465p' src/lib/leads/repository.server.ts`
+- `rg -n "source_campaign|archive_reason|duplicate_of_lead_id|loss_reason" app src | head -n 80`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+- `sed -n '421,455p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `tail -n 80 docs/LOG_EXECUCAO_TAREFAS.md`
+- `git status --short`
+
+### Resultado dos comandos
+- `npm run lint`: concluído com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, impedindo a execução da suíte automatizada.
+- `npm run build`: concluído com sucesso; além dos warnings já conhecidos de lint, o build registrou novamente a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear a geração final.
+- `npm run typecheck`: não existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binário `vitest` para reexecutar `npm run test`.
+- Se a próxima tarefa aproveitar a etapa `lost`, vale considerar relatórios ou filtros futuros baseados em `loss_reason`, sem expandir o escopo agora.
+
+### Observações técnicas
+- A tarefa tocou banco, API de leads e dados operacionais, mas ficou restrita ao campo novo e ao prontuário do lead.
+- O comportamento foi mantido compatível com o restante do CRM: leads não perdidos não exibem nem exigem motivo de perda.
+- O worktree já continha alterações anteriores não relacionadas em outros arquivos; elas foram preservadas e não foram revertidas.
+
+### Data
+2026-05-21 18:38
+
+### Tarefa
+`TASK-013 — Adicionar qualidade do lead`
+
+### Status
+Concluída.
+
+### Arquivos alterados
+- `supabase/migrations/202605210006_add_lead_quality.sql`
+- `src/lib/supabase/database.types.ts`
+- `src/lib/leads/normalization.ts`
+- `src/lib/leads/repository.server.ts`
+- `src/lib/leads/quality.ts`
+- `app/api/leads/route.ts`
+- `app/api/leads/[id]/route.ts`
+- `app/dashboard/leads/leads-workspace.tsx`
+- `src/components/dashboard/lead-details-popup.tsx`
+- `src/components/dashboard/lead-details-popup.test.tsx`
+- `app/api/leads/route.test.ts`
+- `app/api/leads/[id]/route.test.ts`
+- `src/data/mock.ts`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi adicionado ao schema de leads o campo opcional `quality`, com validacao simples para os valores `high`, `medium` e `low`, preservando o objetivo da tarefa de criar uma classificacao comercial leve sem reintroduzir o score antigo.
+
+O repositório de leads, os tipos compartilhados do Supabase, os fallbacks mock e as rotas `app/api/leads/route.ts` e `app/api/leads/[id]/route.ts` passaram a aceitar, normalizar e persistir essa classificacao. A nova camada compartilhada `src/lib/leads/quality.ts` centralizou labels e metadados usados pela interface.
+
+Na UI, a listagem em `app/dashboard/leads/leads-workspace.tsx` passou a mostrar um badge de qualidade na linha de cada lead, enquanto `src/components/dashboard/lead-details-popup.tsx` passou a exibir esse indicador no prontuário e permitir sua edicao direta no formulario do lead. Os testes de rota e do popup foram ajustados para cobrir o novo campo.
+
+### Comandos executados
+- `rg -n "visibleLeads|selectedLead|lead\\.stage|lead\\.source|render.*lead|map\\(.*lead|quality|qualidade" app/dashboard/leads/leads-workspace.tsx src/components/dashboard/lead-details-popup.tsx src/lib/leads/repository.server.ts src/data/mock.ts`
+- `sed -n '260,620p' app/dashboard/leads/leads-workspace.tsx`
+- `sed -n '620,980p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1540,1915p' src/lib/leads/repository.server.ts`
+- `rg -n "loss_reason|lead_quality|quality" src/lib/supabase/database.types.ts supabase/migrations`
+- `sed -n '1,220p' src/components/dashboard/lead-details-popup.test.tsx`
+- `sed -n '1320,1495p' app/dashboard/leads/leads-workspace.tsx`
+- `sed -n '1,220p' app/api/leads/route.test.ts`
+- `rg -n "handleSubmit|updateField\\(|validateLeadEditValues|buildLeadUpdatePayload|getLeadEditValues|profileItems|sourceItems" src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '220,620p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1040,1185p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1,220p' src/lib/leads/normalization.ts`
+- `tail -n 80 docs/LOG_EXECUCAO_TAREFAS.md`
+- `sed -n '430,505p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+- `git status --short`
+
+### Resultado dos comandos
+- `npm run lint`: concluído com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, impedindo a execução da suíte automatizada.
+- `npm run build`: concluído com sucesso; além dos warnings já conhecidos de lint, o build registrou novamente a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear a geração final.
+- `npm run typecheck`: não existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binário `vitest` para reexecutar `npm run test`.
+
+### Observações técnicas
+- A tarefa tocou banco e dados de leads, mas ficou restrita à classificação comercial simples solicitada, sem alterar autenticação, billing, Meta Ads, OpenAI ou variáveis de ambiente.
+- O worktree já continha alterações anteriores não relacionadas em outros arquivos; elas foram preservadas e não foram revertidas.
+
+### Data
+2026-05-21 19:13
+
+### Tarefa
+`TASK-014 — Vincular lead à campanha, anúncio e formulário`
+
+### Status
+Concluída.
+
+### Arquivos alterados
+- `src/data/mock.ts`
+- `src/lib/leads/repository.server.ts`
+- `src/lib/leads/source.ts`
+- `src/lib/leads/source.test.ts`
+- `src/components/dashboard/lead-details-popup.tsx`
+- `src/components/dashboard/lead-details-popup.test.tsx`
+- `app/dashboard/leads/leads-workspace.tsx`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi criada uma camada compartilhada de leitura da origem do lead em `src/lib/leads/source.ts`, centralizando classificacao da origem, descricao funcional para o popup, resumo compacto para a listagem e consolidacao de campanha, conjunto, anuncio e formulario com fallback para IDs Meta quando os nomes nao estiverem disponiveis.
+
+O contrato `Lead` e o mapeamento em `src/lib/leads/repository.server.ts` passaram a preservar tambem `metaCampaignId`, `metaAdsetId` e `metaAdId`, evitando descarte desses identificadores na passagem do banco para a UI. Os mocks foram enriquecidos para refletir esse caminho completo de origem.
+
+Na interface, `app/dashboard/leads/leads-workspace.tsx` passou a diferenciar visualmente origem manual, CSV e Meta por badge e resumo curto na linha do lead. Em `src/components/dashboard/lead-details-popup.tsx`, o bloco de origem agora mostra campanha, conjunto, anuncio e formulario quando houver dados, sem reimplementar a integracao Meta nem alterar os contratos de ingestao.
+
+### Comandos executados
+- `rg -n "sourceAdset|sourceAd|metaCampaignId|metaAdId|metaFormId|metaPageId|metaConnectedAccountId|sourceCampaign" src app`
+- `sed -n '200,520p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '220,420p' app/dashboard/leads/leads-workspace.tsx`
+- `sed -n '1,260p' docs/LOG_EXECUCAO_TAREFAS.md`
+- `sed -n '1,260p' app/api/leads/route.test.ts`
+- `sed -n '1,320p' 'app/api/leads/[id]/route.test.ts'`
+- `sed -n '1,220p' app/api/leads/export/route.test.ts`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+
+### Resultado dos comandos
+- `npm run lint`: concluído com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, impedindo a execução da suíte automatizada.
+- `npm run build`: concluído com sucesso; além dos warnings já conhecidos de lint, o build registrou novamente a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear a geração final.
+- `npm run typecheck`: não existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binário `vitest` para reexecutar `npm run test`.
+
+### Observações técnicas
+- A tarefa permaneceu restrita a dados de leads e rastreabilidade da Meta, sem alterar autenticação, Supabase schema, billing, Mercado Pago, OpenAI, webhooks ou variáveis de ambiente.
+- O worktree já continha alterações anteriores não relacionadas em outros arquivos; elas foram preservadas e não foram revertidas.
+
+### Data
+2026-05-21 19:59
+
+### Tarefa
+`TASK-015 — Criar botão de WhatsApp com mensagem pronta`
+
+### Status
+Concluida.
+
+### Arquivos alterados
+- `src/components/dashboard/lead-details-popup.tsx`
+- `src/components/dashboard/lead-details-popup.test.tsx`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi adicionado um CTA de WhatsApp no detalhe do lead para abrir o `wa.me` com mensagem inicial preenchida a partir do nome, interesse e empresa do lead.
+
+O link passou a reaproveitar o telefone normalizado do CRM, abrindo em nova aba quando houver telefone valido e permanecendo visualmente desabilitado quando o lead nao tiver telefone utilizavel.
+
+O fluxo existente de ligacao, email e geracao de mensagem com IA foi preservado sem alterar integracoes externas nem criar envio dentro do produto.
+
+Tambem foram adicionados testes do popup para cobrir o link com mensagem pronta e o estado desabilitado sem telefone valido.
+
+### Comandos executados
+- `sed -n '1,240p' AGENTS.md`
+- `sed -n '1,260p' docs/AGENTE_LEADI_TAREFAS.md`
+- `sed -n '1,320p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `sed -n '1,220p' package.json`
+- `rg -n "comments/route|lead-details-popup|comment|interaction|contact" src app | head -n 200`
+- `sed -n '1,260p' src/components/dashboard/lead-details-popup.tsx`
+- `rg -n "whatsapp|wa.me|api/whatsapp|formatPhone|normalizePhone|phone" src app | head -n 240`
+- `sed -n '1,220p' src/lib/whatsapp/templates.ts`
+- `sed -n '430,580p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1,180p' src/lib/leads/normalization.ts`
+- `sed -n '1,180p' src/components/dashboard/lead-details-popup.test.tsx`
+- `sed -n '1328,1368p' src/components/dashboard/lead-details-popup.tsx`
+- `sed -n '1,120p' src/data/mock.ts`
+- `date '+%Y-%m-%d %H:%M'`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `sed -n '540,620p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `git diff -- src/components/dashboard/lead-details-popup.tsx src/components/dashboard/lead-details-popup.test.tsx`
+- `tail -n 80 docs/LOG_EXECUCAO_TAREFAS.md`
+
+### Resultado dos comandos
+- `npm run lint`: concluido com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, repetindo um problema de ambiente ja observado em tarefas anteriores e sem indicio de regressao especifica desta entrega.
+- `npm run build`: concluido com sucesso; alem dos warnings ja conhecidos de lint, o build registrou novamente a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear a geracao final.
+- `npm run typecheck`: nao existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binario `vitest` para reexecutar `npm run test`.
+
+### Observações técnicas
+- O CTA de WhatsApp foi implementado apenas na camada de UI do prontuario do lead, sem alterar `app/api/whatsapp/*`, billing de creditos, OpenAI, webhooks ou variaveis de ambiente.
+- O worktree ja continha alteracoes anteriores nao relacionadas em outros arquivos; elas foram preservadas e nao foram revertidas.
+
+### Data
+2026-05-21 22:34
+
+### Tarefa
+`TASK-016 — Criar botão para gerar mensagem com IA`
+
+### Status
+Concluida.
+
+### Arquivos alterados
+- `app/dashboard/page.tsx`
+- `app/dashboard/dashboard-home.tsx`
+- `app/dashboard/funil/page.tsx`
+- `app/dashboard/funil/sales-funnel-workspace.tsx`
+- `app/dashboard/page.test.tsx`
+- `app/dashboard/funil/page.test.tsx`
+- `src/components/dashboard/lead-details-popup.test.tsx`
+- `docs/tarefas-leadi-roadmap-normalizado.md`
+- `docs/LOG_EXECUCAO_TAREFAS.md`
+
+### O que foi feito
+Foi habilitado o mesmo atalho de geracao de mensagem com IA do prontuario do lead quando o `LeadDetailsPopup` e aberto a partir do dashboard inicial e do funil comercial.
+
+As paginas de dashboard e funil passaram a carregar e repassar os templates de WhatsApp para o popup, junto com o saldo atual de IA, reaproveitando o fluxo ja existente sem criar endpoint novo nem duplicar consumo de creditos.
+
+Tambem foram adicionados testes para validar o repasse dos templates ao dashboard e ao funil, alem de uma cobertura direta do popup para garantir a exibicao do atalho de IA quando o gerador estiver habilitado.
+
+### Comandos executados
+- `sed -n '1,240p' AGENTS.md`
+- `sed -n '1,260p' docs/AGENTE_LEADI_TAREFAS.md`
+- `sed -n '1,320p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `sed -n '1,260p' package.json`
+- `rg -n "Status: Pendente|## \\[ \\]|- \\[ \\]" docs/tarefas-leadi-roadmap-normalizado.md`
+- `sed -n '540,610p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `rg -n "LeadDetailsPopup|messageGeneratorEnabled|initialPanel=|whatsappTemplates" app src -g '!src/lib/supabase/database.types.ts'`
+- `sed -n '1,240p' src/components/dashboard/lead-details-popup.test.tsx`
+- `sed -n '210,250p' app/dashboard/dashboard-home.tsx`
+- `sed -n '520,575p' app/dashboard/funil/sales-funnel-workspace.tsx`
+- `sed -n '1,180p' app/dashboard/funil/page.tsx`
+- `sed -n '1,120p' app/dashboard/page.tsx`
+- `git diff -- app/dashboard/funil/page.tsx app/dashboard/funil/sales-funnel-workspace.tsx app/dashboard/page.tsx app/dashboard/dashboard-home.tsx app/dashboard/page.test.tsx app/dashboard/funil/page.test.tsx src/components/dashboard/lead-details-popup.test.tsx`
+- `git status --short`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `date '+%Y-%m-%d %H:%M'`
+- `sed -n '571,610p' docs/tarefas-leadi-roadmap-normalizado.md`
+- `tail -n 60 docs/LOG_EXECUCAO_TAREFAS.md`
+
+### Resultado dos comandos
+- `npm run lint`: concluido com sucesso, com warnings preexistentes em `app/dashboard/leads/leads-workspace.tsx`, `scratch/check_migrations.mjs`, `src/components/dashboard/shell.tsx` e `src/components/landing/highlight-carousel.tsx`.
+- `npm run test`: falhou no ambiente local com `sh: vitest: command not found`, repetindo um problema de ambiente ja observado em tarefas anteriores e sem indicio de regressao especifica desta entrega.
+- `npm run build`: concluido com sucesso; alem dos warnings ja conhecidos de lint, o build registrou novamente a mensagem informativa de `Dynamic server usage` em `/dashboard` por uso de `cookies`, sem bloquear a geracao final.
+- `npm run typecheck`: nao existe no `package.json`.
+
+### Pendências
+- Restaurar a disponibilidade local do binario `vitest` para reexecutar `npm run test`.
+
+### Observações técnicas
+- A tarefa ficou restrita a UI server/client do prontuario e ao carregamento de templates, sem alterar `app/api/whatsapp/generate/route.ts`, billing de creditos, OpenAI, webhooks, Supabase schema ou variaveis de ambiente.
+- O worktree ja continha alteracoes anteriores nao relacionadas em outros arquivos; elas foram preservadas e nao foram revertidas.

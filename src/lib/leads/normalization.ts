@@ -1,4 +1,5 @@
 import type { LeadSource, LeadStage } from "@/lib/supabase/database.types";
+import type { LeadQualityValue } from "./quality";
 
 const allowedSources = new Set<LeadSource>([
   "manual",
@@ -34,6 +35,8 @@ const allowedStages = new Set<LeadStage>([
   "won",
   "lost"
 ]);
+
+const allowedLeadQualities = new Set<LeadQualityValue>(["high", "medium", "low"]);
 
 export function normalizeEmail(value: unknown) {
   if (typeof value !== "string") {
@@ -88,6 +91,29 @@ export function normalizeLeadStage(value: unknown): LeadStage {
   return typeof value === "string" && allowedStages.has(value as LeadStage)
     ? (value as LeadStage)
     : "new";
+}
+
+export function normalizeLeadQuality(value: unknown): LeadQualityValue | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (allowedLeadQualities.has(normalized as LeadQualityValue)) {
+    return normalized as LeadQualityValue;
+  }
+
+  switch (normalizeSourceValue(value)) {
+    case "alta":
+      return "high";
+    case "media":
+      return "medium";
+    case "baixa":
+      return "low";
+    default:
+      return null;
+  }
 }
 
 export function stringOrNull(value: unknown) {
