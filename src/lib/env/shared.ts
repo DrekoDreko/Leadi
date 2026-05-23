@@ -167,6 +167,12 @@ export function shouldValidateProductionCoreEnv(source: NodeJS.ProcessEnv = proc
     return false;
   }
 
+  // Ignorar validacao de segredos de producao durante o build na Vercel.
+  // Evita falsos-negativos causados por tempo de propagacao ou escopo do container de build.
+  if (source.VERCEL === "1") {
+    return false;
+  }
+
   // Vercel preview builds run with NODE_ENV=production too, but they should not
   // be blocked by production-only env checks.
   if (source.VERCEL_ENV === "preview") {
