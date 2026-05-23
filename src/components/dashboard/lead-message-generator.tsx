@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Copy, Loader2, Sparkles } from "lucide-react";
+import { CheckCircle2, Copy, Loader2, Send, Sparkles } from "lucide-react";
 import type { Lead } from "@/data/mock";
 import { getAiCreditCost } from "@/lib/ai/credit-costs";
+import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 import {
   buildFallbackWhatsAppMessage,
   buildWhatsAppStageObjective,
+  getSuggestedWhatsAppTone,
+  getWhatsAppStageLabel,
   getWhatsAppToneLabel,
   getWhatsAppTonePrompt,
   whatsappToneOptions,
@@ -14,11 +17,13 @@ import {
 } from "@/lib/whatsapp/templates";
 import type { WhatsAppHistoryItem, WhatsAppStage } from "@/lib/whatsapp/types";
 import type { SystemTemplate, WhatsAppTemplateContent } from "@/lib/templates/types";
+import { normalizePhone } from "@/lib/leads/normalization";
 
 type LeadMessageGeneratorProps = {
   aiBalance: number;
   lead: Lead;
   systemTemplates?: SystemTemplate[];
+  onMessageGenerated?: () => void;
 };
 
 type GeneratedMessage = {
@@ -42,28 +47,37 @@ type WhatsAppSendResponse = {
 };
 
 const stageOptions: Array<{ value: WhatsAppStage; label: string }> = [
-  { value: "new_lead", label: "Novo lead" },
-  { value: "first_contact", label: "Primeiro contato" },
+  { value: "new_lead", label: getWhatsAppStageLabel("new_lead") },
+  { value: "first_contact", label: getWhatsAppStageLabel("first_contact") },
   { value: "negotiation", label: "Em negociacao" },
   { value: "awaiting_response", label: "Aguardando resposta" },
   { value: "closing", label: "Fechamento" },
-  { value: "post_service", label: "Pos-atendimento" }
+  { value: "post_service", label: "Pos-atendimento" },
+  { value: "objection_follow_up", label: "Follow-up de objecao" }
 ];
 
 export function LeadMessageGenerator({
   aiBalance,
   lead,
-  systemTemplates = []
+  systemTemplates = [],
+  onMessageGenerated
 }: LeadMessageGeneratorProps) {
   const messageCost = getAiCreditCost("generate_whatsapp_message");
   const [currentAiBalance, setCurrentAiBalance] = useState(aiBalance);
   const [selectedStage, setSelectedStage] = useState<WhatsAppStage>(mapLeadStageToMessageStage(lead.stage));
-  const [selectedTone, setSelectedTone] = useState<WhatsAppToneValue>("consultivo");
+  const [selectedTone, setSelectedTone] = useState<WhatsAppToneValue>(() =>
+    getSuggestedWhatsAppTone(mapLeadStageToMessageStage(lead.stage))
+  );
+  const [objectionReason, setObjectionReason] = useState("");
   const [generatedMessage, setGeneratedMessage] = useState<GeneratedMessage | null>(null);
   const [savedMessage, setSavedMessage] = useState<WhatsAppHistoryItem | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
   const [error, setError] = useState("");
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState("");
@@ -90,6 +104,14 @@ export function LeadMessageGenerator({
     [generatedMessage, lead, selectedStage, selectedTone]
   );
 
+  function getWhatsAppHref() {
+    const normalizedPhone = normalizePhone(lead.phone).e164;
+    if (!normalizedPhone) return undefined;
+    const phone = normalizedPhone.replace(/\D/g, "");
+    const text = encodeURIComponent(formatMessage(visibleMessage));
+    return `https://wa.me/${phone}?text=${text}`;
+  }
+
   async function handleGenerate() {
     if (currentAiBalance < messageCost) {
       setError("Você não possui créditos de IA suficientes para executar esta ação.");
@@ -98,6 +120,8 @@ export function LeadMessageGenerator({
 
     setIsGenerating(true);
     setError("");
+    setCopied(false);
+    setCopyFeedback(null);
 
     try {
       const response = await fetch("/api/whatsapp/generate", {
@@ -113,7 +137,8 @@ export function LeadMessageGenerator({
           product: lead.interest || "Plano de saude empresarial",
           stage: selectedStage,
           objective: buildWhatsAppStageObjective(selectedStage),
-          tone: getWhatsAppTonePrompt(selectedTone)
+          tone: getWhatsAppTonePrompt(selectedTone),
+          objectionReason: selectedStage === "objection_follow_up" ? objectionReason : undefined
         })
       });
       const payload = (await response.json().catch(() => null)) as WhatsAppGenerationResponse | null;
@@ -129,6 +154,10 @@ export function LeadMessageGenerator({
       }
       setSendError("");
       setSendSuccess("");
+
+      if (onMessageGenerated) {
+        onMessageGenerated();
+      }
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -142,11 +171,32 @@ export function LeadMessageGenerator({
 
   async function handleCopy() {
     try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("clipboard-unavailable");
+      }
+
       await navigator.clipboard.writeText(formatMessage(visibleMessage));
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 2200);
-    } catch {
-      setError("Nao foi possivel copiar automaticamente neste navegador.");
+      setError("");
+      setCopyFeedback({
+        tone: "success",
+        message: "Mensagem copiada. Agora e so colar no WhatsApp."
+      });
+      window.setTimeout(() => {
+        setCopied(false);
+        setCopyFeedback((current) =>
+          current?.tone === "success" ? null : current
+        );
+      }, 2200);
+    } catch (copyError) {
+      setCopied(false);
+      setCopyFeedback({
+        tone: "error",
+        message: getFriendlyErrorMessage(
+          copyError,
+          "Nao foi possivel copiar automaticamente neste navegador."
+        ).message
+      });
     }
   }
 
@@ -198,6 +248,8 @@ export function LeadMessageGenerator({
 
   function applyTemplate(template: SystemTemplate) {
     const content = template.content as WhatsAppTemplateContent;
+    setCopied(false);
+    setCopyFeedback(null);
     setGeneratedMessage({
       openingMessage: content.openingMessage?.replace("[Nome do Lead]", lead.name) ?? "",
       followUpMessage: content.followUpMessage ?? "",
@@ -215,6 +267,12 @@ export function LeadMessageGenerator({
           <p className="mt-2 text-sm leading-6 text-ink/62">
             Escolha a etapa da conversa e o tom desejado. A geração consome Créditos de IA da plataforma.
           </p>
+          {selectedStage === "awaiting_response" ? (
+            <p className="mt-2 text-sm leading-6 text-ink/54">
+              O follow-up sem resposta retoma o contato com baixo atrito e abre espaço para uma
+              resposta simples do lead.
+            </p>
+          ) : null}
         </div>
         <Sparkles className="text-lagoon" size={20} aria-hidden="true" />
       </div>
@@ -271,9 +329,13 @@ export function LeadMessageGenerator({
           <select
             className="liquid-input"
             onChange={(event) => {
-              setSelectedStage(event.target.value as WhatsAppStage);
+              const nextStage = event.target.value as WhatsAppStage;
+              setSelectedStage(nextStage);
+              setSelectedTone(getSuggestedWhatsAppTone(nextStage));
               setGeneratedMessage(null);
               setSavedMessage(null);
+              setCopied(false);
+              setCopyFeedback(null);
               setSendError("");
               setSendSuccess("");
             }}
@@ -295,6 +357,8 @@ export function LeadMessageGenerator({
               setSelectedTone(event.target.value as WhatsAppToneValue);
               setGeneratedMessage(null);
               setSavedMessage(null);
+              setCopied(false);
+              setCopyFeedback(null);
               setSendError("");
               setSendSuccess("");
             }}
@@ -308,6 +372,29 @@ export function LeadMessageGenerator({
           </select>
         </label>
       </div>
+
+      {selectedStage === "objection_follow_up" && (
+        <div className="mt-4">
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-ink/72">Motivo da objecao</span>
+            <input
+              type="text"
+              className="liquid-input w-full"
+              placeholder="Ex: Achou caro, prefere outra operadora, vai ver com o socio..."
+              value={objectionReason}
+              onChange={(e) => {
+                setObjectionReason(e.target.value);
+                setGeneratedMessage(null);
+                setSavedMessage(null);
+                setCopied(false);
+                setCopyFeedback(null);
+                setSendError("");
+                setSendSuccess("");
+              }}
+            />
+          </label>
+        </div>
+      )}
 
       <div className="mt-5 flex flex-wrap gap-2">
         <button
@@ -323,19 +410,31 @@ export function LeadMessageGenerator({
           )}
           {isGenerating ? "Gerando" : "Gerar mensagem"}
         </button>
-        <button
-          className="inline-flex items-center gap-2 rounded-full border border-cobalt/22 bg-white/70 px-5 py-3 text-sm font-semibold text-cobalt transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={isGenerating || isSending || !savedMessage?.id}
-          onClick={() => void handleSend()}
-          type="button"
+        <a
+          aria-disabled={isGenerating || isSending || !savedMessage?.id || !getWhatsAppHref()}
+          className={`inline-flex items-center gap-2 rounded-full border border-cobalt/22 bg-white/70 px-5 py-3 text-sm font-semibold text-cobalt transition ${
+            isGenerating || isSending || !savedMessage?.id || !getWhatsAppHref()
+              ? "cursor-not-allowed opacity-70"
+              : "hover:bg-white"
+          }`}
+          href={getWhatsAppHref() ?? "#"}
+          onClick={(e) => {
+            if (isGenerating || isSending || !savedMessage?.id || !getWhatsAppHref()) {
+              e.preventDefault();
+              return;
+            }
+            void handleSend();
+          }}
+          rel="noopener noreferrer"
+          target="_blank"
         >
           {isSending ? (
             <Loader2 className="animate-spin" size={18} aria-hidden="true" />
           ) : (
-            <Sparkles size={18} aria-hidden="true" />
+            <Send size={18} aria-hidden="true" />
           )}
-          {isSending ? "Enviando" : "Enviar por WhatsApp"}
-        </button>
+          Abrir no WhatsApp
+        </a>
         <button
           className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
             copied
@@ -353,6 +452,24 @@ export function LeadMessageGenerator({
           {copied ? "Copiado" : "Copiar mensagem"}
         </button>
       </div>
+
+      {copyFeedback ? (
+        <p
+          aria-live="polite"
+          className={`mt-3 inline-flex items-center gap-2 rounded-[18px] px-3 py-2 text-sm font-medium ${
+            copyFeedback.tone === "success"
+              ? "bg-lagoon/12 text-lagoon"
+              : "bg-red-50 text-red-800"
+          }`}
+        >
+          {copyFeedback.tone === "success" ? (
+            <CheckCircle2 size={16} aria-hidden="true" />
+          ) : (
+            <Copy size={16} aria-hidden="true" />
+          )}
+          {copyFeedback.message}
+        </p>
+      ) : null}
 
       {savedMessage ? (
         <div className="mt-3 rounded-[22px] border border-white/48 bg-white/40 px-4 py-3 text-sm text-ink/66">
@@ -393,6 +510,7 @@ function buildLeadContext(lead: Lead) {
     lead.city ? `Cidade: ${lead.city}` : "",
     lead.interest ? `Interesse: ${lead.interest}` : "",
     lead.livesCount ? `Vidas: ${lead.livesCount}` : "",
+    lead.lastInteraction ? `Ultima interacao: ${lead.lastInteraction}` : "",
     lead.notes ? `Observacoes: ${lead.notes}` : ""
   ]
     .filter(Boolean)

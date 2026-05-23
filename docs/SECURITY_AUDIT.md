@@ -1082,3 +1082,11 @@ Resultado final:
 - `npm run lint`: passou. Permanecem warnings nao bloqueantes de frontend (`<img>` em `app/dashboard/leads/leads-workspace.tsx` e import nao usado em `src/components/landing/highlight-carousel.tsx`).
 - `npm run test`: passou (`28` arquivos, `93` testes).
 - `npm run build`: passou. O build tambem confirmou a superficie dinamica das rotas `app/api` apos a remocao dos arquivos duplicados com sufixo ` 2`.
+
+Data da atualizacao: 2026-05-22
+
+- Corrigido: `lead_stage_history` permitia leitura ampla para membros da organização. Agora exige `public.current_profile_can_access_lead(lead_id)`.
+- Corrigido: `lead_tasks` usava subquery menos eficiente e segura. Agora usa `public.current_profile_can_access_lead(lead_id)` no SELECT, UPDATE e INSERT.
+- Corrigido: `meta_campaign_publication_attempts` permitia leitura ampla para membros. Agora exige `public.current_profile_can_access_campaign(campaign_id)`.
+- Otimizado: `meta_ad_image_uploads` substituido subqueries para a função helper de RLS `public.current_profile_organization_id()`.
+

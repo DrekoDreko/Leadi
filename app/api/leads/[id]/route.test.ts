@@ -21,12 +21,21 @@ describe('Leads API - /api/leads/[id]', () => {
   describe('PATCH', () => {
     it('atualiza um lead com sucesso', async () => {
       vi.mocked(isSupabaseConfigured).mockReturnValue(true);
-      const mockLead = { id: '123', name: 'Updated Lead', quality: 'medium' };
+      const mockLead = {
+        id: '123',
+        name: 'Updated Lead',
+        quality: 'medium',
+        ownerProfileId: 'profile-2'
+      };
       vi.mocked(updateLeadForCurrentUser).mockResolvedValue(mockLead as never);
 
       const request = new Request('http://localhost:3000/api/leads/123', {
         method: 'PATCH',
-        body: JSON.stringify({ name: 'Updated Lead', quality: 'medium' })
+        body: JSON.stringify({
+          name: 'Updated Lead',
+          quality: 'medium',
+          owner_profile_id: 'profile-2'
+        })
       });
 
       const context = { params: Promise.resolve({ id: '123' }) };
@@ -38,7 +47,8 @@ describe('Leads API - /api/leads/[id]', () => {
       expect(data.mode).toBe('supabase');
       expect(updateLeadForCurrentUser).toHaveBeenCalledWith('123', {
         name: 'Updated Lead',
-        quality: 'medium'
+        quality: 'medium',
+        owner_profile_id: 'profile-2'
       });
     });
 

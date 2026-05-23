@@ -1,7 +1,10 @@
 import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
 import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { LeadsWorkspace } from "./leads-workspace";
-import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
+import {
+  getLeadsForCurrentUser,
+  listLeadOwnerOptionsForCurrentUser
+} from "@/lib/leads/repository.server";
 import { parseLeadPaginationParams } from "@/lib/leads/repository";
 import { parseLeadUrlFilters } from "@/lib/leads/filters";
 import { getSystemTemplates } from "@/lib/templates/repository.server";
@@ -15,7 +18,7 @@ type LeadsPageProps = {
 };
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
-  await requireCompletedProfile();
+  const workspaceContext = await requireCompletedProfile();
   const resolvedSearchParams = await searchParams;
   const leadFilters = parseLeadUrlFilters(resolvedSearchParams);
   const initialLeadId = Array.isArray(resolvedSearchParams?.lead)
@@ -24,11 +27,12 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const initialLeadPanel = Array.isArray(resolvedSearchParams?.panel)
     ? resolvedSearchParams?.panel[0]
     : resolvedSearchParams?.panel;
-  const [leadState, createLeadAccess, whatsappTemplates, aiBalance] = await Promise.all([
+  const [leadState, createLeadAccess, whatsappTemplates, aiBalance, leadOwnerOptions] = await Promise.all([
     getLeadsForCurrentUser(leadFilters, parseLeadPaginationParams(resolvedSearchParams)),
     getCurrentResourceAccess("lead_creation"),
     getSystemTemplates("whatsapp"),
-    getCurrentAiBalance()
+    getCurrentAiBalance(),
+    listLeadOwnerOptionsForCurrentUser()
   ]);
 
   return (
@@ -37,7 +41,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       aiBalance={aiBalance}
       initialLeadId={initialLeadId ?? null}
       initialLeadPanel={initialLeadPanel === "message" ? "message" : "details"}
+      canManageLeadOwners={workspaceContext.isManager}
       leadFilters={leadFilters}
+      leadOwnerOptions={leadOwnerOptions}
       leadState={leadState}
       whatsappTemplates={whatsappTemplates}
     />

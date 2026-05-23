@@ -7,7 +7,7 @@ import { isWorkspaceManagerRole, normalizeWorkspaceRole, type WorkspaceRole } fr
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type WorkspaceRow = Database["public"]["Tables"]["organizations"]["Row"];
 
-export type DashboardNavVariant = "seller-solo" | "seller-team" | "owner-team";
+export type DashboardNavVariant = "owner-solo" | "seller-team" | "owner-team";
 
 export type WorkspaceContext = {
   mode: "supabase" | "not-configured";
@@ -129,14 +129,6 @@ export async function requireWorkspaceManager() {
   return context;
 }
 
-export async function requireTeamManagement() {
-  return requireWorkspaceManager();
-}
-
-export async function requireSupervisor() {
-  return requireWorkspaceManager();
-}
-
 export async function requireImportPermission() {
   const context = await requireCompletedProfile();
 
@@ -147,7 +139,7 @@ export async function requireImportPermission() {
   return context;
 }
 
-export async function requireSoloSeller() {
+export async function requireSoloOwner() {
   const context = await requireCompletedProfile();
 
   if (context.mode === "supabase" && !context.isSoloOwner) {
@@ -155,10 +147,6 @@ export async function requireSoloSeller() {
   }
 
   return context;
-}
-
-export async function requireSoloOwner() {
-  return requireSoloSeller();
 }
 
 export async function requirePlatformAdmin() {
@@ -176,7 +164,7 @@ function getDashboardNavVariant(
   workspaceType: WorkspaceType
 ): DashboardNavVariant {
   if (workspaceType === "solo") {
-    return "seller-solo";
+    return "owner-solo";
   }
 
   if (role === "owner" || role === "admin") {

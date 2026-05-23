@@ -26,7 +26,9 @@ const questionsRequestSchema = z.object({
   audience: requiredTrimmedString("Informe o publico do formulario.").max(MAX_FIELD_LENGTH),
   offer: requiredTrimmedString("Informe a oferta do formulario.").max(MAX_FIELD_LENGTH),
   region: requiredTrimmedString("Informe a regiao do formulario.").max(MAX_FIELD_LENGTH),
-  differentiator: z.string().trim().max(MAX_FIELD_LENGTH).optional()
+  differentiator: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  objections: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  contractType: z.string().trim().max(MAX_FIELD_LENGTH).optional()
 });
 const REQUIRED_TOPICS = [
   "empresa",
@@ -61,14 +63,15 @@ export async function POST(request: Request) {
       limit: 25,
       windowMs: 60 * 1000
     });
-    const body = await parseJsonBody(request, questionsRequestSchema);
-    const hasDifferentiator = Boolean(getOptionalString(body.differentiator));
-    const input = parseQuestionsRequest(body);
     const billingContext = await getBillingAuthContext();
 
     if (!billingContext) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
+
+    const body = await parseJsonBody(request, questionsRequestSchema);
+    const hasDifferentiator = Boolean(getOptionalString(body.differentiator));
+    const input = parseQuestionsRequest(body);
 
     const { result, remainingCredits } = await runAiActionWithCredits({
       orgId: billingContext.organizationId,
@@ -116,6 +119,8 @@ function parseQuestionsRequest(body: z.infer<typeof questionsRequestSchema>): Co
   const offer = body.offer;
   const region = body.region;
   const differentiator = getOptionalString(body.differentiator);
+  const objections = getOptionalString(body.objections);
+  const contractType = getOptionalString(body.contractType);
 
   return {
     audience,
@@ -124,7 +129,9 @@ function parseQuestionsRequest(body: z.infer<typeof questionsRequestSchema>): Co
       "sugerir perguntas seguras para formulario Meta Lead Ads",
       `Oferta: ${offer}`,
       `Regiao: ${region}`,
-      differentiator ? `Diferencial: ${differentiator}` : ""
+      differentiator ? `Diferencial: ${differentiator}` : "",
+      objections ? `Objecoes: ${objections}` : "",
+      contractType ? `Tipo de contrato: ${contractType}` : ""
     ]
       .filter(Boolean)
       .join("; "),

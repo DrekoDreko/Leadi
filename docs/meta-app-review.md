@@ -51,6 +51,37 @@ Guia operacional para o Leadi publicar a integracao Meta com o minimo de retraba
   - o app valida assinatura e registra o evento
   - os dados do lead sao buscados/processados pelo backend e entram no CRM
 
+## 4.1 Permissoes Meta revisadas contra o codigo
+
+- `leads_retrieval`
+  Necessaria para buscar o payload completo de cada lead recebido via webhook ou importacao manual.
+  Evidencia atual: `src/lib/meta/lead-retrieval.server.ts` consulta `/{leadgenId}` com `field_data`, campanha, anuncio e formulario.
+- `pages_show_list`
+  Necessaria para sincronizar as paginas disponiveis da conta conectada.
+  Evidencia atual: `src/lib/integrations/meta-graph.server.ts` consulta `/me/accounts`.
+- `pages_read_engagement`
+  Necessaria para listar os formularios vinculados a cada pagina sincronizada.
+  Evidencia atual: `src/lib/integrations/meta-graph.server.ts` consulta `/{pageId}/leadgen_forms`.
+- `ads_read`
+  Necessaria para sincronizar as contas de anuncio disponiveis para selecao operacional.
+  Evidencia atual: `src/lib/integrations/meta-graph.server.ts` consulta `/me/adaccounts`.
+- `ads_management`
+  Necessaria para publicar campanhas em modo pausado e enviar imagens para a biblioteca de anuncios.
+  Evidencia atual: `src/lib/meta/campaign-publication.server.ts` cria campanhas em `act_{adAccountId}/campaigns` e `src/lib/meta/ad-image-upload.server.ts` envia arquivos para `act_{adAccountId}/adimages`.
+
+## 4.2 Escopos que exigem revisao consciente antes do App Review
+
+- `business_management`
+  Continua no conjunto padrao de OAuth por compatibilidade com o fluxo atual de Meta Business Login e selecao da conta conectada.
+  Auditoria de 2026-05-22: nao encontramos no codigo uma chamada dedicada da Graph API cuja necessidade dependa somente desse escopo. Se a Meta questionar esse ponto, revisar se ele continua realmente obrigatorio para o setup atual.
+- `pages_manage_metadata`
+  Continua no conjunto padrao de OAuth como escopo conservador de compatibilidade para a integracao por pagina.
+  Auditoria de 2026-05-22: nao encontramos no codigo uma chamada ativa de alteracao de metadata de pagina. Se a Meta pedir justificativa mais estrita, tratar este escopo como candidato prioritario para reducao.
+
+## 4.3 Texto curto sugerido para justificar as permissoes
+
+"O Leadi usa `pages_show_list`, `pages_read_engagement` e `leads_retrieval` para conectar paginas, listar formularios de Lead Ads autorizados e importar leads recebidos pela corretora no CRM. Tambem usa `ads_read` para sincronizar contas de anuncio disponiveis e `ads_management` para publicar campanhas pausadas e enviar criativos autorizados pelo proprio cliente. Os escopos `business_management` e `pages_manage_metadata` estao sob revisao tecnica e so devem permanecer na submissao se continuarem necessarios para o fluxo final de conexao aprovado."
+
 ## 5. Roteiro de screencast sugerido
 
 1. Abrir o dominio final publicado.

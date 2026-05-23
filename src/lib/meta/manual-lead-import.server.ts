@@ -20,6 +20,7 @@ import { logger } from "@/lib/logger";
 import type {
   MetaLeadImportItem,
   MetaLeadImportResponse,
+  MetaLeadImportResultStatus,
   MetaLeadImportSource,
   MetaLeadImportSourceStatus,
   MetaLeadImportSourceType,
@@ -244,11 +245,16 @@ export async function importMetaLeadsForCurrentUser(input: {
     }
   }
 
+  const resultState = buildMetaLeadImportResultState(summary);
+
   return {
-    success: summary.errors === 0,
+    success: resultState.success,
+    status: resultState.status,
     summary,
     items,
-    mode: "supabase"
+    mode: "supabase",
+    message: resultState.message,
+    detail: resultState.detail
   };
 }
 
@@ -697,19 +703,122 @@ function importMockMetaLeads(input: {
     }
   }
 
+  const summary: MetaLeadImportSummary = {
+    totalFound: candidates.length,
+    imported,
+    duplicates,
+    archived,
+    errors: 0
+  };
+  const resultState = buildMetaLeadImportResultState(summary);
+
+  return {
+    success: resultState.success,
+    status: resultState.status,
+    mode: "not-configured",
+    summary,
+    items,
+    message: resultState.message,
+    detail: `${resultState.detail ?? ""} Modo demonstracao ativo com dados mockados.`.trim()
+  };
+}
+
+function buildMetaLeadImportResultState(summary: MetaLeadImportSummary): {
+  success: boolean;
+  status: MetaLeadImportResultStatus;
+  message: string;
+  detail?: string;
+} {
+  const foundLabel = formatLeadQuantity(summary.totalFound);
+  const duplicateLabel = formatLeadQuantity(summary.duplicates);
+  const errorLabel = formatLeadQuantity(summary.errors);
+  const duplicateDetail = buildDuplicateHandlingDetail(summary);
+
+  if (summary.totalFound === 0) {
+    return {
+      success: true,
+      status: "empty",
+      message: "Nenhum lead foi encontrado nesta fonte Meta agora.",
+      detail: "Confira se o formulario recebeu novos envios ou tente outra fonte sincronizada."
+    };
+  }
+
+  if (summary.errors === summary.totalFound && summary.imported === 0 && summary.duplicates === 0) {
+    return {
+      success: false,
+      status: "error",
+      message: "Nenhum lead foi importado nesta tentativa.",
+      detail: `Encontramos ${foundLabel}, mas ${errorLabel} falharam durante a importacao. Revise os erros abaixo antes de tentar novamente.`
+    };
+  }
+
+  if (summary.errors > 0) {
+    const detailParts = [
+      `Encontramos ${foundLabel} nesta fonte Meta.`,
+      summary.imported > 0
+        ? `${describeLeadAction(summary.imported, "entrou", "entraram")} no CRM.`
+        : null,
+      summary.duplicates > 0 ? duplicateDetail : null,
+      `Tambem houve ${errorLabel} durante a importacao.`
+    ].filter(Boolean);
+
+    return {
+      success: false,
+      status: "partial",
+      message: `Importacao parcial: ${describeLeadAction(summary.imported, "foi importado", "foram importados")}, ${duplicateLabel} duplicados e ${errorLabel} com erro.`,
+      detail: detailParts.join(" ")
+    };
+  }
+
+  if (summary.imported === 0 && summary.duplicates > 0) {
+    return {
+      success: true,
+      status: "duplicates_only",
+      message: "Importacao concluida sem novos leads.",
+      detail: `Encontramos ${foundLabel} nesta fonte Meta. ${duplicateDetail}`
+    };
+  }
+
+  if (summary.duplicates > 0) {
+    return {
+      success: true,
+      status: "success",
+      message: `Importacao concluida: ${describeLeadAction(summary.imported, "foi importado", "foram importados")} e ${duplicateLabel} ja existentes tratados com seguranca.`,
+      detail: `Encontramos ${foundLabel} nesta fonte Meta. ${duplicateDetail}`
+    };
+  }
+
   return {
     success: true,
-    mode: "not-configured",
-    summary: {
-      totalFound: candidates.length,
-      imported,
-      duplicates,
-      archived,
-      errors: 0
-    },
-    items,
-    message: "Importacao Meta executada com dados mockados."
+    status: "success",
+    message: `Importacao concluida: ${describeLeadAction(summary.imported, "novo entrou", "novos entraram")} no CRM.`,
+    detail: `Encontramos ${foundLabel} nesta fonte Meta e nao houve duplicados nem erros.`
   };
+}
+
+function buildDuplicateHandlingDetail(summary: MetaLeadImportSummary) {
+  if (summary.duplicates === 0) {
+    return "";
+  }
+
+  if (summary.archived === 0) {
+    return "Os duplicados ja existiam no CRM e foram ignorados sem criar novos registros.";
+  }
+
+  if (summary.archived === summary.duplicates) {
+    return "Os duplicados foram arquivados automaticamente para manter a base organizada.";
+  }
+
+  const ignoredLabel = formatLeadQuantity(summary.duplicates - summary.archived);
+  return `${describeLeadAction(summary.archived, "foi arquivado", "foram arquivados")} e ${ignoredLabel} ja existiam no CRM, sem criar novos registros.`;
+}
+
+function formatLeadQuantity(value: number) {
+  return `${value} ${value === 1 ? "lead" : "leads"}`;
+}
+
+function describeLeadAction(value: number, singularVerb: string, pluralVerb: string) {
+  return `${formatLeadQuantity(value)} ${value === 1 ? singularVerb : pluralVerb}`;
 }
 
 function parseMetaLeadRecordForImport(value: unknown): MetaLeadRecord[] {

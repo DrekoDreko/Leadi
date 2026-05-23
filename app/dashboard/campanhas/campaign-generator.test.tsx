@@ -1,8 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
+import { systemTemplatesFallback } from "@/data/system-templates";
 import { CampaignGenerator, RegionTagsInput } from "./campaign-generator";
 import type { ConnectedAccountsState } from "@/lib/integrations/types";
+import type { SystemTemplate } from "@/lib/templates/types";
 
 const connectedAccounts: ConnectedAccountsState = {
   mode: "supabase",
@@ -73,7 +75,11 @@ const connectedAccounts: ConnectedAccountsState = {
   syncLogs: []
 };
 
-function renderGenerator(aiBalance = 20) {
+const campaignSystemTemplates = systemTemplatesFallback.filter(
+  (template): template is SystemTemplate => template.templateType === "campaign"
+);
+
+function renderGenerator(aiBalance = 20, templates: SystemTemplate[] = campaignSystemTemplates) {
   render(
     <CampaignGenerator
       aiBalance={aiBalance}
@@ -82,7 +88,7 @@ function renderGenerator(aiBalance = 20) {
       leadsCapturedCount={11}
       publishedAdsCount={4}
       totalSpentCredits={44}
-      systemTemplates={[]}
+      systemTemplates={templates}
     />
   );
 }
@@ -125,32 +131,58 @@ describe("CampaignGenerator", () => {
   it("mostra 6 templates seguros e aplica o template selecionado nos campos", () => {
     renderGenerator();
 
-    expect(screen.getByRole("button", { name: /Migração para plano empresarial/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Plano de saúde para MEI/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Plano empresarial para pequenas empresas/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Comparativo entre operadoras/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Inclusão de sócios e equipe/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Revisão de contrato atual/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Plano PME para MEI com até 4 vidas/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Revisão de reajuste do plano atual/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Comparativo por rede e hospital de preferência/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Benefício de saúde para equipes pequenas/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Inclusão de sócios, dependentes e pró-labore/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Primeiro plano empresarial para CNPJ em crescimento/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Plano de saúde para MEI/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Plano PME para MEI com até 4 vidas/i }));
     fireEvent.click(screen.getByRole("button", { name: /Primeiro passo: exemplos de campanha/i }));
 
-    const selectedTemplate = screen.getByRole("button", { name: /Plano de saúde para MEI/i });
+    const selectedTemplate = screen.getByRole("button", { name: /Plano PME para MEI com até 4 vidas/i });
     expect(within(selectedTemplate).getByText("Selecionado")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Público, oferta e região/i }));
 
     expect(screen.getByLabelText("Público")).toHaveValue(
-      "Microempreendedores individuais que buscam entender opções de plano de saúde com CNPJ."
+      "MEIs e pequenos CNPJs com 2 a 4 vidas que querem entender se já podem contratar um plano empresarial."
     );
     expect(screen.getByLabelText("Oferta")).toHaveValue(
-      "Orientação sobre possibilidades de contratação para MEI, respeitando critérios das operadoras."
+      "Análise consultiva para validar elegibilidade, documentação e caminhos de contratação conforme o perfil da empresa."
     );
     expect(screen.getByText("São Paulo")).toBeInTheDocument();
     expect(screen.getByText("ABC Paulista")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Observações e tom da mensagem/i }));
     expect(screen.getByRole("button", { name: "Humano e claro" })).toHaveClass("border-cobalt/70");
+  });
+
+  it("prioriza os templates vindos do repositório quando eles são fornecidos", () => {
+    const customTemplate: SystemTemplate = {
+      id: "custom-campaign-template",
+      templateType: "campaign",
+      category: "Rede hospitalar",
+      title: "Campanha sob medida para rede premium",
+      description: "Template vindo do repositório para validar uso do payload server-side.",
+      content: {
+        audience: "Empresas que priorizam hospitais premium na decisão.",
+        offer: "Comparativo orientado por rede hospitalar prioritária.",
+        region: "São Paulo, Alphaville",
+        differentiator: "Traduz diferenças de rede em próximos passos comerciais.",
+        tone: "Profissional e objetivo",
+        notes: "Sem promessa de melhor preço."
+      },
+      isActive: true,
+      createdAt: "2026-05-22T10:00:00.000Z",
+      updatedAt: "2026-05-22T10:00:00.000Z"
+    };
+
+    renderGenerator(20, [customTemplate]);
+
+    expect(screen.getByRole("button", { name: /Campanha sob medida para rede premium/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Plano PME para MEI com até 4 vidas/i })).not.toBeInTheDocument();
   });
 
   it("valida briefing quando o usuário escolhe solicitar criativo", () => {
@@ -161,6 +193,25 @@ describe("CampaignGenerator", () => {
     fireEvent.submit(document.getElementById("campaign-generator-form") as HTMLFormElement);
 
     expect(screen.getByText("Preencha o briefing ao solicitar criativo.")).toBeInTheDocument();
+  });
+
+  it("explica o modo pausado com os ativos preparados para a Meta", () => {
+    renderGenerator();
+
+    fireEvent.click(screen.getByRole("button", { name: /Modo de publicação/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Publicar pausada na Meta/i }));
+
+    expect(screen.getByText("Modo pausado selecionado")).toBeInTheDocument();
+    expect(screen.getByText("Pronta para publicar pausada")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Resumo da campanha/i }));
+
+    expect(
+      screen.getByText("Publicacao pausada: a campanha sera preparada, nao ativada.")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Leadi Saúde")).toBeInTheDocument();
+    expect(screen.getByText("Conta de anúncio")).toBeInTheDocument();
+    expect(screen.getByText("Formulário consultivo")).toBeInTheDocument();
   });
 });
 

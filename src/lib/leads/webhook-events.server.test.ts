@@ -7,8 +7,10 @@ describe("sanitizeWebhookPayloadForStorage", () => {
   it("preserva diagnostico essencial sem manter PII bruta", () => {
     const result = sanitizeWebhookPayloadForStorage({
       source: "meta_lead_ads",
+      processing_outcome: "duplicate",
       duplicate: true,
       duplicate_reason: "meta_lead_id",
+      summary_message: "Lead absorvido como duplicado com seguranca.",
       meta_lead_summary: {
         lead_id: "123",
         form_id: "form-1",
@@ -32,12 +34,42 @@ describe("sanitizeWebhookPayloadForStorage", () => {
 
     expect(result).toMatchObject({
       source: "meta_lead_ads",
+      processing_outcome: "duplicate",
       duplicate: true,
-      duplicate_reason: "meta_lead_id"
+      duplicate_reason: "meta_lead_id",
+      summary_message: "Lead absorvido como duplicado com seguranca."
     });
     expect(result).toHaveProperty("meta_lead_summary");
     expect(result).toHaveProperty("meta_webhook_event");
     expect(result).not.toHaveProperty("name");
     expect(result).not.toHaveProperty("email");
+  });
+
+  it("resume o payload bruto da Meta quando so o webhook original esta disponivel", () => {
+    const result = sanitizeWebhookPayloadForStorage({
+      source: "meta_lead_ads",
+      processing_outcome: "failed",
+      meta_webhook_payload: {
+        object: "page",
+        entry: [
+          {
+            changes: [
+              { field: "leadgen" },
+              { field: "feed" }
+            ]
+          }
+        ]
+      }
+    });
+
+    expect(result).toMatchObject({
+      source: "meta_lead_ads",
+      processing_outcome: "failed",
+      meta_webhook_summary: {
+        object: "page",
+        entry_count: 1,
+        leadgen_event_count: 1
+      }
+    });
   });
 });

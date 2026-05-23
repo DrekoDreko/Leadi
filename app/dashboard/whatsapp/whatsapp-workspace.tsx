@@ -20,6 +20,8 @@ import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.se
 import {
   buildFallbackWhatsAppMessage,
   buildWhatsAppStageObjective,
+  getSuggestedWhatsAppTone,
+  getWhatsAppStageLabel,
   getWhatsAppToneLabel,
   getWhatsAppTonePrompt,
   type WhatsAppToneValue,
@@ -32,6 +34,7 @@ import type {
   WhatsAppStage
 } from "@/lib/whatsapp/types";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
+import { normalizePhone } from "@/lib/leads/normalization";
 
 type WhatsAppMessage = {
   openingMessage: string;
@@ -45,6 +48,12 @@ type WhatsAppGenerationResponse = {
   savedMessage?: WhatsAppHistoryItem;
   aiBalance?: number;
   error?: string;
+};
+
+type CopyFeedback = {
+  key: string;
+  message: string;
+  tone: "success" | "error";
 };
 
 export function WhatsAppWorkspace({
@@ -72,12 +81,17 @@ export function WhatsAppWorkspace({
       leads.find((lead) => lead.id === initialLeadId)?.stage ?? leads[0]?.stage
     )
   );
-  const [selectedTone, setSelectedTone] = useState<WhatsAppToneValue>("consultivo");
+  const [selectedTone, setSelectedTone] = useState<WhatsAppToneValue>(() =>
+    getSuggestedWhatsAppTone(
+      mapLeadStage(leads.find((lead) => lead.id === initialLeadId)?.stage ?? leads[0]?.stage)
+    )
+  );
   const [messageHistory, setMessageHistory] = useState(initialMessages);
   const [currentAiBalance, setCurrentAiBalance] = useState(aiBalance);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
+  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback | null>(null);
   const selectedTonePrompt = getWhatsAppTonePrompt(selectedTone);
   const messageCost = getAiCreditCost("generate_whatsapp_message");
 
@@ -122,6 +136,8 @@ export function WhatsAppWorkspace({
     }
 
     setError("");
+    setCopyFeedback(null);
+    setCopiedKey("");
     setIsGenerating(true);
 
     try {
@@ -183,12 +199,40 @@ export function WhatsAppWorkspace({
       );
       setError("");
       setCopiedKey(key);
+      setCopyFeedback({
+        key,
+        message:
+          key === "current-message"
+            ? "Mensagem copiada. Agora e so colar no WhatsApp."
+            : `Mensagem de ${messageLeadName(messageHistory, selectedLead?.name, key)} copiada.`,
+        tone: "success"
+      });
       window.setTimeout(() => {
         setCopiedKey((currentKey) => (currentKey === key ? "" : currentKey));
+        setCopyFeedback((currentFeedback) =>
+          currentFeedback?.key === key && currentFeedback.tone === "success"
+            ? null
+            : currentFeedback
+        );
       }, 2200);
     } catch (error) {
-      setError(getFriendlyErrorMessage(error, "Nao foi possivel copiar automaticamente neste navegador.").message);
+      setCopyFeedback({
+        key,
+        message: getFriendlyErrorMessage(
+          error,
+          "Nao foi possivel copiar automaticamente neste navegador."
+        ).message,
+        tone: "error"
+      });
     }
+  }
+
+  function getWhatsAppHref(phoneStr: string | null | undefined, text: string) {
+    if (!phoneStr) return undefined;
+    const normalizedPhone = normalizePhone(phoneStr).e164;
+    if (!normalizedPhone) return undefined;
+    const phone = normalizedPhone.replace(/\D/g, "");
+    return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
   }
 
   return (
@@ -278,7 +322,11 @@ export function WhatsAppWorkspace({
                     }`}
                     onClick={() => {
                       setSelectedLeadId(lead.id);
-                      setSelectedStage(mapLeadStage(lead.stage));
+                      const nextStage = mapLeadStage(lead.stage);
+                      setSelectedStage(nextStage);
+                      setSelectedTone(getSuggestedWhatsAppTone(nextStage));
+                      setCopiedKey("");
+                      setCopyFeedback(null);
                       setError("");
                     }}
                     key={lead.id}
@@ -288,7 +336,7 @@ export function WhatsAppWorkspace({
                     <p className="mt-1 text-sm text-ink/56">{lead.phone}</p>
                     <p className="mt-1 text-sm text-ink/56">{lead.email}</p>
                     <span className="mt-4 inline-flex rounded-full bg-white/62 px-3 py-1.5 text-xs font-semibold">
-                      {lead.stage}
+                      {getWhatsAppStageLabel(mapLeadStage(lead.stage))}
                     </span>
                   </button>
                 );
@@ -313,6 +361,19 @@ export function WhatsAppWorkspace({
                     A abordagem abaixo considera o nome do cliente, o telefone, o email, o
                     interesse e o próximo passo sugerido.
                   </p>
+                  {selectedStage === "awaiting_response" ? (
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-ink/58">
+                      Este modo prioriza um follow-up sem resposta: a mensagem relembra o
+                      contexto e facilita uma resposta curta, sem pressionar o lead.
+                    </p>
+                  ) : null}
+                  {selectedStage === "reactivation" ? (
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-ink/58">
+                      Este modo prioriza a reativacao de leads antigos ou parados: a mensagem
+                      retoma o contexto comercial com cuidado e convida o lead a atualizar o
+                      momento da empresa sem soar invasiva.
+                    </p>
+                  ) : null}
                   <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-ink/58">
                     <span className="rounded-full bg-white/58 px-3 py-1.5">{selectedLead.phone}</span>
                     <span className="rounded-full bg-white/58 px-3 py-1.5">{selectedLead.email}</span>
@@ -335,7 +396,13 @@ export function WhatsAppWorkspace({
                   Etapa do funil
                   <select
                     className="mt-2 w-full rounded-full border border-white/60 bg-white/80 px-4 py-2.5 text-sm font-medium text-ink outline-none transition focus:border-cobalt"
-                    onChange={(event) => setSelectedStage(event.target.value as WhatsAppStage)}
+                    onChange={(event) => {
+                      const nextStage = event.target.value as WhatsAppStage;
+                      setSelectedStage(nextStage);
+                      setSelectedTone(getSuggestedWhatsAppTone(nextStage));
+                      setCopiedKey("");
+                      setCopyFeedback(null);
+                    }}
                     value={selectedStage}
                   >
                     {Object.entries(whatsappStageStrategies).map(([value, strategy]) => (
@@ -349,9 +416,11 @@ export function WhatsAppWorkspace({
                   Tom da mensagem
                   <select
                     className="mt-2 w-full rounded-full border border-white/60 bg-white/80 px-4 py-2.5 text-sm font-medium text-ink outline-none transition focus:border-cobalt"
-                    onChange={(event) =>
-                      setSelectedTone(event.target.value as WhatsAppToneValue)
-                    }
+                    onChange={(event) => {
+                      setSelectedTone(event.target.value as WhatsAppToneValue);
+                      setCopiedKey("");
+                      setCopyFeedback(null);
+                    }}
                     value={selectedTone}
                   >
                     {whatsappToneOptions.map((option) => (
@@ -379,20 +448,59 @@ export function WhatsAppWorkspace({
                       </span>
                     </div>
                   </div>
-                  <button
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/90"
-                    onClick={() => copyText("current-message", visibleMessage)}
-                    title={copiedKey === "current-message" ? "Copiado" : "Copiar mensagem gerada"}
-                    type="button"
-                  >
-                    {copiedKey === "current-message" ? (
-                      <CheckCircle2 className="text-lagoon" size={16} aria-hidden="true" />
-                    ) : (
-                      <Copy size={16} aria-hidden="true" />
-                    )}
-                    {copiedKey === "current-message" ? "Copiado" : "Copiar texto"}
-                  </button>
+                  <div className="flex gap-2">
+                    <a
+                      aria-disabled={!getWhatsAppHref(selectedLead?.phone, formatWhatsAppMessage(visibleMessage))}
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                        getWhatsAppHref(selectedLead?.phone, formatWhatsAppMessage(visibleMessage))
+                          ? "bg-white text-ink hover:bg-emerald-50 hover:text-emerald-700"
+                          : "cursor-not-allowed bg-white/50 text-ink/50"
+                      }`}
+                      href={getWhatsAppHref(selectedLead?.phone, formatWhatsAppMessage(visibleMessage)) ?? "#"}
+                      onClick={(e) => {
+                        if (!getWhatsAppHref(selectedLead?.phone, formatWhatsAppMessage(visibleMessage))) {
+                          e.preventDefault();
+                        }
+                      }}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      title="Abrir no WhatsApp"
+                    >
+                      <Send size={16} aria-hidden="true" />
+                      Abrir WhatsApp
+                    </a>
+                    <button
+                      className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/90"
+                      onClick={() => copyText("current-message", visibleMessage)}
+                      title={copiedKey === "current-message" ? "Copiado" : "Copiar mensagem gerada"}
+                      type="button"
+                    >
+                      {copiedKey === "current-message" ? (
+                        <CheckCircle2 className="text-lagoon" size={16} aria-hidden="true" />
+                      ) : (
+                        <Copy size={16} aria-hidden="true" />
+                      )}
+                      {copiedKey === "current-message" ? "Copiado" : "Copiar texto"}
+                    </button>
+                  </div>
                 </div>
+                {copyFeedback?.key === "current-message" ? (
+                  <p
+                    aria-live="polite"
+                    className={`mt-3 inline-flex items-center gap-2 rounded-[18px] px-3 py-2 text-sm font-medium ${
+                      copyFeedback.tone === "success"
+                        ? "bg-lagoon/12 text-lagoon"
+                        : "bg-red-50 text-red-800"
+                    }`}
+                  >
+                    {copyFeedback.tone === "success" ? (
+                      <CheckCircle2 size={16} aria-hidden="true" />
+                    ) : (
+                      <AlertTriangle size={16} aria-hidden="true" />
+                    )}
+                    {copyFeedback.message}
+                  </p>
+                ) : null}
                 <p className="mt-4 whitespace-pre-line text-sm leading-6 text-ink/72">
                   {visibleMessage.openingMessage}
                 </p>
@@ -494,19 +602,57 @@ export function WhatsAppWorkspace({
                       {formatWhatsAppDate(item.createdAt)}
                     </p>
                   </div>
-                  <button
-                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70 text-ink transition hover:bg-white"
-                    onClick={() => copyHistoryMessage(item)}
-                    title={copiedKey === `history-${item.id}` ? "Copiado" : "Copiar mensagem"}
-                    type="button"
-                  >
-                    {copiedKey === `history-${item.id}` ? (
-                      <CheckCircle2 className="text-lagoon" size={16} aria-hidden="true" />
-                    ) : (
-                      <Copy size={16} aria-hidden="true" />
-                    )}
-                  </button>
+                  <div className="flex gap-2">
+                    <a
+                      aria-disabled={!getWhatsAppHref(leads.find(l => l.id === item.leadId)?.phone, formatWhatsAppMessage(normalizeWhatsAppMessageBrand(item.result, brokerageName)))}
+                      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition ${
+                        getWhatsAppHref(leads.find(l => l.id === item.leadId)?.phone, formatWhatsAppMessage(normalizeWhatsAppMessageBrand(item.result, brokerageName)))
+                          ? "bg-white/70 text-ink hover:bg-emerald-50 hover:text-emerald-700"
+                          : "cursor-not-allowed bg-white/40 text-ink/40"
+                      }`}
+                      href={getWhatsAppHref(leads.find(l => l.id === item.leadId)?.phone, formatWhatsAppMessage(normalizeWhatsAppMessageBrand(item.result, brokerageName))) ?? "#"}
+                      onClick={(e) => {
+                        if (!getWhatsAppHref(leads.find(l => l.id === item.leadId)?.phone, formatWhatsAppMessage(normalizeWhatsAppMessageBrand(item.result, brokerageName)))) {
+                          e.preventDefault();
+                        }
+                      }}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      title="Abrir no WhatsApp"
+                    >
+                      <Send size={16} aria-hidden="true" />
+                    </a>
+                    <button
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70 text-ink transition hover:bg-white"
+                      onClick={() => copyHistoryMessage(item)}
+                      title={copiedKey === `history-${item.id}` ? "Copiado" : "Copiar mensagem"}
+                      type="button"
+                    >
+                      {copiedKey === `history-${item.id}` ? (
+                        <CheckCircle2 className="text-lagoon" size={16} aria-hidden="true" />
+                      ) : (
+                        <Copy size={16} aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
                 </div>
+                {copyFeedback?.key === `history-${item.id}` ? (
+                  <p
+                    aria-live="polite"
+                    className={`mt-3 inline-flex items-center gap-2 rounded-[18px] px-3 py-2 text-sm font-medium ${
+                      copyFeedback.tone === "success"
+                        ? "bg-lagoon/12 text-lagoon"
+                        : "bg-red-50 text-red-800"
+                    }`}
+                  >
+                    {copyFeedback.tone === "success" ? (
+                      <CheckCircle2 size={16} aria-hidden="true" />
+                    ) : (
+                      <AlertTriangle size={16} aria-hidden="true" />
+                    )}
+                    {copyFeedback.message}
+                  </p>
+                ) : null}
 
                 <p className="mt-3 text-sm leading-6 text-ink/68">
                   {normalizeWhatsAppMessageBrand(item.result, brokerageName).openingMessage}
@@ -621,13 +767,28 @@ function createOptimisticHistoryItem({
   };
 }
 
+function messageLeadName(
+  history: WhatsAppHistoryItem[],
+  fallbackLeadName: string | undefined,
+  key: string
+) {
+  if (key === "current-message") {
+    return fallbackLeadName ?? "este lead";
+  }
+
+  const historyId = key.replace("history-", "");
+  return history.find((item) => item.id === historyId)?.leadName ?? "este lead";
+}
+
 function buildLeadContext(lead: Lead) {
   return [
     lead.companyName ? `Empresa: ${lead.companyName}` : "",
     lead.city ? `Cidade: ${lead.city}` : "",
     lead.phone ? `Telefone: ${lead.phone}` : "",
     lead.email ? `Email: ${lead.email}` : "",
-    lead.interest ? `Interesse: ${lead.interest}` : ""
+    lead.interest ? `Interesse: ${lead.interest}` : "",
+    lead.lastInteraction ? `Ultima interacao: ${lead.lastInteraction}` : "",
+    lead.notes ? `Observacoes comerciais: ${lead.notes}` : ""
   ]
     .filter(Boolean)
     .join(" | ");
@@ -656,22 +817,7 @@ function replacePlatformBrand(value: string, brokerageName: string) {
 }
 
 function formatWhatsAppStage(stage: WhatsAppHistoryItem["stage"]) {
-  switch (stage) {
-    case "new":
-      return "Novo lead";
-    case "qualification":
-      return "Qualificação";
-    case "proposal":
-      return "Proposta";
-    case "negotiation":
-      return "Negociação";
-    case "won":
-      return "Venda";
-    case "lost":
-      return "Perdido";
-    default:
-      return "Novo lead";
-  }
+  return getWhatsAppStageLabel(stage);
 }
 
 function formatWhatsAppDate(value: string) {

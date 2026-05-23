@@ -223,7 +223,8 @@ function parseWhatsAppInput(row: WhatsAppRow): WhatsAppGenerationForm {
     ),
     objective: stringFromPayload(payload?.objective) ?? row.objective,
     tone: stringFromPayload(payload?.tone) ?? row.tone,
-    product
+    product,
+    objectionReason: stringFromPayload(payload?.objectionReason) ?? undefined
   };
 }
 
@@ -273,7 +274,8 @@ function createMockWhatsAppHistoryItem(
     objective: "iniciar conversa comercial e confirmar interesse",
     tone: "proximo, educado e objetivo",
     brokerageName: DEFAULT_BROKERAGE_NAME,
-    product: DEFAULT_PRODUCT
+    product: DEFAULT_PRODUCT,
+    objectionReason: undefined
   };
   const result = {
     openingMessage: `Olá, ${firstName}! Aqui é o time da ${DEFAULT_BROKERAGE_NAME}. Vi seu interesse em ${lead.interest?.toLowerCase() ?? "uma análise consultiva"} e preparei um próximo passo objetivo para facilitar sua avaliação.`,
@@ -384,8 +386,10 @@ function normalizeWhatsAppStage(value: string | null): WhatsAppStage {
     value === "new_lead" ||
     value === "first_contact" ||
     value === "awaiting_response" ||
+    value === "reactivation" ||
     value === "closing" ||
-    value === "post_service"
+    value === "post_service" ||
+    value === "objection_follow_up"
   ) {
     return value;
   }
@@ -401,7 +405,11 @@ function normalizePersistedWhatsAppStage(stage: WhatsAppStage) {
       return "qualification";
     case "awaiting_response":
       return "proposal";
+    case "reactivation":
+      return "lost";
     case "closing":
+      return "negotiation";
+    case "objection_follow_up":
       return "negotiation";
     case "post_service":
       return "won";

@@ -1,7 +1,23 @@
 import Link from "next/link";
-import { ArrowUpRight, Megaphone, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, Megaphone, ShieldCheck, Pause, CheckCircle2, Copy } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { getCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
+
+function getStatusDisplay(publicationStatus: string, publishMode: string) {
+  if (publishMode === "paused" || publicationStatus === "paused") {
+    return { label: "Pausada", color: "bg-amber-100/80 text-amber-900 border border-amber-200/50", Icon: Pause };
+  }
+  if (publicationStatus === "published") {
+    return { label: "Publicada", color: "bg-emerald-100/80 text-emerald-900 border border-emerald-200/50", Icon: CheckCircle2 };
+  }
+  if (publicationStatus === "not_connected") {
+    return { label: "Pronta", color: "bg-blue-100/80 text-blue-900 border border-blue-200/50", Icon: ShieldCheck };
+  }
+  if (publicationStatus === "ready_to_prepare" || publicationStatus === "draft_created" || publicationStatus === "pending_review") {
+    return { label: "Revisão Manual", color: "bg-purple-100/80 text-purple-900 border border-purple-200/50", Icon: ShieldCheck };
+  }
+  return { label: publicationStatus.replaceAll("_", " "), color: "bg-white/62 text-ink/62 border border-white/20", Icon: ShieldCheck };
+}
 
 export default async function AnunciosPage() {
   const campaignState = await getCampaignsForCurrentUser(12);
@@ -43,23 +59,56 @@ export default async function AnunciosPage() {
             >
               <div>
                 <div className="flex items-start justify-between gap-3">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white/62 px-3 py-1.5 text-xs font-semibold text-ink/62">
-                    <ShieldCheck size={14} aria-hidden="true" />
-                    {campaign.publicationStatus.replaceAll("_", " ")}
-                  </span>
+                  {(() => {
+                    const status = getStatusDisplay(campaign.publicationStatus, campaign.publishMode);
+                    const StatusIcon = status.Icon;
+                    return (
+                      <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${status.color}`}>
+                        <StatusIcon size={14} aria-hidden="true" />
+                        {status.label}
+                      </span>
+                    );
+                  })()}
                   <Megaphone className="text-cobalt" size={18} aria-hidden="true" />
                 </div>
                 <h2 className="mt-5 text-xl font-semibold leading-tight">{campaign.campaignName}</h2>
-                <p className="mt-3 text-sm leading-6 text-ink/62">{campaign.result.primaryText}</p>
+                <div className="mt-3 space-y-4">
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-ink/40">Copy Principal</h3>
+                    <p className="mt-1 text-sm leading-6 text-ink/62">{campaign.result.primaryText}</p>
+                  </div>
+                  
+                  {campaign.result.variants && campaign.result.variants.length > 0 && (
+                    <div className="border-t border-white/40 pt-3">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-ink/40 mb-2">Variações Geradas</h3>
+                      <ul className="space-y-3">
+                        {campaign.result.variants.map((variant, index) => (
+                          <li key={index} className="rounded-xl bg-white/40 p-3 text-sm leading-6 text-ink/62 shadow-sm">
+                            {variant}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-2">
-                <span className="rounded-full bg-white/58 px-3 py-1.5 text-xs font-semibold text-ink/58">
-                  {campaign.input.audience}
-                </span>
-                <span className="rounded-full bg-white/58 px-3 py-1.5 text-xs font-semibold text-ink/58">
-                  {new Date(campaign.createdAt).toLocaleDateString("pt-BR")}
-                </span>
+              <div className="mt-5 flex flex-col justify-between gap-4 border-t border-white/40 pt-4 sm:flex-row sm:items-center">
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full bg-white/58 px-3 py-1.5 text-xs font-semibold text-ink/58">
+                    {campaign.input.audience}
+                  </span>
+                  <span className="rounded-full bg-white/58 px-3 py-1.5 text-xs font-semibold text-ink/58">
+                    {new Date(campaign.createdAt).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+                <Link
+                  href={`/dashboard/criacoes/campanhas?copyFrom=${campaign.id}`}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/60 px-4 py-2 text-xs font-semibold text-cobalt transition-colors hover:bg-white"
+                >
+                  <Copy size={14} aria-hidden="true" />
+                  Reaproveitar ideia
+                </Link>
               </div>
             </article>
           ))

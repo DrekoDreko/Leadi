@@ -35,6 +35,13 @@ export type MetaLeadImportSummary = {
   errors: number;
 };
 
+export type MetaLeadImportResultStatus =
+  | "success"
+  | "partial"
+  | "duplicates_only"
+  | "empty"
+  | "error";
+
 export type MetaLeadImportItem = {
   externalLeadId?: string | null;
   leadId?: string | null;
@@ -46,8 +53,10 @@ export type MetaLeadImportItem = {
 
 export type MetaLeadImportResponse = {
   success: boolean;
+  status: MetaLeadImportResultStatus;
   summary: MetaLeadImportSummary;
   items: MetaLeadImportItem[];
   mode: "supabase" | "not-configured";
-  message?: string;
+  message: string;
+  detail?: string;
 };

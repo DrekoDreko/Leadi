@@ -16,6 +16,7 @@ import {
 } from "./repository.server";
 import type { IntegrationStatus } from "./types";
 import type { MetaOAuthStatePayload } from "./oauth-state.server";
+import { MetaGraphError, MetaPermissionError, MetaTokenError } from "@/lib/meta/errors";
 
 type MetaOAuthTokenResponse = {
   access_token?: string;
@@ -388,15 +389,28 @@ async function fetchMetaJson<T>(
 
   const response = await fetch(url, { method: "GET", cache: "no-store" });
   const payload = (await response.json().catch(() => null)) as {
-    error?: { message?: string };
+    error?: { message?: string; code?: number; error_subcode?: number; type?: string };
   } | null;
 
   if (!response.ok) {
-    throw new Error(
-      payload?.error?.message
-        ? `Falha na Meta Graph API: ${payload.error.message}`
-        : `Falha na Meta Graph API: status ${response.status}.`
-    );
+    const err = payload?.error;
+    if (err) {
+      if (err.code === 190 || err.code === 102) {
+        throw new MetaTokenError(err.message ?? "Token de acesso da Meta invalido ou expirado.");
+      }
+      if (err.code === 10 || err.code === 200 || err.code === 2500) {
+        throw new MetaPermissionError(err.message ?? "Permissao insuficiente na Meta.");
+      }
+      throw new MetaGraphError(err.message ?? "Erro desconhecido na Meta API.", {
+        code: err.code,
+        subcode: err.error_subcode,
+        type: err.type
+      });
+    }
+
+    throw new MetaGraphError(`Falha na Meta Graph API: status ${response.status}.`, {
+      code: response.status
+    });
   }
 
   return payload as T;

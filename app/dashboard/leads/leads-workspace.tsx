@@ -37,6 +37,7 @@ import {
   type LeadDataState,
   type LeadPaginationMeta
 } from "@/lib/leads/repository";
+import type { LeadOwnerOption } from "@/lib/leads/repository.server";
 import { LeadCreateModal } from "./lead-create-modal";
 import { LeadFiltersPopup } from "@/components/dashboard/lead-filters-popup";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
@@ -63,22 +64,34 @@ const filterKeys: Array<keyof LeadUrlFilters> = [
   "campaign"
 ];
 const paginationQueryKeys = ["limit", "offset"];
+type LeadWorkspaceFeedbackTone = "success" | "warning" | "error";
+type LeadBulkAssignMode = "supabase" | "not-configured";
+type LeadBulkAssignResponse = {
+  leads?: Lead[];
+  updatedCount?: number;
+  error?: string;
+  mode?: LeadBulkAssignMode;
+};
 
 export function LeadsWorkspace({
+  canManageLeadOwners,
   createLeadAccess,
   aiBalance,
   initialLeadId,
   initialLeadPanel,
   leadFilters,
+  leadOwnerOptions,
   leadState,
   whatsappTemplates = [],
   title = "Leads"
 }: {
+  canManageLeadOwners: boolean;
   createLeadAccess: ResourceAccessSummary;
   aiBalance: number;
   initialLeadId: string | null;
   initialLeadPanel: "details" | "message";
   leadFilters: LeadUrlFilters;
+  leadOwnerOptions: LeadOwnerOption[];
   leadState: LeadDataState;
   whatsappTemplates?: SystemTemplate[];
   title?: string;
@@ -92,7 +105,10 @@ export function LeadsWorkspace({
   );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
-  const [createFeedback, setCreateFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    tone: LeadWorkspaceFeedbackTone;
+    text: string;
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState(leadFilters.search);
   const [draftLeadFilters, setDraftLeadFilters] = useState(leadFilters);
   const [pagination, setPagination] = useState(leadState.pagination);
@@ -100,6 +116,13 @@ export function LeadsWorkspace({
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [selectedLeadPanel, setSelectedLeadPanel] = useState<"details" | "message">(initialLeadPanel);
   const [isMetaImportOpen, setIsMetaImportOpen] = useState(false);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [selectedBulkOwnerProfileId, setSelectedBulkOwnerProfileId] = useState("");
+  const [isBulkAssigning, setIsBulkAssigning] = useState(false);
+
+  const bulkAssignableOwnerOptions = canManageLeadOwners
+    ? leadOwnerOptions.filter((option) => option.role === "seller")
+    : [];
 
   const visibleLeads = leads;
   const hasActiveFilters = searchTerm.trim().length > 0 || hasActiveLeadUrlFilters(leadFilters);
@@ -113,6 +136,10 @@ export function LeadsWorkspace({
   const selectedLeadCanDelete = selectedLead?.canDelete ?? leadState.canDeleteLeads;
   const canCreateLeads = createLeadAccess.allowed;
   const exportHref = `/api/leads/export${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`;
+  const visibleLeadIds = visibleLeads.map((lead) => lead.id);
+  const selectedLeadIdsSet = new Set(selectedLeadIds);
+  const allVisibleLeadsSelected = visibleLeads.length > 0 && visibleLeadIds.every((id) => selectedLeadIdsSet.has(id));
+  const hasSelectedLeads = selectedLeadIds.length > 0;
 
   const replaceLeadUrlFilters = useCallback((nextFilters: LeadUrlFilters) => {
     const nextSearchParams = new URLSearchParams(searchParams?.toString() ?? "");
@@ -162,6 +189,15 @@ export function LeadsWorkspace({
       setSelectedLead(null);
     }
   }, [leads, selectedLead]);
+
+  useEffect(() => {
+    const visibleLeadIdSet = new Set(leads.map((lead) => lead.id));
+
+    setSelectedLeadIds((currentIds) => {
+      const nextIds = currentIds.filter((id) => visibleLeadIdSet.has(id));
+      return nextIds.length === currentIds.length ? currentIds : nextIds;
+    });
+  }, [leads]);
 
   useEffect(() => {
     if (!isFilterPopupOpen) {
@@ -262,11 +298,13 @@ export function LeadsWorkspace({
       lead,
       ...currentLeads.filter((currentLead) => currentLead.id !== lead.id)
     ]);
-    setCreateFeedback(
-      mode === "not-configured"
-        ? "Lead criado no modo demonstracao. Configure o Supabase para persistir novos cadastros."
-        : "Lead criado e salvo no CRM."
-    );
+    setFeedback({
+      tone: "success",
+      text:
+        mode === "not-configured"
+          ? "Lead criado no modo demonstracao. Configure o Supabase para persistir novos cadastros."
+          : "Lead criado e salvo no CRM."
+    });
 
     if (mode === "supabase" || mode === undefined) {
       router.refresh();
@@ -292,11 +330,14 @@ export function LeadsWorkspace({
   function handleLeadDeleted(leadId: string, mode?: LeadDataMode) {
     setLeads((currentLeads) => currentLeads.filter((currentLead) => currentLead.id !== leadId));
     setSelectedLead(null);
-    setCreateFeedback(
-      mode === "not-configured"
-        ? "Lead removido no modo demonstracao. Configure o Supabase para persistir exclusoes reais."
-        : "Lead removido do CRM."
-    );
+    setSelectedLeadIds((currentIds) => currentIds.filter((currentId) => currentId !== leadId));
+    setFeedback({
+      tone: "success",
+      text:
+        mode === "not-configured"
+          ? "Lead removido no modo demonstracao. Configure o Supabase para persistir exclusoes reais."
+          : "Lead removido do CRM."
+    });
 
     if (mode === "supabase" || mode === undefined) {
       router.refresh();
@@ -304,15 +345,96 @@ export function LeadsWorkspace({
   }
 
   function handleMetaImportFinished(result: MetaLeadImportResponse) {
-    const duplicateMessage =
-      result.summary.duplicates > 0
-        ? ` Encontramos ${result.summary.duplicates} leads duplicados. Eles foram arquivados automaticamente para manter sua base limpa.`
-        : "";
-
-    setCreateFeedback(
-      `Importação Meta concluída: ${result.summary.imported} importados, ${result.summary.duplicates} duplicados, ${result.summary.errors} erros.${duplicateMessage}`
-    );
+    const presentation = buildMetaImportPresentation(result);
+    setFeedback({
+      tone: presentation.tone,
+      text: [result.message, result.detail].filter(Boolean).join(" ")
+    });
     router.refresh();
+  }
+
+  function toggleLeadSelection(leadId: string) {
+    setSelectedLeadIds((currentIds) =>
+      currentIds.includes(leadId)
+        ? currentIds.filter((currentId) => currentId !== leadId)
+        : [...currentIds, leadId]
+    );
+  }
+
+  function toggleVisibleLeadSelection() {
+    setSelectedLeadIds((currentIds) => {
+      if (allVisibleLeadsSelected) {
+        return currentIds.filter((id) => !visibleLeadIds.includes(id));
+      }
+
+      return [...new Set([...currentIds, ...visibleLeadIds])];
+    });
+  }
+
+  function clearLeadSelection() {
+    setSelectedLeadIds([]);
+  }
+
+  async function handleBulkAssignSubmit() {
+    if (!canManageLeadOwners || !selectedBulkOwnerProfileId || selectedLeadIds.length === 0) {
+      return;
+    }
+
+    setIsBulkAssigning(true);
+
+    try {
+      const response = await fetch("/api/leads", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          lead_ids: selectedLeadIds,
+          owner_profile_id: selectedBulkOwnerProfileId
+        })
+      });
+      const data = (await response.json()) as LeadBulkAssignResponse;
+
+      if (!response.ok || !data.leads) {
+        throw new Error(data.error ?? "Nao foi possivel distribuir os leads selecionados.");
+      }
+
+      const updatedLeadMap = new Map(data.leads.map((lead) => [lead.id, lead]));
+      const selectedOwnerName =
+        bulkAssignableOwnerOptions.find((option) => option.id === selectedBulkOwnerProfileId)?.name ??
+        "o consultor selecionado";
+      const assignedCount = data.updatedCount ?? data.leads.length;
+      const assignedCountLabel = formatSelectedLeadCount(assignedCount);
+      const assignedVerb = assignedCount === 1 ? "foi" : "foram";
+      const assignedAction = assignedCount === 1 ? "distribuido" : "distribuidos";
+      const reassignedAction = assignedCount === 1 ? "redistribuido" : "redistribuidos";
+
+      setLeads((currentLeads) =>
+        currentLeads.map((lead) => updatedLeadMap.get(lead.id) ?? lead)
+      );
+      setSelectedLead((currentLead) =>
+        currentLead ? updatedLeadMap.get(currentLead.id) ?? currentLead : currentLead
+      );
+      setSelectedLeadIds([]);
+      setFeedback({
+        tone: "success",
+        text:
+          data.mode === "not-configured"
+            ? `${assignedCountLabel} ${assignedVerb} ${reassignedAction} no modo demonstracao para ${selectedOwnerName}.`
+            : `${assignedCountLabel} ${assignedVerb} ${assignedAction} para ${selectedOwnerName}.`
+      });
+
+      if (data.mode === "supabase" || data.mode === undefined) {
+        router.refresh();
+      }
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        text: getFriendlyErrorMessage(error).message
+      });
+    } finally {
+      setIsBulkAssigning(false);
+    }
   }
 
 
@@ -353,10 +475,26 @@ export function LeadsWorkspace({
 
       <LeadDataNotice leadState={leadState} />
 
-      {createFeedback && (
-        <p className="flex items-center gap-2 rounded-[24px] bg-lagoon/16 px-5 py-3 text-sm font-medium text-ink">
-          <CheckCircle2 className="shrink-0 text-lagoon" size={18} aria-hidden="true" />
-          {createFeedback}
+      {feedback && (
+        <p
+          className={`flex items-center gap-2 rounded-[24px] px-5 py-3 text-sm font-medium text-ink ${
+            feedback.tone === "success"
+              ? "bg-lagoon/16"
+              : feedback.tone === "warning"
+                ? "bg-amber-400/16"
+                : "bg-red-500/12"
+          }`}
+        >
+          {feedback.tone === "success" ? (
+            <CheckCircle2 className="shrink-0 text-lagoon" size={18} aria-hidden="true" />
+          ) : (
+            <AlertCircle
+              className={`shrink-0 ${feedback.tone === "warning" ? "text-amber-600" : "text-red-500"}`}
+              size={18}
+              aria-hidden="true"
+            />
+          )}
+          {feedback.text}
         </p>
       )}
 
@@ -412,13 +550,26 @@ export function LeadsWorkspace({
               <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-stretch">
                 <div className="min-w-0 flex h-full flex-col gap-4 xl:col-span-2">
                   <LeadTablePanel
+                    allVisibleLeadsSelected={allVisibleLeadsSelected}
+                    bulkAssignableOwnerOptions={bulkAssignableOwnerOptions}
+                    canManageLeadOwners={canManageLeadOwners}
+                    hasSelectedLeads={hasSelectedLeads}
+                    isBulkAssigning={isBulkAssigning}
                     leads={visibleLeads}
                     hasActiveFilters={hasActiveFilters}
+                    leadOwnerOptions={leadOwnerOptions}
+                    onBulkAssign={handleBulkAssignSubmit}
+                    onBulkOwnerChange={setSelectedBulkOwnerProfileId}
                     onSearchChange={setSearchTerm}
+                    onClearLeadSelection={clearLeadSelection}
                     searchTerm={searchTerm}
                     onOpenFilters={openFilterPopup}
                     onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
                     onLeadOpen={openLeadDetails}
+                    onToggleLeadSelection={toggleLeadSelection}
+                    onToggleVisibleLeadSelection={toggleVisibleLeadSelection}
+                    selectedBulkOwnerProfileId={selectedBulkOwnerProfileId}
+                    selectedLeadIds={selectedLeadIds}
                   />
                   <div className="grid gap-4 md:grid-cols-2">
                     <SalesFunnelGateway />
@@ -452,8 +603,10 @@ export function LeadsWorkspace({
       />
       <LeadDetailsPopup
         aiBalance={aiBalance}
+        canManageLeadOwners={canManageLeadOwners}
         initialPanel={selectedLeadPanel}
         lead={selectedLead}
+        leadOwnerOptions={leadOwnerOptions}
         messageGeneratorEnabled
         onClose={() => setSelectedLead(null)}
         onDeleted={selectedLeadCanDelete ? handleLeadDeleted : undefined}
@@ -507,6 +660,18 @@ function LeadPaginationControls({
       )}
     </div>
   );
+}
+
+function getResolvedLeadOwnerLabel(lead: Lead, leadOwnerOptions: LeadOwnerOption[]) {
+  const ownerOption = lead.ownerProfileId
+    ? leadOwnerOptions.find((option) => option.id === lead.ownerProfileId)
+    : null;
+
+  return ownerOption?.name ?? lead.owner ?? "Sem responsavel";
+}
+
+function formatSelectedLeadCount(count: number) {
+  return count === 1 ? "1 lead" : `${count} leads`;
 }
 
 function MetaLeadImportModal({
@@ -802,18 +967,33 @@ function MetaImportSourceOption({
 }
 
 function MetaImportResultSummary({ result }: { result: MetaLeadImportResponse }) {
+  const presentation = buildMetaImportPresentation(result);
+  const errorItems = result.items.filter((item) => item.status === "error").slice(0, 3);
+
   return (
-    <div className="mt-4 rounded-[22px] bg-lagoon/14 p-4">
+    <div
+      className={`mt-4 rounded-[22px] p-4 ${
+        presentation.tone === "success"
+          ? "bg-lagoon/14"
+          : presentation.tone === "warning"
+            ? "bg-amber-400/14"
+            : "bg-red-500/10"
+      }`}
+    >
       <p className="flex items-center gap-2 text-sm font-semibold text-ink">
-        <CheckCircle2 className="text-lagoon" size={18} aria-hidden="true" />
-        Importação concluída
+        {presentation.tone === "success" ? (
+          <CheckCircle2 className="text-lagoon" size={18} aria-hidden="true" />
+        ) : (
+          <AlertCircle
+            className={presentation.tone === "warning" ? "text-amber-600" : "text-red-500"}
+            size={18}
+            aria-hidden="true"
+          />
+        )}
+        {presentation.title}
       </p>
-      {result.summary.duplicates > 0 ? (
-        <p className="mt-2 text-sm leading-6 text-ink/68">
-          Encontramos {result.summary.duplicates} leads duplicados. Eles foram arquivados
-          automaticamente para manter sua base limpa.
-        </p>
-      ) : null}
+      <p className="mt-2 text-sm leading-6 text-ink/68">{result.message}</p>
+      {result.detail ? <p className="mt-2 text-sm leading-6 text-ink/62">{result.detail}</p> : null}
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-ink/72">
         <InfoPill label="Encontrados" value={String(result.summary.totalFound)} />
         <InfoPill label="Importados" value={String(result.summary.imported)} />
@@ -821,6 +1001,20 @@ function MetaImportResultSummary({ result }: { result: MetaLeadImportResponse })
         <InfoPill label="Arquivados" value={String(result.summary.archived)} />
         <InfoPill label="Erros" value={String(result.summary.errors)} />
       </div>
+      {errorItems.length > 0 ? (
+        <div className="mt-3 rounded-[18px] bg-white/56 px-4 py-3">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink/42">
+            Erros desta tentativa
+          </p>
+          <ul className="mt-2 space-y-2 text-sm leading-6 text-ink/68">
+            {errorItems.map((item, index) => (
+              <li key={`${item.externalLeadId ?? "erro"}-${index}`}>
+                {item.message ?? "Nao foi possivel importar este lead."}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -922,6 +1116,40 @@ function formatMetaImportDate(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(date);
+}
+
+export function buildMetaImportPresentation(result: MetaLeadImportResponse): {
+  tone: LeadWorkspaceFeedbackTone;
+  title: string;
+} {
+  switch (result.status) {
+    case "success":
+      return {
+        tone: "success",
+        title: "Importacao concluida"
+      };
+    case "duplicates_only":
+      return {
+        tone: "warning",
+        title: "Nenhum lead novo entrou no CRM"
+      };
+    case "empty":
+      return {
+        tone: "warning",
+        title: "Nenhum lead disponivel para importar"
+      };
+    case "partial":
+      return {
+        tone: "warning",
+        title: "Importacao concluida com ressalvas"
+      };
+    case "error":
+    default:
+      return {
+        tone: "error",
+        title: "Importacao nao concluida"
+      };
+  }
 }
 
 function LeadDataNotice({ leadState }: { leadState: LeadDataState }) {
@@ -1135,22 +1363,57 @@ function ArchivedLeadsGateway() {
 }
 
 function LeadTablePanel({
+  allVisibleLeadsSelected,
+  bulkAssignableOwnerOptions,
+  canManageLeadOwners,
+  hasSelectedLeads,
+  isBulkAssigning,
   leads,
   hasActiveFilters,
+  leadOwnerOptions,
+  onBulkAssign,
+  onBulkOwnerChange,
   onSearchChange,
+  onClearLeadSelection,
   searchTerm,
   onOpenFilters,
   onCreateOpen,
-  onLeadOpen
+  onLeadOpen,
+  onToggleLeadSelection,
+  onToggleVisibleLeadSelection,
+  selectedBulkOwnerProfileId,
+  selectedLeadIds
 }: {
+  allVisibleLeadsSelected: boolean;
+  bulkAssignableOwnerOptions: LeadOwnerOption[];
+  canManageLeadOwners: boolean;
+  hasSelectedLeads: boolean;
+  isBulkAssigning: boolean;
   leads: Lead[];
   hasActiveFilters: boolean;
+  leadOwnerOptions: LeadOwnerOption[];
+  onBulkAssign: () => void;
+  onBulkOwnerChange: (value: string) => void;
   onSearchChange: (value: string) => void;
+  onClearLeadSelection: () => void;
   searchTerm: string;
   onOpenFilters: () => void;
   onCreateOpen?: () => void;
   onLeadOpen: (lead: Lead) => void;
+  onToggleLeadSelection: (leadId: string) => void;
+  onToggleVisibleLeadSelection: () => void;
+  selectedBulkOwnerProfileId: string;
+  selectedLeadIds: string[];
 }) {
+  const selectedLeadIdsSet = new Set(selectedLeadIds);
+  const showBulkActions = canManageLeadOwners && leads.length > 0;
+  const tableGridClassName = canManageLeadOwners
+    ? "hidden grid-cols-[44px_minmax(220px,1.2fr)_150px_210px_140px_120px_44px] gap-4 border-b border-ink/8 px-5 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid"
+    : "hidden grid-cols-[minmax(220px,1.2fr)_150px_210px_140px_120px_44px] gap-4 border-b border-ink/8 px-5 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid";
+  const rowGridClassName = canManageLeadOwners
+    ? "grid gap-3 border-b border-ink/8 px-5 py-4 text-left transition hover:bg-white/34 last:border-0 md:grid-cols-[44px_minmax(220px,1.2fr)_150px_210px_140px_120px_44px] md:items-center"
+    : "grid gap-3 border-b border-ink/8 px-5 py-4 text-left transition hover:bg-white/34 last:border-0 md:grid-cols-[minmax(220px,1.2fr)_150px_210px_140px_120px_44px] md:items-center";
+
   return (
     <section className="glass-strong flex h-full flex-col rounded-[34px] p-5">
       <div className="mb-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -1200,8 +1463,76 @@ function LeadTablePanel({
         </div>
       </div>
 
+      {showBulkActions ? (
+        <div className="mb-4 flex flex-col gap-3 rounded-[26px] border border-cobalt/12 bg-cobalt/6 px-4 py-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-ink">
+              {hasSelectedLeads
+                ? `${selectedLeadIds.length} ${selectedLeadIds.length === 1 ? "lead selecionado" : "leads selecionados"}`
+                : "Selecione os leads que deseja distribuir"}
+            </p>
+            <p className="text-sm text-ink/60">
+              Distribuicao em lote disponivel apenas para gestores e sempre restrita aos consultores da equipe.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center">
+            <button
+              className="inline-flex items-center justify-center rounded-full border border-white/70 bg-white/70 px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white"
+              onClick={onToggleVisibleLeadSelection}
+              type="button"
+            >
+              {allVisibleLeadsSelected ? "Desmarcar visiveis" : "Selecionar visiveis"}
+            </button>
+            <button
+              className="inline-flex items-center justify-center rounded-full border border-white/70 bg-white/70 px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={!hasSelectedLeads}
+              onClick={onClearLeadSelection}
+              type="button"
+            >
+              Limpar selecao
+            </button>
+            <label className="sr-only" htmlFor="bulk-owner-profile-id">
+              Distribuir leads selecionados para
+            </label>
+            <select
+              aria-label="Distribuir leads selecionados para"
+              className="rounded-full border border-white/70 bg-white/80 px-4 py-2.5 text-sm font-medium text-ink shadow-sm outline-none transition focus:border-cobalt/40"
+              id="bulk-owner-profile-id"
+              onChange={(event) => onBulkOwnerChange(event.target.value)}
+              value={selectedBulkOwnerProfileId}
+            >
+              <option value="">Selecione um consultor</option>
+              {bulkAssignableOwnerOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+            <button
+              className="inline-flex items-center justify-center rounded-full bg-cobalt px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cobalt/92 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={!hasSelectedLeads || !selectedBulkOwnerProfileId || isBulkAssigning}
+              onClick={onBulkAssign}
+              type="button"
+            >
+              {isBulkAssigning ? "Distribuindo" : "Distribuir em lote"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="overflow-hidden rounded-[26px] border border-white/48 bg-white/28">
-        <div className="hidden grid-cols-[minmax(220px,1.2fr)_150px_210px_140px_120px_44px] gap-4 border-b border-ink/8 px-5 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
+        <div className={tableGridClassName}>
+          {canManageLeadOwners ? (
+            <span className="flex items-center justify-center">
+              <input
+                aria-label="Selecionar todos os leads visiveis"
+                checked={allVisibleLeadsSelected}
+                className="h-4 w-4 rounded border border-ink/20 text-cobalt focus:ring-cobalt"
+                onChange={onToggleVisibleLeadSelection}
+                type="checkbox"
+              />
+            </span>
+          ) : null}
           <span>Lead</span>
           <span>Telefone</span>
           <span>Email</span>
@@ -1213,9 +1544,24 @@ function LeadTablePanel({
         {leads.map((lead) => {
           return (
             <article
-              className="grid gap-3 border-b border-ink/8 px-5 py-4 text-left transition hover:bg-white/34 last:border-0 md:grid-cols-[minmax(220px,1.2fr)_150px_210px_140px_120px_44px] md:items-center"
+              className={rowGridClassName}
               key={lead.id}
             >
+              {canManageLeadOwners ? (
+                <div
+                  className="flex items-start md:items-center md:justify-center"
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  <input
+                    aria-label={`Selecionar lead ${lead.name}`}
+                    checked={selectedLeadIdsSet.has(lead.id)}
+                    className="mt-1 h-4 w-4 rounded border border-ink/20 text-cobalt focus:ring-cobalt md:mt-0"
+                    onChange={() => onToggleLeadSelection(lead.id)}
+                    type="checkbox"
+                  />
+                </div>
+              ) : null}
               <button
                 className="text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50 md:pr-2"
                 onClick={() => onLeadOpen(lead)}
@@ -1253,7 +1599,7 @@ function LeadTablePanel({
                 onClick={() => onLeadOpen(lead)}
                 type="button"
               >
-                {lead.owner}
+                {getResolvedLeadOwnerLabel(lead, leadOwnerOptions)}
               </button>
 
               <div

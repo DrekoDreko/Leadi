@@ -33,12 +33,12 @@ const ENV_INTEGRATIONS = {
   },
   meta_oauth: {
     message:
-      "OAuth da Meta indisponivel. Configure META_APP_ID e META_APP_SECRET no ambiente do servidor.",
+      "OAuth da Meta indisponivel. Configure META_APP_ID e META_APP_SECRET no ambiente do servidor (sem o prefixo NEXT_PUBLIC_).",
     required: ["META_APP_ID", "META_APP_SECRET"]
   },
   meta_webhook: {
     message:
-      "Webhook da Meta indisponivel. Configure META_APP_SECRET e META_VERIFY_TOKEN no ambiente do servidor.",
+      "Webhook da Meta indisponivel. Configure META_APP_SECRET e META_VERIFY_TOKEN no ambiente do servidor (sem o prefixo NEXT_PUBLIC_).",
     required: ["META_APP_SECRET", "META_VERIFY_TOKEN"]
   },
   whatsapp_meta_send: {
@@ -54,7 +54,12 @@ const ENV_INTEGRATIONS = {
   meta_lead_sync: {
     message:
       "Sincronizacao de leads da Meta indisponivel. Conecte a conta Meta da empresa e configure o Supabase admin no servidor.",
-    required: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+    required: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]
+  },
+  openai: {
+    message:
+      "IA da plataforma indisponivel. Configure OPENAI_API_KEY no ambiente do servidor.",
+    required: ["OPENAI_API_KEY"]
   }
 } as const satisfies Record<string, EnvIntegrationDefinition>;
 

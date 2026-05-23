@@ -50,21 +50,41 @@ export const LOCAL_COMPLIANCE_RULES: LocalComplianceRule[] = [
   {
     title: "Promessa forte ou garantia",
     detail:
-      "Promessas de aprovacao, compliance, economia, cobertura ou resultado garantido podem criar expectativa indevida.",
+      "Promessas de aprovacao, compliance, cobertura ou resultado garantido podem criar expectativa indevida.",
     severity: "high",
     suggestion:
       "Use linguagem de analise, comparacao e simulacao, sem prometer aprovacao na Meta, compliance absoluto ou resultado garantido.",
     pattern:
-      /garantid[ao]s?|aprova[cç][aã]o garantida|aprova[cç][aã]o imediata|100%\s*aprovad[ao]s?|aprovad[ao] pela meta|n[aã]o ser[aá] reprovad[ao]|sem risco de reprova[cç][aã]o|risco zero de reprova[cç][aã]o|reprova[cç][aã]o zero|compliance garantid[ao]|garantia (absoluta|total) de compliance|blindad[ao] contra reprova[cç][aã]o|cobertura total|sem car[eê]ncia|economia garantida|resultado garantido|cobertura imediata/i
+      /garantid[ao]s?|aprova[cç][aã]o garantida|aprova[cç][aã]o imediata|100%\s*aprovad[ao]s?|aprovad[ao] pela meta|n[aã]o ser[aá] reprovad[ao]|sem risco de reprova[cç][aã]o|risco zero de reprova[cç][aã]o|reprova[cç][aã]o zero|compliance garantid[ao]|garantia (absoluta|total) de compliance|blindad[ao] contra reprova[cç][aã]o|cobertura total|sem car[eê]ncia|resultado garantido|cobertura imediata/i
   },
   {
-    title: "Urgencia agressiva",
+    title: "Promessa financeira agressiva",
+    detail:
+      "Promessas de economia garantida, cortes irreais de custos ou precos absolutos geram risco de falsas expectativas e ferem compliance.",
+    severity: "high",
+    suggestion:
+      "Use 'avalie reducao de custos', 'estudo de viabilidade' ou 'comparativo de mercado' em vez de prometer economia garantida.",
+    pattern:
+      /economia garantida|desconto garantido|corte seus custos|reduza seus custos em|metade do pre[cç]o|redu[cç][aã]o garantida|pague menos sem perder nada|cobrimos qualquer oferta|garantimos o menor pre[cç]o/i
+  },
+  {
+    title: "Urgencia artificial",
     detail:
       "Expressoes de escassez ou urgencia podem soar enganosas quando nao ha regra comercial verificavel.",
     severity: "medium",
     suggestion:
       "Prefira chamadas objetivas, como solicitar cotacao, comparar alternativas ou falar com um consultor.",
-    pattern: /[uú]ltima chance|somente hoje|imperd[ií]vel|corra|vagas limitadas|nao perca/i
+    pattern: /[uú]ltima chance|somente hoje|imperd[ií]vel|corra|vagas limitadas|n[aã]o perca/i
+  },
+  {
+    title: "Linguagem agressiva ou tom imperativo",
+    detail:
+      "Tom sensacionalista, agressivo ou excessivamente imperativo prejudica a abordagem consultiva e o compliance comercial.",
+    severity: "medium",
+    suggestion:
+      "Substitua o tom de 'venda agressiva' por uma postura consultiva focada em apresentacao e simulacao de cenarios.",
+    pattern:
+      /pare de perder dinheiro|voc[eê] est[aá] pagando caro|feche agora|compre j[aá]|n[aã]o seja bobo|jogando dinheiro fora|loucura|vai acabar/i
   },
   {
     title: "Coleta excessiva no primeiro contato",

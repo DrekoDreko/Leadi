@@ -9,6 +9,7 @@ import {
   ApiRouteError,
   assertRouteRateLimit,
   assertSameOrigin,
+  assertServerAuth,
   getErrorStatus,
   logApiError,
   parseJsonBody,
@@ -27,7 +28,7 @@ const leadCommentSchema = z.object({
     "Comentario muito longo. Use ate 2000 caracteres."
   ),
   type: z.enum(["comment", "contact"]).optional().default("comment")
-});
+}).strict();
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
@@ -64,6 +65,11 @@ export async function POST(request: Request, context: RouteContext) {
       limit: 30,
       windowMs: 60 * 1000
     });
+
+    if (mode !== "not-configured") {
+      await assertServerAuth();
+    }
+
     const body = await parseJsonBody(request, leadCommentSchema);
     const { comment, lead } = await createLeadCommentForCurrentUser(id, body);
 

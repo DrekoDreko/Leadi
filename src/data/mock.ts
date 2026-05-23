@@ -58,11 +58,33 @@ export type Lead = {
   duplicateOfLeadId?: string | null;
 };
 
+export const mockLeadOwnerOptions = [
+  {
+    id: "demo-profile-gabriel",
+    name: "Gabriel",
+    email: "gabriel@leadi.example",
+    role: "owner" as const
+  },
+  {
+    id: "demo-profile-beatriz",
+    name: "Beatriz",
+    email: "beatriz@leadi.example",
+    role: "admin" as const
+  },
+  {
+    id: "demo-profile-fernanda",
+    name: "Fernanda",
+    email: "fernanda@leadi.example",
+    role: "seller" as const
+  }
+];
+
 export const leads: Lead[] = [
   {
     id: "LE-1042",
     name: "Marina Azevedo",
     owner: "Gabriel",
+    ownerProfileId: "demo-profile-gabriel",
     stage: "Novo lead",
     source: "Meta Lead Form",
     phone: "(19) 98842-1042",
@@ -93,6 +115,7 @@ export const leads: Lead[] = [
     id: "LE-1039",
     name: "Renato Carvalho",
     owner: "Beatriz",
+    ownerProfileId: "demo-profile-beatriz",
     stage: "Qualificação",
     source: "CSV importado",
     phone: "(11) 97620-1039",
@@ -113,6 +136,7 @@ export const leads: Lead[] = [
     id: "LE-1031",
     name: "Paula Mendes",
     owner: "Gabriel",
+    ownerProfileId: "demo-profile-gabriel",
     stage: "Proposta",
     source: "Cadastro manual",
     phone: "(13) 99110-1031",
@@ -133,6 +157,7 @@ export const leads: Lead[] = [
     id: "LE-1028",
     name: "Fábio Lins",
     owner: "Fernanda",
+    ownerProfileId: "demo-profile-fernanda",
     stage: "Negociação",
     source: "Meta Lead Form",
     phone: "(15) 98132-1028",

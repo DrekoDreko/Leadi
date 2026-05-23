@@ -8,7 +8,14 @@ import {
   type LeadPeriodFilterValue,
   type LeadSourceFilterValue
 } from "@/lib/leads/filters";
-import { isLeadQualifiedStage, isLeadWonStage } from "@/lib/leads/stages";
+import {
+  getLeadStageValue,
+  isLeadQualifiedStage,
+  isLeadWonStage,
+  leadStageMetas,
+  type LeadStageTone,
+  type LeadStageValue
+} from "@/lib/leads/stages";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Database } from "@/lib/supabase/database.types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -95,6 +102,38 @@ export type DashboardCplSummary = {
   status: "mocked" | "unavailable";
 };
 
+export type DashboardStageConversionRow = {
+  stageValue: LeadStageValue;
+  label: string;
+  tone: LeadStageTone;
+  count: number;
+  percentage: number;
+};
+
+export type DashboardStageConversionSummary = {
+  total: number;
+  note: string;
+  rows: DashboardStageConversionRow[];
+  status: "available" | "empty";
+};
+
+export type DashboardConsultantPortfolioRow = {
+  ownerProfileId: string | null;
+  ownerName: string;
+  role: "owner" | "admin" | "seller" | "unassigned";
+  leadCount: number;
+  overdueCount: number;
+};
+
+export type DashboardConsultantPortfolioSummary = {
+  totalConsultants: number;
+  totalLeads: number;
+  totalOverdue: number;
+  note: string;
+  rows: DashboardConsultantPortfolioRow[];
+  status: "available" | "empty";
+};
+
 const periodOptions = new Set(leadPeriodFilterOptions.map((option) => option.value));
 const sourceOptions = new Set(leadSourceFilterOptions.map((option) => option.value));
 const reportDateFormatter = new Intl.DateTimeFormat("pt-BR", {
@@ -144,6 +183,122 @@ export function buildInitialDashboardCplSummary(input: {
     value: `~${dashboardCurrencyFormatter.format(INITIAL_CPL_MOCK_VALUE)}`,
     note: "mock inicial • sem custo Meta real",
     status: "mocked"
+  };
+}
+
+export function buildDashboardStageConversionSummary<T extends { stage: string }>(
+  leads: T[]
+): DashboardStageConversionSummary {
+  if (leads.length === 0) {
+    return {
+      total: 0,
+      note: "Sem leads visiveis para calcular a distribuicao atual do funil.",
+      rows: [],
+      status: "empty"
+    };
+  }
+
+  const counts = new Map<LeadStageValue, number>();
+
+  for (const lead of leads) {
+    const stageValue = getLeadStageValue(lead.stage);
+
+    if (!stageValue) {
+      continue;
+    }
+
+    counts.set(stageValue, (counts.get(stageValue) ?? 0) + 1);
+  }
+
+  const total = Array.from(counts.values()).reduce((sum, count) => sum + count, 0);
+
+  if (total === 0) {
+    return {
+      total: 0,
+      note: "As etapas atuais dos leads visiveis nao puderam ser classificadas no funil oficial.",
+      rows: [],
+      status: "empty"
+    };
+  }
+
+  return {
+    total,
+    note: "Percentual da base atual em cada etapa oficial do funil.",
+    rows: leadStageMetas.map((stageMeta) => {
+      const count = counts.get(stageMeta.value) ?? 0;
+
+      return {
+        stageValue: stageMeta.value,
+        label: stageMeta.label,
+        tone: stageMeta.tone,
+        count,
+        percentage: count / total
+      };
+    }),
+    status: "available"
+  };
+}
+
+export function buildDashboardConsultantPortfolioSummary<
+  TLead extends { id: string; owner: string; ownerProfileId?: string | null },
+  TTask extends { leadId: string },
+  TOwner extends { id: string; name: string; role: "owner" | "admin" | "seller" }
+>(
+  leads: TLead[],
+  overdueTasks: TTask[],
+  ownerOptions: TOwner[]
+): DashboardConsultantPortfolioSummary {
+  if (leads.length === 0 && overdueTasks.length === 0) {
+    return {
+      totalConsultants: 0,
+      totalLeads: 0,
+      totalOverdue: 0,
+      note: "Nenhuma carteira visivel foi encontrada para distribuir a leitura por consultor.",
+      rows: [],
+      status: "empty"
+    };
+  }
+
+  const rowMap = new Map<string, DashboardConsultantPortfolioRow>();
+  const ownerMap = new Map(ownerOptions.map((option) => [option.id, option]));
+  const leadOwnerKeys = new Map<string, string>();
+  const unassignedKey = "__unassigned__";
+
+  for (const lead of leads) {
+    const descriptor = resolveConsultantDescriptor(lead, ownerMap);
+    const row = getOrCreateConsultantPortfolioRow(rowMap, descriptor.key, descriptor);
+    row.leadCount += 1;
+    leadOwnerKeys.set(lead.id, descriptor.key);
+  }
+
+  for (const task of overdueTasks) {
+    const ownerKey = leadOwnerKeys.get(task.leadId) ?? unassignedKey;
+    const row =
+      rowMap.get(ownerKey) ??
+      getOrCreateConsultantPortfolioRow(rowMap, unassignedKey, {
+        ownerProfileId: null,
+        ownerName: "Sem responsável",
+        role: "unassigned"
+      });
+
+    row.overdueCount += 1;
+  }
+
+  const rows = Array.from(rowMap.values())
+    .filter((row) => row.leadCount > 0 || row.overdueCount > 0)
+    .sort(compareConsultantPortfolioRows);
+  const totalConsultants = rows.filter((row) => row.role !== "unassigned").length;
+
+  return {
+    totalConsultants,
+    totalLeads: leads.length,
+    totalOverdue: overdueTasks.length,
+    note:
+      overdueTasks.length > 0
+        ? "Carteira atual e tarefas em atraso agregadas por consultor visivel no CRM."
+        : "Carteira atual agregada por consultor visivel no CRM, sem atrasos registrados.",
+    rows,
+    status: rows.length > 0 ? "available" : "empty"
   };
 }
 
@@ -496,6 +651,71 @@ function compareRows(left: CommercialReportBreakdownRow, right: CommercialReport
   }
 
   return left.label.localeCompare(right.label, "pt-BR");
+}
+
+function getOrCreateConsultantPortfolioRow(
+  rowMap: Map<string, DashboardConsultantPortfolioRow>,
+  key: string,
+  descriptor: {
+    ownerProfileId: string | null;
+    ownerName: string;
+    role: DashboardConsultantPortfolioRow["role"];
+  }
+) {
+  const existingRow = rowMap.get(key);
+
+  if (existingRow) {
+    return existingRow;
+  }
+
+  const row: DashboardConsultantPortfolioRow = {
+    ownerProfileId: descriptor.ownerProfileId,
+    ownerName: descriptor.ownerName,
+    role: descriptor.role,
+    leadCount: 0,
+    overdueCount: 0
+  };
+
+  rowMap.set(key, row);
+  return row;
+}
+
+function resolveConsultantDescriptor<
+  TLead extends { owner: string; ownerProfileId?: string | null },
+  TOwner extends { id: string; name: string; role: "owner" | "admin" | "seller" }
+>(lead: TLead, ownerMap: Map<string, TOwner>) {
+  if (!lead.ownerProfileId) {
+    return {
+      key: "__unassigned__",
+      ownerProfileId: null,
+      ownerName: "Sem responsável",
+      role: "unassigned" as const
+    };
+  }
+
+  const ownerOption = ownerMap.get(lead.ownerProfileId);
+
+  return {
+    key: lead.ownerProfileId,
+    ownerProfileId: lead.ownerProfileId,
+    ownerName: ownerOption?.name?.trim() || lead.owner || "Consultor sem nome",
+    role: ownerOption?.role ?? "seller"
+  };
+}
+
+function compareConsultantPortfolioRows(
+  left: DashboardConsultantPortfolioRow,
+  right: DashboardConsultantPortfolioRow
+) {
+  if (right.overdueCount !== left.overdueCount) {
+    return right.overdueCount - left.overdueCount;
+  }
+
+  if (right.leadCount !== left.leadCount) {
+    return right.leadCount - left.leadCount;
+  }
+
+  return left.ownerName.localeCompare(right.ownerName, "pt-BR");
 }
 
 function resolveSelectedSellerId(

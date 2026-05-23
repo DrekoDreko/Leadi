@@ -9,6 +9,10 @@ import {
   getMetaConnectionForOrganization,
   resolveMetaAccessTokenForOrganization
 } from "@/lib/integrations/repository.server";
+import {
+  parseCampaignInputPayload,
+  parseCampaignResultPayload
+} from "@/lib/campaigns/payload";
 import type { CampaignHistoryItem, CampaignPublicationStatus, CampaignPublishMode } from "@/lib/campaigns/types";
 
 type CampaignRow = {
@@ -316,7 +320,8 @@ async function updateCampaignAfterPublication(
     .from("campaigns")
     .update({
       publication_status: "paused",
-      publication_message: "Campanha enviada para a Meta em modo pausado.",
+      publication_message:
+        "Campanha enviada para a Meta em modo pausado. A ativacao continua manual ate a equipe liberar a veiculacao.",
       meta_campaign_id: input.metaCampaignId,
       published_at: new Date().toISOString(),
       last_publication_attempt_at: new Date().toISOString(),
@@ -486,75 +491,11 @@ function mapCampaignRowToHistoryItem(row: CampaignRow): CampaignHistoryItem {
 }
 
 function parseCampaignInput(row: CampaignRow) {
-  const payload = isRecord(row.input_payload) ? row.input_payload : null;
-
-  return {
-    brokerageName: stringFromPayload(payload?.brokerageName) ?? "Plano de saude empresarial",
-    audience: stringFromPayload(payload?.audience) ?? row.audience,
-    offer: stringFromPayload(payload?.offer) ?? row.offer,
-    region: stringFromPayload(payload?.region) ?? row.region,
-    differentiator: stringFromPayload(payload?.differentiator) ?? row.differentiator,
-    notes: stringFromPayload(payload?.notes) ?? "",
-    tone: stringFromPayload(payload?.tone) ?? row.tone,
-    creativeAssetType: stringFromPayload(payload?.creativeAssetType) ?? null,
-    creativeBrief: stringFromPayload(payload?.creativeBrief) ?? null,
-    creativeRequestMode: stringFromPayload(payload?.creativeRequestMode) ?? null,
-    creativeFileNames: Array.isArray(payload?.creativeFileNames)
-      ? payload.creativeFileNames.filter((value) => typeof value === "string") as string[]
-      : [],
-    connectedAccountId: stringFromPayload(payload?.connectedAccountId) ?? row.connected_account_id,
-    metaPageId: stringFromPayload(payload?.metaPageId) ?? row.meta_page_id,
-    metaAdAccountId: stringFromPayload(payload?.metaAdAccountId) ?? row.meta_ad_account_id,
-    metaLeadFormId: stringFromPayload(payload?.metaLeadFormId) ?? row.meta_lead_form_id,
-    publishMode:
-      stringFromPayload(payload?.publishMode) === "draft" ||
-      stringFromPayload(payload?.publishMode) === "manual_review" ||
-      stringFromPayload(payload?.publishMode) === "scheduled" ||
-      stringFromPayload(payload?.publishMode) === "paused"
-        ? (stringFromPayload(payload?.publishMode) as CampaignPublishMode)
-        : row.publish_mode,
-    publicationStatus:
-      stringFromPayload(payload?.publicationStatus) === "not_connected" ||
-      stringFromPayload(payload?.publicationStatus) === "ready_to_prepare" ||
-      stringFromPayload(payload?.publicationStatus) === "draft_created" ||
-      stringFromPayload(payload?.publicationStatus) === "pending_review" ||
-      stringFromPayload(payload?.publicationStatus) === "published" ||
-      stringFromPayload(payload?.publicationStatus) === "paused" ||
-      stringFromPayload(payload?.publicationStatus) === "failed"
-        ? (stringFromPayload(payload?.publicationStatus) as CampaignPublicationStatus)
-        : row.publication_status,
-    metaCampaignId: stringFromPayload(payload?.metaCampaignId) ?? row.meta_campaign_id,
-    metaAdSetId: stringFromPayload(payload?.metaAdSetId) ?? row.meta_adset_id,
-    metaAdId: stringFromPayload(payload?.metaAdId) ?? row.meta_ad_id
-  };
+  return parseCampaignInputPayload(row);
 }
 
 function parseCampaignResult(row: CampaignRow) {
-  const payload = isRecord(row.result_payload) ? row.result_payload : null;
-
-  return {
-    campaignName: stringFromPayload(payload?.campaignName) ?? row.campaign_name,
-    primaryText: stringFromPayload(payload?.primaryText) ?? row.primary_text,
-    headline: stringFromPayload(payload?.headline) ?? row.headline,
-    description: stringFromPayload(payload?.description) ?? row.description,
-    callToAction: stringFromPayload(payload?.callToAction) ?? row.call_to_action,
-    suggestedAudience:
-      stringFromPayload(payload?.suggestedAudience) ?? row.suggested_audience,
-    variants: Array.isArray(payload?.variants)
-      ? payload.variants.filter((value) => typeof value === "string") as string[]
-      : [],
-    complianceNotes: Array.isArray(payload?.complianceNotes)
-      ? payload.complianceNotes.filter((value) => typeof value === "string") as string[]
-      : []
-  };
-}
-
-function stringFromPayload(value: Json | null | undefined) {
-  return typeof value === "string" ? value : null;
-}
-
-function isRecord(value: Json | null | undefined): value is Record<string, Json> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  return parseCampaignResultPayload(row);
 }
 
 function isMissingMarketingPermissionError(error: unknown) {

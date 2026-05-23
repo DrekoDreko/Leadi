@@ -28,14 +28,14 @@ export async function POST(request: Request) {
       limit: 20,
       windowMs: 60 * 1000
     });
-    const body = await parseJsonBody(request, whatsappSendSchema);
-    const input = parseRequest(body);
     const authContext = await getBillingAuthContext();
 
     if (!authContext) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
 
+    const body = await parseJsonBody(request, whatsappSendSchema);
+    const input = parseRequest(body);
     const result = await sendWhatsAppMessageForCurrentUser(input);
 
     return NextResponse.json({

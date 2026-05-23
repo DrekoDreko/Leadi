@@ -11,6 +11,7 @@ import {
   ApiRouteError,
   assertRouteRateLimit,
   assertSameOrigin,
+  assertServerAuth,
   getErrorStatus,
   parseJsonBody,
   requiredTrimmedString
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
       limit: 10,
       windowMs: 60 * 1000
     });
+    await assertServerAuth();
     assertPayloadSize(request, "WEBHOOK_JSON");
     body = await parseJsonBody(request, importRequestSchema);
 
@@ -71,6 +73,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
+        status: "error",
         summary: {
           totalFound: 0,
           imported: 0,
@@ -79,7 +82,8 @@ export async function POST(request: Request) {
           errors: 1
         },
         items: [],
-        message
+        message,
+        detail: "Nenhum lead foi importado nesta tentativa."
       },
       { status }
     );

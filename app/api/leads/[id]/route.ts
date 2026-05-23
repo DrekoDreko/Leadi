@@ -18,6 +18,7 @@ import {
   ApiRouteError,
   assertRouteRateLimit,
   assertSameOrigin,
+  assertServerAuth,
   getErrorStatus,
   parseJsonBody,
   requiredTrimmedString
@@ -27,6 +28,7 @@ const leadUpdateSchema = z.object({
   name: requiredTrimmedString("Informe o nome do lead antes de salvar.").max(160).optional(),
   phone: z.string().trim().max(40).optional(),
   email: z.email("Informe um e-mail valido.").optional(),
+  owner_profile_id: z.string().trim().max(80).optional(),
   city: z.string().trim().max(120).optional(),
   company_name: z.string().trim().max(160).optional(),
   lives_count: z.union([z.number(), z.string()]).optional(),
@@ -41,7 +43,7 @@ const leadUpdateSchema = z.object({
   source_campaign: z.string().trim().max(160).optional(),
   source_adset: z.string().trim().max(160).optional(),
   source_ad: z.string().trim().max(160).optional()
-}).refine((value) => Object.keys(value).length > 0, {
+}).strict().refine((value) => Object.keys(value).length > 0, {
   message: "Informe ao menos um campo para atualizar o lead."
 });
 
@@ -58,6 +60,11 @@ export async function PATCH(request: Request, context: RouteContext) {
       limit: 40,
       windowMs: 60 * 1000
     });
+
+    if (mode !== "not-configured") {
+      await assertServerAuth();
+    }
+
     body = await parseJsonBody(request, leadUpdateSchema);
     const lead = await updateLeadForCurrentUser(id, body as LeadCreateInput);
 
@@ -95,6 +102,11 @@ export async function DELETE(request: Request, context: RouteContext) {
       limit: 30,
       windowMs: 60 * 1000
     });
+
+    if (mode !== "not-configured") {
+      await assertServerAuth();
+    }
+
     await archiveLeadForCurrentUser(id);
 
     return NextResponse.json({ ok: true, mode });
@@ -143,6 +155,18 @@ function getUpdateLeadErrorMessage(error: unknown) {
 
   if (message.includes("Sem permissao")) {
     return "Voce so pode editar leads adicionados por voce.";
+  }
+
+  if (message.includes("Somente owner ou admin podem alterar o responsavel do lead")) {
+    return "Somente owner ou admin podem alterar o responsavel do lead.";
+  }
+
+  if (message.includes("Responsavel do lead nao encontrado")) {
+    return "Nao encontramos o responsavel informado na sua equipe.";
+  }
+
+  if (message.includes("Selecione um responsavel valido")) {
+    return "Selecione um responsavel valido para este lead.";
   }
 
   if (message.includes("Supabase nao configurado")) {

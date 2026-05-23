@@ -1,7 +1,70 @@
-import { ArrowUpRight, Link2, RefreshCw } from "lucide-react";
+import { Activity, ArrowUpRight, CheckCircle2, CircleAlert, RefreshCw, TimerReset, Unplug } from "lucide-react";
 import type { ConnectedAccountsState } from "@/lib/integrations/types";
 
 const PROFILE_META_SECTION_HREF = "/dashboard/perfil/meta";
+const META_ACTIVE_STATUSES = new Set(["connected", "active"]);
+const META_ATTENTION_STATUSES = new Set(["pending", "expired", "error", "disconnected", "inactive", "revoked"]);
+
+type MetaSyncFeedItem = {
+  id: string;
+  assetTypeLabel: string;
+  createdAt: string;
+  message: string;
+  status: string;
+  title: string;
+};
+
+type MetaOperationalSummary = {
+  activeAssetsCount: number;
+  adAccountsCount: number;
+  attentionAssetsCount: number;
+  connectionDescription: string;
+  connectionTone: "connected" | "warning" | "pending";
+  connectionTitle: string;
+  formsCount: number;
+  hasConnection: boolean;
+  lastSyncAt: string | null;
+  latestSyncStatus: string;
+  pagesCount: number;
+  permissionsCount: number;
+  recentSyncItems: MetaSyncFeedItem[];
+  totalAssetsCount: number;
+};
+
+type MetaConnectionDiagnosisTone = "connected" | "warning" | "pending";
+
+type MetaConnectionDiagnosisCheck = {
+  id: string;
+  label: string;
+  stateLabel: string;
+  description: string;
+  tone: MetaConnectionDiagnosisTone;
+};
+
+type MetaConnectionDiagnostics = {
+  categoryLabel: string;
+  title: string;
+  summary: string;
+  nextStep: string;
+  tone: MetaConnectionDiagnosisTone;
+  checks: MetaConnectionDiagnosisCheck[];
+};
+
+type MetaOverviewCardProps = {
+  billingNotice?: {
+    actionLabel: string;
+    message: string;
+    title: string;
+  } | null;
+  connectedAccounts: ConnectedAccountsState;
+  metaParam?: string | null;
+  missingMetaOAuthEnvKeys?: string[];
+  missingMetaSyncEnvKeys?: string[];
+  syncParam?: string | null;
+  workspaceName: string;
+};
+
+type MetaConnectionStatusValue = NonNullable<ConnectedAccountsState["metaConnection"]>["status"] | null;
 
 export function MetaConnectedAccountsSection({
   connectedAccounts
@@ -9,32 +72,7 @@ export function MetaConnectedAccountsSection({
   connectedAccounts: ConnectedAccountsState;
 }) {
   const connection = connectedAccounts.metaConnection;
-  const connectedAssets = [
-    ...connectedAccounts.metaPages.map((page) => ({
-      id: page.id,
-      name: page.name,
-      type: "Página",
-      externalId: page.metaPageId,
-      status: formatMetaAssetStatus(page.status),
-      lastSyncedAt: page.lastSyncAt
-    })),
-    ...connectedAccounts.metaAdAccounts.map((account) => ({
-      id: account.id,
-      name: account.name,
-      type: "Conta de anúncio",
-      externalId: account.metaAdAccountId,
-      status: formatMetaAssetStatus(account.status),
-      lastSyncedAt: account.lastSyncAt
-    })),
-    ...connectedAccounts.metaLeadForms.map((form) => ({
-      id: form.id,
-      name: form.name,
-      type: "Formulário",
-      externalId: form.metaFormId,
-      status: formatMetaAssetStatus(form.status),
-      lastSyncedAt: form.lastSyncAt ?? form.lastLeadSyncAt
-    }))
-  ];
+
 
   return (
     <section className="rounded-[34px] p-6 glass-strong">
@@ -128,39 +166,175 @@ export function MetaConnectedAccountsSection({
 
       {/* Sessão 4: Ativos Sincronizados */}
       <article className="mt-6 rounded-[28px] border border-white/44 bg-white/36 p-5 flex flex-col gap-4">
-        <p className="text-sm font-semibold text-cobalt">Ativos sincronizados</p>
-        <div className="overflow-hidden rounded-[24px] border border-white/50 bg-white/30">
-          <div className="hidden grid-cols-[1.1fr_150px_180px_150px] gap-3 border-b border-ink/8 px-4 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
-            <span>Ativo</span>
-            <span>Tipo</span>
-            <span>ID externo</span>
-            <span>Status</span>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-cobalt">Páginas, formulários e contas de anúncio</p>
+            <p className="mt-1 text-sm text-ink/62">Ativos prontos para importar leads.</p>
           </div>
+          <a
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-xs font-semibold text-cloud transition hover:bg-ink/90"
+            href="/dashboard/leads"
+            title="Importar leads no CRM"
+          >
+            Importar leads
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </a>
+        </div>
 
-          {connectedAssets.length ? (
-            connectedAssets.map((asset) => (
-              <div
-                className="grid gap-2 border-b border-ink/8 px-4 py-3 text-sm last:border-0 md:grid-cols-[1.1fr_150px_180px_150px] md:items-center"
-                key={`${asset.type}-${asset.id}`}
-              >
-                <div>
-                  <p className="font-semibold text-ink">{asset.name}</p>
-                  <p className="mt-1 text-xs text-ink/46">
-                    Sincronizado em {formatDateTime(asset.lastSyncedAt)}
-                  </p>
-                </div>
-                <span className="text-ink/64">{asset.type}</span>
-                <span className="font-mono text-xs text-ink/58">{asset.externalId}</span>
-                <span className="rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
-                  {asset.status}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="px-4 py-5 text-sm leading-6 text-ink/62">
-              Nenhum ativo Meta sincronizado ainda. Use “Sincronizar novamente” depois de conectar
-              sua conta.
+        <div className="mt-2 flex flex-col gap-5">
+          {connectedAccounts.metaPages.length === 0 &&
+          connectedAccounts.metaAdAccounts.length === 0 &&
+          connectedAccounts.metaLeadForms.length === 0 ? (
+            <p className="rounded-[24px] border border-white/50 bg-white/30 px-4 py-5 text-sm leading-6 text-ink/62">
+              Nenhum ativo Meta sincronizado ainda. Use “Sincronizar novamente” depois de conectar sua conta.
             </p>
+          ) : (
+            <>
+              {connectedAccounts.metaPages.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-ink">Páginas e Formulários</h4>
+                  <div className="overflow-hidden rounded-[24px] border border-white/50 bg-white/30">
+                    <div className="hidden grid-cols-[1.1fr_180px_150px] gap-3 border-b border-ink/8 px-4 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
+                      <span>Ativo</span>
+                      <span>ID externo</span>
+                      <span>Status</span>
+                    </div>
+                    {connectedAccounts.metaPages.map((page) => {
+                      const forms = connectedAccounts.metaLeadForms.filter(
+                        (f) => f.pageId === page.metaPageId
+                      );
+                      return (
+                        <div className="border-b border-ink/8 last:border-0" key={`page-${page.id}`}>
+                          <div className="grid gap-2 bg-white/50 px-4 py-3 text-sm md:grid-cols-[1.1fr_180px_150px] md:items-center">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-cobalt/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-cobalt">
+                                  Página
+                               </span>
+                                <p className="font-semibold text-ink">{page.name}</p>
+                              </div>
+                              <p className="mt-1 text-xs text-ink/46">
+                                Sincronizado em {formatDateTime(page.lastSyncAt)}
+                              </p>
+                            </div>
+                            <span className="font-mono text-xs text-ink/58">{page.metaPageId}</span>
+                            <span className="w-fit rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
+                              {formatMetaAssetStatus(page.status)}
+                            </span>
+                          </div>
+
+                          {forms.length > 0 ? (
+                            <div className="bg-white/20">
+                              {forms.map((form) => (
+                                <div
+                                  className="grid gap-2 border-t border-ink/4 px-4 py-3 pl-5 text-sm md:grid-cols-[1.1fr_180px_150px] md:items-center md:pl-8"
+                                  key={`form-${form.id}`}
+                                >
+                                  <div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="rounded-full bg-lagoon/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-lagoon">
+                                        Formulário
+                                     </span>
+                                      <p className="font-medium text-ink">{form.name}</p>
+                                    </div>
+                                    <p className="mt-1 text-xs text-ink/46">
+                                      Sincronizado em{" "}
+                                      {formatDateTime(form.lastSyncAt ?? form.lastLeadSyncAt)}
+                                    </p>
+                                  </div>
+                                  <span className="font-mono text-xs text-ink/58">
+                                    {form.metaFormId}
+                                  </span>
+                                  <span className="w-fit rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
+                                    {formatMetaAssetStatus(form.status)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="border-t border-ink/4 bg-white/20 px-5 py-3 text-xs text-ink/50 md:pl-8">
+                              Nenhum formulário sincronizado para esta página.
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {connectedAccounts.metaLeadForms.filter(
+                (f) => !connectedAccounts.metaPages.some((p) => p.metaPageId === f.pageId)
+              ).length > 0 && (
+                <div className="mt-2 space-y-3">
+                  <h4 className="text-sm font-semibold text-ink">Outros Formulários</h4>
+                  <div className="overflow-hidden rounded-[24px] border border-white/50 bg-white/30">
+                    {connectedAccounts.metaLeadForms
+                      .filter((f) => !connectedAccounts.metaPages.some((p) => p.metaPageId === f.pageId))
+                      .map((form) => (
+                        <div
+                          className="grid gap-2 border-b border-ink/8 bg-white/20 px-4 py-3 text-sm last:border-0 md:grid-cols-[1.1fr_180px_150px] md:items-center"
+                          key={`form-${form.id}`}
+                        >
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-lagoon/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-lagoon">
+                                Formulário
+                             </span>
+                              <p className="font-medium text-ink">{form.name}</p>
+                            </div>
+                            <p className="mt-1 text-xs text-ink/46">
+                              Sincronizado em{" "}
+                              {formatDateTime(form.lastSyncAt ?? form.lastLeadSyncAt)}
+                            </p>
+                          </div>
+                          <span className="font-mono text-xs text-ink/58">{form.metaFormId}</span>
+                          <span className="w-fit rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
+                            {formatMetaAssetStatus(form.status)}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {connectedAccounts.metaAdAccounts.length > 0 && (
+                <div className="mt-2 space-y-3">
+                  <h4 className="text-sm font-semibold text-ink">Contas de Anúncio</h4>
+                  <div className="overflow-hidden rounded-[24px] border border-white/50 bg-white/30">
+                    <div className="hidden grid-cols-[1.1fr_180px_150px] gap-3 border-b border-ink/8 px-4 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
+                      <span>Ativo</span>
+                      <span>ID externo</span>
+                      <span>Status</span>
+                    </div>
+                    {connectedAccounts.metaAdAccounts.map((account) => (
+                      <div
+                        className="grid gap-2 border-b border-ink/8 bg-white/30 px-4 py-3 text-sm last:border-0 md:grid-cols-[1.1fr_180px_150px] md:items-center"
+                        key={`ad-${account.id}`}
+                      >
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-ink/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-ink">
+                              Conta de anúncio
+                           </span>
+                            <p className="font-semibold text-ink">{account.name}</p>
+                          </div>
+                          <p className="mt-1 text-xs text-ink/46">
+                            Sincronizado em {formatDateTime(account.lastSyncAt)}
+                          </p>
+                        </div>
+                        <span className="font-mono text-xs text-ink/58">
+                          {account.metaAdAccountId}
+                        </span>
+                        <span className="w-fit rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
+                          {formatMetaAssetStatus(account.status)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </article>
@@ -170,38 +344,178 @@ export function MetaConnectedAccountsSection({
 
 export function MetaOverviewCard({
   workspaceName,
-  metaStatus,
-  pagesCount,
-  formsCount
-}: {
-  workspaceName: string;
-  metaStatus: string;
-  pagesCount: number;
-  formsCount: number;
-}) {
+  connectedAccounts,
+  billingNotice,
+  metaParam,
+  missingMetaOAuthEnvKeys = [],
+  missingMetaSyncEnvKeys = [],
+  syncParam
+}: MetaOverviewCardProps) {
+  const summary = buildMetaOperationalSummary(connectedAccounts);
+  const diagnostics = buildMetaConnectionDiagnostics(connectedAccounts, {
+    billingNotice,
+    metaParam,
+    missingMetaOAuthEnvKeys,
+    missingMetaSyncEnvKeys,
+    syncParam
+  });
+  const connectionTone = getMetaConnectionToneStyles(summary.connectionTone);
+  const diagnosisTone = getMetaConnectionToneStyles(diagnostics.tone);
+
   return (
     <article className="glass-strong rounded-[34px] p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-cobalt">Meta</p>
-          <h3 className="mt-2 text-xl font-semibold">Conta conectada</h3>
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${connectionTone.badgeClassName}`}
+          >
+            {connectionTone.icon}
+            {summary.connectionTitle}
+          </span>
+          <h3 className="mt-3 text-xl font-semibold">Status operacional da Meta</h3>
           <p className="mt-2 text-sm leading-6 text-ink/62">
-            Conecte a conta Meta da empresa para importar paginas, formularios e preparar campanhas
-            com os ativos autorizados.
+            {summary.connectionDescription}
           </p>
         </div>
-        <Link2 size={20} aria-hidden="true" />
+        <div className="rounded-[24px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/64">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">
+            Workspace monitorado
+          </p>
+          <p className="mt-2 font-semibold text-ink">{workspaceName}</p>
+          <p className="mt-1">
+            {summary.hasConnection
+              ? "A conexao ativa sustenta paginas, formularios e contas de anuncio da operacao."
+              : "Conecte uma conta Meta para destravar sincronizacao e importacao assistida."}
+          </p>
+        </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-3">
-        <InfoTile label="Status" value={metaStatus} />
-        <InfoTile label="Paginas" value={String(pagesCount)} />
-        <InfoTile label="Formularios" value={String(formsCount)} />
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <InfoTile label="Status da conexao" value={summary.connectionTitle} />
+        <InfoTile label="Ultima sincronizacao" value={formatDateTime(summary.lastSyncAt)} />
+        <InfoTile label="Ultimo resultado" value={summary.latestSyncStatus} />
+        <InfoTile label="Paginas" value={String(summary.pagesCount)} />
+        <InfoTile label="Formularios" value={String(summary.formsCount)} />
+        <InfoTile label="Contas de anuncio" value={String(summary.adAccountsCount)} />
       </div>
 
-      <div className="mt-5 rounded-[24px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/64">
-        A conta Meta do workspace <strong className="text-ink">{workspaceName}</strong> sustenta a
-        operação das páginas, formulários e contas de anúncio.
+      <article className="mt-5 rounded-[28px] border border-white/44 bg-white/36 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-cobalt">Diagnostico rapido da conexao</p>
+            <h4 className="mt-2 text-lg font-semibold text-ink">{diagnostics.title}</h4>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/62">{diagnostics.summary}</p>
+          </div>
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${diagnosisTone.badgeClassName}`}
+          >
+            {diagnosisTone.icon}
+            {diagnostics.categoryLabel}
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {diagnostics.checks.map((check) => {
+            const checkTone = getMetaConnectionToneStyles(check.tone);
+
+            return (
+              <div className="rounded-[22px] bg-white/48 px-4 py-3" key={check.id}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">
+                    {check.label}
+                  </p>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${checkTone.badgeClassName}`}
+                  >
+                    {checkTone.icon}
+                    {check.stateLabel}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-ink/64">{check.description}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 rounded-[22px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/64">
+          <span className="font-semibold text-ink">Proximo passo:</span> {diagnostics.nextStep}
+        </div>
+      </article>
+
+      <div className="mt-5 grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
+        <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-cobalt">Resumo operacional</p>
+              <p className="mt-2 text-sm leading-6 text-ink/62">
+                Acompanhe rapidamente o que ja esta pronto para uso e o que ainda pede revisao na
+                integracao.
+              </p>
+            </div>
+            <Activity size={20} aria-hidden="true" className="text-cobalt" />
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <InfoTile label="Ativos totais" value={String(summary.totalAssetsCount)} />
+            <InfoTile label="Ativos prontos" value={String(summary.activeAssetsCount)} />
+            <InfoTile label="Com alerta" value={String(summary.attentionAssetsCount)} />
+          </div>
+
+          <div className="mt-4 rounded-[22px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/64">
+            {summary.hasConnection
+              ? `A conta Meta do workspace ${workspaceName} esta ${summary.connectionTitle.toLowerCase()} com ${summary.permissionsCount} permissoes registradas.`
+              : `Ainda nao ha conta Meta conectada no workspace ${workspaceName}. Assim que a conexao for feita, a tela passa a resumir ativos, ultima sync e eventos recentes.`}
+          </div>
+        </article>
+
+        <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-cobalt">Ultimas sincronizacoes</p>
+              <p className="mt-2 text-sm leading-6 text-ink/62">
+                Eventos recentes de sync para ajudar a identificar sucesso, alerta ou erro sem sair
+                da area Meta.
+              </p>
+            </div>
+            <TimerReset size={20} aria-hidden="true" className="text-cobalt" />
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {summary.recentSyncItems.length ? (
+              summary.recentSyncItems.map((item) => {
+                const syncTone = getMetaSyncToneStyles(item.status);
+
+                return (
+                  <div
+                    className="rounded-[22px] bg-white/48 px-4 py-3"
+                    key={item.id}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${syncTone.badgeClassName}`}
+                        >
+                          {syncTone.icon}
+                          {syncTone.label}
+                        </span>
+                        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">
+                          {item.assetTypeLabel}
+                        </span>
+                      </div>
+                      <span className="text-xs text-ink/46">{formatDateTime(item.createdAt)}</span>
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-ink">{item.title}</p>
+                    <p className="mt-1 text-sm leading-6 text-ink/62">{item.message}</p>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-[22px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/62">
+                Ainda nao existem eventos recentes de sincronizacao Meta neste workspace.
+              </div>
+            )}
+          </div>
+        </article>
       </div>
     </article>
   );
@@ -268,4 +582,539 @@ export function formatDateTime(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(date);
+}
+
+export function buildMetaOperationalSummary(
+  connectedAccounts: ConnectedAccountsState
+): MetaOperationalSummary {
+  const metaConnection = connectedAccounts.metaConnection;
+  const assets = [
+    ...connectedAccounts.metaPages.map((page) => ({
+      status: page.status,
+      lastSyncAt: page.lastSyncAt
+    })),
+    ...connectedAccounts.metaAdAccounts.map((account) => ({
+      status: account.status,
+      lastSyncAt: account.lastSyncAt
+    })),
+    ...connectedAccounts.metaLeadForms.map((form) => ({
+      status: form.status,
+      lastSyncAt: form.lastSyncAt ?? form.lastLeadSyncAt
+    }))
+  ];
+  const activeAssetsCount = assets.filter((asset) => META_ACTIVE_STATUSES.has(asset.status)).length;
+  const attentionAssetsCount = assets.filter((asset) => META_ATTENTION_STATUSES.has(asset.status)).length;
+  const recentSyncItems = connectedAccounts.syncLogs
+    .filter((log) => log.provider === "meta")
+    .slice(0, 4)
+    .map((log) => ({
+      id: log.id,
+      assetTypeLabel: formatMetaAssetType(log.assetType),
+      createdAt: log.createdAt,
+      message: log.message,
+      status: log.status,
+      title: log.title
+    }));
+  const latestSyncStatus = recentSyncItems[0]
+    ? getMetaSyncToneStyles(recentSyncItems[0].status).label
+    : metaConnection?.lastSyncAt
+      ? "Conexao registrada"
+      : "Aguardando primeira sync";
+
+  return {
+    activeAssetsCount,
+    adAccountsCount: connectedAccounts.metaAdAccounts.length,
+    attentionAssetsCount,
+    connectionDescription: getMetaConnectionDescription(metaConnection?.status ?? null, attentionAssetsCount),
+    connectionTone: getMetaConnectionTone(metaConnection?.status ?? null),
+    connectionTitle: getMetaConnectionTitle(metaConnection?.status ?? null),
+    formsCount: connectedAccounts.metaLeadForms.length,
+    hasConnection: Boolean(metaConnection),
+    lastSyncAt: resolveLatestMetaSyncAt(connectedAccounts),
+    latestSyncStatus,
+    pagesCount: connectedAccounts.metaPages.length,
+    permissionsCount: metaConnection?.permissions.length ?? 0,
+    recentSyncItems,
+    totalAssetsCount: assets.length
+  };
+}
+
+export function buildMetaConnectionDiagnostics(
+  connectedAccounts: ConnectedAccountsState,
+  options: {
+    billingNotice?: MetaOverviewCardProps["billingNotice"];
+    metaParam?: string | null;
+    missingMetaOAuthEnvKeys?: string[];
+    missingMetaSyncEnvKeys?: string[];
+    syncParam?: string | null;
+  } = {}
+): MetaConnectionDiagnostics {
+  const metaConnection = connectedAccounts.metaConnection;
+  const missingMetaOAuthEnvKeys = options.missingMetaOAuthEnvKeys ?? [];
+  const missingMetaSyncEnvKeys = options.missingMetaSyncEnvKeys ?? [];
+  const missingEnvKeys = Array.from(
+    new Set([...missingMetaOAuthEnvKeys, ...missingMetaSyncEnvKeys])
+  );
+  const latestMetaSyncLog = connectedAccounts.syncLogs.find((log) => log.provider === "meta") ?? null;
+  const hasAnyMetaAssets =
+    connectedAccounts.metaPages.length > 0 ||
+    connectedAccounts.metaAdAccounts.length > 0 ||
+    connectedAccounts.metaLeadForms.length > 0;
+  const billingNotice = options.billingNotice ?? null;
+
+  const checks: MetaConnectionDiagnosisCheck[] = [
+    buildEnvironmentDiagnosisCheck(missingEnvKeys),
+    buildConnectionDiagnosisCheck(connectedAccounts, options.metaParam ?? null),
+    buildSyncDiagnosisCheck(connectedAccounts, options.syncParam ?? null),
+    buildBillingDiagnosisCheck(billingNotice)
+  ];
+
+  if (missingEnvKeys.length > 0) {
+    return {
+      categoryLabel: "Ambiente",
+      title: "Ambiente da Meta ainda incompleto",
+      summary: `O servidor ainda nao consegue sustentar todo o fluxo da Meta porque faltam ${formatEnvKeyList(missingEnvKeys)}.`,
+      nextStep:
+        "Configure essas variaveis no servidor, publique novamente o ambiente e tente conectar a Meta de novo.",
+      tone: "warning",
+      checks
+    };
+  }
+
+  if (connectedAccounts.mode === "error") {
+    return {
+      categoryLabel: "Codigo ou infraestrutura",
+      title: "Leitura da integracao falhou antes do diagnostico completo",
+      summary:
+        connectedAccounts.message ??
+        "Nao foi possivel carregar o estado da integracao Meta para este workspace.",
+      nextStep:
+        "Revise os logs do servidor e a configuracao do Supabase admin antes de repetir a sincronizacao.",
+      tone: "warning",
+      checks
+    };
+  }
+
+  if ((options.metaParam ?? null) === "forbidden" || !connectedAccounts.canManageConnections) {
+    return {
+      categoryLabel: "Acesso",
+      title: "A conexao Meta depende de permissao de gerenciamento",
+      summary:
+        "Este workspace exige um owner ou admin valido para iniciar OAuth, reconectar a conta e rodar novas sincronizacoes.",
+      nextStep:
+        "Entre com um owner/admin ou peca para alguem com essa permissao revisar a conexao Meta.",
+      tone: "pending",
+      checks
+    };
+  }
+
+  if (!metaConnection) {
+    return {
+      categoryLabel: "Conexao",
+      title: "Nenhuma conta Meta conectada ainda",
+      summary:
+        "O ambiente parece pronto, mas ainda nao existe token Meta salvo para este workspace.",
+      nextStep:
+        "Use o botao Conectar Meta, conclua o OAuth e depois rode a primeira sincronizacao dos ativos.",
+      tone: "pending",
+      checks
+    };
+  }
+
+  if (metaConnection.status === "expired") {
+    return {
+      categoryLabel: "Conexao",
+      title: "O token da Meta expirou",
+      summary:
+        metaConnection.lastError ??
+        "A conta Meta perdeu validade para continuar sincronizando paginas, formularios e contas de anuncio.",
+      nextStep:
+        "Reconecte a conta Meta para renovar o token e repita a sincronizacao dos ativos.",
+      tone: "warning",
+      checks
+    };
+  }
+
+  if (metaConnection.status === "disconnected" || metaConnection.status === "error") {
+    return {
+      categoryLabel: "Conexao",
+      title: "A conexao Meta precisa de revisao",
+      summary:
+        metaConnection.lastError ??
+        "A conta segue registrada, mas a conexao atual nao esta saudavel para operar com seguranca.",
+      nextStep:
+        "Gerencie a conexao, valide as permissoes concedidas na Meta e sincronize novamente apos reconectar.",
+      tone: "warning",
+      checks
+    };
+  }
+
+  if (
+    (options.syncParam ?? null) === "failed" ||
+    latestMetaSyncLog?.status === "failed" ||
+    latestMetaSyncLog?.status === "error"
+  ) {
+    return {
+      categoryLabel: "Sincronizacao",
+      title: "A ultima sincronizacao Meta falhou",
+      summary:
+        latestMetaSyncLog?.message ??
+        "A conta esta conectada, mas a ultima tentativa de atualizar ativos nao concluiu com sucesso.",
+      nextStep:
+        "Revise o erro da ultima sync, confirme se a conta Meta ainda tem acesso aos ativos e sincronize novamente.",
+      tone: "warning",
+      checks
+    };
+  }
+
+  if (latestMetaSyncLog?.status === "warning") {
+    return {
+      categoryLabel: "Sincronizacao",
+      title: "A sincronizacao concluiu com alerta",
+      summary:
+        latestMetaSyncLog.message ??
+        "Parte dos ativos da Meta ainda pede revisao antes de a operacao ficar totalmente pronta.",
+      nextStep:
+        "Revise os ativos com alerta, confira paginas e formularios liberados na Meta e rode uma nova sync se necessario.",
+      tone: "warning",
+      checks
+    };
+  }
+
+  if (!hasAnyMetaAssets || !metaConnection.lastSyncAt) {
+    return {
+      categoryLabel: "Sincronizacao",
+      title: "A conexao existe, mas a operacao ainda espera a primeira sync util",
+      summary:
+        "Ja existe conta Meta vinculada, porem a tela ainda nao recebeu ativos suficientes para uso operacional.",
+      nextStep:
+        "Sincronize novamente e confirme se a conta conectada tem paginas, formularios e contas de anuncio autorizados.",
+      tone: "pending",
+      checks
+    };
+  }
+
+  if (billingNotice) {
+    return {
+      categoryLabel: "Billing",
+      title: "A conexao parece saudavel, mas o billing pede atencao",
+      summary: billingNotice.message,
+      nextStep: `${billingNotice.actionLabel} para evitar bloqueios operacionais depois da conexao Meta.`,
+      tone: "warning",
+      checks
+    };
+  }
+
+  return {
+    categoryLabel: "Operacao pronta",
+    title: "Conexao Meta pronta para uso operacional",
+    summary:
+      "Ambiente, token e sincronizacao principal parecem consistentes para seguir com paginas, formularios e contas de anuncio deste workspace.",
+    nextStep:
+      "Mantenha a sincronizacao em dia sempre que houver mudanca de permissao, pagina ou formulario na Meta.",
+    tone: "connected",
+    checks
+  };
+}
+
+function buildEnvironmentDiagnosisCheck(missingEnvKeys: string[]): MetaConnectionDiagnosisCheck {
+  if (!missingEnvKeys.length) {
+    return {
+      id: "environment",
+      label: "Ambiente do servidor",
+      stateLabel: "Configurado",
+      description: "Nao ha ausencia conhecida de env para OAuth e sincronizacao Meta neste ambiente.",
+      tone: "connected"
+    };
+  }
+
+  return {
+    id: "environment",
+    label: "Ambiente do servidor",
+    stateLabel: "Ajuste necessario",
+    description: `Faltam ${formatEnvKeyList(missingEnvKeys)} para sustentar OAuth e sincronizacao Meta com seguranca.`,
+    tone: "warning"
+  };
+}
+
+function buildConnectionDiagnosisCheck(
+  connectedAccounts: ConnectedAccountsState,
+  metaParam: string | null
+): MetaConnectionDiagnosisCheck {
+  if (metaParam === "forbidden" || !connectedAccounts.canManageConnections) {
+    return {
+      id: "connection",
+      label: "Conta e permissao",
+      stateLabel: "Acesso restrito",
+      description: "Somente owner e admin podem conectar, reconectar ou sincronizar a integracao Meta.",
+      tone: "warning"
+    };
+  }
+
+  if (!connectedAccounts.metaConnection) {
+    return {
+      id: "connection",
+      label: "Conta e token",
+      stateLabel: "Nao conectado",
+      description: "Ainda nao existe uma conta Meta autorizada para este workspace.",
+      tone: "pending"
+    };
+  }
+
+  const metaConnection = connectedAccounts.metaConnection;
+
+  if (metaConnection.status === "connected") {
+    return {
+      id: "connection",
+      label: "Conta e token",
+      stateLabel: "Conectado",
+      description: metaConnection.metaUserName
+        ? `A conta ${metaConnection.metaUserName} esta vinculada com ${metaConnection.permissions.length} permissao(oes) registradas.`
+        : "Existe uma conta Meta vinculada e pronta para novas sincronizacoes.",
+      tone: "connected"
+    };
+  }
+
+  return {
+    id: "connection",
+    label: "Conta e token",
+    stateLabel: getMetaConnectionTitle(metaConnection.status),
+    description:
+      metaConnection.lastError ??
+      "A conta Meta foi registrada, mas o token ou o status atual ainda pede revisao antes da proxima sync.",
+    tone: metaConnection.status === "pending" ? "pending" : "warning"
+  };
+}
+
+function buildSyncDiagnosisCheck(
+  connectedAccounts: ConnectedAccountsState,
+  syncParam: string | null
+): MetaConnectionDiagnosisCheck {
+  const latestMetaSyncLog = connectedAccounts.syncLogs.find((log) => log.provider === "meta") ?? null;
+  const totalAssets =
+    connectedAccounts.metaPages.length +
+    connectedAccounts.metaAdAccounts.length +
+    connectedAccounts.metaLeadForms.length;
+
+  if (syncParam === "failed" || latestMetaSyncLog?.status === "failed" || latestMetaSyncLog?.status === "error") {
+    return {
+      id: "sync",
+      label: "Ultima sincronizacao",
+      stateLabel: "Com erro",
+      description:
+        latestMetaSyncLog?.message ??
+        "A tentativa mais recente de sincronizar os ativos Meta nao concluiu com sucesso.",
+      tone: "warning"
+    };
+  }
+
+  if (latestMetaSyncLog?.status === "warning") {
+    return {
+      id: "sync",
+      label: "Ultima sincronizacao",
+      stateLabel: "Com alerta",
+      description:
+        latestMetaSyncLog.message ??
+        "A sincronizacao terminou com pendencias e precisa de revisao operacional.",
+      tone: "warning"
+    };
+  }
+
+  if (!connectedAccounts.metaConnection?.lastSyncAt || totalAssets === 0) {
+    return {
+      id: "sync",
+      label: "Ultima sincronizacao",
+      stateLabel: "Pendente",
+      description: "A tela ainda nao registrou uma sync util com ativos suficientes para uso operacional.",
+      tone: "pending"
+    };
+  }
+
+  return {
+    id: "sync",
+    label: "Ultima sincronizacao",
+    stateLabel: "Em dia",
+    description: latestMetaSyncLog?.message
+      ? `Ultimo evento registrado: ${latestMetaSyncLog.message}`
+      : `Os ativos Meta deste workspace ja tiveram pelo menos uma sincronizacao em ${formatDateTime(
+          connectedAccounts.metaConnection.lastSyncAt
+        )}.`,
+    tone: "connected"
+  };
+}
+
+function buildBillingDiagnosisCheck(
+  billingNotice: MetaOverviewCardProps["billingNotice"]
+): MetaConnectionDiagnosisCheck {
+  if (!billingNotice) {
+    return {
+      id: "billing",
+      label: "Billing e operacao",
+      stateLabel: "Sem bloqueio",
+      description:
+        "Nao existe alerta atual de assinatura para este workspace na camada de operacao comercial.",
+      tone: "connected"
+    };
+  }
+
+  return {
+    id: "billing",
+    label: "Billing e operacao",
+    stateLabel: "Revisar assinatura",
+    description: billingNotice.message,
+    tone: "warning"
+  };
+}
+
+function formatEnvKeyList(keys: string[]) {
+  if (keys.length === 1) {
+    return `a variavel ${keys[0]}`;
+  }
+
+  if (keys.length === 2) {
+    return `as variaveis ${keys[0]} e ${keys[1]}`;
+  }
+
+  return `as variaveis ${keys.slice(0, -1).join(", ")} e ${keys[keys.length - 1]}`;
+}
+
+function getMetaConnectionTitle(status: MetaConnectionStatusValue) {
+  switch (status) {
+    case "connected":
+      return "Conexao ativa";
+    case "error":
+      return "Conexao com alerta";
+    case "expired":
+      return "Conexao expirada";
+    case "disconnected":
+      return "Conexao desconectada";
+    case "pending":
+      return "Conexao pendente";
+    default:
+      return "Conexao nao iniciada";
+  }
+}
+
+function getMetaConnectionDescription(
+  status: MetaConnectionStatusValue,
+  attentionAssetsCount: number
+) {
+  switch (status) {
+    case "connected":
+      return attentionAssetsCount
+        ? `A conta Meta esta conectada, mas ${attentionAssetsCount} ativo(s) ainda pedem revisao operacional.`
+        : "A conta Meta esta conectada e pronta para listar paginas, formularios e contas de anuncio.";
+    case "error":
+      return "A conta Meta segue vinculada, mas a operacao registrou erro recente e pede revisao antes da proxima sync.";
+    case "expired":
+      return "O acesso Meta expirou. A operacao precisa reconectar a conta para retomar sincronizacoes e importacoes.";
+    case "disconnected":
+      return "A conta Meta foi desconectada. Reconecte o workspace para voltar a sincronizar ativos.";
+    case "pending":
+      return "A conexao Meta foi iniciada, mas ainda nao ha uma sincronizacao suficiente para uso operacional.";
+    default:
+      return "Conecte a conta Meta da empresa para importar paginas, formularios e preparar campanhas com os ativos autorizados.";
+  }
+}
+
+function getMetaConnectionTone(status: MetaConnectionStatusValue): MetaOperationalSummary["connectionTone"] {
+  switch (status) {
+    case "connected":
+      return "connected";
+    case "error":
+    case "expired":
+      return "warning";
+    default:
+      return "pending";
+  }
+}
+
+function resolveLatestMetaSyncAt(connectedAccounts: ConnectedAccountsState) {
+  const timestamps = [
+    connectedAccounts.metaConnection?.lastSyncAt ?? null,
+    ...connectedAccounts.metaPages.map((page) => page.lastSyncAt),
+    ...connectedAccounts.metaAdAccounts.map((account) => account.lastSyncAt),
+    ...connectedAccounts.metaLeadForms.map((form) => form.lastSyncAt ?? form.lastLeadSyncAt),
+    ...connectedAccounts.syncLogs
+      .filter((log) => log.provider === "meta")
+      .map((log) => log.createdAt)
+  ].filter(Boolean) as string[];
+
+  if (!timestamps.length) {
+    return null;
+  }
+
+  return timestamps
+    .slice()
+    .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] ?? null;
+}
+
+function formatMetaAssetType(assetType: string) {
+  switch (assetType) {
+    case "meta_connection":
+      return "Conexao";
+    case "meta_assets":
+      return "Ativos";
+    case "meta_pages":
+      return "Paginas";
+    case "meta_lead_forms":
+      return "Formularios";
+    case "meta_ad_accounts":
+      return "Contas de anuncio";
+    case "meta_ad_image":
+      return "Criativos";
+    default:
+      return "Meta";
+  }
+}
+
+function getMetaConnectionToneStyles(tone: MetaOperationalSummary["connectionTone"]) {
+  switch (tone) {
+    case "connected":
+      return {
+        badgeClassName: "bg-emerald-500/12 text-emerald-700",
+        icon: <CheckCircle2 size={14} aria-hidden="true" />
+      };
+    case "warning":
+      return {
+        badgeClassName: "bg-amber-500/14 text-amber-800",
+        icon: <CircleAlert size={14} aria-hidden="true" />
+      };
+    default:
+      return {
+        badgeClassName: "bg-slate-500/12 text-slate-700",
+        icon: <Unplug size={14} aria-hidden="true" />
+      };
+  }
+}
+
+function getMetaSyncToneStyles(status: string) {
+  switch (status) {
+    case "success":
+      return {
+        badgeClassName: "bg-emerald-500/12 text-emerald-700",
+        icon: <CheckCircle2 size={12} aria-hidden="true" />,
+        label: "Sync concluida"
+      };
+    case "warning":
+      return {
+        badgeClassName: "bg-amber-500/14 text-amber-800",
+        icon: <CircleAlert size={12} aria-hidden="true" />,
+        label: "Sync com alerta"
+      };
+    case "running":
+      return {
+        badgeClassName: "bg-sky-500/12 text-sky-700",
+        icon: <RefreshCw size={12} aria-hidden="true" />,
+        label: "Sync em andamento"
+      };
+    case "failed":
+    case "error":
+    default:
+      return {
+        badgeClassName: "bg-rose-500/12 text-rose-700",
+        icon: <CircleAlert size={12} aria-hidden="true" />,
+        label: "Sync com erro"
+      };
+  }
 }

@@ -21,6 +21,7 @@ import {
 
 type ParsedWhatsAppInput = Omit<WhatsAppMessageInput, "brokerageName"> & {
   leadName: string;
+  objectionReason?: string;
 };
 
 const whatsappGenerateSchema = z.object({
@@ -39,12 +40,15 @@ const whatsappGenerateSchema = z.object({
       "new_lead",
       "first_contact",
       "awaiting_response",
+      "reactivation",
       "closing",
-      "post_service"
+      "post_service",
+      "objection_follow_up"
     ])
     .optional(),
   objective: z.string().trim().max(280).optional(),
-  tone: z.string().trim().max(280).optional()
+  tone: z.string().trim().max(280).optional(),
+  objectionReason: z.string().trim().max(280).optional()
 });
 
 export async function POST(request: Request) {
@@ -90,7 +94,8 @@ export async function POST(request: Request) {
       stage: input.stage ?? "new",
       objective: input.objective ?? "iniciar conversa e confirmar interesse",
       tone: input.tone ?? "proximo, educado e objetivo",
-      product: input.product
+      product: input.product,
+      objectionReason: input.objectionReason
     };
     let savedMessage: WhatsAppHistoryItem | null = null;
 
@@ -99,6 +104,18 @@ export async function POST(request: Request) {
         form: savedForm,
         message
       });
+      
+      if (savedForm.leadId) {
+        try {
+          const { createLeadCommentForCurrentUser } = await import("@/lib/leads/repository.server");
+          await createLeadCommentForCurrentUser(savedForm.leadId, {
+            body: `Mensagem de WhatsApp gerada com IA:\n\n${message.openingMessage}`,
+            type: "contact"
+          });
+        } catch (commentError) {
+          console.error("Nao foi possivel salvar o comentario automatico da mensagem gerada.", commentError);
+        }
+      }
     } catch (saveError) {
       console.error("Nao foi possivel salvar a mensagem de WhatsApp gerada.", saveError);
     }
@@ -128,7 +145,8 @@ function parseWhatsAppRequest(
     leadContext: getOptionalString(body.leadContext),
     stage: getStage(body?.stage),
     objective: getOptionalString(body.objective) || "iniciar conversa e confirmar interesse",
-    tone: getOptionalString(body.tone) || "proximo, educado e objetivo"
+    tone: getOptionalString(body.tone) || "proximo, educado e objetivo",
+    objectionReason: getOptionalString(body.objectionReason) || undefined
   };
 }
 
@@ -147,8 +165,10 @@ function getStage(value: unknown): WhatsAppMessageInput["stage"] {
     value === "new_lead" ||
     value === "first_contact" ||
     value === "awaiting_response" ||
+    value === "reactivation" ||
     value === "closing" ||
-    value === "post_service"
+    value === "post_service" ||
+    value === "objection_follow_up"
   ) {
     return value;
   }

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { leads } from "@/data/mock";
+import { leads, mockLeadOwnerOptions } from "@/data/mock";
 import { LeadDetailsPopup } from "./lead-details-popup";
 
 describe("LeadDetailsPopup", () => {
@@ -126,6 +126,32 @@ describe("LeadDetailsPopup", () => {
     expect(screen.getByLabelText("Motivo de perda")).toHaveValue(
       "Fechou com a operadora atual por menor reajuste."
     );
+  });
+
+  it("permite que gestor ajuste o responsavel do lead no formulario", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ comments: [] })
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <LeadDetailsPopup
+        canManageLeadOwners
+        lead={leads[0]}
+        leadOwnerOptions={mockLeadOwnerOptions}
+        onClose={() => undefined}
+        onUpdated={() => undefined}
+      />
+    );
+
+    fireEvent.click(screen.getByTitle("Editar lead"));
+
+    const ownerSelect = screen.getByLabelText("Responsável pelo lead");
+
+    expect(ownerSelect).toHaveValue("demo-profile-gabriel");
+    expect(screen.getByRole("option", { name: "Gabriel (Owner)" })).toBeInTheDocument();
   });
 
   it("abre o WhatsApp com mensagem pronta quando o lead tem telefone valido", async () => {

@@ -2,6 +2,14 @@ import { campaignDraft } from "@/data/mock";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  buildCampaignInputPayload,
+  buildCampaignResultPayload,
+  normalizeCampaignPublicationStatus,
+  normalizeCampaignPublishMode,
+  parseCampaignInputPayload,
+  parseCampaignResultPayload
+} from "./payload";
 import type {
   CampaignActivitySummary,
   CampaignGenerationForm,
@@ -291,8 +299,8 @@ function buildCampaignInsert(profile: ProfileRow, input: CampaignSaveInput): Cam
     suggested_audience: input.campaign.suggestedAudience,
     variants: toJson(input.campaign.variants) ?? [],
     compliance_notes: toJson(input.campaign.complianceNotes) ?? [],
-    input_payload: toJson(input.form) ?? {},
-    result_payload: toJson(input.campaign) ?? {}
+    input_payload: toJson(buildCampaignInputPayload(input.form)) ?? {},
+    result_payload: toJson(buildCampaignResultPayload(input.campaign)) ?? {}
   };
 }
 
@@ -331,53 +339,11 @@ function mapCampaignRowToHistoryItem(row: CampaignRow): CampaignHistoryItem {
 }
 
 function parseCampaignInput(row: CampaignRow): CampaignGenerationForm {
-  const payload = isRecord(row.input_payload) ? row.input_payload : null;
-
-  return {
-    brokerageName: stringFromPayload(payload?.brokerageName) ?? DEFAULT_BROKERAGE_NAME,
-    audience: stringFromPayload(payload?.audience) ?? row.audience,
-    offer: stringFromPayload(payload?.offer) ?? row.offer,
-    region: stringFromPayload(payload?.region) ?? row.region,
-    differentiator: stringFromPayload(payload?.differentiator) ?? row.differentiator,
-    notes: stringFromPayload(payload?.notes) ?? "",
-    tone: stringFromPayload(payload?.tone) ?? row.tone,
-    creativeAssetType: stringFromPayload(payload?.creativeAssetType) ?? null,
-    creativeBrief: stringFromPayload(payload?.creativeBrief) ?? null,
-    creativeRequestMode: stringFromPayload(payload?.creativeRequestMode) ?? null,
-    creativeFileNames: arrayFromPayload(payload?.creativeFileNames, []),
-    connectedAccountId:
-      stringFromPayload(payload?.connectedAccountId) ?? row.connected_account_id ?? null,
-    metaPageId: stringFromPayload(payload?.metaPageId) ?? row.meta_page_id ?? null,
-    metaAdAccountId:
-      stringFromPayload(payload?.metaAdAccountId) ?? row.meta_ad_account_id ?? null,
-    metaLeadFormId:
-      stringFromPayload(payload?.metaLeadFormId) ?? row.meta_lead_form_id ?? null,
-    publishMode: normalizeCampaignPublishMode(
-      stringFromPayload(payload?.publishMode) ?? row.publish_mode
-    ),
-    publicationStatus: normalizeCampaignPublicationStatus(
-      stringFromPayload(payload?.publicationStatus) ?? row.publication_status
-    ),
-    metaCampaignId: stringFromPayload(payload?.metaCampaignId) ?? row.meta_campaign_id ?? null,
-    metaAdSetId: stringFromPayload(payload?.metaAdSetId) ?? row.meta_adset_id ?? null,
-    metaAdId: stringFromPayload(payload?.metaAdId) ?? row.meta_ad_id ?? null
-  };
+  return parseCampaignInputPayload(row);
 }
 
 function parseCampaignTextOutput(row: CampaignRow): CampaignTextOutput {
-  const payload = isRecord(row.result_payload) ? row.result_payload : null;
-
-  return {
-    campaignName: stringFromPayload(payload?.campaignName) ?? row.campaign_name,
-    primaryText: stringFromPayload(payload?.primaryText) ?? row.primary_text,
-    headline: stringFromPayload(payload?.headline) ?? row.headline,
-    description: stringFromPayload(payload?.description) ?? row.description,
-    callToAction: stringFromPayload(payload?.callToAction) ?? row.call_to_action,
-    suggestedAudience:
-      stringFromPayload(payload?.suggestedAudience) ?? row.suggested_audience,
-    variants: arrayFromPayload(payload?.variants, row.variants),
-    complianceNotes: arrayFromPayload(payload?.complianceNotes, row.compliance_notes)
-  };
+  return parseCampaignResultPayload(row);
 }
 
 function buildMockCampaigns(limit: number): CampaignHistoryItem[] {
@@ -389,6 +355,8 @@ function buildMockCampaigns(limit: number): CampaignHistoryItem[] {
             offer: "Analise consultiva para comparar plano empresarial",
             region: "Campinas e regiao",
             differentiator: "Atendimento rapido com comparativo objetivo entre operadoras",
+            objections: "Receio com carencias e reajustes em uma troca de operadora.",
+            contractType: "Empresarial (MEI/PME)",
             notes: "",
             tone: "consultivo, direto e seguro",
             creativeAssetType: "imagem",
@@ -434,6 +402,8 @@ function buildMockCampaigns(limit: number): CampaignHistoryItem[] {
             offer: "Comparativo rapido com foco comercial",
             region: "Interior de Sao Paulo",
             differentiator: "Atendimento consultivo e sem promessa sensivel",
+            objections: "Medo de perder rede credenciada ou pagar mais na transicao.",
+            contractType: "Empresarial (PME)",
             notes: "",
             tone: "profissional e objetivo",
             creativeAssetType: "imagem",
@@ -575,55 +545,6 @@ function isCampaignOperationallyPaused(
 
 function normalizeCampaignStatus(value: string | null): CampaignStatus {
   return value === "archived" ? "archived" : "generated";
-}
-
-function normalizeCampaignPublishMode(value: string | null | undefined) {
-  if (
-    value === "draft" ||
-    value === "manual_review" ||
-    value === "scheduled" ||
-    value === "paused"
-  ) {
-    return value;
-  }
-
-  return "manual_review";
-}
-
-function normalizeCampaignPublicationStatus(value: string | null | undefined) {
-  if (
-    value === "not_connected" ||
-    value === "ready_to_prepare" ||
-    value === "draft_created" ||
-    value === "pending_review" ||
-    value === "published" ||
-    value === "paused" ||
-    value === "failed"
-  ) {
-    return value;
-  }
-
-  return "not_connected";
-}
-
-function arrayFromPayload(value: Json | null | undefined, fallback: Json | null | undefined): string[] {
-  if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
-    return value as string[];
-  }
-
-  if (Array.isArray(fallback) && fallback.every((item) => typeof item === "string")) {
-    return fallback as string[];
-  }
-
-  return [];
-}
-
-function stringFromPayload(value: Json | null | undefined) {
-  return typeof value === "string" ? value : null;
-}
-
-function isRecord(value: Json | null | undefined): value is Record<string, Json> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function toJson(value: unknown): Json | null {

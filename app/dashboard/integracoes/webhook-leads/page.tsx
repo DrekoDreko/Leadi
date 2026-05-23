@@ -67,5 +67,5 @@ async function getLeadWebhookUrl() {
 }
 
 function normalizeWebhookStatusFilter(value?: string): WebhookLogFilter {
-  return value === "processed" || value === "failed" ? value : "all";
+  return value === "processed" || value === "duplicate" || value === "failed" ? value : "all";
 }

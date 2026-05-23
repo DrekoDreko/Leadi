@@ -127,7 +127,8 @@ export function listServerOnlyEnvVariables() {
 export const PRODUCTION_CORE_ENV_KEYS = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-  "SUPABASE_SERVICE_ROLE_KEY"
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "INTEGRATIONS_SECRET_KEY"
 ] as const satisfies readonly EnvVariableName[];
 
 export const MCP_SUPABASE_ENV_KEYS = [

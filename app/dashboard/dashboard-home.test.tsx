@@ -75,6 +75,19 @@ describe("DashboardHome", () => {
           note: "mock inicial • sem custo Meta real",
           status: "mocked"
         }}
+        stageConversionSummary={{
+          total: 4,
+          note: "Percentual da base atual em cada etapa oficial do funil.",
+          rows: [
+            { stageValue: "new", label: "Novo lead", tone: "cobalt", count: 2, percentage: 0.5 },
+            { stageValue: "qualification", label: "Qualificação", tone: "lagoon", count: 1, percentage: 0.25 },
+            { stageValue: "proposal", label: "Proposta", tone: "signal", count: 1, percentage: 0.25 },
+            { stageValue: "negotiation", label: "Negociação", tone: "ink", count: 0, percentage: 0 },
+            { stageValue: "won", label: "Venda", tone: "emerald", count: 0, percentage: 0 },
+            { stageValue: "lost", label: "Perdido", tone: "red", count: 0, percentage: 0 }
+          ],
+          status: "available"
+        }}
         leadNoContactSummary={{
           total: 2,
           leads: [
@@ -93,7 +106,22 @@ describe("DashboardHome", () => {
     );
 
     expect(screen.getByText("Sem primeiro contato")).toBeInTheDocument();
-    expect(screen.getByText("CPL inicial: ~R$ 24,00 (mock inicial • sem custo Meta real)")).toBeInTheDocument();
+    expect(screen.getByText("Conversao por etapa")).toBeInTheDocument();
+    expect(
+      screen.getByText("Percentual da base atual em cada etapa oficial do funil.")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Sem contato: 2 (pedem primeiro retorno)")).toBeInTheDocument();
+    expect(screen.getByText("Tarefas em atraso: 0 (follow-up em dia)")).toBeInTheDocument();
+    expect(screen.getByText("Novo lead")).toBeInTheDocument();
+    expect(screen.getByText("2 leads na etapa atual")).toBeInTheDocument();
+    expect(screen.getByText("50%")).toBeInTheDocument();
+    expect(screen.getByText("Contexto da conta")).toBeInTheDocument();
+    expect(screen.getByText("Anuncios salvos:")).toBeInTheDocument();
+    expect(screen.getByText("Saldo de IA:")).toBeInTheDocument();
+    expect(screen.getByText("CPL inicial:")).toBeInTheDocument();
+    expect(
+      screen.queryByText("CPL inicial: ~R$ 24,00 (mock inicial • sem custo Meta real)")
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Campanhas ativas")).toBeInTheDocument();
     expect(screen.getByText("2 campanhas ativas ou prontas")).toBeInTheDocument();
     expect(screen.getByText("1 publicada • 1 pronta para proxima acao")).toBeInTheDocument();
@@ -107,5 +135,49 @@ describe("DashboardHome", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: new RegExp(leads[0].name, "i") })).toBeInTheDocument();
     expect(screen.getByText("Priorize os mais recentes para acelerar o primeiro retorno")).toBeInTheDocument();
+  });
+
+  it("mostra carteira e atrasos por consultor para gestores", () => {
+    render(
+      <DashboardHome
+        canManageLeadOwners
+        consultantPortfolioSummary={{
+          totalConsultants: 2,
+          totalLeads: 4,
+          totalOverdue: 2,
+          note: "Carteira atual e tarefas em atraso agregadas por consultor visivel no CRM.",
+          rows: [
+            {
+              ownerProfileId: "owner-1",
+              ownerName: "Gabriel",
+              role: "seller",
+              leadCount: 3,
+              overdueCount: 2
+            },
+            {
+              ownerProfileId: "owner-2",
+              ownerName: "Fernanda",
+              role: "seller",
+              leadCount: 1,
+              overdueCount: 0
+            }
+          ],
+          status: "available"
+        }}
+        leadNoContactSummary={{
+          total: 0,
+          leads: []
+        }}
+        leads={leads}
+      />
+    );
+
+    expect(screen.getByText("Carteira por consultor")).toBeInTheDocument();
+    expect(screen.getByText("2 consultores com carteira visivel")).toBeInTheDocument();
+    expect(screen.getByText("Gabriel")).toBeInTheDocument();
+    expect(screen.getByText("Consultor • 3 leads na carteira")).toBeInTheDocument();
+    expect(screen.getByText("2 atrasos")).toBeInTheDocument();
+    expect(screen.getByText("Fernanda")).toBeInTheDocument();
+    expect(screen.getByText("0 atrasos")).toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z, type ZodType } from "zod";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { logger } from "@/lib/logger";
 import { assertDistributedRateLimit } from "@/lib/rate-limit";
 
@@ -205,4 +206,18 @@ function parseWithSchema<T>(value: unknown, schema: ZodType<T>): T {
   }
 
   return result.data;
+}
+
+export async function assertServerAuth() {
+  if (!isSupabaseConfigured()) return null;
+
+  const { createSupabaseServerClient } = await import("@/lib/supabase/server");
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    throw new ApiRouteError(401, "Usuario nao autenticado.");
+  }
+
+  return user;
 }

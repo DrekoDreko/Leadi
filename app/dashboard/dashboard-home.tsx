@@ -10,7 +10,8 @@ import {
   Palette,
   PhoneOff,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  UsersRound
 } from "lucide-react";
 import { leads as mockLeads, type Lead } from "@/data/mock";
 import {
@@ -27,9 +28,13 @@ import type { DashboardReminderItem } from "@/lib/dashboard-reminders/types";
 import type { SystemTemplate } from "@/lib/templates/types";
 import { RemindersCalendarCard } from "@/components/dashboard/reminders-calendar-card";
 import { getLeadStageValue, isLeadClosedStage } from "@/lib/leads/stages";
-import type { OverdueLeadTaskItem } from "@/lib/leads/repository.server";
+import type { OverdueLeadTaskItem, LeadOwnerOption } from "@/lib/leads/repository.server";
 import type { CampaignActivitySummary } from "@/lib/campaigns/types";
-import type { DashboardCplSummary } from "@/lib/reports/commercial-report.server";
+import type {
+  DashboardConsultantPortfolioSummary,
+  DashboardCplSummary,
+  DashboardStageConversionSummary
+} from "@/lib/reports/commercial-report.server";
 
 const NEW_LEADS_WINDOW_DAYS = 7;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -50,6 +55,10 @@ type DashboardHomeProps = {
   campaignActivitySummary?: CampaignActivitySummary;
   overdueTasks?: OverdueLeadTaskItem[];
   cplSummary?: DashboardCplSummary;
+  stageConversionSummary?: DashboardStageConversionSummary;
+  consultantPortfolioSummary?: DashboardConsultantPortfolioSummary;
+  canManageLeadOwners?: boolean;
+  leadOwnerOptions?: LeadOwnerOption[];
 };
 
 export type DashboardLeadNoContactSummary = {
@@ -77,7 +86,11 @@ export function DashboardHome({
   leadNoContactSummary,
   campaignActivitySummary,
   overdueTasks = [],
-  cplSummary
+  cplSummary,
+  stageConversionSummary,
+  consultantPortfolioSummary,
+  canManageLeadOwners = false,
+  leadOwnerOptions = []
 }: DashboardHomeProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const metrics = preview
@@ -92,6 +105,33 @@ export function DashboardHome({
   const dashboardCplSummary = preview
     ? getPreviewDashboardCplSummary()
     : cplSummary ?? getFallbackDashboardCplSummary();
+  const dashboardStageConversionSummary = preview
+    ? getPreviewStageConversionSummary()
+    : stageConversionSummary ?? getFallbackStageConversionSummary();
+  const teamConsultantSummary = preview
+    ? getPreviewConsultantPortfolioSummary()
+    : consultantPortfolioSummary ?? getFallbackConsultantPortfolioSummary();
+  const contextItems = [
+    {
+      label: "Anuncios salvos",
+      value: metrics.campaigns,
+      note: metrics.campaignsNote
+    },
+    {
+      label: "Saldo de IA",
+      value: metrics.aiBalance,
+      note: metrics.aiBalanceNote
+    },
+    ...(dashboardCplSummary.status === "mocked"
+      ? [
+          {
+            label: "CPL inicial",
+            value: dashboardCplSummary.value,
+            note: dashboardCplSummary.note
+          }
+        ]
+      : [])
+  ];
   const relatoriosHref = preview ? "/login" : "/dashboard/relatorios";
   const campaignHref = preview ? "/login" : "/dashboard/criacoes/campanhas";
   const funnelHref = preview ? "/login" : "/dashboard/funil";
@@ -134,9 +174,11 @@ export function DashboardHome({
   return (
     <div className="space-y-4">
       <PageHeading
-        eyebrow="Operacao"
-        title="Dashboard"
-        description="Resumo da conta, conexoes ativas, anuncios criados e prioridades para a operacao comercial."
+        eyebrow={canManageLeadOwners ? "Gestão da Equipe" : "Operacao"}
+        title={canManageLeadOwners ? "Painel de Supervisor" : "Dashboard"}
+        description={canManageLeadOwners 
+          ? "Visão centralizada da carteira da equipe, atrasos operacionais e distribuição de leads." 
+          : "Resumo da conta, conexoes ativas, anuncios criados e prioridades para a operacao comercial."}
       >
         <Link
           className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
@@ -157,20 +199,59 @@ export function DashboardHome({
         />
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-7">
-        <Metric label="Leads ativos" value={metrics.activeLeads} note={metrics.totalNote} tone="blue" />
+      <div className={`grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${canManageLeadOwners ? '2xl:grid-cols-7' : '2xl:grid-cols-6'}`}>
+        <Metric label={canManageLeadOwners ? "Carteira da equipe" : "Leads ativos"} value={metrics.activeLeads} note={metrics.totalNote} tone="blue" />
         <Metric label="Novos leads" value={metrics.newLeads} note={metrics.newLeadsNote} tone="yellow" />
-        <Metric label="Propostas" value={metrics.proposals} note={metrics.proposalsNote} tone="yellow" />
-        <Metric label="Vendas" value={metrics.sales} note={metrics.salesNote} tone="teal" />
-        <Metric label="Anuncios" value={metrics.campaigns} note={metrics.campaignsNote} tone="dark" />
         <Metric
-          label="CPL inicial"
-          value={dashboardCplSummary.value}
-          note={dashboardCplSummary.note}
+          label="Sem contato"
+          value={String(noContactSummary.total)}
+          note={
+            noContactSummary.total > 0
+              ? "pedem primeiro retorno"
+              : "todos com contato inicial"
+          }
           tone="dark"
         />
-        <Metric label="Saldo de IA" value={metrics.aiBalance} note={metrics.aiBalanceNote} tone="blue" />
+        {canManageLeadOwners && (
+          <Metric 
+            label="Sem responsável" 
+            value={metrics.unassignedLeads} 
+            note={Number(metrics.unassignedLeads) > 0 ? "aguardando distribuição" : "equipe abastecida"} 
+            tone="yellow" 
+          />
+        )}
+        <Metric
+          label={canManageLeadOwners ? "Atrasos da equipe" : "Tarefas em atraso"}
+          value={String(overdueTasks.length)}
+          note={overdueTasks.length > 0 ? "follow-up parado" : "follow-up em dia"}
+          tone="yellow"
+        />
+        <Metric label="Propostas" value={metrics.proposals} note={metrics.proposalsNote} tone="yellow" />
+        <Metric label="Vendas" value={metrics.sales} note={metrics.salesNote} tone="teal" />
       </div>
+
+      <section className="glass !bg-cloud/85 rounded-[30px] p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-sm font-medium text-cobalt">Contexto da conta</p>
+            <p className="mt-1 text-sm leading-6 text-ink/62">
+              Anuncios, saldo de IA e custo inicial continuam visiveis, mas fora da linha principal
+              de prioridades comerciais.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {contextItems.map((item) => (
+              <div
+                className="rounded-full bg-white/60 px-4 py-2 text-sm text-ink/62"
+                key={item.label}
+              >
+                <span className="font-semibold text-ink">{item.label}:</span> {item.value}
+                <span className="text-ink/54"> • {item.note}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-stretch">
         <div className="min-w-0 flex h-full flex-col gap-4">
@@ -266,6 +347,107 @@ export function DashboardHome({
           </section>
 
           <RemindersCalendarCard initialReminders={dashboardReminders} />
+
+          <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm text-ink/54">Funil comercial</p>
+                <h2 className="mt-1 text-xl font-semibold">Conversao por etapa</h2>
+                <p className="mt-2 text-sm leading-6 text-ink/62">
+                  {dashboardStageConversionSummary.note}
+                </p>
+              </div>
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
+                <ArrowUpRight size={19} aria-hidden="true" />
+              </span>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {dashboardStageConversionSummary.status === "available" ? (
+                dashboardStageConversionSummary.rows.map((row) => (
+                  <div className="rounded-[24px] bg-white/52 p-4" key={row.stageValue}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-ink">{row.label}</p>
+                        <p className="mt-1 text-sm leading-6 text-ink/62">
+                          {row.count} lead{row.count === 1 ? "" : "s"} na etapa atual
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-cloud px-3 py-1.5 text-xs font-semibold text-ink/62 whitespace-nowrap">
+                        {formatStageShare(row.percentage)}
+                      </span>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80">
+                      <div
+                        aria-hidden="true"
+                        className={`h-full rounded-full ${getStageToneClass(row.tone)}`}
+                        style={{ width: `${row.percentage * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-[24px] bg-white/44 p-4 text-sm leading-6 text-ink/62">
+                  Nenhum lead com etapa valida foi encontrado para montar a leitura do funil.
+                </div>
+              )}
+
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-cobalt">
+                Leitura baseada na etapa atual de cada lead visivel no dashboard
+              </span>
+            </div>
+          </section>
+
+          {canManageLeadOwners && (
+            <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm text-ink/54">Carteira por consultor</p>
+                  <h2 className="mt-1 text-xl font-semibold">
+                    {teamConsultantSummary.status === "available"
+                      ? `${teamConsultantSummary.totalConsultants} consultor${teamConsultantSummary.totalConsultants === 1 ? "" : "es"} com carteira visivel`
+                      : "Nenhuma carteira distribuida no momento"}
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-ink/62">
+                    {teamConsultantSummary.note}
+                  </p>
+                </div>
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
+                  <UsersRound size={19} aria-hidden="true" />
+                </span>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {teamConsultantSummary.status === "available" ? (
+                  teamConsultantSummary.rows.map((row) => (
+                    <div className="rounded-[24px] bg-white/52 p-4" key={row.ownerProfileId ?? row.ownerName}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-ink">{row.ownerName}</p>
+                          <p className="mt-1 text-sm leading-6 text-ink/62">
+                            {getConsultantRoleLabel(row.role)} • {row.leadCount} lead{row.leadCount === 1 ? "" : "s"} na carteira
+                          </p>
+                        </div>
+                        <span
+                          className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${
+                            row.overdueCount > 0
+                              ? "bg-signal/10 text-signal"
+                              : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"
+                          }`}
+                        >
+                          {row.overdueCount} atraso{row.overdueCount === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-[24px] bg-white/44 p-4 text-sm leading-6 text-ink/62">
+                    Assim que houver leads distribuidos para a equipe, a leitura por consultor aparece aqui.
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
           {overdueTasks.length > 0 && (
             <section className="glass !bg-cloud/95 rounded-[34px] p-5 border border-signal/20">
@@ -445,7 +627,9 @@ export function DashboardHome({
 
       <LeadDetailsPopup
         aiBalance={aiBalance}
+        canManageLeadOwners={canManageLeadOwners}
         lead={selectedLead}
+        leadOwnerOptions={leadOwnerOptions}
         messageGeneratorEnabled
         onClose={() => setSelectedLead(null)}
         whatsappTemplates={whatsappTemplates}
@@ -465,6 +649,7 @@ export function getDashboardMetrics(
   const sales = leads.filter((lead) => getLeadStageValue(lead.stage) === "won").length;
   const recentLeads = leads.filter((lead) => isLeadRecent(lead.receivedAt, referenceDate));
   const recentLeadsStillNew = recentLeads.filter((lead) => getLeadStageValue(lead.stage) === "new").length;
+  const unassignedLeads = leads.filter((lead) => !lead.ownerProfileId).length;
 
   return {
     activeLeads: String(activeLeads),
@@ -472,6 +657,7 @@ export function getDashboardMetrics(
     proposals: String(proposals),
     sales: String(sales),
     campaigns: String(campaignsCount),
+    unassignedLeads: String(unassignedLeads),
     totalNote: `${leads.length} leads no CRM`,
     newLeadsNote:
       recentLeads.length > 0
@@ -495,6 +681,7 @@ function getPreviewMetrics() {
     proposals: "31",
     sales: "12",
     campaigns: "9",
+    unassignedLeads: "2",
     aiBalance: "48",
     totalNote: "+18% no mes",
     newLeadsNote: "ultimos 7 dias • 8 ainda em Novo lead",
@@ -573,11 +760,80 @@ function getPreviewDashboardCplSummary(): DashboardCplSummary {
   };
 }
 
+function getPreviewStageConversionSummary(): DashboardStageConversionSummary {
+  return {
+    total: 24,
+    note: "Percentual da base atual em cada etapa oficial do funil.",
+    rows: [
+      { stageValue: "new", label: "Novo lead", tone: "cobalt", count: 8, percentage: 8 / 24 },
+      { stageValue: "qualification", label: "Qualificação", tone: "lagoon", count: 5, percentage: 5 / 24 },
+      { stageValue: "proposal", label: "Proposta", tone: "signal", count: 4, percentage: 4 / 24 },
+      { stageValue: "negotiation", label: "Negociação", tone: "ink", count: 3, percentage: 3 / 24 },
+      { stageValue: "won", label: "Venda", tone: "emerald", count: 2, percentage: 2 / 24 },
+      { stageValue: "lost", label: "Perdido", tone: "red", count: 2, percentage: 2 / 24 }
+    ],
+    status: "available"
+  };
+}
+
+function getPreviewConsultantPortfolioSummary(): DashboardConsultantPortfolioSummary {
+  return {
+    totalConsultants: 3,
+    totalLeads: 24,
+    totalOverdue: 5,
+    note: "Carteira atual e tarefas em atraso agregadas por consultor visivel no CRM.",
+    rows: [
+      {
+        ownerProfileId: "preview-gabriel",
+        ownerName: "Gabriel",
+        role: "owner",
+        leadCount: 9,
+        overdueCount: 2
+      },
+      {
+        ownerProfileId: "preview-beatriz",
+        ownerName: "Beatriz",
+        role: "admin",
+        leadCount: 8,
+        overdueCount: 2
+      },
+      {
+        ownerProfileId: "preview-fernanda",
+        ownerName: "Fernanda",
+        role: "seller",
+        leadCount: 7,
+        overdueCount: 1
+      }
+    ],
+    status: "available"
+  };
+}
+
 function getFallbackDashboardCplSummary(): DashboardCplSummary {
   return {
     value: "N/D",
     note: "custo inicial indisponivel",
     status: "unavailable"
+  };
+}
+
+function getFallbackStageConversionSummary(): DashboardStageConversionSummary {
+  return {
+    total: 0,
+    note: "Sem leads visiveis para calcular a distribuicao atual do funil.",
+    rows: [],
+    status: "empty"
+  };
+}
+
+function getFallbackConsultantPortfolioSummary(): DashboardConsultantPortfolioSummary {
+  return {
+    totalConsultants: 0,
+    totalLeads: 0,
+    totalOverdue: 0,
+    note: "Nenhuma carteira visivel foi encontrada para distribuir a leitura por consultor.",
+    rows: [],
+    status: "empty"
   };
 }
 
@@ -666,6 +922,43 @@ function getCampaignPublishModeLabel(publishMode: CampaignActivitySummary["campa
       return "Pausada";
     default:
       return "Operacional";
+  }
+}
+
+function formatStageShare(percentage: number) {
+  return percentage.toLocaleString("pt-BR", {
+    style: "percent",
+    maximumFractionDigits: percentage > 0 && percentage < 0.1 ? 1 : 0
+  });
+}
+
+function getStageToneClass(tone: DashboardStageConversionSummary["rows"][number]["tone"]) {
+  switch (tone) {
+    case "lagoon":
+      return "bg-lagoon";
+    case "signal":
+      return "bg-signal";
+    case "ink":
+      return "bg-ink";
+    case "emerald":
+      return "bg-emerald-600";
+    case "red":
+      return "bg-red-500";
+    default:
+      return "bg-cobalt";
+  }
+}
+
+function getConsultantRoleLabel(role: DashboardConsultantPortfolioSummary["rows"][number]["role"]) {
+  switch (role) {
+    case "owner":
+      return "Owner";
+    case "admin":
+      return "Admin";
+    case "seller":
+      return "Consultor";
+    default:
+      return "Sem responsável";
   }
 }
 

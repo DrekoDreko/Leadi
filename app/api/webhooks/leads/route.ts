@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       status,
       message: errorMessage,
       data: { 
-        body, 
+        body: summarizeGenericWebhookPayloadForLogs(body), 
         headers: safeHeaders,
         organizationId: webhookAuth?.organizationId,
         integrationId: webhookAuth?.integrationId
@@ -238,10 +238,18 @@ function getWebhookLeadErrorMessage(error: unknown) {
     return error.access.message;
   }
 
+  if (error instanceof RateLimitError || error instanceof PayloadTooLargeError) {
+    return error.message;
+  }
+
   const message = error instanceof Error ? error.message : "";
 
-  if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
-    return message;
+  if (
+    message.includes("SUPABASE_SERVICE_ROLE_KEY") ||
+    message.includes("FetchError") ||
+    message.includes("Database error")
+  ) {
+    return "Servico indisponivel temporariamente.";
   }
 
   if (message.includes("Supabase nao configurado")) {
@@ -344,4 +352,16 @@ function getSafeWebhookHeaders(request: Request) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function summarizeGenericWebhookPayloadForLogs(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { payload_type: Array.isArray(value) ? "array" : typeof value };
+  }
+
+  const record = value as Record<string, unknown>;
+  return {
+    source: typeof record.source === "string" ? record.source : undefined,
+    payload_keys: Object.keys(record).slice(0, 20)
+  };
 }

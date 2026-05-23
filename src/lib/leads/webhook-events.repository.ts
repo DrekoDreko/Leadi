@@ -6,16 +6,22 @@ import { isWorkspaceManagerRole } from "@/lib/workspaces/permissions";
 type LeadWebhookEventRow = Database["public"]["Tables"]["lead_webhook_events"]["Row"];
 type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
 
-export type WebhookLogFilter = "all" | "processed" | "failed";
+export type WebhookLogFilter = "all" | "processed" | "duplicate" | "failed";
+export type WebhookDeliveryStatus = "success" | "duplicate" | "failed";
 
 export type LeadWebhookLog = {
   id: string;
   receivedAt: string;
   status: "processed" | "failed";
+  deliveryStatus: WebhookDeliveryStatus;
   httpStatus: number;
   leadId: string | null;
   leadName: string | null;
   errorMessage: string | null;
+  detailMessage: string | null;
+  metaLeadId: string | null;
+  metaFormId: string | null;
+  metaPageId: string | null;
   source: string;
 };
 
@@ -57,10 +63,12 @@ export async function listLeadWebhookLogsByOrganization(input: {
     .select("id, received_at, status, http_status, lead_id, error_message, raw_payload")
     .eq("organization_id", input.organizationId)
     .order("received_at", { ascending: false })
-    .limit(limit);
+    .limit(getQueryLimit(limit, input.filter));
 
-  if (input.filter !== "all") {
+  if (input.filter === "failed") {
     query = query.eq("status", input.filter);
+  } else if (input.filter === "processed" || input.filter === "duplicate") {
+    query = query.eq("status", "processed");
   }
 
   const { data, error } = await query;
@@ -78,16 +86,27 @@ export async function listLeadWebhookLogsByOrganization(input: {
     input.organizationId
   );
 
-  return data.map((event) => ({
-    id: event.id,
-    receivedAt: event.received_at,
-    status: event.status,
-    httpStatus: event.http_status,
-    leadId: event.lead_id,
-    leadName: event.lead_id ? leadNamesById.get(event.lead_id) ?? null : null,
-    errorMessage: event.error_message,
-    source: getWebhookSource(event)
-  }));
+  const logs = data.map((event) => {
+    const operational = getWebhookOperationalData(event);
+
+    return {
+      id: event.id,
+      receivedAt: event.received_at,
+      status: event.status,
+      deliveryStatus: operational.deliveryStatus,
+      httpStatus: event.http_status,
+      leadId: event.lead_id,
+      leadName: event.lead_id ? leadNamesById.get(event.lead_id) ?? null : null,
+      errorMessage: event.error_message,
+      detailMessage: operational.detailMessage,
+      metaLeadId: operational.metaLeadId,
+      metaFormId: operational.metaFormId,
+      metaPageId: operational.metaPageId,
+      source: getWebhookSource(event)
+    } satisfies LeadWebhookLog;
+  });
+
+  return filterWebhookLogs(logs, input.filter).slice(0, limit);
 }
 
 export async function getLeadWebhookSummaryByOrganization(input: {
@@ -175,20 +194,22 @@ async function countProcessedWebhookEventsForToday(
   timeZone: string
 ) {
   const { startIso, endIso } = getTodayRangeInTimeZone(timeZone);
-  const { count, error } = await supabase
+  const { data, error } = await supabase
     .from("lead_webhook_events")
-    .select("id", { count: "exact", head: true })
+    .select("status, raw_payload")
     .eq("organization_id", organizationId)
     .eq("status", "processed")
     .gte("received_at", startIso)
     .lt("received_at", endIso);
 
-  if (error) {
+  if (error || !data) {
     console.error("Nao foi possivel contar os eventos do webhook de leads de hoje.", error);
     return 0;
   }
 
-  return count ?? 0;
+  return data.filter((event) => {
+    return getWebhookDeliveryStatus(event.status, asRecord(event.raw_payload)) === "success";
+  }).length;
 }
 
 function getWebhookSource(event: Pick<LeadWebhookEventRow, "raw_payload">) {
@@ -201,7 +222,7 @@ function getWebhookSource(event: Pick<LeadWebhookEventRow, "raw_payload">) {
   const sourceValue = getPayloadTextValue(payload as Record<string, unknown>, [
     "source",
     "origem"
-  ]);
+  ]).toLowerCase();
 
   if (sourceValue === "api") {
     return "API";
@@ -214,20 +235,129 @@ function getWebhookSource(event: Pick<LeadWebhookEventRow, "raw_payload">) {
   return "Make/Zapier";
 }
 
+function getWebhookOperationalData(event: Pick<LeadWebhookEventRow, "status" | "error_message" | "raw_payload">) {
+  const payload = asRecord(event.raw_payload);
+  const deliveryStatus = getWebhookDeliveryStatus(event.status, payload);
+  const duplicateReason = getPayloadTextValue(payload, ["duplicate_reason"]).toLowerCase();
+  const summaryMessage = getPayloadTextValue(payload, ["summary_message"]);
+
+  return {
+    deliveryStatus,
+    detailMessage:
+      deliveryStatus === "failed"
+        ? event.error_message ?? summaryMessage ?? "Falha ao processar o webhook."
+        : deliveryStatus === "duplicate"
+          ? event.error_message ?? summaryMessage ?? getDuplicateDetailMessage(duplicateReason)
+          : summaryMessage ?? null,
+    metaLeadId: getMetaIdentifier(payload, ["leadgen_id", "lead_id"]),
+    metaFormId: getMetaIdentifier(payload, ["form_id"]),
+    metaPageId: getMetaIdentifier(payload, ["page_id"])
+  };
+}
+
+function getWebhookDeliveryStatus(
+  status: LeadWebhookEventRow["status"],
+  payload: Record<string, unknown>
+): WebhookDeliveryStatus {
+  if (status === "failed") {
+    return "failed";
+  }
+
+  const processingOutcome = getPayloadTextValue(payload, ["processing_outcome"]).toLowerCase();
+  if (processingOutcome === "duplicate" || getPayloadBooleanValue(payload, "duplicate")) {
+    return "duplicate";
+  }
+
+  return "success";
+}
+
+function getDuplicateDetailMessage(reason: string) {
+  if (reason === "meta_lead_id") {
+    return "Evento duplicado absorvido com seguranca porque o mesmo lead da Meta ja foi processado.";
+  }
+
+  if (reason === "phone_e164") {
+    return "Evento duplicado absorvido com seguranca porque o telefone ja existe no CRM.";
+  }
+
+  if (reason === "email") {
+    return "Evento duplicado absorvido com seguranca porque o email ja existe no CRM.";
+  }
+
+  return "Evento duplicado absorvido com seguranca.";
+}
+
+function getMetaIdentifier(payload: Record<string, unknown>, keys: string[]) {
+  const webhookEvent = getPayloadRecord(payload, "meta_webhook_event");
+  const leadSummary = getPayloadRecord(payload, "meta_lead_summary");
+
+  return (
+    getPayloadTextValue(webhookEvent, keys) ||
+    getPayloadTextValue(leadSummary, keys) ||
+    null
+  );
+}
+
 function getPayloadTextValue(payload: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
     const value = payload[key];
 
     if (typeof value === "string") {
-      return value.trim().toLowerCase();
+      return value.trim();
     }
   }
 
   return "";
 }
 
+function getPayloadBooleanValue(payload: Record<string, unknown>, key: string) {
+  return payload[key] === true;
+}
+
+function getPayloadRecord(payload: Record<string, unknown>, key: string) {
+  const value = payload[key];
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function asRecord(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function filterWebhookLogs(logs: LeadWebhookLog[], filter: WebhookLogFilter) {
+  if (filter === "all") {
+    return logs;
+  }
+
+  if (filter === "failed") {
+    return logs.filter((log) => log.deliveryStatus === "failed");
+  }
+
+  if (filter === "duplicate") {
+    return logs.filter((log) => log.deliveryStatus === "duplicate");
+  }
+
+  return logs.filter((log) => log.deliveryStatus === "success");
+}
+
 function clampLimit(value: number) {
   return Math.max(1, Math.min(value, 100));
+}
+
+function getQueryLimit(limit: number, filter: WebhookLogFilter) {
+  if (filter === "processed" || filter === "duplicate") {
+    return Math.min(limit * 4, 100);
+  }
+
+  return limit;
 }
 
 async function assertCurrentUserCanReadWebhookLogs(organizationId: string) {

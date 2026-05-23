@@ -107,10 +107,13 @@ export type WhatsAppMessageInput = {
     | "new_lead"
     | "first_contact"
     | "awaiting_response"
+    | "reactivation"
     | "closing"
-    | "post_service";
+    | "post_service"
+    | "objection_follow_up";
   objective?: string;
   tone?: string;
+  objectionReason?: string;
 };
 
 export type WhatsAppMessageOutput = {

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { exchangeMetaOAuthCode, syncMetaOrganizationAssets } from "@/lib/integrations/meta-graph.server";
-import { parseMetaOAuthState } from "@/lib/integrations/oauth-state.server";
+import { parseMetaOAuthState, type MetaOAuthStatePayload } from "@/lib/integrations/oauth-state.server";
 import { resolveMetaOAuthStateIdentity } from "@/lib/integrations/repository.server";
+import { MetaPermissionError, MetaTokenError } from "@/lib/meta/errors";
 import { EnvValidationError } from "@/lib/env/server";
 import { assertRouteRateLimit, logApiError } from "@/lib/api/route-security";
 
@@ -15,23 +16,42 @@ export async function GET(request: Request) {
   });
   const returnToFallback = "/dashboard/perfil/meta";
 
+  const stateValue = requestUrl.searchParams.get("state")?.trim();
+  let state: MetaOAuthStatePayload | undefined;
+
+  if (stateValue) {
+    try {
+      state = parseMetaOAuthState(stateValue);
+    } catch (error) {
+      console.error("State OAuth da Meta invalido.", error);
+    }
+  }
+
+  const returnTo = state?.returnTo || returnToFallback;
+
   if (requestUrl.searchParams.has("error")) {
-    return redirectBack(requestUrl, returnToFallback, "meta=error");
+    const errorReason = requestUrl.searchParams.get("error_reason");
+    const errorDesc = requestUrl.searchParams.get("error_description");
+
+    if (errorReason === "user_denied") {
+      return redirectBack(requestUrl, returnTo, "meta=user_denied");
+    }
+
+    logApiError({
+      route: "/api/integrations/meta/callback",
+      operation: "HANDLE_META_CALLBACK_ERROR",
+      message: `Meta OAuth retornou erro: ${errorReason || requestUrl.searchParams.get("error")}`,
+      status: 400,
+      error: new Error(errorDesc || "Erro desconhecido retornado pela Meta")
+    });
+
+    return redirectBack(requestUrl, returnTo, "meta=error");
   }
 
   const code = requestUrl.searchParams.get("code")?.trim();
-  const stateValue = requestUrl.searchParams.get("state")?.trim();
 
-  if (!code || !stateValue) {
-    return redirectBack(requestUrl, returnToFallback, "meta=error");
-  }
-
-  let state;
-  try {
-    state = parseMetaOAuthState(stateValue);
-  } catch (error) {
-    console.error("State OAuth da Meta invalido.", error);
-    return redirectBack(requestUrl, returnToFallback, "meta=error");
+  if (!code || !stateValue || !state) {
+    return redirectBack(requestUrl, returnToFallback, "meta=invalid_request");
   }
 
   try {
@@ -41,7 +61,7 @@ export async function GET(request: Request) {
     });
 
     if (!identity) {
-      return redirectBack(requestUrl, state.returnTo || returnToFallback, "meta=forbidden");
+      return redirectBack(requestUrl, returnTo, "meta=forbidden");
     }
 
     const exchange = await exchangeMetaOAuthCode({ code, state });
@@ -55,7 +75,7 @@ export async function GET(request: Request) {
 
     return redirectBack(
       requestUrl,
-      state.returnTo || returnToFallback,
+      returnTo,
       syncResult.warnings.length > 0 ? "meta=connected&sync=partial" : "meta=connected&sync=updated"
     );
   } catch (error) {
@@ -67,10 +87,16 @@ export async function GET(request: Request) {
       error
     });
     if (error instanceof EnvValidationError) {
-      return redirectBack(requestUrl, state.returnTo || returnToFallback, "meta=missing");
+      return redirectBack(requestUrl, returnTo, "meta=missing");
+    }
+    if (error instanceof MetaTokenError) {
+      return redirectBack(requestUrl, returnTo, "meta=token_expired");
+    }
+    if (error instanceof MetaPermissionError) {
+      return redirectBack(requestUrl, returnTo, "meta=missing_permissions");
     }
 
-    return redirectBack(requestUrl, state.returnTo || returnToFallback, "meta=error");
+    return redirectBack(requestUrl, returnTo, "meta=error");
   }
 }
 

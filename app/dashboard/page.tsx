@@ -2,6 +2,7 @@ import { requireCompletedProfile } from "@/lib/workspaces/context";
 import {
   getLeadsForCurrentUser,
   listLeadIdsWithRecordedContactForCurrentUser,
+  listLeadOwnerOptionsForCurrentUser,
   listOverdueLeadTasksForCurrentUser
 } from "@/lib/leads/repository.server";
 import {
@@ -13,7 +14,11 @@ import { getWhatsAppMessagesCountForCurrentUser } from "@/lib/whatsapp/repositor
 import { getOnboardingStateForCurrentUser } from "@/lib/onboarding/repository.server";
 import { getCreativeRequestsCountForCurrentUser } from "@/lib/creative-requests/repository.server";
 import { getDashboardRemindersForCurrentUser } from "@/lib/dashboard-reminders/repository.server";
-import { buildInitialDashboardCplSummary } from "@/lib/reports/commercial-report.server";
+import {
+  buildDashboardConsultantPortfolioSummary,
+  buildDashboardStageConversionSummary,
+  buildInitialDashboardCplSummary
+} from "@/lib/reports/commercial-report.server";
 import { getSystemTemplates } from "@/lib/templates/repository.server";
 import { DashboardHome, type DashboardLeadNoContactSummary } from "./dashboard-home";
 
@@ -28,7 +33,8 @@ export default async function DashboardPage() {
     creativeRequestsCount,
     reminderState,
     whatsappTemplates,
-    overdueTasks
+    overdueTasks,
+    leadOwnerOptions
   ] = await Promise.all([
     requireCompletedProfile(),
     getLeadsForCurrentUser(),
@@ -39,7 +45,8 @@ export default async function DashboardPage() {
     getCreativeRequestsCountForCurrentUser(),
     getDashboardRemindersForCurrentUser(),
     getSystemTemplates("whatsapp"),
-    listOverdueLeadTasksForCurrentUser()
+    listOverdueLeadTasksForCurrentUser(),
+    listLeadOwnerOptionsForCurrentUser()
   ]);
   const aiBalance = await getCurrentAiBalance();
   const contactedLeadIds = new Set(
@@ -51,6 +58,14 @@ export default async function DashboardPage() {
     activeCampaignCount: campaignActivitySummary.activeCount,
     readyCampaignCount: campaignActivitySummary.readyCount
   });
+  const stageConversionSummary = buildDashboardStageConversionSummary(leadState.leads);
+  const consultantPortfolioSummary = context.isManager
+    ? buildDashboardConsultantPortfolioSummary(
+        leadState.leads,
+        overdueTasks,
+        leadOwnerOptions
+      )
+    : undefined;
 
   return (
     <DashboardHome
@@ -58,6 +73,7 @@ export default async function DashboardPage() {
       campaignActivitySummary={campaignActivitySummary}
       campaignsCount={campaignState.campaigns.length}
       cplSummary={cplSummary}
+      stageConversionSummary={stageConversionSummary}
       leads={leadState.leads}
       showCreateTeamCard={context.isSoloOwner}
       whatsappMessagesCount={whatsappMessagesCount}
@@ -67,6 +83,9 @@ export default async function DashboardPage() {
       whatsappTemplates={whatsappTemplates}
       leadNoContactSummary={leadNoContactSummary}
       overdueTasks={overdueTasks}
+      canManageLeadOwners={context.isManager}
+      leadOwnerOptions={leadOwnerOptions}
+      consultantPortfolioSummary={consultantPortfolioSummary}
     />
   );
 }

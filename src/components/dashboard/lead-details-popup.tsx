@@ -35,13 +35,17 @@ import {
 import { normalizePhone } from "@/lib/leads/normalization";
 import { LeadMessageGenerator } from "./lead-message-generator";
 import type { SystemTemplate } from "@/lib/templates/types";
+import type { LeadOwnerOption } from "@/lib/leads/repository.server";
 
 type LeadUpdateMode = "supabase" | "mock" | "not-configured" | "unauthenticated" | "error";
 
 type LeadDetailsPopupProps = {
   aiBalance?: number;
+  canManageLeadOwners?: boolean;
+  initialEditMode?: boolean;
   initialPanel?: "details" | "message";
   lead: Lead | null;
+  leadOwnerOptions?: LeadOwnerOption[];
   messageGeneratorEnabled?: boolean;
   onClose: () => void;
   onDeleted?: (leadId: string, mode?: LeadUpdateMode) => void;
@@ -53,6 +57,7 @@ type LeadEditValues = {
   name: string;
   email: string;
   phone: string;
+  owner_profile_id: string;
   city: string;
   company_name: string;
   lives_count: string;
@@ -103,8 +108,11 @@ const emptyDisplayValues = new Set([
 
 export function LeadDetailsPopup({
   aiBalance = 0,
+  canManageLeadOwners = false,
+  initialEditMode = false,
   initialPanel = "details",
   lead,
+  leadOwnerOptions = [],
   messageGeneratorEnabled = false,
   onClose,
   onDeleted,
@@ -113,7 +121,7 @@ export function LeadDetailsPopup({
 }: LeadDetailsPopupProps) {
   const previousLeadIdRef = useRef<string | null>(null);
   const [activePanel, setActivePanel] = useState<"details" | "message">(initialPanel);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -123,6 +131,7 @@ export function LeadDetailsPopup({
   const [comments, setComments] = useState<LeadComment[]>([]);
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [commentsStatus, setCommentsStatus] = useState<"idle" | "loading" | "ready">("idle");
+  const [commentsRefreshCounter, setCommentsRefreshCounter] = useState(0);
   const [commentDraft, setCommentDraft] = useState("");
   const [commentType, setCommentType] = useState<"comment" | "contact">("comment");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -145,7 +154,7 @@ export function LeadDetailsPopup({
     setFormValues(getLeadEditValues(lead));
     setErrors({});
     setStatus(null);
-    setIsEditing(false);
+    setIsEditing(initialEditMode);
     setIsSubmitting(false);
     setIsConfirmingDelete(false);
     setIsDeleting(false);
@@ -157,7 +166,7 @@ export function LeadDetailsPopup({
     setCommentDraft("");
     setCommentType("comment");
     setIsSubmittingComment(false);
-  }, [initialPanel, lead, messageGeneratorEnabled]);
+  }, [initialEditMode, initialPanel, lead, messageGeneratorEnabled]);
 
   useEffect(() => {
     if (!lead) {
@@ -203,7 +212,7 @@ export function LeadDetailsPopup({
     return () => {
       active = false;
     };
-  }, [lead]);
+  }, [lead, commentsRefreshCounter]);
 
   useEffect(() => {
     if (!lead) {
@@ -253,6 +262,7 @@ export function LeadDetailsPopup({
   const activeStageMeta = getLeadStageMeta(activeLead.stage);
   const activeStageLabel = getLeadStageLabel(activeLead.stage);
   const isLostLead = activeStageMeta?.value === "lost";
+  const resolvedOwnerName = getLeadOwnerName(activeLead, leadOwnerOptions);
   const activeStageDescription =
     activeStageMeta?.description ?? "Etapa comercial atual do lead no CRM.";
   const stageBadgeClassName = getLeadStageBadgeClassName(activeStageMeta?.tone);
@@ -449,7 +459,7 @@ export function LeadDetailsPopup({
   }
 
   const profileItems = [
-    { icon: UserRound, label: "Responsavel", value: lead.owner },
+    { icon: UserRound, label: "Responsavel", value: resolvedOwnerName },
     { icon: UserRound, label: "Empresa", value: lead.companyName ?? "Empresa nao informada" },
     { icon: PhoneCall, label: "Telefone", value: lead.phone },
     { icon: Mail, label: "Email", value: lead.email },
@@ -690,6 +700,24 @@ export function LeadDetailsPopup({
                 />
               </LeadField>
 
+              {canManageLeadOwners ? (
+                <LeadField label="Responsável pelo lead">
+                  <select
+                    className={fieldClass(false)}
+                    disabled={isSubmitting}
+                    onChange={(event) => updateField("owner_profile_id", event.target.value)}
+                    value={formValues.owner_profile_id}
+                  >
+                    <option value="">Selecione um responsavel</option>
+                    {leadOwnerOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name} ({getLeadOwnerRoleLabel(option.role)})
+                      </option>
+                    ))}
+                  </select>
+                </LeadField>
+              ) : null}
+
               <LeadField error={errors.lives_count} label="Número de vidas">
                 <input
                   aria-invalid={Boolean(errors.lives_count)}
@@ -811,6 +839,7 @@ export function LeadDetailsPopup({
               aiBalance={aiBalance}
               lead={lead}
               systemTemplates={whatsappTemplates}
+              onMessageGenerated={() => setCommentsRefreshCounter((c) => c + 1)}
             />
           </div>
         ) : (
@@ -1172,7 +1201,8 @@ function getLeadEditValues(lead: Lead): LeadEditValues {
     budget: editableValue(lead.budget),
     last_interaction: editableValue(lead.lastInteraction),
     notes: editableValue(lead.notes),
-    loss_reason: editableValue(lead.lossReason ?? "")
+    loss_reason: editableValue(lead.lossReason ?? ""),
+    owner_profile_id: editableValue(lead.ownerProfileId ?? "")
   };
 }
 
@@ -1220,7 +1250,8 @@ function buildLeadUpdatePayload(values: LeadEditValues) {
     budget: values.budget,
     last_interaction: values.last_interaction,
     notes: values.notes,
-    loss_reason: values.loss_reason
+    loss_reason: values.loss_reason,
+    owner_profile_id: values.owner_profile_id || undefined
   };
 }
 
@@ -1308,6 +1339,26 @@ function getFriendlyLeadCommentError(error: string | undefined, action: "load" |
   }
 
   return error;
+}
+
+function getLeadOwnerName(lead: Lead, leadOwnerOptions: LeadOwnerOption[]) {
+  const ownerOption = lead.ownerProfileId
+    ? leadOwnerOptions.find((option) => option.id === lead.ownerProfileId)
+    : null;
+
+  return ownerOption?.name ?? lead.owner ?? "Sem responsavel";
+}
+
+function getLeadOwnerRoleLabel(role: LeadOwnerOption["role"]) {
+  if (role === "owner") {
+    return "Owner";
+  }
+
+  if (role === "admin") {
+    return "Admin";
+  }
+
+  return "Consultor";
 }
 
 function stageToValue(stage: string) {

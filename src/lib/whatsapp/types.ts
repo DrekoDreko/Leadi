@@ -17,8 +17,10 @@ export type WhatsAppStage =
   | "new_lead"
   | "first_contact"
   | "awaiting_response"
+  | "reactivation"
   | "closing"
-  | "post_service";
+  | "post_service"
+  | "objection_follow_up";
 
 export type WhatsAppGenerationForm = {
   leadId?: string | null;
@@ -29,6 +31,7 @@ export type WhatsAppGenerationForm = {
   objective: string;
   tone: string;
   product: string;
+  objectionReason?: string;
 };
 
 export type WhatsAppHistoryItem = {

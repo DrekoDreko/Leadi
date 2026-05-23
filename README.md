@@ -115,20 +115,39 @@ O ambiente local é destinado apenas para desenvolvimento, scripts administrativ
 
 Use `.env.example` como catálogo base. Ele separa variáveis públicas de variáveis estritamente server-side.
 
+### 1. Core Obrigatório para Produção (Build-Blocker)
+Essas variáveis são validadas em tempo de compilação (`next build`) quando `NODE_ENV=production`. A ausência de qualquer uma delas bloqueará o deploy de produção para resguardar a integridade do SaaS.
+
 | Variável | Exposição | Descrição |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_APP_URL` | Client/public | URL pública canônica do app |
-| `NEXT_PUBLIC_SITE_NAME` | Client/public | Nome exibido na interface |
-| `NEXT_PUBLIC_LEGAL_EMAIL` | Client/public | E-mail jurídico exibido em páginas públicas |
 | `NEXT_PUBLIC_SUPABASE_URL` | Client/public | URL do projeto Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client/public | Chave anônima usada pelo client SDK |
-| `LEGAL_CONTACT_EMAIL` | Server-only | Contato jurídico/operacional interno |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only | Chave administrativa do Supabase |
-| `INTEGRATIONS_SECRET_KEY` | Server-only | Chave dedicada para cifrar tokens de clientes |
-| `OPENAI_API_KEY` | Server-only | Chave global da OpenAI para rotas server-side |
-| `META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN` | Server-only | Credenciais do App Meta Developers e do webhook |
-| `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET` | Server-only | Credenciais financeiras do Mercado Pago |
-| `META_WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_EXTERNAL_API_KEY` | Server-only | Credenciais de envio de WhatsApp |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only | Chave administrativa do Supabase para operações administrativas e webhooks |
+| `INTEGRATIONS_SECRET_KEY` | Server-only | Chave de criptografia dedicada para cifrar e decifrar com segurança os tokens conectadas dos clientes (OpenAI e Meta) |
+
+### 2. Opcionais por Integração (Runtime-validated)
+Essas variáveis não bloqueiam o build, mas são exigidas em tempo de execução pelas respectivas funcionalidades.
+
+| Variável | Recurso Vinculado | Descrição |
+| :--- | :--- | :--- |
+| `NEXT_PUBLIC_APP_URL` | Geral | URL pública canônica (Domain) |
+| `NEXT_PUBLIC_SITE_NAME` | Geral | Nome do SaaS exibido na interface |
+| `NEXT_PUBLIC_LEGAL_EMAIL` | Geral | E-mail de suporte/jurídico público |
+| `LEGAL_CONTACT_EMAIL` | Geral | E-mail operacional interno |
+| `OPENAI_API_KEY` | IA / Copilot | Chave global da OpenAI (se as orgs não usarem chaves próprias) |
+| `OPENAI_MODEL` | IA / Copilot | Modelo de IA padrão do servidor (ex: `gpt-4o-mini`) |
+| `META_APP_ID` | Meta Ads | App ID do Facebook Developers |
+| `META_APP_SECRET` | Meta Ads / Webhook | Segredo do App Meta para assinar chamadas e validar webhooks |
+| `META_VERIFY_TOKEN` | Meta Webhook | Token de verificação do webhook de Lead Ads |
+| `META_REDIRECT_URI` | Meta OAuth | Callback cadastrado no painel Meta |
+| `META_GRAPH_API_VERSION`| Meta Graph | Versão da Graph API (ex: `v22.0`) |
+| `MERCADO_PAGO_ACCESS_TOKEN`| Mercado Pago | Token de acesso para checkout e planos |
+| `MERCADO_PAGO_WEBHOOK_SECRET`| Mercado Pago | Segredo de assinatura do webhook de pagamentos |
+| `META_WHATSAPP_ACCESS_TOKEN`| WhatsApp Oficial | Token oficial para envio de WhatsApp via Meta Graph API |
+| `META_WHATSAPP_PHONE_NUMBER_ID`| WhatsApp Oficial | Identificador de número oficial Meta |
+| `WHATSAPP_EXTERNAL_SEND_URL`| WhatsApp Provedor | Endpoint do provedor de mensageria externo secundário |
+| `WHATSAPP_EXTERNAL_API_KEY` | WhatsApp Provedor | Chave secreta do provedor de mensageria externo |
+| `WHATSAPP_EXTERNAL_SENDER_ID`| WhatsApp Provedor | ID do remetente do provedor externo |
 
 Notas operacionais:
 

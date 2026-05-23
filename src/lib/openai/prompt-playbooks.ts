@@ -41,10 +41,13 @@ type WhatsAppPromptInput = {
     | "new_lead"
     | "first_contact"
     | "awaiting_response"
+    | "reactivation"
     | "closing"
-    | "post_service";
+    | "post_service"
+    | "objection_follow_up";
   objective?: string;
   tone?: string;
+  objectionReason?: string;
 };
 
 type ComplianceReviewPromptInput = {
@@ -69,14 +72,15 @@ const marketRealitySignals = [
 ];
 
 const styleGuardrails = [
-  "Frases curtas e claras. Evite texto inflado, superlativo absoluto e sensacionalismo.",
-  "Nao use urgencia artificial, escassez enganosa ou promessa agressiva.",
+  "Frases curtas e claras. Evite texto inflado, superlativo absoluto, sensacionalismo e linguagem agressiva.",
+  "Nao use urgencia artificial, escassez enganosa, tom imperativo forte ou promessa financeira agressiva.",
   "Se houver exemplos, absorva o padrao de abordagem e vocabulario, sem copiar literalmente.",
   "A resposta deve ajudar uma conversa comercial real a andar para a proxima etapa."
 ];
 
 const complianceHardStops = [
   "Nao prometa aprovacao, cobertura garantida, economia garantida, sem carencia para todos ou resultado medico.",
+  "Evite afirmacoes como 'pare de perder dinheiro' ou 'reduza custos pela metade'. O tom deve ser de comparacao consultiva.",
   "Nao explore diagnostico, doenca, gravidez, deficiencia, idade sensivel, religiao, etnia, genero, orientacao sexual ou atributo protegido.",
   "Nao peca documentos pessoais, renda, CPF, data de nascimento ou outros dados sensiveis no primeiro contato.",
   "Nao assuma elegibilidade da empresa ou das vidas antes de analise comercial e da operadora."
@@ -117,9 +121,16 @@ export function buildCampaignTextPrompt(input: CampaignPromptInput) {
       )
     ),
     buildSection("Evite especialmente", [
-      "Promessa de desconto, cobertura total, aprovacao garantida ou ausencia garantida de carencia.",
+      "Promessa de desconto financeiro garantido, 'cobrimos ofertas' ou reducao irreal de custos.",
+      "Linguagem agressiva como 'pare de perder dinheiro' ou tom imperativo autoritario.",
+      "Promessa de cobertura total, aprovacao garantida ou ausencia garantida de carencia.",
       "Chamadas sobre doencas, idade, gravidez, historico medico ou situacoes protegidas.",
       "CTA vaga como 'nao perca' ou 'ultima chance' sem regra comercial verificavel."
+    ]),
+    buildSection("Variações de texto esperadas (campo variants)", [
+      "Gere de 2 a 4 variações úteis e complementares do texto principal (primaryText).",
+      "Cada variação deve explorar um ângulo diferente (ex: mais direto ao ponto, mais focado em dores específicas de RH/Financeiro, ou focado no comparativo de rede).",
+      "As variações devem seguir rigorosamente as mesmas regras de compliance e coerência da copy principal."
     ]),
     "A copy final deve parecer escrita por uma corretora que entende o mercado empresarial e quer abrir uma conversa segura."
   ]);
@@ -159,6 +170,34 @@ export function buildComplianceQuestionsPrompt(input: ComplianceQuestionsPromptI
 
 export function buildWhatsAppMessagePrompt(input: WhatsAppPromptInput) {
   const stage = input.stage ?? "new";
+  const followUpWithoutResponseRules =
+    stage === "awaiting_response"
+      ? [
+          "Considere que ja houve uma tentativa anterior e o lead ainda nao respondeu.",
+          "Relembre o contexto anterior com sutileza, sem soar como cobranca.",
+          "Facilite uma resposta de baixo atrito, oferecendo uma pergunta curta ou opcao simples de retomada."
+        ]
+      : [];
+
+  const reactivationRules =
+    stage === "reactivation"
+      ? [
+          "Considere que o lead esta antigo, parado ou sem movimentacao recente no CRM.",
+          "A mensagem principal deve reabrir a conversa com respeito, contextualizando a retomada sem parecer insistente.",
+          "As mensagens subsequentes devem oferecer um caminho leve para atualizar cenario, prioridade ou momento da empresa.",
+          "Nao assuma que a necessidade continua igual; convide o lead a confirmar se ainda faz sentido retomar."
+        ]
+      : [];
+      
+  const objectionFollowUpRules = 
+    stage === "objection_follow_up"
+      ? [
+          "Considere que o lead apresentou a seguinte objecao: " + (input.objectionReason || "Motivo nao especificado"),
+          "Sua mensagem principal (openingMessage) deve validar a objecao de forma empatica e profissional.",
+          "As mensagens subsequentes (followUpMessage/objectionReply) devem apresentar um novo angulo comercial ou alternativa sem forcar a barra.",
+          "Mantenha o respeito pela decisao do lead, oferecendo ajuda consultiva."
+        ]
+      : [];
 
   return joinSections([
     "Crie mensagens curtas para WhatsApp comercial de corretora de plano de saude empresarial.",
@@ -180,7 +219,14 @@ export function buildWhatsAppMessagePrompt(input: WhatsAppPromptInput) {
       "Pense como um corretor real falando com um decisor ou contato da empresa no WhatsApp.",
       "Use linguagem curta, natural e profissional, sem cara de copy publicitaria.",
       "A abertura deve falar em nome da corretora ou representante, nunca em nome do Leadi.",
-      "Use o contexto do lead apenas para deixar a conversa mais aderente, sem inventar fatos."
+      "Incorpore o nome do lead e as informacoes de contexto logo no inicio para demonstrar personalizacao e proximidade comercial.",
+      "Use o contexto do lead apenas para deixar a conversa mais aderente, sem inventar fatos ou assumir dados nao informados."
+    ]),
+    buildSection("Ajustes para a etapa atual", [
+      ...followUpWithoutResponseRules,
+      ...reactivationRules,
+      ...objectionFollowUpRules,
+      "Se nao houver ajuste especifico para a etapa, siga a diretriz geral informada no contexto."
     ]),
     buildExamplesSection(
       "Padroes de abordagem aprovados",
@@ -214,7 +260,8 @@ export function buildComplianceReviewPrompt(input: ComplianceReviewPromptInput) 
     buildSection("Texto para revisar", [input.text]),
     buildSection("Cheque especialmente", [
       "Linguagem sensivel ligada a saude, diagnostico ou atributo protegido.",
-      "Promessas de aprovacao, cobertura, economia garantida, sem carencia ou urgencia agressiva.",
+      "Promessas de aprovacao, cobertura, economia garantida, descontos irreais ou urgencia artificial.",
+      "Tom agressivo, imperativo ('pare de perder dinheiro') ou que tenta gerar culpa no lead.",
       "Coleta excessiva de dados pessoais no primeiro passo.",
       "Uso de tom pouco realista para a operacao comercial."
     ]),

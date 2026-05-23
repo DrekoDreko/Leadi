@@ -18,86 +18,86 @@ from (
   values
     (
       'campaign',
-      'Plano empresarial',
-      'Migração para plano empresarial',
-      'Para pessoas com CNPJ que desejam avaliar alternativas de plano de saúde empresarial.',
+      'MEI consultivo',
+      'Plano PME para MEI com até 4 vidas',
+      'Abordagem consultiva para MEIs e pequenos CNPJs que precisam validar elegibilidade antes de cotar.',
       '{
-        "audience": "Pessoas com CNPJ, MEI, ME ou LTDA que desejam avaliar alternativas de plano de saúde empresarial.",
-        "offer": "Análise consultiva para comparar possibilidades de contratação empresarial conforme perfil da empresa.",
-        "region": "São Paulo, SP",
-        "differentiator": "Atendimento consultivo, explicação clara das opções e apoio no entendimento das regras de contratação.",
-        "tone": "Consultivo e direto",
-        "notes": "Evitar promessa de economia garantida. Usar linguagem educativa e profissional."
-      }'::jsonb
-    ),
-    (
-      'campaign',
-      'MEI',
-      'Plano de saúde para MEI',
-      'Orientação clara para microempreendedores que querem entender opções com CNPJ.',
-      '{
-        "audience": "Microempreendedores individuais que buscam entender opções de plano de saúde com CNPJ.",
-        "offer": "Orientação sobre possibilidades de contratação para MEI, respeitando critérios das operadoras.",
+        "audience": "MEIs e pequenos CNPJs com 2 a 4 vidas que querem entender se já podem contratar um plano empresarial.",
+        "offer": "Análise consultiva para validar elegibilidade, documentação e caminhos de contratação conforme o perfil da empresa.",
         "region": "São Paulo, ABC Paulista",
-        "differentiator": "Explicação simples sobre documentação, carências, elegibilidade e alternativas disponíveis.",
+        "differentiator": "Explica com clareza o que muda entre opções empresariais, documentos exigidos e próximos passos da cotação.",
         "tone": "Humano e claro",
-        "notes": "Não afirmar aprovação garantida. Não prometer valores específicos."
+        "notes": "Evitar prometer aprovação imediata ou economia garantida. Convidar o lead para uma análise do perfil."
       }'::jsonb
     ),
     (
       'campaign',
-      'Pequenas empresas',
-      'Plano empresarial para pequenas empresas',
-      'Cotação orientada para sócios, equipe ou familiares elegíveis.',
+      'Reajuste',
+      'Revisão de reajuste do plano atual',
+      'Para empresas que já possuem plano e querem revisar reajuste, rede e formato do contrato.',
       '{
-        "audience": "Donos de pequenas empresas que querem organizar benefício de saúde para sócios, equipe ou familiares elegíveis.",
-        "offer": "Cotação orientada de planos empresariais conforme quantidade de vidas e perfil da empresa.",
-        "region": "Campinas, Jundiaí, Sorocaba",
-        "differentiator": "Comparação entre operadoras, rede credenciada e formatos de contratação.",
+        "audience": "Empresas que já têm plano de saúde e querem reavaliar custo, rede credenciada e regras de contratação.",
+        "offer": "Revisão consultiva do cenário atual com comparação entre alternativas empresariais aderentes ao perfil da empresa.",
+        "region": "São Paulo, Santos, Interior de SP",
+        "differentiator": "Organiza a análise por rede, coparticipação, carências e uso esperado antes de sugerir qualquer troca.",
         "tone": "Consultivo e direto",
-        "notes": "Evitar linguagem de urgência exagerada. Focar em clareza e orientação."
+        "notes": "Não usar promessa de redução garantida. Preferir linguagem de revisão, comparação e tomada de decisão orientada."
       }'::jsonb
     ),
     (
       'campaign',
-      'Comparativo',
-      'Comparativo entre operadoras',
-      'Apoio organizado para comparar rede, abrangência e possibilidades.',
+      'Rede hospitalar',
+      'Comparativo por rede e hospital de preferência',
+      'Campanha para leads que começam a conversa pela rede credenciada e hospitais prioritários.',
       '{
-        "audience": "Empresas que desejam comparar opções entre operadoras como Bradesco, SulAmérica, Amil e outras disponíveis.",
-        "offer": "Apoio para comparar rede, abrangência, perfil de uso e possibilidades de contratação.",
+        "audience": "Empresas e famílias empresariais que priorizam hospitais, laboratórios e região de atendimento antes do preço.",
+        "offer": "Comparativo consultivo partindo da rede desejada, da abrangência e do perfil de uso da empresa.",
         "region": "São Paulo, Guarulhos, Osasco",
-        "differentiator": "Comparativo organizado para ajudar o cliente a tomar decisão com mais segurança.",
+        "differentiator": "Ajuda o lead a enxergar diferenças reais entre rede, cobertura e aderência ao perfil sem excesso de tecnicismo.",
         "tone": "Profissional e objetivo",
-        "notes": "Não depreciar operadoras. Não prometer melhor preço absoluto."
+        "notes": "Não depreciar operadoras nem afirmar melhor opção universal. Focar em aderência ao cenário do cliente."
+      }'::jsonb
+    ),
+    (
+      'campaign',
+      'Pequena equipe',
+      'Benefício de saúde para equipes pequenas',
+      'Para negócios de 2 a 29 vidas que querem estruturar benefício de forma viável e organizada.',
+      '{
+        "audience": "Donos e gestores de pequenas empresas que querem oferecer plano para sócios, equipe e dependentes elegíveis.",
+        "offer": "Estruturação consultiva de benefício empresarial conforme número de vidas, região de uso e orçamento disponível.",
+        "region": "Campinas, Jundiaí, Sorocaba",
+        "differentiator": "Ajuda a equilibrar composição de vidas, tipo de cobertura e expectativa financeira sem perder clareza comercial.",
+        "tone": "Consultivo e direto",
+        "notes": "Evitar urgência artificial ou promessa de menor preço. Falar em planejamento, cenário e viabilidade."
       }'::jsonb
     ),
     (
       'campaign',
       'Elegibilidade',
-      'Inclusão de sócios e equipe',
-      'Análise de elegibilidade para titulares, colaboradores e dependentes.',
+      'Inclusão de sócios, dependentes e pró-labore',
+      'Esclarece quem pode entrar no contrato e quais vínculos precisam ser revisados antes da cotação.',
       '{
-        "audience": "Empresas LTDA, ME e pequenos negócios que precisam entender quem pode entrar como titular ou dependente.",
-        "offer": "Análise das possibilidades de inclusão de sócios, colaboradores e dependentes conforme regras da operadora.",
+        "audience": "Empresas LTDA, ME e CNPJs familiares que precisam entender quem pode entrar como titular, dependente ou colaborador.",
+        "offer": "Análise de elegibilidade para sócios, dependentes, funcionários e pró-labore quando aplicável.",
         "region": "Grande São Paulo",
-        "differentiator": "Orientação sobre documentação, elegibilidade e composição de vidas.",
+        "differentiator": "Explica documentação, vínculo e composição mínima antes de avançar para a cotação com a operadora.",
         "tone": "Humano e claro",
-        "notes": "Não prometer aceitação automática. Focar em análise de viabilidade."
+        "notes": "Não prometer aceitação automática. Indicar análise conforme regras da operadora e perfil cadastral."
       }'::jsonb
     ),
     (
       'campaign',
-      'Revisão',
-      'Revisão de contrato atual',
-      'Diagnóstico consultivo para revisar rede, condições e alternativas.',
+      'Primeira contratação',
+      'Primeiro plano empresarial para CNPJ em crescimento',
+      'Para empresas que nunca contrataram plano e precisam entender por onde começar.',
       '{
-        "audience": "Empresas que já possuem plano de saúde e querem revisar opções, rede e condições disponíveis.",
-        "offer": "Revisão consultiva do cenário atual e apresentação de alternativas quando fizer sentido.",
-        "region": "São Paulo, Santos, Interior de SP",
-        "differentiator": "Diagnóstico organizado antes de sugerir qualquer mudança.",
-        "tone": "Consultivo e direto",
-        "notes": "Evitar “você está pagando caro”. Usar “avaliar alternativas” ou “revisar possibilidades”."
+        "audience": "Empresas em crescimento que vão contratar plano empresarial pela primeira vez e ainda precisam organizar os critérios da decisão.",
+        "offer": "Orientação inicial para definir número de vidas, região de uso e critérios de escolha da operadora antes da proposta.",
+        "region": "São Paulo, Barueri, Alphaville",
+        "differentiator": "Traduz o processo comercial em próximos passos simples, sem linguagem técnica excessiva.",
+        "tone": "Educativo e simples",
+        "notes": "Evitar prometer implantação sem análise documental. Focar em orientação e preparo para a cotação."
       }'::jsonb
     )
 ) as templates(template_type, category, title, description, content)

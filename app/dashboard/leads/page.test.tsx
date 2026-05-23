@@ -2,7 +2,10 @@ import { render, screen } from '@testing-library/react';
 import { expect, it, describe, vi } from 'vitest';
 import LeadsPage from './page';
 import { requireCompletedProfile } from "@/lib/workspaces/context";
-import { getLeadsForCurrentUser } from "@/lib/leads/repository.server";
+import {
+  getLeadsForCurrentUser,
+  listLeadOwnerOptionsForCurrentUser
+} from "@/lib/leads/repository.server";
 import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
 import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { getSystemTemplates } from "@/lib/templates/repository.server";
@@ -11,7 +14,8 @@ import { getSystemTemplates } from "@/lib/templates/repository.server";
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/leads/repository.server", () => ({
-  getLeadsForCurrentUser: vi.fn()
+  getLeadsForCurrentUser: vi.fn(),
+  listLeadOwnerOptionsForCurrentUser: vi.fn()
 }));
 
 vi.mock("@/lib/billing/subscription-limits.server", () => ({
@@ -58,6 +62,7 @@ describe('Leads Page (/dashboard/leads)', () => {
       remaining: 10
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
     vi.mocked(getCurrentAiBalance).mockResolvedValue(9);
+    vi.mocked(listLeadOwnerOptionsForCurrentUser).mockResolvedValue([] as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     vi.mocked(getSystemTemplates).mockResolvedValue([] as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 

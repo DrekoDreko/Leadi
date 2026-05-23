@@ -16,7 +16,8 @@ import { saveCampaignForCurrentUser } from "@/lib/campaigns/repository.server";
 import { createCreativeRequestForCurrentUser } from "@/lib/creative-requests/repository.server";
 import type {
   CampaignPublishMode,
-  CampaignPublicationStatus
+  CampaignPublicationStatus,
+  CampaignSaveInput
 } from "@/lib/campaigns/types";
 import {
   ApiRouteError,
@@ -34,6 +35,8 @@ type CampaignRequestInput = CampaignTextInput & {
   creativeFileNames: string[];
   creativeRequestMode: string | null;
   differentiator: string;
+  objections: string | null;
+  contractType: string | null;
   notes: string | null;
   connectedAccountId: string | null;
   metaPageId: string | null;
@@ -54,6 +57,8 @@ const campaignRequestSchema = z.object({
   offer: requiredTrimmedString("Informe a oferta da campanha.").max(MAX_FIELD_LENGTH),
   region: requiredTrimmedString("Informe a regiao da campanha.").max(MAX_FIELD_LENGTH),
   differentiator: requiredTrimmedString("Informe o diferencial da oferta.").max(MAX_FIELD_LENGTH),
+  objections: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
+  contractType: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
   tone: requiredTrimmedString("Informe o tom da campanha.").max(MAX_FIELD_LENGTH),
   metaPageId: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
   metaAdAccountId: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
@@ -67,7 +72,7 @@ const campaignRequestSchema = z.object({
   creativeRequestMode: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
   creativeBrief: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
   creativeFileNames: z.array(z.string().trim().min(1).max(MAX_FIELD_LENGTH)).max(10).optional()
-});
+}).strict();
 
 export async function POST(request: Request) {
   try {
@@ -78,16 +83,16 @@ export async function POST(request: Request) {
       limit: 20,
       windowMs: 60 * 1000
     });
-    const body = await parseJsonBody(request, campaignRequestSchema);
     const billingContext = await getBillingAuthContext();
 
     if (!billingContext) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
 
+    const body = await parseJsonBody(request, campaignRequestSchema);
     const metaConnection = await getMetaConnectionForOrganization(billingContext.organizationId);
     const input = parseCampaignRequest(body, metaConnection?.id ?? null);
-    const { differentiator, ...campaignInput } = input;
+    const { differentiator, objections, contractType, ...campaignInput } = input;
     const localNotes = getLocalComplianceNotes([
       campaignInput.audience,
       campaignInput.offer ?? "",
@@ -129,13 +134,15 @@ export async function POST(request: Request) {
     let savedCampaign = null;
 
     try {
-      savedCampaign = await saveCampaignForCurrentUser({
+      const campaignToSave: CampaignSaveInput = {
         form: {
           brokerageName: billingContext.brokerageName,
           audience: campaignInput.audience,
           offer: campaignInput.offer ?? "",
           region: campaignInput.region ?? "",
           differentiator,
+          objections: objections ?? null,
+          contractType: contractType ?? null,
           notes: input.notes ?? "",
           tone: campaignInput.tone ?? "",
           creativeAssetType: input.creativeAssetType,
@@ -153,7 +160,9 @@ export async function POST(request: Request) {
           metaAdId: input.metaAdId
         },
         campaign: persistedCampaign
-      });
+      };
+
+      savedCampaign = await saveCampaignForCurrentUser(campaignToSave);
     } catch (saveError) {
       console.error("Nao foi possivel salvar a campanha gerada.", saveError);
     }
@@ -189,6 +198,8 @@ function parseCampaignRequest(
   const offer = body.offer;
   const region = body.region;
   const differentiator = body.differentiator;
+  const objections = getOptionalString(body.objections);
+  const contractType = getOptionalString(body.contractType);
   const tone = body.tone;
   const metaPageId = getOptionalString(body.metaPageId);
   const metaAdAccountId = getOptionalString(body.metaAdAccountId);
@@ -216,6 +227,8 @@ function parseCampaignRequest(
   return {
     audience,
     differentiator,
+    objections,
+    contractType,
     notes,
     connectedAccountId,
     product: DEFAULT_PRODUCT,
@@ -238,6 +251,8 @@ function parseCampaignRequest(
     metaAdId,
     constraints: [
       `Diferencial informado: ${differentiator}`,
+      objections ? `Principais objecoes a quebrar: ${objections}` : "",
+      contractType ? `Tipo de contratacao ou foco: ${contractType}` : "",
       notes ? `Observacoes da campanha: ${notes}` : "",
       creativeAssetType ? `Tipo de criativo solicitado: ${creativeAssetType}` : "",
       creativeRequestMode ? `Modo de criativo: ${creativeRequestMode}` : "",

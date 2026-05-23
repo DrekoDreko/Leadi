@@ -1,12 +1,12 @@
 import { DashboardShell } from "@/components/dashboard/shell";
-import { requireTeamManagement } from "@/lib/workspaces/context";
+import { requireWorkspaceManager } from "@/lib/workspaces/context";
 
 export default async function TeamLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const context = await requireTeamManagement();
+  const context = await requireWorkspaceManager();
 
   return (
     <DashboardShell

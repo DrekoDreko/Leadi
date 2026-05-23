@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   BriefcaseBusiness,
   Building2,
+  Calculator,
   Coins,
   Settings,
   Sparkles
@@ -218,6 +219,14 @@ export default async function PerfilPage({
             icon={<BriefcaseBusiness size={20} aria-hidden="true" />}
             title="Dados da empresa"
             statusText={context.workspaceType === "team" ? "Equipe" : "Individual"}
+          />
+          <ManageLinkCard
+            cta="Simulador de Preços"
+            description="Simule propostas e cotações de operadoras de planos de saúde líderes para seus leads."
+            href="/dashboard/configuracoes"
+            icon={<Calculator size={20} aria-hidden="true" />}
+            title="Simulador de Preços"
+            statusText="Protótipo"
           />
           <ManageDisabledCard
             cta="Em breve"

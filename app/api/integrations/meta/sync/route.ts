@@ -6,6 +6,7 @@ import {
   resolveMetaAccessTokenForOrganization
 } from "@/lib/integrations/repository.server";
 import { syncMetaOrganizationAssets } from "@/lib/integrations/meta-graph.server";
+import { MetaPermissionError, MetaTokenError } from "@/lib/meta/errors";
 import {
   assertRouteRateLimit,
   assertSameOrigin,
@@ -85,6 +86,13 @@ export async function POST(request: Request) {
       });
     } catch (logError) {
       console.error("Nao foi possivel registrar o log de falha da Meta.", logError);
+    }
+
+    if (error instanceof MetaTokenError) {
+      return redirectBack(requestUrl, returnTo, "sync=token_expired");
+    }
+    if (error instanceof MetaPermissionError) {
+      return redirectBack(requestUrl, returnTo, "sync=missing_permissions");
     }
 
     return redirectBack(requestUrl, returnTo, "sync=failed");

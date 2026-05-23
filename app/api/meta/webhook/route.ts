@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { BillingResourceAccessError } from "@/lib/billing/subscription-limits.server";
 import { EnvValidationError, requireIntegrationEnv } from "@/lib/env/server";
 import { recordLeadWebhookEvent } from "@/lib/leads/webhook-events.server";
 import { getMetaAppSecret, getMetaVerifyToken } from "@/lib/meta/config";
@@ -9,6 +8,7 @@ import {
   parseMetaWebhookPayload,
   validateMetaWebhookSignature
 } from "@/lib/meta/webhook";
+import { MetaWebhookError } from "@/lib/meta/errors";
 
 import { logger } from "@/lib/logger";
 import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     });
 
     if (!isSignatureValid) {
-      throw new Error("Meta webhook signature invalid.");
+      throw new MetaWebhookError("Meta webhook signature invalid.");
     }
 
     body = JSON.parse(rawBody) as unknown;
@@ -110,15 +110,14 @@ export async function POST(request: Request) {
         leadId: result.leadId,
         status: "processed",
         httpStatus: result.status === "created" ? 201 : 200,
-        rawPayload: {
-          source: "meta_lead_ads",
-          duplicate: result.status === "duplicate",
-          duplicate_reason: result.duplicateReason ?? null,
-          meta_webhook_event: event,
-          meta_webhook_payload: body
-        },
+        rawPayload: buildMetaWebhookStoragePayload({
+          payload: body,
+          event,
+          processingOutcome: result.status,
+          duplicateReason: result.duplicateReason ?? null
+        }),
         safeHeaders,
-        errorMessage: duplicateMessage
+        errorMessage: undefined
       });
     }
 
@@ -130,10 +129,18 @@ export async function POST(request: Request) {
       processed_events: eventResults.length
     });
   } catch (error) {
-    const errorMessage =
+    let errorMessage =
       error instanceof Error && error.message
         ? error.message
         : "Nao foi possivel processar o webhook da Meta.";
+
+    if (
+      errorMessage.includes("SUPABASE_SERVICE_ROLE_KEY") ||
+      errorMessage.includes("FetchError") ||
+      errorMessage.includes("Database error")
+    ) {
+      errorMessage = "Servico indisponivel temporariamente.";
+    }
     const status = getMetaWebhookErrorStatus(error);
 
     logger.error({
@@ -141,13 +148,20 @@ export async function POST(request: Request) {
       operation: "META_WEBHOOK_ERROR",
       status,
       message: errorMessage,
-      data: { body, headers: safeHeaders }
+      data: {
+        body: summarizeMetaWebhookPayloadForLogs(body),
+        headers: safeHeaders
+      }
     }, error);
 
     await recordLeadWebhookEvent({
       status: "failed",
       httpStatus: status,
-      rawPayload: body,
+      rawPayload: buildMetaWebhookStoragePayload({
+        payload: body,
+        processingOutcome: "failed",
+        summaryMessage: errorMessage
+      }),
       safeHeaders,
       errorMessage
     });
@@ -171,31 +185,110 @@ function assertRawBody(rawBody: string) {
 }
 
 function getMetaWebhookErrorStatus(error: unknown) {
-  if (
-    error instanceof BillingResourceAccessError ||
-    error instanceof PayloadTooLargeError ||
-    error instanceof RateLimitError
-  ) {
+  if (error instanceof RateLimitError) {
+    return error.status;
+  }
+
+  if (error instanceof PayloadTooLargeError) {
     return error.status;
   }
 
   const message = error instanceof Error ? error.message : "";
 
-  if (error instanceof EnvValidationError || message.includes("META_APP_SECRET")) {
-    return 503;
-  }
-
-  if (message.includes("Content-Type invalido")) {
-    return 415;
-  }
-
   if (message.includes("signature invalid")) {
     return 401;
   }
 
-  if (message.includes("Payload")) {
-    return 400;
+  // Para evitar que a Meta desative o webhook por falhas internas nossas (ou erros de parse),
+  // retornamos 200 OK. A falha já foi gravada e logada internamente.
+  return 200;
+}
+
+function buildMetaWebhookStoragePayload(input: {
+  payload: unknown;
+  event?: unknown;
+  processingOutcome: "created" | "duplicate" | "failed";
+  duplicateReason?: string | null;
+  summaryMessage?: string;
+}) {
+  return {
+    source: "meta_lead_ads",
+    processing_outcome: input.processingOutcome,
+    duplicate: input.processingOutcome === "duplicate",
+    duplicate_reason: input.duplicateReason ?? null,
+    summary_message:
+      input.summaryMessage ??
+      getMetaWebhookSummaryMessage(input.processingOutcome, input.duplicateReason ?? null),
+    meta_webhook_event: input.event,
+    meta_webhook_payload: input.payload
+  };
+}
+
+function summarizeMetaWebhookPayloadForLogs(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { payload_type: Array.isArray(value) ? "array" : typeof value };
   }
 
-  return 400;
+  const payload = value as {
+    object?: unknown;
+    entry?: unknown[];
+  };
+  const entry = Array.isArray(payload.entry) ? payload.entry : [];
+  const leadgenEventCount = entry.reduce<number>((count, entryItem) => {
+    if (!entryItem || typeof entryItem !== "object" || Array.isArray(entryItem)) {
+      return count;
+    }
+
+    const rawChanges = (entryItem as { changes?: unknown[] }).changes;
+    const changes = Array.isArray(rawChanges) ? rawChanges : [];
+
+    return (
+      count +
+      changes.filter((change) => {
+        return (
+          change &&
+          typeof change === "object" &&
+          !Array.isArray(change) &&
+          (change as { field?: unknown }).field === "leadgen"
+        );
+      }).length
+    );
+  }, 0);
+
+  return {
+    object: typeof payload.object === "string" ? payload.object : null,
+    entry_count: entry.length,
+    leadgen_event_count: leadgenEventCount
+  };
+}
+
+function getMetaWebhookSummaryMessage(
+  outcome: "created" | "duplicate" | "failed",
+  duplicateReason: string | null
+) {
+  if (outcome === "created") {
+    return "Lead da Meta processado com sucesso.";
+  }
+
+  if (outcome === "duplicate") {
+    return `Evento duplicado absorvido com seguranca (${getDuplicateReasonLabel(duplicateReason)}).`;
+  }
+
+  return "Falha ao processar o webhook da Meta.";
+}
+
+function getDuplicateReasonLabel(reason: string | null) {
+  if (reason === "meta_lead_id") {
+    return "mesmo meta_lead_id";
+  }
+
+  if (reason === "phone_e164") {
+    return "telefone ja existente";
+  }
+
+  if (reason === "email") {
+    return "email ja existente";
+  }
+
+  return "motivo nao identificado";
 }

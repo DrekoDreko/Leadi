@@ -42,6 +42,7 @@ import {
   type LeadStageValue
 } from "@/lib/leads/stages";
 import type { LeadDataMode, LeadDataState } from "@/lib/leads/repository";
+import type { LeadOwnerOption } from "@/lib/leads/repository.server";
 import type { SystemTemplate } from "@/lib/templates/types";
 import { LeadCreateModal } from "../leads/lead-create-modal";
 
@@ -95,15 +96,19 @@ const stageToneByValue: Record<LeadStageValue, StageTone> = {
 
 export function SalesFunnelWorkspace({
   aiBalance,
+  canManageLeadOwners,
   createLeadAccess,
   leadState,
   leadFilters,
+  leadOwnerOptions,
   whatsappTemplates = []
 }: {
   aiBalance: number;
+  canManageLeadOwners: boolean;
   createLeadAccess: ResourceAccessSummary;
   leadState: LeadDataState;
   leadFilters: LeadUrlFilters;
+  leadOwnerOptions: LeadOwnerOption[];
   whatsappTemplates?: SystemTemplate[];
 }) {
   const router = useRouter();
@@ -113,6 +118,7 @@ export function SalesFunnelWorkspace({
   const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
   const [leads, setLeads] = useState(leadState.leads);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [isLeadEditMode, setIsLeadEditMode] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(leadFilters.search);
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
@@ -634,11 +640,19 @@ export function SalesFunnelWorkspace({
                         {column.cards.map((lead) => (
                           <FunnelLeadCard
                             active={draggedLeadId === lead.id}
+                            canManageLeadOwners={canManageLeadOwners}
                             key={lead.id}
                             lead={lead}
                             onDragEnd={handleDragEnd}
                             onDragStart={handleDragStart}
-                            onLeadOpen={setSelectedLead}
+                            onLeadOpen={(l) => {
+                              setSelectedLead(l);
+                              setIsLeadEditMode(false);
+                            }}
+                            onLeadReassign={(l) => {
+                              setSelectedLead(l);
+                              setIsLeadEditMode(true);
+                            }}
                             pending={updatingLeadIds.has(lead.id)}
                           />
                         ))}
@@ -667,9 +681,15 @@ export function SalesFunnelWorkspace({
       />
       <LeadDetailsPopup
         aiBalance={aiBalance}
+        canManageLeadOwners={canManageLeadOwners}
+        initialEditMode={isLeadEditMode}
         lead={selectedLead}
+        leadOwnerOptions={leadOwnerOptions}
         messageGeneratorEnabled
-        onClose={() => setSelectedLead(null)}
+        onClose={() => {
+          setSelectedLead(null);
+          setIsLeadEditMode(false);
+        }}
         onDeleted={selectedLeadCanDelete ? handleLeadDeleted : undefined}
         onUpdated={selectedLeadCanEdit ? handleLeadUpdated : undefined}
         whatsappTemplates={whatsappTemplates}
@@ -688,17 +708,21 @@ export function SalesFunnelWorkspace({
 
 function FunnelLeadCard({
   active,
+  canManageLeadOwners,
   lead,
   onDragEnd,
   onDragStart,
   onLeadOpen,
+  onLeadReassign,
   pending
 }: {
   active: boolean;
+  canManageLeadOwners: boolean;
   lead: Lead;
   onDragEnd: () => void;
   onDragStart: (event: DragEvent<HTMLElement>, lead: Lead) => void;
   onLeadOpen: (lead: Lead) => void;
+  onLeadReassign: (lead: Lead) => void;
   pending: boolean;
 }) {
   const canEditLead = lead.canEdit ?? true;
@@ -755,6 +779,18 @@ function FunnelLeadCard({
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
+          {canManageLeadOwners && stalledState.isStalled ? (
+            <button
+              className="rounded-full bg-signal/15 px-2.5 py-1 text-[11px] font-semibold text-signal-dark hover:bg-signal/25"
+              onClick={(event) => {
+                event.stopPropagation();
+                onLeadReassign(lead);
+              }}
+              type="button"
+            >
+              Redistribuir
+            </button>
+          ) : null}
           <span className="rounded-full bg-ink/6 px-2.5 py-1 text-[11px] font-semibold text-ink/64">
             {lead.source}
           </span>

@@ -44,7 +44,7 @@ export function WebhookLogsCard({
           <p className="text-sm font-medium text-cobalt">Webhook de leads</p>
           <h2 className="mt-2 text-2xl font-semibold">Logs recebidos</h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-ink/62">
-            Confira os eventos mais recentes para validar a automacao e corrigir payloads com erro.
+            Confira os eventos mais recentes para validar a automacao e distinguir sucesso, duplicidade e falhas sem abrir o payload bruto.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -56,6 +56,12 @@ export function WebhookLogsCard({
             href="/dashboard/integracoes/webhook-leads?webhookStatus=processed#logs"
           >
             Sucesso
+          </a>
+          <a
+            className={getWebhookFilterClass(filter, "duplicate")}
+            href="/dashboard/integracoes/webhook-leads?webhookStatus=duplicate#logs"
+          >
+            Duplicado
           </a>
           <a
             className={getWebhookFilterClass(filter, "failed")}
@@ -114,9 +120,10 @@ export function WebhookLogsCard({
               <tr className="text-left text-ink/60">
                 <th className="pb-3 pr-4 font-medium">Data</th>
                 <th className="pb-3 pr-4 font-medium">Origem</th>
-                <th className="pb-3 pr-4 font-medium">Status</th>
+                <th className="pb-3 pr-4 font-medium">Resultado</th>
+                <th className="pb-3 pr-4 font-medium">Contexto</th>
                 <th className="pb-3 pr-4 font-medium">Lead criado</th>
-                <th className="pb-3 font-medium">Erro</th>
+                <th className="pb-3 font-medium">Mensagem</th>
               </tr>
             </thead>
             <tbody>
@@ -125,22 +132,20 @@ export function WebhookLogsCard({
                   <td className="py-3 pr-4 text-ink/72">{formatWebhookLogDate(event.receivedAt)}</td>
                   <td className="py-3 pr-4 text-ink/72">{event.source}</td>
                   <td className="py-3 pr-4">
-                    <span
-                      className={
-                        event.status === "processed"
-                          ? "rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-700"
-                          : "rounded-full bg-rose-500/15 px-3 py-1 text-xs font-semibold text-rose-700"
-                      }
-                    >
-                      {event.status === "processed"
-                        ? `Sucesso (${event.httpStatus})`
-                        : `Erro (${event.httpStatus})`}
-                    </span>
+                    <div className="space-y-2">
+                      <span className={getWebhookStatusClassName(event)}>
+                        {getWebhookStatusLabel(event)}
+                      </span>
+                      <p className="text-xs text-ink/50">HTTP {event.httpStatus}</p>
+                    </div>
+                  </td>
+                  <td className="py-3 pr-4 text-xs leading-5 text-ink/60">
+                    {renderWebhookContext(event)}
                   </td>
                   <td className="py-3 pr-4 text-ink/72">
                     {event.leadName ?? (event.leadId ? `ID ${event.leadId.slice(0, 8)}` : "-")}
                   </td>
-                  <td className="py-3 text-ink/72">{event.errorMessage ?? "-"}</td>
+                  <td className="py-3 text-ink/72">{event.detailMessage ?? event.errorMessage ?? "-"}</td>
                 </tr>
               ))}
             </tbody>
@@ -157,6 +162,52 @@ function getWebhookFilterClass(current: WebhookLogFilter, target: WebhookLogFilt
   }
 
   return "rounded-full bg-white/55 px-4 py-2 text-xs font-semibold text-ink/70 transition hover:bg-white/75";
+}
+
+function getWebhookStatusLabel(event: LeadWebhookLog) {
+  if (event.deliveryStatus === "success") {
+    return "Sucesso";
+  }
+
+  if (event.deliveryStatus === "duplicate") {
+    return "Duplicado";
+  }
+
+  return "Erro";
+}
+
+function getWebhookStatusClassName(event: LeadWebhookLog) {
+  if (event.deliveryStatus === "success") {
+    return "rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-700";
+  }
+
+  if (event.deliveryStatus === "duplicate") {
+    return "rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-800";
+  }
+
+  return "rounded-full bg-rose-500/15 px-3 py-1 text-xs font-semibold text-rose-700";
+}
+
+function renderWebhookContext(event: LeadWebhookLog) {
+  const parts = [
+    event.metaLeadId ? `Lead Meta ${truncateWebhookIdentifier(event.metaLeadId)}` : null,
+    event.metaFormId ? `Formulario ${truncateWebhookIdentifier(event.metaFormId)}` : null,
+    event.metaPageId ? `Pagina ${truncateWebhookIdentifier(event.metaPageId)}` : null
+  ].filter((value): value is string => Boolean(value));
+
+  if (!parts.length) {
+    return "-";
+  }
+
+  return parts.join(" • ");
+}
+
+function truncateWebhookIdentifier(value: string) {
+  if (value.length <= 18) {
+    return value;
+  }
+
+  return `${value.slice(0, 8)}...${value.slice(-4)}`;
 }
 
 function formatWebhookLogDate(value: string) {

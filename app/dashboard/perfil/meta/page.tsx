@@ -1,5 +1,7 @@
 import { IntegrationNotice } from "@/components/dashboard/integration-notice";
 import { PageHeading } from "@/components/dashboard/widgets";
+import { getCurrentSubscriptionNotice } from "@/lib/billing/subscription-limits.server";
+import { getMissingEnvForIntegration } from "@/lib/env/server";
 import { getManagedConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 import { requireWorkspaceManager } from "@/lib/workspaces/context";
 import { MetaConnectedAccountsSection, MetaOverviewCard } from "../profile-sections";
@@ -9,13 +11,20 @@ const integrationFeedbackMessages: Record<string, string> = {
   disconnected: "Conta Meta desconectada com sucesso.",
   forbidden:
     "Sua permissao para gerenciar a conexao Meta mudou antes da conclusao do fluxo. Reconecte com um owner ou admin valido.",
+  invalid_request:
+    "O retorno do OAuth da Meta chegou incompleto. Tente conectar novamente para reiniciar a autorizacao.",
   coming_soon:
     "A conta OpenAI própria está em breve. Hoje as gerações usam os Créditos de IA da plataforma.",
   success: "Sincronizacao concluida com sucesso.",
+  updated: "Sincronizacao concluida com sucesso.",
   partial: "Sincronizacao concluida com avisos.",
   error: "Nao foi possivel concluir a atualizacao das contas conectadas.",
+  failed: "Nao foi possivel sincronizar os ativos Meta agora.",
+  user_denied: "A autorizacao da Meta foi cancelada antes da conclusao da conexao.",
   missing:
-    "Este ambiente ainda não tem META_APP_ID e META_APP_SECRET. Sem essas variáveis, o botão Conectar Meta não consegue iniciar o OAuth."
+    "Este ambiente ainda não tem META_APP_ID e META_APP_SECRET. Sem essas variáveis, o botão Conectar Meta não consegue iniciar o OAuth.",
+  token_expired: "O token de acesso expirou. Refaça a conexão com a Meta.",
+  missing_permissions: "Permissões insuficientes. Conecte novamente garantindo todos os acessos solicitados."
 };
 
 export default async function PerfilMetaPage({
@@ -27,9 +36,14 @@ export default async function PerfilMetaPage({
     sync?: string;
   }>;
 }) {
-  const context = await requireWorkspaceManager();
-  const params = await searchParams;
-  const connectedAccounts = await getManagedConnectedAccountsForCurrentUser();
+  const [context, params, connectedAccounts, billingNotice] = await Promise.all([
+    requireWorkspaceManager(),
+    searchParams,
+    getManagedConnectedAccountsForCurrentUser(),
+    getCurrentSubscriptionNotice()
+  ]);
+  const missingMetaOAuthEnvKeys = getMissingEnvForIntegration("meta_oauth");
+  const missingMetaSyncEnvKeys = getMissingEnvForIntegration("meta_lead_sync");
 
   const companyMessage =
     (params?.meta && integrationFeedbackMessages[params.meta]) ||
@@ -63,9 +77,12 @@ export default async function PerfilMetaPage({
 
       <section className="space-y-4">
         <MetaOverviewCard
-          formsCount={connectedAccounts.metaLeadForms.length}
-          metaStatus={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
-          pagesCount={connectedAccounts.metaPages.length}
+          billingNotice={billingNotice}
+          connectedAccounts={connectedAccounts}
+          missingMetaOAuthEnvKeys={missingMetaOAuthEnvKeys}
+          missingMetaSyncEnvKeys={missingMetaSyncEnvKeys}
+          metaParam={params?.meta ?? null}
+          syncParam={params?.sync ?? null}
           workspaceName={context.workspaceName}
         />
         <MetaConnectedAccountsSection connectedAccounts={connectedAccounts} />

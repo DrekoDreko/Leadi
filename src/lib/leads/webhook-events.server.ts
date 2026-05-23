@@ -62,8 +62,10 @@ export function sanitizeWebhookPayloadForStorage(value: unknown): Json {
 
   return removeUndefinedValues({
     source: getOptionalText(record.source),
+    processing_outcome: getOptionalProcessingOutcome(record.processing_outcome),
     duplicate: typeof record.duplicate === "boolean" ? record.duplicate : undefined,
     duplicate_reason: getOptionalText(record.duplicate_reason),
+    summary_message: getOptionalSummaryMessage(record.summary_message),
     payload_keys: Object.keys(record).slice(0, 20),
     meta_webhook_event: summarizeNestedRecord(record.meta_webhook_event, [
       "leadgen_id",
@@ -76,11 +78,12 @@ export function sanitizeWebhookPayloadForStorage(value: unknown): Json {
       "entry_index",
       "field"
     ]),
-    meta_webhook_summary: summarizeNestedRecord(record.meta_webhook_summary, [
-      "object",
-      "entry_count",
-      "leadgen_event_count"
-    ]),
+    meta_webhook_summary:
+      summarizeNestedRecord(record.meta_webhook_summary, [
+        "object",
+        "entry_count",
+        "leadgen_event_count"
+      ]) ?? summarizeMetaWebhookPayload(record.meta_webhook_payload),
     meta_lead_summary: summarizeNestedRecord(record.meta_lead_summary, [
       "lead_id",
       "form_id",
@@ -127,6 +130,65 @@ function summarizeNestedRecord(value: unknown, keys: string[]) {
 
 function getOptionalText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function getOptionalProcessingOutcome(value: unknown) {
+  if (value !== "created" && value !== "duplicate" && value !== "failed") {
+    return undefined;
+  }
+
+  return value;
+}
+
+function getOptionalSummaryMessage(value: unknown) {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  return normalized.slice(0, 180);
+}
+
+function summarizeMetaWebhookPayload(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const payload = value as {
+    object?: unknown;
+    entry?: unknown[];
+  };
+  const entry = Array.isArray(payload.entry) ? payload.entry : [];
+  const leadgenEventCount = entry.reduce<number>((count, entryItem) => {
+    if (!entryItem || typeof entryItem !== "object" || Array.isArray(entryItem)) {
+      return count;
+    }
+
+    const rawChanges = (entryItem as { changes?: unknown[] }).changes;
+    const changes = Array.isArray(rawChanges) ? rawChanges : [];
+
+    return (
+      count +
+      changes.filter((change) => {
+        return (
+          change &&
+          typeof change === "object" &&
+          !Array.isArray(change) &&
+          (change as { field?: unknown }).field === "leadgen"
+        );
+      }).length
+    );
+  }, 0);
+
+  return sensitize({
+    object: typeof payload.object === "string" ? payload.object : null,
+    entry_count: entry.length,
+    leadgen_event_count: leadgenEventCount
+  });
 }
 
 function removeUndefinedValues(value: Record<string, unknown>): Json {

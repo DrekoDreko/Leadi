@@ -15,6 +15,8 @@ export type CampaignGenerationForm = {
   offer: string;
   region: string;
   differentiator: string;
+  objections: string | null;
+  contractType: string | null;
   notes: string;
   tone: string;
   creativeAssetType: string | null;
@@ -43,6 +45,63 @@ export type CampaignTextOutput = {
   suggestedAudience: string;
   variants: string[];
   complianceNotes: string[];
+};
+
+export const CAMPAIGN_GENERATION_PAYLOAD_VERSION = 2;
+
+export type CampaignStoredInputPayload = {
+  version: typeof CAMPAIGN_GENERATION_PAYLOAD_VERSION;
+  context: {
+    product: string;
+    brokerageName: string;
+    notes: string;
+  };
+  brief: {
+    audience: string;
+    offer: string;
+    region: string;
+    differentiator: string;
+    objections: string | null;
+    contractType: string | null;
+    tone: string;
+  };
+  creative: {
+    assetType: string | null;
+    brief: string | null;
+    requestMode: string | null;
+    fileNames: string[];
+  };
+  integrations: {
+    connectedAccountId: string | null;
+    metaPageId: string | null;
+    metaAdAccountId: string | null;
+    metaLeadFormId: string | null;
+  };
+  publication: {
+    publishMode: CampaignPublishMode;
+    publicationStatus: CampaignPublicationStatus;
+    metaCampaignId: string | null;
+    metaAdSetId: string | null;
+    metaAdId: string | null;
+  };
+};
+
+export type CampaignStoredResultPayload = {
+  version: typeof CAMPAIGN_GENERATION_PAYLOAD_VERSION;
+  strategy: {
+    campaignName: string;
+    suggestedAudience: string;
+    callToAction: string;
+  };
+  copy: {
+    primaryText: string;
+    headline: string;
+    description: string;
+    variants: string[];
+  };
+  compliance: {
+    notes: string[];
+  };
 };
 
 export type CampaignHistoryItem = {

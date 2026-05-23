@@ -58,10 +58,15 @@ describe("Webhook Leads Page (/dashboard/integracoes/webhook-leads)", () => {
         id: "log-1",
         receivedAt: "2026-05-14T10:00:00.000Z",
         status: "processed",
+        deliveryStatus: "success",
         httpStatus: 201,
         leadId: null,
         leadName: "Ana Martins",
         errorMessage: null,
+        detailMessage: "Lead da Meta processado com sucesso.",
+        metaLeadId: "lead-123",
+        metaFormId: "form-1",
+        metaPageId: "page-1",
         source: "Make/Zapier"
       }
     ]);

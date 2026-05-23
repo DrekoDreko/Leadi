@@ -1,4 +1,4 @@
-import { leads as mockLeads, type Lead } from "@/data/mock";
+import { leads as mockLeads, mockLeadOwnerOptions, type Lead } from "@/data/mock";
 import { getMetaConnectionForOrganization } from "@/lib/integrations/repository.server";
 import { assertOrganizationResourceAccess } from "@/lib/billing/subscription-limits.server";
 import type { LeadComment } from "@/lib/leads/comments";
@@ -65,6 +65,13 @@ export type LeadTaskItem = {
   updatedAt: string;
 };
 
+export type LeadOwnerOption = {
+  id: string;
+  name: string;
+  email: string;
+  role: "owner" | "admin" | "seller";
+};
+
 type LeadCreationResult = {
   lead: Lead;
   status: "created" | "duplicate";
@@ -107,6 +114,7 @@ export type LeadCreateInput = {
   archive_reason?: unknown;
   duplicate_of_lead_id?: unknown;
   raw_payload?: unknown;
+  owner_profile_id?: unknown;
 };
 
 export type LeadWebhookCreateInput = LeadCreateInput & {
@@ -131,6 +139,16 @@ export type LeadTaskUpdateInput = {
   assigned_to_profile_id?: unknown;
   priority?: unknown;
   status?: unknown;
+};
+
+export type LeadBulkAssignInput = {
+  leadIds: string[];
+  ownerProfileId: string;
+};
+
+export type LeadBulkAssignResult = {
+  leads: Lead[];
+  updatedCount: number;
 };
 
 const sourceLabels: Record<LeadRow["source"], string> = {
@@ -250,6 +268,7 @@ export async function getLeadsForCurrentUser(
     const hasMetaConnection = Boolean(
       await getMetaConnectionForOrganization(profile.organization_id)
     );
+    const ownerProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
 
     let { data, error, count } = await runLeadListQuery({
       supabase,
@@ -286,7 +305,7 @@ export async function getLeadsForCurrentUser(
     }
 
     const leads = ((data ?? []) as LeadRow[]).map((lead) =>
-      mapLeadRowToLead(lead, profile, hasMetaConnection)
+      mapLeadRowToLead(lead, profile, hasMetaConnection, ownerProfiles)
     );
     const total = pagination.limit === null ? leads.length : count ?? pagination.offset + leads.length;
 
@@ -310,6 +329,20 @@ export async function getLeadsForCurrentUser(
   }
 }
 
+export async function listLeadOwnerOptionsForCurrentUser(): Promise<LeadOwnerOption[]> {
+  if (!isSupabaseConfigured()) {
+    return mockLeadOwnerOptions;
+  }
+
+  const profile = await getCurrentProfile();
+  const ownerProfiles = await loadLeadOwnerProfiles(
+    await createSupabaseServerClient(),
+    profile.organization_id
+  );
+
+  return mapLeadOwnerOptions(ownerProfiles);
+}
+
 export async function getLeadExportRowsForCurrentUser(
   filters: LeadUrlFilters = defaultLeadUrlFilters,
   sellerProfileId: string | null = null
@@ -323,7 +356,7 @@ export async function getLeadExportRowsForCurrentUser(
     await getMetaConnectionForOrganization(profile.organization_id)
   );
   const supabase = await createSupabaseServerClient();
-  const exportProfiles = await loadLeadExportProfiles(supabase, profile.organization_id);
+  const exportProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
   const ownerProfileIdsFilter = await resolveOwnerProfileIdsFilter(
     supabase,
     profile.organization_id,
@@ -712,9 +745,11 @@ export async function updateLeadForCurrentUser(id: string, input: LeadCreateInpu
   const payload = buildLeadUpdate(existingLead, input);
 
   assertCanManageLead(profile, existingLead, "editar", hasMetaConnection);
+  await assertCanAssignLeadOwner(profile, existingLead, payload);
   assertCanApplyLeadUpdate(profile, payload, hasMetaConnection);
 
   const supabase = await createSupabaseServerClient();
+  const ownerProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
   const { data, error } = await supabase
     .from("leads")
     .update(payload)
@@ -741,7 +776,80 @@ export async function updateLeadForCurrentUser(id: string, input: LeadCreateInpu
     }
   }
 
-  return mapLeadRowToLead(data, profile);
+  return mapLeadRowToLead(data, profile, hasMetaConnection, ownerProfiles);
+}
+
+export async function assignLeadOwnersInBulkForCurrentUser(
+  input: LeadBulkAssignInput
+): Promise<LeadBulkAssignResult> {
+  const leadIds = [...new Set(input.leadIds.map((value) => value.trim()).filter(Boolean))];
+
+  if (leadIds.length === 0) {
+    throw new Error("Selecione ao menos um lead valido para distribuir.");
+  }
+
+  if (!isSupabaseConfigured()) {
+    return updateMockLeadOwnersInBulk(leadIds, input.ownerProfileId);
+  }
+
+  const profile = await getCurrentProfile();
+
+  if (!isWorkspaceManagerRole(profile.role)) {
+    throw new Error("Somente owner ou admin podem distribuir leads em lote.");
+  }
+
+  const nextOwnerProfile = await resolveBulkLeadOwnerProfile(
+    profile.organization_id,
+    input.ownerProfileId
+  );
+  const hasMetaConnection = Boolean(
+    await getMetaConnectionForOrganization(profile.organization_id)
+  );
+  const supabase = await createSupabaseServerClient();
+  const { data: existingLeads, error: existingLeadsError } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("organization_id", profile.organization_id)
+    .is("archived_at", null)
+    .in("id", leadIds);
+
+  if (existingLeadsError) {
+    throw new Error(existingLeadsError.message);
+  }
+
+  const scopedLeads = (existingLeads ?? []) as LeadRow[];
+
+  if (scopedLeads.length !== leadIds.length) {
+    throw new Error("Um ou mais leads nao foram encontrados para distribuicao.");
+  }
+
+  for (const lead of scopedLeads) {
+    assertCanManageLead(profile, lead, "editar", hasMetaConnection);
+  }
+
+  const { data: updatedRows, error: updateError } = await supabase
+    .from("leads")
+    .update({
+      owner_profile_id: nextOwnerProfile.id
+    })
+    .eq("organization_id", profile.organization_id)
+    .is("archived_at", null)
+    .in("id", leadIds)
+    .select("*");
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  const ownerProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
+  const leads = ((updatedRows ?? []) as LeadRow[]).map((lead) =>
+    mapLeadRowToLead(lead, profile, hasMetaConnection, ownerProfiles)
+  );
+
+  return {
+    leads,
+    updatedCount: leads.length
+  };
 }
 
 export async function archiveLeadForCurrentUser(id: string) {
@@ -1269,6 +1377,37 @@ async function resolveLeadTaskAssigneeProfile(organizationId: string, profileId:
   return data;
 }
 
+async function resolveLeadOwnerProfile(organizationId: string, profileId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", profileId)
+    .eq("organization_id", organizationId)
+    .in("role", ["owner", "admin", "seller"])
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Responsavel do lead nao encontrado nesta organizacao.");
+  }
+
+  return data;
+}
+
+async function resolveBulkLeadOwnerProfile(organizationId: string, profileId: string) {
+  const profile = await resolveLeadOwnerProfile(organizationId, profileId);
+
+  if (profile.role !== "seller") {
+    throw new Error("Selecione um consultor valido para receber os leads.");
+  }
+
+  return profile;
+}
+
 async function getCurrentProfile() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -1442,7 +1581,7 @@ function resolveLeadOwnerProfileId(profile: ProfileRow, sellerProfileId: string 
   return sellerProfileId;
 }
 
-async function loadLeadExportProfiles(
+async function loadLeadOwnerProfiles(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   organizationId: string
 ) {
@@ -1459,6 +1598,17 @@ async function loadLeadExportProfiles(
   return new Map<string, ProfileRow>(
     (data as ProfileRow[]).map((profile) => [profile.id, profile])
   );
+}
+
+function mapLeadOwnerOptions(ownerProfiles: Map<string, ProfileRow>): LeadOwnerOption[] {
+  return Array.from(ownerProfiles.values())
+    .map((profile) => ({
+      id: profile.id,
+      name: profile.full_name?.trim() || profile.email.split("@")[0] || "Usuario",
+      email: profile.email,
+      role: profile.role
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name, "pt-BR"));
 }
 
 async function resolveWebhookLeadProfile(
@@ -1524,25 +1674,36 @@ async function resolveWebhookLeadProfile(
     }
   }
 
+  // Regra simples de distribuicao (Round Robin deterministico)
+  // Busca todos os perfis aptos da organizacao para balanceamento
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("organization_id", organization.id)
+    .in("role", ["owner", "admin", "seller"])
     .order("created_at", { ascending: true });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const fallbackProfile = [...(data ?? [])].sort(
-    (left, right) => getProfileWebhookPriority(left.role) - getProfileWebhookPriority(right.role)
-  )[0];
+  const eligibleProfiles = data ?? [];
 
-  if (!fallbackProfile) {
+  if (eligibleProfiles.length === 0) {
     throw new Error("Organizacao sem perfis disponiveis para receber leads.");
   }
 
-  return fallbackProfile;
+  // Conta os leads atuais para determinar a posicao na fila (modulo)
+  const { count: totalLeads } = await supabase
+    .from("leads")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", organization.id);
+
+  const leadCount = totalLeads ?? 0;
+  
+  // Atribui ao proximo perfil na fila
+  const assignedIndex = leadCount % eligibleProfiles.length;
+  return eligibleProfiles[assignedIndex];
 }
 
 async function getWebhookOrganization(supabase: AdminClient, input: LeadWebhookCreateInput) {
@@ -1657,6 +1818,35 @@ function assertCanApplyLeadUpdate(
   if (profile.role === "seller" && payload.source === "meta_lead_ads" && !hasMetaConnection) {
     throw new Error("Conecte uma conta Meta ativa para usar essa origem.");
   }
+}
+
+async function assertCanAssignLeadOwner(
+  profile: ProfileRow,
+  existingLead: LeadRow,
+  payload: Database["public"]["Tables"]["leads"]["Update"]
+) {
+  if (payload.owner_profile_id === undefined) {
+    return;
+  }
+
+  if (payload.owner_profile_id === existingLead.owner_profile_id) {
+    return;
+  }
+
+  if (!isWorkspaceManagerRole(profile.role)) {
+    throw new Error("Somente owner ou admin podem alterar o responsavel do lead.");
+  }
+
+  if (!payload.owner_profile_id) {
+    throw new Error("Selecione um responsavel valido para este lead.");
+  }
+
+  const nextOwnerProfile = await resolveLeadOwnerProfile(
+    profile.organization_id,
+    payload.owner_profile_id
+  );
+
+  payload.owner_profile_id = nextOwnerProfile.id;
 }
 
 function assertCanManageLead(
@@ -1828,11 +2018,15 @@ function createMockLead(input: LeadCreateInput): Lead {
   const source = normalizeLeadSource(input.source);
   const lossReason = stage === "lost" ? stringOrNull(input.loss_reason) : null;
   const now = new Date();
+  const selectedOwner =
+    mockLeadOwnerOptions.find((option) => option.id === stringOrNull(input.owner_profile_id)) ??
+    mockLeadOwnerOptions[0];
 
   return {
     id: `mock-${now.getTime()}`,
     name,
-    owner: "Demo",
+    owner: selectedOwner.name,
+    ownerProfileId: selectedOwner.id,
     canEdit: true,
     canDelete: true,
     stage: getLeadStageLabel(stage),
@@ -1879,13 +2073,19 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
       ? existingLead?.quality ?? null
       : normalizeLeadQuality(input.quality);
   const now = new Date();
+  const selectedOwner =
+    input.owner_profile_id === undefined
+      ? null
+      : mockLeadOwnerOptions.find((option) => option.id === stringOrNull(input.owner_profile_id)) ?? null;
   const updatedLeadBase = {
     id,
     name:
       input.name === undefined
         ? existingLead?.name ?? "Lead sem nome"
         : getRequiredLeadName(input.name),
-    owner: existingLead?.owner ?? "Demo",
+    owner: selectedOwner?.name ?? existingLead?.owner ?? mockLeadOwnerOptions[0].name,
+    ownerProfileId:
+      selectedOwner?.id ?? existingLead?.ownerProfileId ?? mockLeadOwnerOptions[0].id,
     canEdit: true,
     canDelete: true,
     stage: stage ? getLeadStageLabel(stage) : existingLead?.stage ?? getLeadStageLabel("new"),
@@ -1969,6 +2169,33 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
   return updatedLeadBase;
 }
 
+function updateMockLeadOwnersInBulk(
+  leadIds: string[],
+  ownerProfileId: string
+): LeadBulkAssignResult {
+  const ownerOption =
+    mockLeadOwnerOptions.find((option) => option.id === ownerProfileId && option.role === "seller") ??
+    null;
+
+  if (!ownerOption) {
+    throw new Error("Selecione um consultor valido para receber os leads.");
+  }
+
+  const selectedLeadIds = new Set(leadIds);
+  const leads = mockLeads
+    .filter((lead) => selectedLeadIds.has(lead.id))
+    .map((lead) => updateMockLead(lead.id, { owner_profile_id: ownerOption.id }));
+
+  if (leads.length !== leadIds.length) {
+    throw new Error("Um ou mais leads nao foram encontrados para distribuicao.");
+  }
+
+  return {
+    leads,
+    updatedCount: leads.length
+  };
+}
+
 function getRequiredLeadName(value: unknown) {
   const name = stringOrNull(value);
 
@@ -1992,6 +2219,8 @@ function buildLeadUpdate(existingLead: LeadRow, input: LeadCreateInput): Databas
 
   return removeUndefinedValues({
     name: stringOrNull(input.name) ?? undefined,
+    owner_profile_id:
+      input.owner_profile_id === undefined ? undefined : stringOrNull(input.owner_profile_id),
     phone: input.phone === undefined ? undefined : phone.display,
     phone_e164: input.phone === undefined ? undefined : phone.e164,
     email: input.email === undefined ? undefined : normalizeEmail(input.email),
@@ -2042,14 +2271,15 @@ function buildLeadUpdate(existingLead: LeadRow, input: LeadCreateInput): Databas
 function mapLeadRowToLead(
   row: LeadRow,
   profile?: ProfileRow,
-  hasMetaConnection = false
+  hasMetaConnection = false,
+  ownerProfiles?: Map<string, ProfileRow>
 ): Lead {
   const canManage = profile ? canManageLead(profile, row, hasMetaConnection) : false;
 
   return {
     id: row.id,
     name: row.name,
-    owner: getLeadOwnerLabel(row, profile),
+    owner: getLeadOwnerLabel(row, profile, ownerProfiles),
     ownerProfileId: row.owner_profile_id,
     canEdit: canManage,
     canDelete: canManage,
@@ -2142,13 +2372,27 @@ function getSupabaseLeadSearchPattern(value: string) {
   return `*${searchTerm.split(" ").join("*")}*`;
 }
 
-function getLeadOwnerLabel(row: LeadRow, profile?: ProfileRow) {
-  if (!profile) {
-    return "Equipe";
+function getLeadOwnerLabel(
+  row: LeadRow,
+  profile?: ProfileRow,
+  ownerProfiles?: Map<string, ProfileRow>
+) {
+  if (!row.owner_profile_id) {
+    return "Sem responsavel";
   }
 
-  if (row.owner_profile_id === profile.id) {
-    return profile.full_name ?? "Voce";
+  const ownerProfile = ownerProfiles?.get(row.owner_profile_id);
+
+  if (ownerProfile?.full_name?.trim()) {
+    return ownerProfile.full_name.trim();
+  }
+
+  if (ownerProfile?.email?.trim()) {
+    return ownerProfile.email.trim();
+  }
+
+  if (profile && row.owner_profile_id === profile.id) {
+    return profile.full_name?.trim() || profile.email?.trim() || "Voce";
   }
 
   return "Equipe";
@@ -2160,16 +2404,7 @@ function mapLeadRowToExportLead(
   exportProfiles: Map<string, ProfileRow>,
   hasMetaConnection = false
 ): Lead {
-  const lead = mapLeadRowToLead(row, currentProfile, hasMetaConnection);
-  const ownerProfile = row.owner_profile_id ? exportProfiles.get(row.owner_profile_id) : null;
-
-  return {
-    ...lead,
-    owner:
-      ownerProfile?.full_name?.trim() ||
-      ownerProfile?.email?.trim() ||
-      (row.owner_profile_id === currentProfile.id ? currentProfile.full_name ?? "Voce" : "Equipe")
-  };
+  return mapLeadRowToLead(row, currentProfile, hasMetaConnection, exportProfiles);
 }
 
 function normalizeInteger(value: unknown) {
@@ -2331,16 +2566,6 @@ function compareLeadTasks(left: LeadTaskItem, right: LeadTaskItem) {
   return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
 }
 
-function getProfileWebhookPriority(role: ProfileRow["role"]) {
-  switch (role) {
-    case "owner":
-      return 0;
-    case "admin":
-      return 1;
-    default:
-      return 2;
-  }
-}
 
 function toJson(value: unknown): Json | null {
   if (value === null || value === undefined) {

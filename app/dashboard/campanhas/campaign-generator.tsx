@@ -18,6 +18,7 @@ import {
   Upload,
   X
 } from "lucide-react";
+import { systemTemplatesFallback } from "@/data/system-templates";
 import { getAiCreditCost } from "@/lib/ai/credit-costs";
 import { CREATIVE_REQUEST_ATTACHMENT_ACCEPT } from "@/lib/creative-requests/attachments";
 import type { ConnectedAccountsState } from "@/lib/integrations/types";
@@ -27,7 +28,8 @@ import type {
   CampaignTextOutput
 } from "@/lib/campaigns/types";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
-import type { SystemTemplate } from "@/lib/templates/types";
+import type { CampaignTemplateContent, SystemTemplate } from "@/lib/templates/types";
+import { reviewTextLocally, type LocalComplianceReview } from "@/lib/openai/compliance-guardrails";
 
 export type PublishMode = CampaignPublishMode;
 export type CreativeMode = "solicitar_criativo" | "enviar_arquivo";
@@ -43,6 +45,8 @@ export type CampaignTemplate = {
   offer: string;
   regions: RegionTag[];
   differential: string;
+  objections: string;
+  contractType: string;
   notes: string;
   tone: ToneValue;
 };
@@ -65,6 +69,8 @@ type CampaignFormState = {
   offer: string;
   regions: RegionTag[];
   differential: string;
+  objections: string;
+  contractType: string;
   notes: string;
   adNotes: string;
   tone: ToneValue;
@@ -79,98 +85,6 @@ type CampaignFormState = {
 
 type DirtyFields = Partial<Record<keyof CampaignFormState, boolean>>;
 
-const campaignTemplates: CampaignTemplate[] = [
-  {
-    id: "migration-business-plan",
-    title: "Migração para plano empresarial",
-    description: "Para empresas com CNPJ que desejam avaliar alternativas de contratação.",
-    tags: ["CNPJ", "Empresarial", "Comparativo"],
-    audience:
-      "Pessoas com CNPJ, MEI, ME ou LTDA que desejam avaliar alternativas de plano de saúde empresarial.",
-    offer:
-      "Análise consultiva para comparar possibilidades de contratação empresarial conforme perfil da empresa.",
-    regions: ["São Paulo", "SP"],
-    differential:
-      "Atendimento consultivo, explicação clara das opções e apoio no entendimento das regras de contratação.",
-    notes:
-      "Evitar promessa de economia garantida. Usar linguagem educativa e profissional.",
-    tone: "Consultivo e direto"
-  },
-  {
-    id: "mei-health-plan",
-    title: "Plano de saúde para MEI",
-    description: "Orientação clara para microempreendedores que querem entender opções com CNPJ.",
-    tags: ["MEI", "CNPJ", "Orientação"],
-    audience:
-      "Microempreendedores individuais que buscam entender opções de plano de saúde com CNPJ.",
-    offer:
-      "Orientação sobre possibilidades de contratação para MEI, respeitando critérios das operadoras.",
-    regions: ["São Paulo", "ABC Paulista"],
-    differential:
-      "Explicação simples sobre documentação, carências, elegibilidade e alternativas disponíveis.",
-    notes: "Não afirmar aprovação garantida. Não prometer valores específicos.",
-    tone: "Humano e claro"
-  },
-  {
-    id: "small-business-benefit",
-    title: "Plano empresarial para pequenas empresas",
-    description: "Cotação orientada para sócios, equipe ou familiares elegíveis.",
-    tags: ["Pequenas empresas", "Cotação", "Benefício"],
-    audience:
-      "Donos de pequenas empresas que querem organizar benefício de saúde para sócios, equipe ou familiares elegíveis.",
-    offer:
-      "Cotação orientada de planos empresariais conforme quantidade de vidas e perfil da empresa.",
-    regions: ["Campinas", "Jundiaí", "Sorocaba"],
-    differential: "Comparação entre operadoras, rede credenciada e formatos de contratação.",
-    notes: "Evitar linguagem de urgência exagerada. Focar em clareza e orientação.",
-    tone: "Consultivo e direto"
-  },
-  {
-    id: "operator-comparison",
-    title: "Comparativo entre operadoras",
-    description: "Apoio organizado para comparar rede, abrangência e possibilidades.",
-    tags: ["Operadoras", "Rede", "Comparativo"],
-    audience:
-      "Empresas que desejam comparar opções entre operadoras como Bradesco, SulAmérica, Amil e outras disponíveis.",
-    offer:
-      "Apoio para comparar rede, abrangência, perfil de uso e possibilidades de contratação.",
-    regions: ["São Paulo", "Guarulhos", "Osasco"],
-    differential:
-      "Comparativo organizado para ajudar o cliente a tomar decisão com mais segurança.",
-    notes: "Não depreciar operadoras. Não prometer melhor preço absoluto.",
-    tone: "Profissional e objetivo"
-  },
-  {
-    id: "partners-team-inclusion",
-    title: "Inclusão de sócios e equipe",
-    description: "Análise de elegibilidade para titulares, colaboradores e dependentes.",
-    tags: ["LTDA", "Equipe", "Elegibilidade"],
-    audience:
-      "Empresas LTDA, ME e pequenos negócios que precisam entender quem pode entrar como titular ou dependente.",
-    offer:
-      "Análise das possibilidades de inclusão de sócios, colaboradores e dependentes conforme regras da operadora.",
-    regions: ["Grande São Paulo"],
-    differential: "Orientação sobre documentação, elegibilidade e composição de vidas.",
-    notes: "Não prometer aceitação automática. Focar em análise de viabilidade.",
-    tone: "Humano e claro"
-  },
-  {
-    id: "current-contract-review",
-    title: "Revisão de contrato atual",
-    description: "Diagnóstico consultivo para revisar rede, condições e alternativas.",
-    tags: ["Revisão", "Contrato", "Diagnóstico"],
-    audience:
-      "Empresas que já possuem plano de saúde e querem revisar opções, rede e condições disponíveis.",
-    offer:
-      "Revisão consultiva do cenário atual e apresentação de alternativas quando fizer sentido.",
-    regions: ["São Paulo", "Santos", "Interior de SP"],
-    differential: "Diagnóstico organizado antes de sugerir qualquer mudança.",
-    notes:
-      "Evitar “você está pagando caro”. Usar “avaliar alternativas” ou “revisar possibilidades”.",
-    tone: "Consultivo e direto"
-  }
-];
-
 const toneOptions: ToneValue[] = [
   "Consultivo e direto",
   "Humano e claro",
@@ -181,8 +95,8 @@ const toneOptions: ToneValue[] = [
 const publishModeOptions: Array<{ value: PublishMode; title: string; description: string }> = [
   {
     value: "manual_review",
-    title: "Revisão manual antes de publicar",
-    description: "Recomendado. A campanha fica pronta para análise antes de qualquer publicação."
+    title: "Revisão manual na Leadi (Não publicar na Meta)",
+    description: "A IA prepara a estrutura e salva na Leadi. A publicação na Meta dependerá de ação manual."
   },
   {
     value: "draft",
@@ -196,8 +110,9 @@ const publishModeOptions: Array<{ value: PublishMode; title: string; description
   },
   {
     value: "paused",
-    title: "Deixar pausada",
-    description: "Cria ou prepara a campanha, mas mantém pausada até aprovação."
+    title: "Publicar pausada na Meta",
+    description:
+      "Prepara a campanha com os ativos escolhidos e deixa o envio pronto para subir em estado pausado, sem ativar a veiculação."
   }
 ];
 
@@ -245,6 +160,175 @@ const campaignFlowSteps = [
     description: "Revise tudo antes de disparar a geração."
   }
 ] as const;
+
+const validToneValues = new Set<ToneValue>([
+  "Consultivo e direto",
+  "Humano e claro",
+  "Profissional e objetivo",
+  "Educativo e simples"
+]);
+
+function normalizeTone(value: string): ToneValue {
+  return validToneValues.has(value as ToneValue) ? (value as ToneValue) : "Consultivo e direto";
+}
+
+function getCampaignTemplateTags(template: SystemTemplate, content: CampaignTemplateContent) {
+  switch (template.category) {
+    case "MEI consultivo":
+      return ["MEI", "CNPJ", "Elegibilidade"];
+    case "Reajuste":
+      return ["Reajuste", "Comparativo", "Rede"];
+    case "Rede hospitalar":
+      return ["Rede", "Hospitais", "Comparativo"];
+    case "Pequena equipe":
+      return ["Equipe", "Benefício", "Empresarial"];
+    case "Elegibilidade":
+      return ["Elegibilidade", "Dependentes", "Documentação"];
+    case "Primeira contratação":
+      return ["Primeira contratação", "CNPJ", "Planejamento"];
+    default:
+      return [template.category, normalizeTone(content.tone)];
+  }
+}
+
+function getCampaignTemplateCommercialContext(template: SystemTemplate) {
+  switch (template.category) {
+    case "MEI consultivo":
+      return {
+        objections: "Receio de não ter tempo de CNPJ suficiente ou de a contratação não se encaixar nas regras.",
+        contractType: "Empresarial (MEI)"
+      };
+    case "Reajuste":
+      return {
+        objections: "Medo de trocar e enfrentar novas carências ou perder uma rede importante.",
+        contractType: "Empresarial (PME)"
+      };
+    case "Rede hospitalar":
+      return {
+        objections: "Dúvida sobre qual operadora atende melhor a rede e os hospitais desejados.",
+        contractType: "Empresarial e Adesão"
+      };
+    case "Pequena equipe":
+      return {
+        objections: "Percepção de custo alto por vida e receio de burocracia para implantar o benefício.",
+        contractType: "Empresarial (PME)"
+      };
+    case "Elegibilidade":
+      return {
+        objections: "Insegurança sobre quem pode entrar no contrato e quais documentos serão exigidos.",
+        contractType: "Empresarial"
+      };
+    case "Primeira contratação":
+      return {
+        objections: "Falta de clareza sobre número mínimo de vidas, documentação e próximos passos da contratação.",
+        contractType: "Empresarial (PME e MEI)"
+      };
+    default:
+      return {
+        objections: "Receio com carências, reajustes e aderência da rede ao uso da empresa.",
+        contractType: "Empresarial"
+      };
+  }
+}
+
+function resolveCampaignTemplates(systemTemplates?: SystemTemplate[]): CampaignTemplate[] {
+  const templateSource =
+    systemTemplates?.length
+      ? systemTemplates
+      : systemTemplatesFallback.filter((template) => template.templateType === "campaign");
+
+  return templateSource
+    .filter((template): template is SystemTemplate & { content: CampaignTemplateContent } => {
+      return (
+        template.templateType === "campaign" &&
+        typeof template.content === "object" &&
+        template.content !== null &&
+        "audience" in template.content &&
+        "offer" in template.content &&
+        "region" in template.content &&
+        "differentiator" in template.content &&
+        "tone" in template.content &&
+        "notes" in template.content
+      );
+    })
+    .map((template) => {
+      const content = template.content;
+      const commercialContext = getCampaignTemplateCommercialContext(template);
+      const regions = content.region
+        .split(",")
+        .map((region) => region.trim())
+        .filter(Boolean);
+
+      return {
+        id: template.id,
+        title: template.title,
+        description: template.description,
+        tags: getCampaignTemplateTags(template, content),
+        audience: content.audience,
+        offer: content.offer,
+        regions: regions.length ? regions : ["Região não informada"],
+        differential: content.differentiator,
+        objections: commercialContext.objections,
+        contractType: commercialContext.contractType,
+        notes: content.notes,
+        tone: normalizeTone(content.tone)
+      };
+    });
+}
+
+function getMetaPreparationItems(
+  form: CampaignFormState,
+  connectedAccounts: ConnectedAccountsState
+) {
+  const pageName = connectedAccounts.metaPages.find((page) => page.metaPageId === form.pageId)?.name;
+  const adAccountName = connectedAccounts.metaAdAccounts.find(
+    (account) => account.metaAdAccountId === form.adAccountId
+  )?.name;
+  const leadFormName = connectedAccounts.metaLeadForms.find(
+    (leadForm) => leadForm.metaFormId === form.leadFormId
+  )?.name;
+
+  return [
+    {
+      label: "Pagina",
+      value: pageName ?? "Nao selecionada",
+      ready: Boolean(form.pageId && pageName)
+    },
+    {
+      label: "Conta de anuncio",
+      value: adAccountName ?? "Nao selecionada",
+      ready: Boolean(form.adAccountId && adAccountName)
+    },
+    {
+      label: "Formulario de lead",
+      value: leadFormName ?? "Nao selecionado",
+      ready: Boolean(form.leadFormId && leadFormName)
+    }
+  ];
+}
+
+function buildCampaignSubmissionNotice(
+  form: CampaignFormState,
+  connectedAccounts: ConnectedAccountsState
+) {
+  if (form.publishMode === "manual_review") {
+    return "Campanha gerada na Leadi para revisao manual. A equipe pode revisar os textos e decidir depois se vai publicar na Meta.";
+  }
+
+  if (form.publishMode === "paused") {
+    const preparedTargets = getMetaPreparationItems(form, connectedAccounts)
+      .filter((item) => item.ready)
+      .map((item) => `${item.label}: ${item.value}`);
+
+    if (preparedTargets.length > 0) {
+      return `Campanha gerada e preparada na Leadi para publicacao pausada. Itens vinculados para a Meta: ${preparedTargets.join(", ")}. A ativacao continua manual.`;
+    }
+
+    return "Campanha gerada na Leadi com modo de publicacao pausada. Antes de enviar para a Meta, revise os ativos que ainda faltam vincular.";
+  }
+
+  return "Recebemos a solicitacao. Retornaremos com o valor e o andamento da campanha na area Validador de campanha.";
+}
 
 function formatMetricNumber(value: number, fractionDigits = 0) {
   return new Intl.NumberFormat("pt-BR", {
@@ -352,6 +436,7 @@ export function CampaignGenerator({
   historyMode,
   leadsCapturedCount,
   publishedAdsCount,
+  systemTemplates,
   totalSpentCredits
 }: CampaignGeneratorProps) {
   const [form, setForm] = useState<CampaignFormState>(() =>
@@ -368,6 +453,7 @@ export function CampaignGenerator({
   const [submissionNotice, setSubmissionNotice] = useState("");
   const metaConnection = connectedAccounts.metaConnection;
   const campaignCost = getAiCreditCost("generate_campaign_plan");
+  const campaignTemplates = resolveCampaignTemplates(systemTemplates);
   const selectedTemplate = campaignTemplates.find((template) => template.id === form.selectedTemplateId);
   const hasMinimumMetaAssets = Boolean(metaConnection && form.pageId && form.adAccountId);
   const publicationState = resolvePublicationState({
@@ -375,6 +461,19 @@ export function CampaignGenerator({
     hasMinimumMetaAssets,
     publishMode: form.publishMode
   });
+  const campaignTextContent = [
+    form.audience,
+    form.offer,
+    form.regions.join(", "),
+    form.differential,
+    form.objections,
+    form.contractType,
+    form.notes,
+    form.adNotes,
+    form.creativeNotes,
+    form.creativeBriefing
+  ].filter(Boolean).join(" ");
+  const complianceReview = reviewTextLocally(campaignTextContent);
 
   useEffect(() => {
     setCurrentAiBalance(aiBalance);
@@ -423,9 +522,7 @@ export function CampaignGenerator({
         setForm((currentForm) => ({ ...currentForm, aiCredits: payload.aiBalance ?? currentForm.aiCredits }));
       }
       setCompletedSteps(campaignFlowSteps.map((step) => step.number));
-      setSubmissionNotice(
-        "Recebemos a solicitação. Retornaremos com o valor e o andamento da campanha na área Validador de campanha."
-      );
+      setSubmissionNotice(buildCampaignSubmissionNotice(form, connectedAccounts));
     } catch (requestError) {
       setError(getFriendlyErrorMessage(requestError).message);
     }
@@ -478,6 +575,8 @@ export function CampaignGenerator({
       setFromTemplate("offer", template.offer);
       setFromTemplate("regions", template.regions);
       setFromTemplate("differential", template.differential);
+      setFromTemplate("objections", template.objections);
+      setFromTemplate("contractType", template.contractType);
       setFromTemplate("notes", template.notes);
       setFromTemplate("tone", template.tone);
 
@@ -665,6 +764,7 @@ export function CampaignGenerator({
           >
             <CampaignSummaryStep
               connectedAccounts={connectedAccounts}
+              complianceReview={complianceReview}
               form={form}
               onSaveDraft={handleSaveDraft}
               selectedTemplate={selectedTemplate}
@@ -954,6 +1054,8 @@ function CampaignConnectionsStep({
   publicationStateLabel: string;
   publicationStateTone: "blue" | "yellow" | "teal" | "dark";
 }) {
+  const metaPreparationItems = getMetaPreparationItems(form, connectedAccounts);
+
   if (!metaConnection) {
     return (
       <div className="rounded-[28px] border border-dashed border-cobalt/24 bg-[linear-gradient(135deg,rgba(52,98,238,0.08),rgba(255,255,255,0.8))] p-5 text-sm leading-6 text-ink/68">
@@ -1077,6 +1179,31 @@ function CampaignConnectionsStep({
           />
         </div>
       </div>
+
+      {form.publishMode === "paused" ? (
+        <div className="rounded-[28px] border border-ink/10 bg-[linear-gradient(135deg,rgba(18,23,33,0.05),rgba(255,255,255,0.92)_50%,rgba(52,98,238,0.06))] p-4 text-sm leading-6 text-ink/70">
+          <p className="font-semibold text-ink">Modo pausado selecionado</p>
+          <p className="mt-1">
+            A Leadi vai preparar a campanha com os ativos abaixo e manter a veiculacao bloqueada ate a equipe ativar manualmente.
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {metaPreparationItems.map((item) => (
+              <div
+                className={`rounded-[22px] border px-4 py-3 ${
+                  item.ready
+                    ? "border-emerald-200/80 bg-emerald-50/80 text-emerald-900"
+                    : "border-amber-200/80 bg-amber-50/80 text-amber-900"
+                }`}
+                key={item.label}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-70">{item.label}</p>
+                <p className="mt-2 font-semibold">{item.value}</p>
+                <p className="mt-1 text-xs">{item.ready ? "Pronto para publicar pausada" : "Ainda precisa ser selecionado"}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1095,18 +1222,32 @@ function CampaignAudienceStep({
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <TextAreaField
-        label="Público"
-        minHeightClass="min-h-[120px]"
+        label="Perfil do público-alvo"
+        minHeightClass="min-h-[100px]"
         onChange={(value) => onChange("audience", value)}
         placeholder="Ex.: empresas com CNPJ que desejam avaliar alternativas de plano empresarial."
         value={form.audience}
       />
       <TextAreaField
-        label="Oferta"
-        minHeightClass="min-h-[120px]"
+        label="Oferta e benefícios"
+        minHeightClass="min-h-[100px]"
         onChange={(value) => onChange("offer", value)}
         placeholder="Ex.: análise consultiva para comparar opções conforme perfil da empresa."
         value={form.offer}
+      />
+      <TextAreaField
+        label="Tipo de contratação ou foco"
+        minHeightClass="min-h-[100px]"
+        onChange={(value) => onChange("contractType", value)}
+        placeholder="Ex.: Adesão, Empresarial (PME), Individual, MEI."
+        value={form.contractType}
+      />
+      <TextAreaField
+        label="Diferencial do produto/serviço"
+        minHeightClass="min-h-[100px]"
+        onChange={(value) => onChange("differential", value)}
+        placeholder="Ex.: explicação clara das regras, comparação de rede e apoio consultivo."
+        value={form.differential}
       />
       <div className="md:col-span-2">
         <RegionTagsInput
@@ -1115,17 +1256,17 @@ function CampaignAudienceStep({
         />
       </div>
       <TextAreaField
-        label="Diferencial do produto/serviço"
-        minHeightClass="min-h-[120px]"
-        onChange={(value) => onChange("differential", value)}
-        placeholder="Ex.: explicação clara das regras, comparação de rede e apoio consultivo."
-        value={form.differential}
+        label="Objeções comuns a quebrar"
+        minHeightClass="min-h-[100px]"
+        onChange={(value) => onChange("objections", value)}
+        placeholder="Ex.: preço alto, medo de cumprir carência, muita burocracia."
+        value={form.objections}
       />
       <TextAreaField
         label="Observações adicionais"
-        minHeightClass="min-h-[140px]"
+        minHeightClass="min-h-[100px]"
         onChange={(value) => onChange("notes", value)}
-        placeholder="Ex.: evitar promessas absolutas e focar em orientação para empresas com CNPJ."
+        placeholder="Ex.: evitar promessas absolutas e focar em orientação."
         value={form.notes}
       />
     </div>
@@ -1356,24 +1497,23 @@ function CampaignCreativeStep({
 
 function CampaignSummaryStep({
   connectedAccounts,
+  complianceReview,
   form,
   onSaveDraft,
   selectedTemplate,
   validationMessages
 }: {
   connectedAccounts: ConnectedAccountsState;
+  complianceReview: LocalComplianceReview | null;
   form: CampaignFormState;
   onSaveDraft: () => void;
   selectedTemplate?: CampaignTemplate;
   validationMessages: string[];
 }) {
-  const pageName = connectedAccounts.metaPages.find((page) => page.metaPageId === form.pageId)?.name;
-  const adAccountName = connectedAccounts.metaAdAccounts.find(
-    (account) => account.metaAdAccountId === form.adAccountId
-  )?.name;
-  const leadFormName = connectedAccounts.metaLeadForms.find(
-    (leadForm) => leadForm.metaFormId === form.leadFormId
-  )?.name;
+  const metaPreparationItems = getMetaPreparationItems(form, connectedAccounts);
+  const pageName = metaPreparationItems[0]?.ready ? metaPreparationItems[0].value : undefined;
+  const adAccountName = metaPreparationItems[1]?.ready ? metaPreparationItems[1].value : undefined;
+  const leadFormName = metaPreparationItems[2]?.ready ? metaPreparationItems[2].value : undefined;
   const publishLabel = publishModeOptions.find((mode) => mode.value === form.publishMode)?.title;
 
   return (
@@ -1386,6 +1526,67 @@ function CampaignSummaryStep({
               <li key={message}>{message}</li>
             ))}
           </ul>
+        </div>
+      ) : complianceReview && (complianceReview.riskLevel === "high" || complianceReview.riskLevel === "medium") ? (
+        <div className="rounded-[28px] border border-amber-200/80 bg-[linear-gradient(135deg,rgba(254,243,199,0.4),rgba(255,255,255,0.92)_50%,rgba(254,243,199,0.2))] p-5 text-sm leading-6 text-amber-950 shadow-[0_18px_44px_rgba(18,23,33,0.04)]">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 shrink-0 text-amber-600" size={20} aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-amber-900">Atenção ao conteúdo da campanha</p>
+              <p className="mt-1 opacity-90">Alguns termos identificados podem gerar restrições ou reprovações na Meta:</p>
+              <ul className="mt-3 space-y-3">
+                {complianceReview.reasons.map((reason, index) => (
+                  <li key={index} className="rounded-2xl bg-amber-100/50 p-3">
+                    <strong className="block text-amber-900">{reason.title}</strong>
+                    <span className="mt-1 block opacity-80">{reason.detail}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4 rounded-2xl bg-white/60 p-3">
+                <p className="font-medium text-amber-900">Sugestões de ajuste:</p>
+                <ul className="mt-2 list-inside list-disc opacity-90">
+                  {complianceReview.suggestions.map((suggestion, index) => (
+                    <li key={index}>{suggestion}</li>
+                  ))}
+                </ul>
+              </div>
+              <p className="mt-4 text-[13px] font-medium opacity-70">
+                Você ainda pode enviar a campanha, mas recomendamos ajustar os campos (Oferta, Observações, etc.) para evitar bloqueios reais.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : form.publishMode === "paused" ? (
+        <div className="rounded-[28px] border border-ink/10 bg-[linear-gradient(135deg,rgba(18,23,33,0.05),rgba(255,255,255,0.94)_52%,rgba(52,98,238,0.08))] p-5 text-sm leading-6 text-ink/68">
+          <p className="font-semibold text-ink">Publicacao pausada: a campanha sera preparada, nao ativada.</p>
+          <p className="mt-1">
+            Ao enviar, a Leadi gera a copy, salva o historico e deixa a campanha pronta para uma etapa posterior de envio em estado pausado na Meta.
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {metaPreparationItems.map((item) => (
+              <div
+                className={`rounded-[22px] border px-4 py-3 ${
+                  item.ready
+                    ? "border-emerald-200/80 bg-emerald-50/80 text-emerald-900"
+                    : "border-amber-200/80 bg-amber-50/80 text-amber-900"
+                }`}
+                key={item.label}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-70">{item.label}</p>
+                <p className="mt-2 font-semibold">{item.value}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-[13px] font-medium text-ink/60">
+            O envio efetivo e a ativacao continuam em etapa manual e segura, sem subir a campanha ja em veiculacao.
+          </p>
+        </div>
+      ) : form.publishMode === "manual_review" ? (
+        <div className="rounded-[28px] border border-cobalt/20 bg-[linear-gradient(135deg,rgba(52,98,238,0.08),rgba(255,255,255,0.92)_50%,rgba(52,98,238,0.04))] p-4 text-sm leading-6 text-ink/68">
+          <p className="font-semibold text-ink">Revisão manual: a campanha não será enviada à Meta agora.</p>
+          <p className="mt-1">
+            Ao enviar, a IA vai gerar os textos e preparar tudo na Leadi. Você poderá revisar o resultado com a equipe e exportar ou publicar na Meta apenas quando estiver pronto.
+          </p>
         </div>
       ) : (
         <div className="rounded-[28px] border border-emerald-200/70 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),rgba(255,255,255,0.92)_50%,rgba(52,98,238,0.06))] p-4 text-sm leading-6 text-ink/68">
@@ -1641,6 +1842,8 @@ function createInitialForm(
     offer: "Análise consultiva para comparar plano empresarial",
     regions: ["Campinas", "Região"],
     differential: "Atendimento rápido com comparativo objetivo entre operadoras",
+    objections: "Medo de carências na troca e receio com reajustes altos",
+    contractType: "Empresarial (MEI/PME)",
     notes: "",
     adNotes: "",
     tone: "Consultivo e direto",
@@ -1660,6 +1863,8 @@ function buildCampaignRequestPayload(form: CampaignFormState) {
     offer: form.offer,
     region: form.regions.join(", "),
     differentiator: form.differential,
+    objections: form.objections,
+    contractType: form.contractType,
     notes: [form.notes, form.adNotes, form.creativeNotes].filter(Boolean).join("\n"),
     tone: form.tone,
     creativeAssetType: form.creativeType,
@@ -1730,7 +1935,7 @@ function resolvePublicationState({
 
   if (publishMode === "paused") {
     return {
-      label: "Pausada",
+      label: "Pronta para publicar pausada",
       tone: "dark" as const,
       connectedAccountLabel: "Conta Meta pronta"
     };
@@ -1740,6 +1945,14 @@ function resolvePublicationState({
     return {
       label: "Pronta para agendar",
       tone: "teal" as const,
+      connectedAccountLabel: "Conta Meta pronta"
+    };
+  }
+
+  if (publishMode === "manual_review") {
+    return {
+      label: "Revisão manual",
+      tone: "blue" as const,
       connectedAccountLabel: "Conta Meta pronta"
     };
   }
