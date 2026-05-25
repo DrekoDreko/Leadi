@@ -43,7 +43,7 @@ export function FlowSection() {
               &ldquo;Criar anúncio de plano de saúde para PME e MEI em Minas Gerais&rdquo;
             </p>
           </div>
-          <div className="rounded-[22px] bg-white border border-ink/8 p-5 shadow-soft">
+          <div className="rounded-[22px] bg-white dark:bg-white/5 border border-ink/8 p-5 shadow-soft">
             <div className="flex items-center gap-2 mb-3">
               <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
               <span className="text-xs font-semibold text-ink/60">Opção Sugerida</span>
@@ -83,7 +83,7 @@ export function FlowSection() {
               </li>
             </ul>
           </div>
-          <div className="rounded-[20px] border border-ink/8 p-4 bg-white shadow-soft">
+          <div className="rounded-[20px] border border-ink/8 p-4 bg-white dark:bg-white/5 shadow-soft">
             <p className="text-xs text-ink/50 uppercase font-semibold">Sugestão Técnica</p>
             <p className="text-sm mt-1 text-ink/80 italic">
               &ldquo;A linguagem foi ajustada para conformidade absoluta com as políticas do Meta Business.&rdquo;
@@ -100,7 +100,7 @@ export function FlowSection() {
       previewTitle: "Pronto para Meta Lead Ads",
       previewContent: (
         <div className="space-y-4 animate-fade-in">
-          <div className="rounded-[22px] border border-[#d2d2d7] bg-white p-4 shadow-soft max-w-[290px] mx-auto">
+          <div className="rounded-[22px] border border-[#d2d2d7] bg-white dark:bg-white/5 p-4 shadow-soft max-w-[290px] mx-auto">
             <div className="flex items-center gap-2 mb-3">
               <div className="h-8 w-8 rounded-full bg-cobalt flex items-center justify-center text-white font-bold text-xs">
                 L
@@ -181,7 +181,7 @@ export function FlowSection() {
       previewTitle: "Distribuição e Kanban Leadi",
       previewContent: (
         <div className="space-y-4 animate-fade-in">
-          <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-soft">
+          <div className="rounded-[22px] border border-ink/8 bg-white dark:bg-white/5 p-5 shadow-soft">
             <div className="flex items-center justify-between border-b border-ink/8 pb-3 mb-3">
               <div>
                 <span className="rounded-full bg-signal px-2.5 py-0.5 text-[11px] font-semibold text-ink dark:text-cloud">
@@ -219,7 +219,7 @@ export function FlowSection() {
       previewTitle: "Abordagem Inteligente por WhatsApp",
       previewContent: (
         <div className="space-y-4 animate-fade-in">
-          <div className="rounded-[22px] bg-white border border-ink/8 p-5 shadow-soft">
+          <div className="rounded-[22px] bg-white dark:bg-white/5 border border-ink/8 p-5 shadow-soft">
             <span className="text-xs font-semibold uppercase tracking-wider text-cobalt flex items-center gap-1.5 mb-3">
               <Sparkles size={12} /> Sugestão de IA para WhatsApp
             </span>
@@ -252,7 +252,7 @@ export function FlowSection() {
       previewTitle: "Fechamento da Oportunidade",
       previewContent: (
         <div className="space-y-4 animate-fade-in">
-          <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-soft">
+          <div className="rounded-[22px] border border-ink/8 bg-white dark:bg-white/5 p-5 shadow-soft">
             <div className="flex items-center justify-between mb-4">
               <h4 className="font-bold text-ink">Histórico da Negociação</h4>
               <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">

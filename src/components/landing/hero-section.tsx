@@ -6,7 +6,7 @@ export function HeroSection() {
     <section className="relative px-4 pb-16 pt-28 md:pt-36" id="inicio">
       <div className="section-shell">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-white/52 px-4 py-2 text-xs font-semibold text-cobalt shadow-soft backdrop-blur-xl">
+          <p className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-white/52 dark:bg-white/10 px-4 py-2 text-xs font-semibold text-cobalt shadow-soft backdrop-blur-xl">
             <Sparkles size={13} className="text-cobalt" />
             Criador de anúncios com Inteligência Artificial
           </p>
@@ -28,7 +28,7 @@ export function HeroSection() {
               Agendar demonstração
             </a>
             <a
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-white/54 px-8 py-4 font-semibold text-ink shadow-soft backdrop-blur-2xl transition hover:-translate-y-0.5 hover:bg-white/80"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-white/54 dark:bg-white/10 px-8 py-4 font-semibold text-ink shadow-soft backdrop-blur-2xl transition hover:-translate-y-0.5 hover:bg-white/80"
               href="#como-funciona"
             >
               Ver como funciona

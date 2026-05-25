@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
-  BarChart3,
   ArrowRight
 } from "lucide-react";
 
@@ -139,7 +138,7 @@ export function HighlightCarousel() {
   const cards: JourneyCard[] = [
     {
       id: 1,
-      bgColor: "bg-white",
+      bgColor: "bg-white dark:bg-white/5",
       textColor: "text-ink",
       borderColor: "border-neutral-200/60",
       titleText: "Crie uma campanha com IA. Descreva público, região e oferta, e o Leadi organiza a campanha em um fluxo mais simples e guiado.",
@@ -151,20 +150,20 @@ export function HighlightCarousel() {
           <div className="space-y-2 text-xs">
             <div>
               <span className="block text-[9px] text-ink/40 font-bold uppercase tracking-wider">Público da Operação</span>
-              <div className="mt-1 rounded-lg bg-white border border-ink/5 px-3 py-1.5 text-ink font-medium">
+              <div className="mt-1 rounded-lg bg-white dark:bg-white/5 border border-ink/5 px-3 py-1.5 text-ink font-medium">
                 PME e MEI de Planos de Saúde
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="block text-[9px] text-ink/40 font-bold uppercase tracking-wider">Região</span>
-                <div className="mt-1 rounded-lg bg-white border border-ink/5 px-3 py-1.5 text-ink font-medium truncate">
+                <div className="mt-1 rounded-lg bg-white dark:bg-white/5 border border-ink/5 px-3 py-1.5 text-ink font-medium truncate">
                   Minas Gerais
                 </div>
               </div>
               <div>
                 <span className="block text-[9px] text-ink/40 font-bold uppercase tracking-wider">Oferta</span>
-                <div className="mt-1 rounded-lg bg-white border border-ink/5 px-3 py-1.5 text-ink font-medium truncate">
+                <div className="mt-1 rounded-lg bg-white dark:bg-white/5 border border-ink/5 px-3 py-1.5 text-ink font-medium truncate">
                   40% de Desconto
                 </div>
               </div>
@@ -216,33 +215,33 @@ export function HighlightCarousel() {
     },
     {
       id: 3,
-      bgColor: "bg-gradient-to-br from-[#EAF0DC] to-[#DCE3CE]",
+      bgColor: "bg-gradient-to-br from-[#EAF0DC] to-[#DCE3CE] dark:from-white/5 dark:to-white/10",
       textColor: "text-ink",
       borderColor: "border-white/50",
       titleText: "Capture leads com formulário padrão. Os interessados preenchem um formulário simples e entram no fluxo comercial da operação.",
       visual: (
-        <div className="w-[85%] rounded-2xl bg-white/70 p-5 border border-white/60 shadow-sm text-left max-w-sm backdrop-blur-xl">
+        <div className="w-[85%] rounded-2xl bg-white/70 dark:bg-white/5 p-5 border border-white/60 shadow-sm text-left max-w-sm backdrop-blur-xl">
           <div className="mb-3 border-b border-ink/8 pb-2 flex items-center justify-between">
             <h4 className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Meta Lead Ads Form</h4>
             <Facebook size={14} className="text-[#1877F2] fill-[#1877F2] shrink-0" />
           </div>
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl bg-white/80 border border-ink/5 p-2 shadow-inner">
+              <div className="rounded-xl bg-white/80 dark:bg-white/10 border border-ink/5 p-2 shadow-inner">
                 <span className="block text-[8px] text-ink/40 font-bold uppercase">Nome</span>
                 <span className="text-xs font-bold text-ink/85">Marcos Silva</span>
               </div>
-              <div className="rounded-xl bg-white/80 border border-ink/5 p-2 shadow-inner">
+              <div className="rounded-xl bg-white/80 dark:bg-white/10 border border-ink/5 p-2 shadow-inner">
                 <span className="block text-[8px] text-ink/40 font-bold uppercase">Tipo de Plano</span>
                 <span className="text-xs font-bold text-ink/85 truncate block">PME</span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl bg-white/80 border border-ink/5 p-2 shadow-inner">
+              <div className="rounded-xl bg-white/80 dark:bg-white/10 border border-ink/5 p-2 shadow-inner">
                 <span className="block text-[8px] text-ink/40 font-bold uppercase">Telefone</span>
                 <span className="text-xs font-bold text-ink/85">(31) 98765-4321</span>
               </div>
-              <div className="rounded-xl bg-white/80 border border-ink/5 p-2 shadow-inner">
+              <div className="rounded-xl bg-white/80 dark:bg-white/10 border border-ink/5 p-2 shadow-inner">
                 <span className="block text-[8px] text-ink/40 font-bold uppercase">Quantidade de vidas</span>
                 <span className="text-xs font-bold text-ink/85">4</span>
               </div>
@@ -253,12 +252,12 @@ export function HighlightCarousel() {
     },
     {
       id: 4,
-      bgColor: "bg-gradient-to-br from-[#E8F0FE] to-[#D2E3FC]",
+      bgColor: "bg-gradient-to-br from-[#E8F0FE] to-[#D2E3FC] dark:from-white/5 dark:to-white/10",
       textColor: "text-ink",
       borderColor: "border-white/50",
       titleText: "Importe os leads para o CRM. Leve os leads para a plataforma e centralize atendimento, histórico e próximas ações.",
       visual: (
-        <div className="w-[85%] rounded-2xl bg-white/60 p-5 border border-white/60 shadow-sm text-center max-w-sm">
+        <div className="w-[85%] rounded-2xl bg-white/60 dark:bg-white/5 p-5 border border-white/60 shadow-sm text-center max-w-sm">
           <div className="flex items-center justify-between gap-2.5 mb-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 font-bold text-[10px] shrink-0">
               <Facebook size={11} className="fill-blue-600/10" /> Meta Ads
@@ -276,7 +275,7 @@ export function HighlightCarousel() {
               <Zap size={11} className="fill-cobalt" /> Leadi
             </div>
           </div>
-          <div className="rounded-xl bg-white border border-ink/5 p-3 flex items-center justify-between text-left shadow-sm">
+          <div className="rounded-xl bg-white dark:bg-white/5 border border-ink/5 p-3 flex items-center justify-between text-left shadow-sm">
             <div>
               <p className="text-xs font-bold text-ink">Marcos Silva</p>
               <p className="text-[10px] text-ink/50 mt-0.5">Campanha • MG • PME • 4 vidas</p>
@@ -290,7 +289,7 @@ export function HighlightCarousel() {
     },
     {
       id: 5,
-      bgColor: "bg-white",
+      bgColor: "bg-white dark:bg-white/5",
       textColor: "text-ink",
       borderColor: "border-neutral-200/60",
       titleText: "Distribua os leads para a equipe. No plano Equipe, o supervisor pode organizar e direcionar oportunidades para cada consultor.",
@@ -301,7 +300,7 @@ export function HighlightCarousel() {
             <span className="text-[9px] font-semibold bg-cobalt text-white px-2 py-0.5 rounded-full">Automático</span>
           </div>
           <div className="space-y-2">
-            <div className="rounded-xl bg-white border border-ink/5 p-2.5 flex items-center justify-between shadow-sm">
+            <div className="rounded-xl bg-white dark:bg-white/5 border border-ink/5 p-2.5 flex items-center justify-between shadow-sm">
               <div className="min-w-0">
                 <p className="text-xs font-bold text-ink truncate">Marcos Silva</p>
                 <p className="text-[9px] text-ink/40">4 vidas</p>
@@ -311,7 +310,7 @@ export function HighlightCarousel() {
                 <span className="text-[10px] font-bold text-ink/70 bg-neutral-100 px-2.5 py-0.5 rounded-lg border border-ink/5">Consultor Gabriel</span>
               </div>
             </div>
-            <div className="rounded-xl bg-white border border-ink/5 p-2.5 flex items-center justify-between shadow-sm">
+            <div className="rounded-xl bg-white dark:bg-white/5 border border-ink/5 p-2.5 flex items-center justify-between shadow-sm">
               <div className="min-w-0">
                 <p className="text-xs font-bold text-ink truncate">Marina Azevedo</p>
                 <p className="text-[9px] text-ink/40">48 vidas</p>
@@ -367,18 +366,18 @@ export function HighlightCarousel() {
     },
     {
       id: 7,
-      bgColor: "bg-gradient-to-br from-[#FFF577] to-[#DDD022]",
+      bgColor: "bg-gradient-to-br from-[#FFF577] to-[#DDD022] dark:from-[#FFF577]/10 dark:to-[#DDD022]/10",
       textColor: "text-ink",
       borderColor: "border-yellow-400/40",
       titleText: "Turbine os anúncios com mais potencial. Pause, ajuste ou turbine campanhas com base no que está performando melhor.",
       visual: (
-        <div className="w-[85%] rounded-2xl bg-white/80 p-5 border border-ink/6 shadow-sm text-center max-w-sm">
+        <div className="w-[85%] rounded-2xl bg-white/80 dark:bg-white/10 p-5 border border-ink/6 shadow-sm text-center max-w-sm">
           <p className="text-[9px] font-bold text-ink/40 uppercase tracking-widest mb-3.5 text-left">Controle de Otimização</p>
           <div className="flex gap-2 justify-center">
-            <button className="flex-1 rounded-xl border border-ink/5 py-2.5 px-2 text-[10px] font-extrabold text-ink/50 bg-white/50 hover:bg-white/70 transition-colors">
+            <button className="flex-1 rounded-xl border border-ink/5 py-2.5 px-2 text-[10px] font-extrabold text-ink/50 bg-white/50 hover:bg-white/70 dark:bg-white/5 transition-colors">
               Pausar
             </button>
-            <button className="flex-1 rounded-xl border border-ink/5 py-2.5 px-2 text-[10px] font-extrabold text-ink/50 bg-white/50 hover:bg-white/70 transition-colors">
+            <button className="flex-1 rounded-xl border border-ink/5 py-2.5 px-2 text-[10px] font-extrabold text-ink/50 bg-white/50 hover:bg-white/70 dark:bg-white/5 transition-colors">
               Ajustar
             </button>
             <button className="flex-[1.3] rounded-xl bg-ink text-cloud py-2.5 px-3 text-[10px] font-extrabold shadow-md shadow-black/10 hover:scale-[1.02] transition-transform duration-200 flex items-center justify-center gap-1.5 border border-white/10 relative overflow-hidden group">
@@ -394,12 +393,12 @@ export function HighlightCarousel() {
     },
     {
       id: 8,
-      bgColor: "bg-gradient-to-br from-white to-[#F0F3F6]",
+      bgColor: "bg-gradient-to-br from-white to-[#F0F3F6] dark:from-white/5 dark:to-white/10",
       textColor: "text-ink",
       borderColor: "border-neutral-200/60",
       titleText: "Acompanhe o funil e ganhe produtividade. Veja o andamento dos leads, acompanhe a equipe e conduza mais oportunidades com organização.",
       visual: (
-        <div className="w-[95%] sm:w-full rounded-2xl bg-white/80 p-4 border border-ink/6 shadow-sm text-left max-w-sm md:max-w-md relative overflow-hidden select-none">
+        <div className="w-[95%] sm:w-full rounded-2xl bg-white/80 dark:bg-white/10 p-4 border border-ink/6 shadow-sm text-left max-w-sm md:max-w-md relative overflow-hidden select-none">
           <style>{`
             @keyframes mini-kanban-float {
               0%, 100% { transform: translateY(0) rotate(-3deg); }
@@ -431,7 +430,7 @@ export function HighlightCarousel() {
               
               <div className="space-y-1.5">
                 {/* Static Lead Card */}
-                <div className="bg-white border border-ink/5 rounded-lg p-1.5 shadow-sm">
+                <div className="bg-white dark:bg-white/5 border border-ink/5 rounded-lg p-1.5 shadow-sm">
                   <span className="block h-1 w-5 rounded-full bg-cobalt mb-1" />
                   <p className="text-[9px] font-bold text-ink leading-tight">Ana Souza</p>
                   <p className="text-[7px] text-ink/40 mt-0.5">PME • 5 vidas</p>
@@ -462,7 +461,7 @@ export function HighlightCarousel() {
                 </div>
 
                 {/* Existing Card */}
-                <div className="bg-white border border-ink/5 rounded-lg p-1.5 shadow-sm opacity-60">
+                <div className="bg-white dark:bg-white/5 border border-ink/5 rounded-lg p-1.5 shadow-sm opacity-60">
                   <span className="block h-1 w-5 rounded-full bg-lagoon mb-1" />
                   <p className="text-[9px] font-bold text-ink leading-tight">Lucas Lima</p>
                   <p className="text-[7px] text-ink/40 mt-0.5">PME • 12 vidas</p>
@@ -482,7 +481,7 @@ export function HighlightCarousel() {
               
               <div className="space-y-1.5">
                 {/* Existing Card */}
-                <div className="bg-white border border-ink/5 rounded-lg p-1.5 shadow-sm">
+                <div className="bg-white dark:bg-white/5 border border-ink/5 rounded-lg p-1.5 shadow-sm">
                   <span className="block h-1 w-5 rounded-full bg-signal mb-1" />
                   <p className="text-[9px] font-bold text-ink leading-tight">Marcos Silva</p>
                   <p className="text-[7px] text-ink/40 mt-0.5">PME • 4 vidas</p>
@@ -491,7 +490,7 @@ export function HighlightCarousel() {
             </div>
 
             {/* Dragging Card Overlay (floating) */}
-            <div className="absolute top-[38px] left-[18%] sm:left-[20%] w-[90px] sm:w-[100px] bg-white border border-cobalt/35 rounded-lg p-1.5 shadow-xl animate-mini-float z-20 pointer-events-none">
+            <div className="absolute top-[38px] left-[18%] sm:left-[20%] w-[90px] sm:w-[100px] bg-white dark:bg-white/5 border border-cobalt/35 rounded-lg p-1.5 shadow-xl animate-mini-float z-20 pointer-events-none">
               <div className="flex items-start justify-between">
                 <span className="block h-1 w-5 rounded-full bg-cobalt mb-1" />
                 <span className="text-cobalt/60">
@@ -581,7 +580,7 @@ export function HighlightCarousel() {
             <button
               onClick={() => scroll("left")}
               disabled={!canScrollLeft}
-              className={`h-11 w-11 rounded-full border border-neutral-300 bg-white/80 hover:bg-white text-ink flex items-center justify-center transition-all duration-300 ${
+              className={`h-11 w-11 rounded-full border border-neutral-300 bg-white/80 hover:bg-white dark:bg-white/5 text-ink flex items-center justify-center transition-all duration-300 ${
                 !canScrollLeft ? "opacity-30 cursor-not-allowed" : "active:scale-95 hover:border-ink/20 hover:-translate-x-0.5 shadow-sm"
               }`}
               aria-label="Destaque anterior"
@@ -591,7 +590,7 @@ export function HighlightCarousel() {
             <button
               onClick={() => scroll("right")}
               disabled={!canScrollRight}
-              className={`h-11 w-11 rounded-full border border-neutral-300 bg-white/80 hover:bg-white text-ink flex items-center justify-center transition-all duration-300 ${
+              className={`h-11 w-11 rounded-full border border-neutral-300 bg-white/80 hover:bg-white dark:bg-white/5 text-ink flex items-center justify-center transition-all duration-300 ${
                 !canScrollRight ? "opacity-30 cursor-not-allowed" : "active:scale-95 hover:border-ink/20 hover:translate-x-0.5 shadow-sm"
               }`}
               aria-label="Próximo destaque"
