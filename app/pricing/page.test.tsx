@@ -44,8 +44,11 @@ describe('Pricing Page (/pricing)', () => {
   it('contem links para assinar agora e fundador', () => {
     render(<PricingPage />);
     
-    const links = screen.getAllByRole('link', { name: /Assinar agora/i });
+    const links = screen.getAllByRole('link', { name: /Contratar/i });
     expect(links.length).toBe(3);
+    expect(links[0]).toHaveAttribute('href', '/login?mode=signup&next=%2Fcheckout%3Fplan%3Dessencial');
+    expect(links[1]).toHaveAttribute('href', '/login?mode=signup&next=%2Fcheckout%3Fplan%3Dprofissional');
+    expect(links[2]).toHaveAttribute('href', '/login?mode=signup&next=%2Fcheckout%3Fplan%3Doperacao');
     expect(screen.getByRole('link', { name: /Quero entrar como fundador/i })).toHaveAttribute('href', '/login');
   });
 

@@ -3,6 +3,9 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { pricingPlans } from "@/data/pricing";
+import { buildPlanSignupPath, isPublicPlanSlug } from "@/lib/billing/checkout-flow";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CheckoutClient } from "./checkout-client";
 
 export default async function CheckoutPage({
@@ -12,23 +15,25 @@ export default async function CheckoutPage({
 }) {
   const { plan: planSlug } = await searchParams;
 
-  if (!planSlug) {
+  if (!planSlug || !isPublicPlanSlug(planSlug)) {
     redirect("/pricing");
   }
 
-  // Acha o plano no pricing.ts baseado no slug esperado ("essencial", "profissional", "operacao")
-  // Aqui, usaremos um mapeamento simples baseado no nome já que pricing.ts não tem "slug" explícito
-  const slugToNameMap: Record<string, string> = {
-    essencial: "Essencial",
-    profissional: "Profissional",
-    operacao: "Operação",
-  };
-
-  const expectedName = slugToNameMap[planSlug.toLowerCase()];
-  const plan = pricingPlans.find((p) => p.name === expectedName);
+  const plan = pricingPlans.find((pricingPlan) => pricingPlan.slug === planSlug);
 
   if (!plan) {
     redirect("/pricing");
+  }
+
+  if (isSupabaseConfigured()) {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect(buildPlanSignupPath(planSlug));
+    }
   }
 
   // Extrai valor numérico do "price" (ex: "R$ 297/mês" -> 297)

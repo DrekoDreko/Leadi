@@ -1,4 +1,7 @@
+import { buildPlanSignupPath, type PublicPlanSlug } from "@/lib/billing/checkout-flow";
+
 export type PricingPlan = {
+  slug: PublicPlanSlug;
   name: string;
   label: string;
   description: string;
@@ -22,13 +25,14 @@ export type FounderOffer = {
 
 export const pricingPlans: PricingPlan[] = [
   {
+    slug: "essencial",
     name: "Essencial",
     label: "Para corretores individuais",
     description: "Organização comercial básica para centralizar leads, acompanhar oportunidades e manter o histórico de atendimento.",
     price: "R$ 297/mês",
     implantation: "Implantação: R$ 297",
-    cta: "Assinar agora",
-    href: "/checkout?plan=essencial",
+    cta: "Contratar",
+    href: buildPlanSignupPath("essencial"),
     highlight: false,
     features: [
       "CRM de leads",
@@ -39,13 +43,14 @@ export const pricingPlans: PricingPlan[] = [
     ]
   },
   {
+    slug: "profissional",
     name: "Profissional",
     label: "Para pequenas equipes",
     description: "O plano principal para equipes que precisam conectar captação, campanhas e distribuição em um fluxo único.",
     price: "R$ 797/mês",
     implantation: "Implantação: R$ 997",
-    cta: "Assinar agora",
-    href: "/checkout?plan=profissional",
+    cta: "Contratar",
+    href: buildPlanSignupPath("profissional"),
     highlight: true,
     features: [
       "Tudo do plano Inicial",
@@ -57,13 +62,14 @@ export const pricingPlans: PricingPlan[] = [
     ]
   },
   {
+    slug: "operacao",
     name: "Operação",
     label: "Para corretoras com equipe comercial",
     description: "Estrutura para operações com múltiplas equipes, gestão de propostas e mais acompanhamento da rotina comercial.",
     price: "A partir de R$ 1.997/mês",
     implantation: "Implantação: sob análise, a partir de R$ 2.500",
-    cta: "Assinar agora",
-    href: "/checkout?plan=operacao",
+    cta: "Contratar",
+    href: buildPlanSignupPath("operacao"),
     highlight: false,
     features: [
       "Tudo do plano Profissional",
