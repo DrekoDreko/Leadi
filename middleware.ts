@@ -18,11 +18,13 @@ export async function middleware(request: NextRequest) {
   const isImportRoute = pathname === "/dashboard/importar" || pathname.startsWith("/dashboard/importar/");
   const isCreateTeamRoute =
     pathname === "/dashboard/criar-equipe" || pathname.startsWith("/dashboard/criar-equipe/");
+  const isCheckoutRoute = pathname === "/checkout" || pathname.startsWith("/checkout/");
   const isProtectedRoute =
     isDashboardRoute ||
     isOnboardingRoute ||
     isTeamRoute ||
     isInviteRoute ||
+    isCheckoutRoute ||
     (isApiRoute && !isLeadWebhookRoute && !isMetaWebhookRoute && !isMetaDataDeletionRoute);
 
   if (isLeadWebhookRoute || isMetaWebhookRoute || isMetaDataDeletionRoute) {

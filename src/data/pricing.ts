@@ -27,8 +27,8 @@ export const pricingPlans: PricingPlan[] = [
     description: "Organização comercial básica para centralizar leads, acompanhar oportunidades e manter o histórico de atendimento.",
     price: "R$ 297/mês",
     implantation: "Implantação: R$ 297",
-    cta: "Falar com a equipe",
-    href: "/login",
+    cta: "Assinar agora",
+    href: "/checkout?plan=essencial",
     highlight: false,
     features: [
       "CRM de leads",
@@ -44,8 +44,8 @@ export const pricingPlans: PricingPlan[] = [
     description: "O plano principal para equipes que precisam conectar captação, campanhas e distribuição em um fluxo único.",
     price: "R$ 797/mês",
     implantation: "Implantação: R$ 997",
-    cta: "Falar com a equipe",
-    href: "/login",
+    cta: "Assinar agora",
+    href: "/checkout?plan=profissional",
     highlight: true,
     features: [
       "Tudo do plano Inicial",
@@ -62,8 +62,8 @@ export const pricingPlans: PricingPlan[] = [
     description: "Estrutura para operações com múltiplas equipes, gestão de propostas e mais acompanhamento da rotina comercial.",
     price: "A partir de R$ 1.997/mês",
     implantation: "Implantação: sob análise, a partir de R$ 2.500",
-    cta: "Falar com a equipe",
-    href: "/login",
+    cta: "Assinar agora",
+    href: "/checkout?plan=operacao",
     highlight: false,
     features: [
       "Tudo do plano Profissional",

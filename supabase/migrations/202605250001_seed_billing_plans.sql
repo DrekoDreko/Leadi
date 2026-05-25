@@ -15,7 +15,7 @@ values
     'Organização comercial básica para centralizar leads, acompanhar oportunidades e manter o histórico de atendimento.',
     'active',
     'mercado_pago',
-    23700,
+    29700,
     'month',
     1
   ),
@@ -25,7 +25,7 @@ values
     'O plano principal para equipes que precisam conectar captação, campanhas e distribuição em um fluxo único.',
     'active',
     'mercado_pago',
-    63700,
+    79700,
     'month',
     1
   ),
@@ -35,7 +35,7 @@ values
     'Estrutura para operações com múltiplas equipes, gestão de propostas e mais acompanhamento da rotina comercial.',
     'active',
     'mercado_pago',
-    159700,
+    199700,
     'month',
     1
   )

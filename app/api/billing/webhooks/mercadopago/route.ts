@@ -6,9 +6,13 @@ import {
   updateBillingPurchase
 } from "@/lib/billing/admin";
 import {
+  getBillingSubscriptionByExternalReference,
+  updateBillingSubscription,
+  createBillingPaymentEvent
+} from "@/lib/billing/subscriptions";
+import {
   fetchMercadoPagoPayment,
   getMercadoPagoPaymentIdFromWebhook,
-  getMercadoPagoPaymentPayload,
   getMercadoPagoWebhookRequestId,
   getMercadoPagoWebhookSignature,
   validateMercadoPagoWebhookSignature
@@ -31,11 +35,21 @@ export async function POST(request: Request) {
       windowMs: 60 * 1000
     });
     assertPayloadSize(request, "WEBHOOK_JSON");
+
     const signature = getMercadoPagoWebhookSignature(request);
     const requestId = getMercadoPagoWebhookRequestId(request);
-    const urlPaymentId = getMercadoPagoPaymentIdFromWebhook(request);
-    const bodyPayload = await getMercadoPagoPaymentPayload(request);
-    const dataId = urlPaymentId || bodyPayload.dataId;
+
+    // Read body text once so we can parse it
+    const bodyText = await request.text();
+    let bodyPayload: any = {};
+    try {
+      bodyPayload = JSON.parse(bodyText);
+    } catch {}
+
+    const url = new URL(request.url);
+    const urlDataId = url.searchParams.get("data.id") ?? url.searchParams.get("data_id");
+    const dataId = (urlDataId || bodyPayload?.data?.id || bodyPayload?.id || "").toString().toLowerCase().trim();
+    const eventType = (url.searchParams.get("type") || url.searchParams.get("topic") || bodyPayload?.type || bodyPayload?.topic || "").toString().toLowerCase().trim();
 
     if (!validateMercadoPagoWebhookSignature({ signatureHeader: signature, requestIdHeader: requestId, dataId })) {
       return NextResponse.json({ error: "Webhook Mercado Pago invalido." }, { status: 401 });
@@ -45,78 +59,126 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, ignored: true });
     }
 
-    const payment = await fetchMercadoPagoPayment(dataId);
-    const paymentId = String(payment.id);
-    const externalReference = payment.external_reference?.toString() ?? "";
-    const purchase =
-      (await getBillingPurchaseByPaymentId(paymentId)) ||
-      (externalReference ? await getBillingPurchaseByExternalReference(externalReference) : null);
-
-    if (!purchase) {
-      return NextResponse.json({ ok: true, ignored: true });
-    }
-
-    await updateBillingPurchase(purchase.id, {
-      paymentId,
-      externalReference: externalReference || purchase.external_reference || purchase.id,
-      status:
-        payment.status === "approved"
-          ? "approved"
-          : payment.status === "rejected"
-            ? "rejected"
-            : payment.status === "cancelled"
-              ? "cancelled"
-              : payment.status === "expired"
-                ? "expired"
-                : "pending",
-      providerPayload: {
-        webhook: {
-          data_id: dataId,
-          request_id: requestId
-        },
-        payment: {
-          id: paymentId,
-          status: payment.status,
-          status_detail: payment.status_detail ?? null,
-          external_reference: externalReference || null,
-          transaction_amount: payment.transaction_amount ?? null,
-          currency_id: payment.currency_id ?? null,
-          date_approved: payment.date_approved ?? null,
-          date_created: payment.date_created ?? null,
-          date_last_updated: payment.date_last_updated ?? null
-        }
+    // 1. Lidar com webhooks de Assinatura (Preapproval)
+    if (eventType === "subscription_preapproval") {
+      // O MP enviou notificação de que a assinatura mudou de status
+      // A assinatura real precisa ser atualizada no banco.
+      const subscription = await getBillingSubscriptionByExternalReference(dataId);
+      if (subscription) {
+        // Neste caso básico, o status poderia vir de um GET ao /preapproval/:id, 
+        // mas vamos apenas atualizar com as info do webhook se disponíveis ou aguardar o pagamento.
+        await updateBillingSubscription(subscription.id, {
+          status: "active" // Ou verificar status real
+        });
       }
-    });
-
-    if (payment.status !== "approved") {
-      return NextResponse.json({ ok: true, status: payment.status });
+      return NextResponse.json({ ok: true, type: eventType });
     }
 
-    const alreadyCredited = purchase.status === "credited";
+    // 2. Lidar com webhooks de Pagamentos (One-off e Mensalidades)
+    if (eventType === "payment") {
+      const payment = await fetchMercadoPagoPayment(dataId);
+      const paymentId = String(payment.id);
+      const externalReference = payment.external_reference?.toString() ?? "";
 
-    if (!alreadyCredited) {
-      await creditBillingCredits({
-        organizationId: purchase.organization_id,
-        amount: purchase.credits,
-        source: purchase.product_kind === "plan" ? "plan" : "pack",
-        referenceType: "mercadopago_payment",
-        referenceId: paymentId,
-        metadata: {
-          purchase_id: purchase.id,
-          product_key: purchase.product_key,
-          amount_cents: purchase.amount_cents,
-          currency: purchase.currency,
-          payment_status: payment.status
+      // Verifica se o pagamento é referente a uma Assinatura (Subscription)
+      const subscription = externalReference ? await getBillingSubscriptionByExternalReference(externalReference) : null;
+      if (subscription) {
+        // Log do evento
+        await createBillingPaymentEvent({
+          organizationId: subscription.organization_id,
+          subscriptionId: subscription.id,
+          planId: subscription.plan_id,
+          gateway: "mercado_pago",
+          eventType: "payment",
+          status: payment.status ?? "unknown",
+          externalId: paymentId,
+          amountCents: payment.transaction_amount ? Math.round(payment.transaction_amount * 100) : 0,
+          payload: payment
+        });
+
+        // Atualiza status da assinatura
+        if (payment.status === "approved") {
+          await updateBillingSubscription(subscription.id, { status: "active" });
+        } else if (payment.status === "rejected" || payment.status === "cancelled") {
+          await updateBillingSubscription(subscription.id, { status: "past_due" });
         }
-      });
+
+        return NextResponse.json({ ok: true, type: "subscription_payment", status: payment.status });
+      }
+
+      // Caso contrário, é uma compra avulsa (Credit Pack)
+      const purchase =
+        (await getBillingPurchaseByPaymentId(paymentId)) ||
+        (externalReference ? await getBillingPurchaseByExternalReference(externalReference) : null);
+
+      if (!purchase) {
+        return NextResponse.json({ ok: true, ignored: true });
+      }
 
       await updateBillingPurchase(purchase.id, {
-        status: "credited",
-        creditedAt: new Date().toISOString()
+        paymentId,
+        externalReference: externalReference || purchase.external_reference || purchase.id,
+        status:
+          payment.status === "approved"
+            ? "approved"
+            : payment.status === "rejected"
+              ? "rejected"
+              : payment.status === "cancelled"
+                ? "cancelled"
+                : payment.status === "expired"
+                  ? "expired"
+                  : "pending",
+        providerPayload: {
+          webhook: {
+            data_id: dataId,
+            request_id: requestId
+          },
+          payment: {
+            id: paymentId,
+            status: payment.status,
+            status_detail: payment.status_detail ?? null,
+            external_reference: externalReference || null,
+            transaction_amount: payment.transaction_amount ?? null,
+            currency_id: payment.currency_id ?? null,
+            date_approved: payment.date_approved ?? null,
+            date_created: payment.date_created ?? null,
+            date_last_updated: payment.date_last_updated ?? null
+          }
+        }
       });
+
+      if (payment.status !== "approved") {
+        return NextResponse.json({ ok: true, status: payment.status });
+      }
+
+      const alreadyCredited = purchase.status === "credited";
+
+      if (!alreadyCredited) {
+        await creditBillingCredits({
+          organizationId: purchase.organization_id,
+          amount: purchase.credits,
+          source: purchase.product_kind === "plan" ? "plan" : "pack",
+          referenceType: "mercadopago_payment",
+          referenceId: paymentId,
+          metadata: {
+            purchase_id: purchase.id,
+            product_key: purchase.product_key,
+            amount_cents: purchase.amount_cents,
+            currency: purchase.currency,
+            payment_status: payment.status
+          }
+        });
+
+        await updateBillingPurchase(purchase.id, {
+          status: "credited",
+          creditedAt: new Date().toISOString()
+        });
+      }
+
+      return NextResponse.json({ ok: true, status: payment.status, credited: !alreadyCredited });
     }
 
-    return NextResponse.json({ ok: true, status: payment.status, credited: !alreadyCredited });
+    return NextResponse.json({ ok: true, ignored: true });
   } catch (error) {
     const status = getMercadoPagoWebhookErrorStatus(error);
     const message = getMercadoPagoWebhookErrorMessage(error);

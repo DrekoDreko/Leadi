@@ -183,3 +183,43 @@ export function getMercadoPagoWebhookSignature(request: Request) {
 export function getMercadoPagoReturnUrlStatus(status: "success" | "pending" | "failure") {
   return getMercadoPagoBackUrl(`/dashboard/perfil/creditos?status=${status}`);
 }
+
+export async function createMercadoPagoPreapproval(input: {
+  reason: string;
+  externalReference: string;
+  payerEmail: string;
+  cardTokenId: string;
+  amount: number;
+}) {
+  requireIntegrationEnv("billing");
+
+  const response = await fetch("https://api.mercadopago.com/preapproval", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getMercadoPagoAccessToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      reason: input.reason,
+      external_reference: input.externalReference,
+      payer_email: input.payerEmail,
+      card_token_id: input.cardTokenId,
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: "months",
+        transaction_amount: input.amount,
+        currency_id: "BRL",
+      },
+      back_url: getMercadoPagoBackUrl("/dashboard"),
+      status: "authorized",
+    }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as any;
+
+  if (!response.ok || !payload?.id) {
+    throw new Error(payload?.message ?? "Não foi possível criar a assinatura no Mercado Pago.");
+  }
+
+  return payload;
+}
