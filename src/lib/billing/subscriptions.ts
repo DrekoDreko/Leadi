@@ -20,7 +20,7 @@ export async function updateBillingSubscription(
   patch: { status?: string; canceled_at?: string; ended_at?: string }
 ) {
   const supabase = createBillingAdminClient();
-  const payload: Record<string, any> = {};
+  const payload: Record<string, unknown> = {};
   if (patch.status) payload.status = patch.status;
   if (patch.canceled_at) payload.canceled_at = patch.canceled_at;
   if (patch.ended_at) payload.ended_at = patch.ended_at;
@@ -47,7 +47,7 @@ export async function createBillingPaymentEvent(input: {
   status: string;
   externalId: string;
   amountCents?: number;
-  payload: any;
+  payload: unknown;
 }) {
   const supabase = createBillingAdminClient();
   const { data, error } = await supabase

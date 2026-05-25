@@ -65,7 +65,7 @@ export function CheckoutClient({
 
             // Sucesso
             router.push("/dashboard?checkout=success");
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error(err);
             // Em vez de throw, idealmente mostrar um toast ou alert, 
             // mas o SDK pode capturar exceptions retornadas nesta promise

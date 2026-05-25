@@ -12,7 +12,6 @@ import {
 } from "@/lib/billing/subscriptions";
 import {
   fetchMercadoPagoPayment,
-  getMercadoPagoPaymentIdFromWebhook,
   getMercadoPagoWebhookRequestId,
   getMercadoPagoWebhookSignature,
   validateMercadoPagoWebhookSignature
@@ -41,7 +40,7 @@ export async function POST(request: Request) {
 
     // Read body text once so we can parse it
     const bodyText = await request.text();
-    let bodyPayload: any = {};
+    let bodyPayload: { data?: { id?: string | number }, id?: string | number, type?: string, topic?: string } = {};
     try {
       bodyPayload = JSON.parse(bodyText);
     } catch {}

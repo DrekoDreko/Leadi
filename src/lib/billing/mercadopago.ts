@@ -215,7 +215,7 @@ export async function createMercadoPagoPreapproval(input: {
     }),
   });
 
-  const payload = (await response.json().catch(() => null)) as any;
+  const payload = (await response.json().catch(() => null)) as { id?: string; message?: string } | null;
 
   if (!response.ok || !payload?.id) {
     throw new Error(payload?.message ?? "Não foi possível criar a assinatura no Mercado Pago.");

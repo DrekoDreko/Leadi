@@ -214,12 +214,14 @@ export function DashboardShell({
 
     window.addEventListener(DASHBOARD_REMINDERS_UPDATED_EVENT, handleReminderUpdate);
     return () => window.removeEventListener(DASHBOARD_REMINDERS_UPDATED_EVENT, handleReminderUpdate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (isNotificationsOpen) {
       void fetchNotifications();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNotificationsOpen]);
 
   useEffect(() => {

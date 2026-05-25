@@ -1284,6 +1284,7 @@ function SalesFunnelGateway() {
       className="group relative flex flex-col overflow-hidden rounded-[34px] border border-white/40 bg-white/40 p-1 transition-all hover:border-cobalt/30 hover:bg-white/60 hover:shadow-2xl hover:shadow-cobalt/10 sm:flex-row sm:items-center sm:gap-8"
     >
       <div className="relative aspect-[16/10] overflow-hidden rounded-[30px] sm:aspect-square sm:w-[280px] sm:shrink-0">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/assets/kanban-animation.png"
           alt="Funil de vendas"
