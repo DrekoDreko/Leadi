@@ -1,15 +1,15 @@
 "use client";
 
-import { motion } from "motion/react";
-import { ReactNode, RefObject } from "react";
+import { motion, type Variants } from "motion/react";
+import { ReactNode, RefObject, ElementType } from "react";
 
 interface TimelineContentProps {
   children: ReactNode;
   animationNum: number;
   timelineRef?: RefObject<HTMLDivElement | null>;
-  customVariants?: any;
+  customVariants?: Variants;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
+  as?: ElementType;
 }
 
 export function TimelineContent({
@@ -19,6 +19,7 @@ export function TimelineContent({
   className,
   as = "div",
 }: TimelineContentProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const Component = motion[as as keyof typeof motion] as any;
   
   return (
