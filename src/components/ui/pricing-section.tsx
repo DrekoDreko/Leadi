@@ -1,6 +1,8 @@
 "use client";
+import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { TimelineContent } from "@/components/ui/timeline-animation";
+import { buildPlanSignupPath, type PublicPlanSlug } from "@/lib/billing/checkout-flow";
 import NumberFlow from "@number-flow/react";
 import { Briefcase, CheckCheck, Database, Server } from "lucide-react";
 import { motion } from "motion/react";
@@ -8,14 +10,14 @@ import { useRef, useState } from "react";
 
 const plans = [
   {
+    slug: "essencial" as PublicPlanSlug,
     name: "Essencial",
     description:
       "Organização comercial básica para centralizar leads, acompanhar oportunidades e manter o histórico.",
     price: 297,
     yearlyPrice: 237,
-    buttonText: "Falar com a equipe",
+    buttonText: "Contratar",
     buttonVariant: "outline" as const,
-    href: "https://wa.me/5511920595133?text=Ola!%20Gostaria%20de%20falar%20com%20a%20equipe%20sobre%20o%20plano%20Essencial%20do%20Leadi.",
     features: [
       { text: "CRM de leads", icon: <Briefcase size={20} /> },
       { text: "Funil de oportunidades", icon: <Database size={20} /> },
@@ -29,15 +31,15 @@ const plans = [
     ],
   },
   {
+    slug: "profissional" as PublicPlanSlug,
     name: "Profissional",
     description:
       "O plano principal para equipes que precisam conectar captação, campanhas e distribuição em um fluxo.",
     price: 797,
     yearlyPrice: 637,
-    buttonText: "Falar com a equipe",
+    buttonText: "Contratar",
     buttonVariant: "default" as const,
     popular: true,
-    href: "https://wa.me/5511920595133?text=Ola!%20Gostaria%20de%20falar%20com%20a%20equipe%20sobre%20o%20plano%20Profissional%20do%20Leadi.",
     features: [
       { text: "Tudo do plano Essencial", icon: <Briefcase size={20} /> },
       { text: "Integração Meta Lead Ads", icon: <Database size={20} /> },
@@ -51,14 +53,14 @@ const plans = [
     ],
   },
   {
+    slug: "operacao" as PublicPlanSlug,
     name: "Operação",
     description:
       "Estrutura para operações com múltiplas equipes, gestão de propostas e mais acompanhamento.",
     price: 1997,
     yearlyPrice: 1597,
-    buttonText: "Falar com a equipe",
+    buttonText: "Contratar",
     buttonVariant: "outline" as const,
-    href: "https://wa.me/5511920595133?text=Ola!%20Gostaria%20de%20falar%20com%20a%20equipe%20sobre%20o%20plano%20Operacao%20do%20Leadi.",
     features: [
       { text: "Tudo do plano Profissional", icon: <Briefcase size={20} /> },
       { text: "Múltiplas equipes", icon: <Database size={20} /> },
@@ -251,10 +253,8 @@ export function PricingSection() {
               </CardHeader>
 
               <CardContent className="pt-0 flex flex-col flex-1">
-                <a
-                  href={plan.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href={buildPlanSignupPath(plan.slug)}
                   className={`w-full inline-flex justify-center items-center mb-6 p-4 text-sm font-semibold rounded-xl transition hover:-translate-y-0.5 ${
                     plan.popular
                       ? "bg-signal text-ink shadow-soft hover:brightness-105"
@@ -262,7 +262,7 @@ export function PricingSection() {
                   }`}
                 >
                   {plan.buttonText}
-                </a>
+                </Link>
                 <ul className="space-y-3 font-medium py-2 flex-1">
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center">
