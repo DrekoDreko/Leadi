@@ -35,7 +35,7 @@ function Hero() {
             </Button>
           </div>
           <div className="flex gap-4 flex-col">
-            <h1 className="text-5xl md:text-7xl max-w-3xl tracking-tighter text-center font-semibold text-ink dark:text-cloud">
+            <h1 className="text-5xl md:text-7xl max-w-3xl tracking-tighter text-center font-semibold text-ink">
               <span className="block mb-2">Organize seus leads</span>
               <span className="block">de forma</span>
               <span className="relative flex w-full justify-center overflow-hidden text-center md:pb-4 md:pt-1 text-cobalt dark:text-signal">
@@ -64,7 +64,7 @@ function Hero() {
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl leading-relaxed tracking-tight text-ink/70 dark:text-cloud/70 max-w-2xl text-center mx-auto mt-4">
+            <p className="text-lg md:text-xl leading-relaxed tracking-tight text-ink/70 max-w-2xl text-center mx-auto mt-4">
               Veja como o Leadi pode ajudar sua equipe a criar campanhas, captar e
               conduzir oportunidades de plano de saúde com total controle.
             </p>
