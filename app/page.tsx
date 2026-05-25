@@ -6,7 +6,6 @@ import { HeroSection } from "@/components/landing/hero-section";
 import { HighlightCarousel } from "@/components/landing/highlight-carousel";
 import { EssentialFeatures } from "@/components/landing/essential-features";
 import { MetaAdsSection } from "@/components/landing/meta-ads-section";
-import { ComplianceSection } from "@/components/landing/compliance-section";
 import { PlansSection } from "@/components/landing/plans-section";
 import { FAQSection } from "@/components/landing/faq-section";
 import { CTASection } from "@/components/landing/cta-section";
@@ -68,9 +67,6 @@ export default function Home() {
 
       {/* ── Meta Ads + CRM ── */}
       <MetaAdsSection />
-
-      {/* ── Compliance ── */}
-      <ComplianceSection />
 
       {/* ── Planos ── */}
       <PlansSection />
