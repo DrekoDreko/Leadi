@@ -215,8 +215,8 @@ export function PricingSection() {
             className="h-full"
           >
             <Card
-              className={`relative h-full border-mist/20 dark:border-cloud/10 ${
-                plan.popular ? "ring-2 ring-signal dark:bg-ink bg-mist/5" : "bg-cloud dark:bg-ink"
+              className={`relative h-full flex flex-col border-mist/20 dark:border-cloud/10 ${
+                plan.popular ? "ring-2 ring-signal dark:bg-ink bg-signal/20 dark:bg-signal/10" : "bg-cloud dark:bg-ink"
               }`}
             >
               <CardHeader className="text-left">
@@ -226,13 +226,13 @@ export function PricingSection() {
                   </h3>
                   {plan.popular && (
                     <div className="">
-                      <span className="bg-signal text-ink px-3 py-1 rounded-full text-xs font-semibold">
+                      <span className="bg-signal text-ink px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
                         Popular
                       </span>
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-ink/60 dark:text-cloud/60 mb-4 line-clamp-3">{plan.description}</p>
+                <p className="text-sm text-ink/60 dark:text-cloud/60 mb-4 line-clamp-3 min-h-[60px]">{plan.description}</p>
                 <div className="flex items-baseline">
                   <span className="text-4xl font-semibold text-ink dark:text-cloud">
                     R$
@@ -247,12 +247,12 @@ export function PricingSection() {
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-0 flex flex-col h-[calc(100%-140px)]">
+              <CardContent className="pt-0 flex flex-col flex-1">
                 <button
                   className={`w-full mb-6 p-4 text-sm font-semibold rounded-xl transition hover:-translate-y-0.5 ${
                     plan.popular
-                      ? "bg-signal text-ink shadow-soft"
-                      : "bg-ink dark:bg-cloud text-cloud dark:text-ink shadow-soft"
+                      ? "bg-signal text-ink shadow-soft hover:brightness-105"
+                      : "bg-ink dark:bg-cloud text-cloud dark:text-ink shadow-soft hover:opacity-90"
                   }`}
                 >
                   {plan.buttonText}
