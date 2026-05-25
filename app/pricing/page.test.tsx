@@ -41,10 +41,10 @@ describe('Pricing Page (/pricing)', () => {
     expect(screen.getByText(/R\$ 297\/mês por 90 dias/i)).toBeInTheDocument();
   });
 
-  it('contem links para falar com a equipe e fundador', () => {
+  it('contem links para assinar agora e fundador', () => {
     render(<PricingPage />);
     
-    const links = screen.getAllByRole('link', { name: /Falar com a equipe/i });
+    const links = screen.getAllByRole('link', { name: /Assinar agora/i });
     expect(links.length).toBe(3);
     expect(screen.getByRole('link', { name: /Quero entrar como fundador/i })).toHaveAttribute('href', '/login');
   });
