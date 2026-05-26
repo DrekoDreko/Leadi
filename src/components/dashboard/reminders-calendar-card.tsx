@@ -228,13 +228,13 @@ export function RemindersCalendarCard({
 
   return (
     <>
-      <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+      <section className="surface-card rounded-[34px] p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm text-ink/54">Calendario</p>
+            <p className="text-muted-soft text-sm">Calendario</p>
             <h2 className="mt-1 text-2xl font-semibold">{monthLabel}</h2>
           </div>
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/62 text-cobalt">
+          <span className="surface-pill flex h-11 w-11 items-center justify-center rounded-full text-cobalt">
             <CalendarDays size={20} aria-hidden="true" />
           </span>
         </div>
@@ -253,7 +253,7 @@ export function RemindersCalendarCard({
                 className={`relative flex aspect-square items-center justify-center rounded-[18px] text-sm font-semibold transition ${
                   day.dateString === todayDate
                     ? "bg-cobalt text-white shadow-[0_14px_28px_rgba(52,98,238,0.28)]"
-                    : "bg-white/44 text-ink hover:bg-white/74"
+                    : "bg-surface-elevated/82 text-foreground hover:bg-surface-elevated"
                 }`}
                 key={day.dateString}
                 onClick={() => openDay(day.dateString)}
@@ -277,7 +277,7 @@ export function RemindersCalendarCard({
           )}
         </div>
 
-        <div className="mt-5 rounded-[24px] bg-white/48 p-4">
+        <div className="surface-card-muted mt-5 rounded-[24px] p-4">
           <p className="text-sm font-semibold text-ink">
             {reminders.length === 0
               ? "Nenhum lembrete salvo neste mes"
@@ -285,7 +285,7 @@ export function RemindersCalendarCard({
                 ? "1 lembrete salvo neste mes"
                 : `${reminders.length} lembretes salvos neste mes`}
           </p>
-          <p className="mt-2 text-sm leading-6 text-ink/62">
+          <p className="text-muted-soft mt-2 text-sm leading-6">
             {upcomingReminder
               ? `${fullDateFormatter.format(new Date(upcomingReminder.remindAt))} as ${timeFormatter.format(
                   new Date(upcomingReminder.remindAt)
@@ -304,7 +304,7 @@ export function RemindersCalendarCard({
           role="dialog"
         >
           <section
-            className="mx-auto w-full max-w-xl rounded-[32px] border border-white/70 bg-cloud/95 p-4 shadow-glass sm:p-6"
+            className="surface-modal mx-auto w-full max-w-xl rounded-[32px] p-4 shadow-glass sm:p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 border-b border-ink/10 pb-5">

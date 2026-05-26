@@ -60,10 +60,10 @@ export function EssentialFeatures() {
     <section className="section-shell pb-24" id="recursos">
       <div className="mb-12 max-w-3xl text-center md:text-left">
         <p className="mb-3 text-sm font-semibold text-cobalt uppercase tracking-wider">Recursos essenciais</p>
-        <h2 className="text-3xl font-semibold leading-[1.1] tracking-tight text-ink md:text-5xl">
+        <h2 className="text-3xl font-semibold leading-[1.1] tracking-tight text-ink dark:text-cloud md:text-5xl">
           Tudo em um único fluxo comercial
         </h2>
-        <p className="mt-4 text-base leading-relaxed text-ink/64 md:text-lg">
+        <p className="mt-4 text-base leading-relaxed text-ink/64 dark:text-cloud/70 md:text-lg">
           Substitua dezenas de ferramentas isoladas por um ecossistema integrado feito especificamente para quem vende planos de saúde.
         </p>
       </div>
@@ -74,24 +74,24 @@ export function EssentialFeatures() {
           return (
             <div
               key={f.title}
-              className="group relative flex flex-col justify-between rounded-[32px] border border-white/40 bg-white/30 p-6 shadow-soft backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:bg-white/50 hover:shadow-[0_20px_50px_rgba(52,98,238,0.08)]"
+              className="group surface-card-strong relative flex flex-col justify-between rounded-[32px] p-6 shadow-soft backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:border-cobalt/26 hover:shadow-[0_20px_50px_rgba(52,98,238,0.08)] dark:border-border/75 dark:bg-[linear-gradient(180deg,rgba(26,33,46,0.98),rgba(31,39,54,0.95))]"
             >
               {/* Subtle background glow on hover */}
               <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-cobalt/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
               <div className="relative z-10">
                 <div className="flex items-center justify-between">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 text-cobalt shadow-soft transition-colors duration-300 group-hover:bg-cobalt group-hover:text-white">
+                  <span className="surface-pill-strong flex h-12 w-12 items-center justify-center rounded-2xl text-cobalt shadow-soft transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
                     <Icon size={22} aria-hidden="true" />
                   </span>
                   {f.badge && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-ink/40 bg-white/50 px-2.5 py-1 rounded-full border border-white/30">
+                    <span className="surface-pill bg-surface-elevated/88 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground rounded-full dark:border-border/75 dark:text-cloud/76">
                       {f.badge}
                     </span>
                   )}
                 </div>
-                <h3 className="mt-6 text-xl font-bold text-ink tracking-tight">{f.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-ink/64">{f.desc}</p>
+                <h3 className="mt-6 text-xl font-bold tracking-tight text-ink dark:text-cloud">{f.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-ink/64 dark:text-cloud/78">{f.desc}</p>
               </div>
             </div>
           );
@@ -100,4 +100,3 @@ export function EssentialFeatures() {
     </section>
   );
 }
-

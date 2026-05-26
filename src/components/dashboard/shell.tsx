@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, Check, Clock, Loader2, LogOut, Plus, Search, X } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
+import { DashboardBillingNoticeProvider } from "@/components/billing/billing-notice-context";
 import { BrandMark } from "@/components/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Lead } from "@/data/mock";
@@ -341,7 +342,7 @@ export function DashboardShell({
         <aside className="glass-dark sticky top-4 hidden h-[calc(100vh-32px)] rounded-[38px] px-4 py-5 text-white lg:flex lg:flex-col lg:items-center lg:justify-between">
           <Link
             href={preview ? "/login" : profileHref}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-ink"
+            className="surface-card flex h-12 w-12 items-center justify-center rounded-full text-foreground"
             aria-label={`Perfil de ${displayName}`}
             title={`${displayName} - ${workspaceName}`}
           >
@@ -357,8 +358,8 @@ export function DashboardShell({
                   aria-label={item.label}
                   className={`group relative flex h-12 w-12 items-center justify-center rounded-full transition ${
                     active
-                      ? "bg-white text-ink shadow-soft"
-                      : "bg-white/8 text-white/72 hover:bg-white/16 hover:text-white"
+                      ? "bg-surface-elevated text-foreground shadow-soft ring-1 ring-white/8"
+                      : "bg-white/12 text-white/78 hover:bg-white/20 hover:text-white"
                   }`}
                   href={getHref(item.href)}
                   key={item.label}
@@ -374,8 +375,8 @@ export function DashboardShell({
             aria-label="Novas criações"
             className={`group relative flex h-12 w-12 items-center justify-center rounded-full transition ${
               creationActive
-                ? "bg-signal text-ink dark:text-cloud shadow-soft"
-                : "bg-signal text-ink dark:text-cloud hover:bg-signal/90"
+                ? "bg-signal text-accent-foreground shadow-soft"
+                : "bg-signal text-accent-foreground hover:bg-signal/90"
             }`}
             href={getHref(creationHref)}
             title="Novas criações"
@@ -398,7 +399,7 @@ export function DashboardShell({
                 >
                   <div className="relative flex h-12 items-center">
                     <Search
-                      className="pointer-events-none absolute left-4 text-ink/38"
+                      className="pointer-events-none absolute left-4 text-muted-foreground/70"
                       size={18}
                       aria-hidden="true"
                     />
@@ -407,7 +408,7 @@ export function DashboardShell({
                       autoComplete="off"
                       autoCorrect="off"
                       aria-label="Buscar leads do CRM"
-                      className="h-full w-full border-0 bg-transparent pl-11 pr-11 text-sm text-ink placeholder-ink/38 focus:outline-none focus:ring-0"
+                      className="h-full w-full border-0 bg-transparent pl-11 pr-11 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-0"
                       enterKeyHint="search"
                       name="dashboard-lead-search"
                       onChange={(event) => {
@@ -428,7 +429,7 @@ export function DashboardShell({
                     {searchTerm ? (
                       <button
                         aria-label="Limpar busca de leads"
-                        className="absolute right-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-ink/42 transition hover:bg-white/70 hover:text-ink"
+                        className="absolute right-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-white/70 hover:text-foreground"
                         onClick={clearLeadSearch}
                         type="button"
                       >
@@ -439,11 +440,11 @@ export function DashboardShell({
 
                   {shouldShowSearchDropdown ? (
                     <div id="dashboard-header-lead-results" className="border-t border-ink/8">
-                      <div className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/42">
+                      <div className="text-muted-soft px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]">
                         Busca em leads
                       </div>
                       {isSearchLoading ? (
-                        <div className="flex items-center gap-2 px-4 py-4 text-sm text-ink/64">
+                        <div className="text-muted-soft flex items-center gap-2 px-4 py-4 text-sm">
                           <Loader2 className="animate-spin text-cobalt" size={16} aria-hidden="true" />
                           Buscando leads...
                         </div>
@@ -453,7 +454,7 @@ export function DashboardShell({
                             <li key={lead.id}>
                               <button
                                 aria-label={`Abrir lead ${lead.name}`}
-                                className="flex w-full items-start justify-between gap-3 rounded-[22px] px-3 py-3 text-left transition hover:bg-white/72"
+                                className="flex w-full items-start justify-between gap-3 rounded-[22px] px-3 py-3 text-left transition hover:bg-white/18"
                                 onClick={() => handleLeadSearchSelect(lead.id)}
                                 onMouseDown={(event) => event.preventDefault()}
                                 type="button"
@@ -462,7 +463,7 @@ export function DashboardShell({
                                   <span className="block truncate text-sm font-semibold text-ink">
                                     {lead.name}
                                   </span>
-                                  <span className="mt-1 block truncate text-xs text-ink/56">
+                                  <span className="text-muted-soft mt-1 block truncate text-xs">
                                     {lead.email || lead.phone}
                                   </span>
                                 </span>
@@ -474,7 +475,7 @@ export function DashboardShell({
                           ))}
                         </ul>
                       ) : (
-                        <div className="px-4 py-4 text-sm text-ink/64">
+                        <div className="text-muted-soft px-4 py-4 text-sm">
                           Nenhum lead encontrado para &quot;{searchTerm.trim()}&quot;.
                         </div>
                       )}
@@ -488,7 +489,7 @@ export function DashboardShell({
                     reminderCount > 0 ? `${reminderCount} notificações de lembrete` : "Notificações"
                   }
                   className={`icon-button relative z-50 transition-all ${
-                    isNotificationsOpen ? "bg-white/70 shadow-soft" : ""
+                    isNotificationsOpen ? "bg-surface-elevated/90 shadow-soft" : ""
                   }`}
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                   type="button"
@@ -513,7 +514,7 @@ export function DashboardShell({
                   }`}
                 >
                   <div className="border-b border-ink/8 px-4 py-3 flex items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/42">
+                    <span className="text-muted-soft text-[11px] font-semibold uppercase tracking-[0.18em]">
                       Lembretes e Notificações
                     </span>
                     {reminderCount > 0 && (
@@ -525,7 +526,7 @@ export function DashboardShell({
 
                   <div className="flex-1 overflow-y-auto min-h-0 animate-fade-in">
                     {isNotificationsLoading ? (
-                      <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-ink/64">
+                      <div className="text-muted-soft flex items-center justify-center gap-2 px-4 py-8 text-sm">
                         <Loader2 className="animate-spin text-cobalt" size={16} aria-hidden="true" />
                         <span>Carregando notificações...</span>
                       </div>
@@ -551,13 +552,13 @@ export function DashboardShell({
 
                           return (
                             <li key={reminder.id}>
-                              <div className="group relative flex flex-col items-start gap-2 rounded-[20px] border border-white/48 bg-white/68 px-4 py-3 transition hover:bg-white/78">
+                              <div className="surface-card-strong group relative flex flex-col items-start gap-2 rounded-[20px] px-4 py-3 transition hover:border-cobalt/24">
                                 <div className="flex w-full items-center justify-between gap-2">
                                   <span className="text-[10px] font-semibold uppercase tracking-wider text-cobalt bg-cobalt/8 px-2 py-0.5 rounded-full">
                                     {formattedDate} às {formattedTime}
                                   </span>
                                 </div>
-                                <p className="text-sm leading-snug font-medium text-ink/80 mt-0.5">
+                                <p className="mt-0.5 text-sm font-medium leading-snug text-foreground/84">
                                   {reminder.message}
                                 </p>
                                 <div className="flex items-center gap-2 mt-2 w-full border-t border-ink/4 pt-2">
@@ -574,7 +575,7 @@ export function DashboardShell({
                                     {!isSnoozeOpen ? (
                                       <button
                                         onClick={() => setOpenSnoozeId(reminder.id)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition duration-200 cursor-pointer text-ink/64 bg-white/60 hover:bg-white/90 border-ink/10"
+                                        className="surface-action-secondary flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
                                         type="button"
                                       >
                                         <Clock size={13} aria-hidden="true" />
@@ -602,7 +603,7 @@ export function DashboardShell({
                                         </button>
                                         <button
                                           onClick={() => setOpenSnoozeId(null)}
-                                          className="flex items-center justify-center p-1.5 rounded-full text-ink/42 hover:bg-white/90 transition duration-200 cursor-pointer animate-fade-in"
+                                          className="flex items-center justify-center rounded-full p-1.5 text-muted-foreground transition duration-200 cursor-pointer animate-fade-in hover:bg-white/16"
                                           type="button"
                                           title="Cancelar"
                                         >
@@ -619,9 +620,9 @@ export function DashboardShell({
                       </ul>
                     ) : (
                       <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-                        <Bell size={24} className="text-ink/24 mb-2" />
-                        <p className="text-sm font-medium text-ink/64">Nenhum lembrete para este mês</p>
-                        <p className="text-xs text-ink/42 mt-1">Tudo limpo por aqui!</p>
+                        <Bell size={24} className="mb-2 text-muted-foreground/45" />
+                        <p className="text-muted-soft text-sm font-medium">Nenhum lembrete para este mês</p>
+                        <p className="mt-1 text-xs text-muted-foreground/72">Tudo limpo por aqui!</p>
                       </div>
                     )}
                   </div>
@@ -653,8 +654,8 @@ export function DashboardShell({
                   aria-label={item.label}
                   className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition ${
                     active
-                      ? "bg-ink text-cloud"
-                      : "bg-white/42 text-ink/62 hover:bg-white/70 hover:text-ink"
+                      ? "bg-surface-elevated text-foreground shadow-soft"
+                      : "bg-white/18 text-white/76 hover:bg-white/24 hover:text-white"
                   }`}
                   href={getHref(item.href)}
                   key={item.label}
@@ -669,8 +670,8 @@ export function DashboardShell({
               aria-label="Novas criações"
               className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition ${
                 creationActive
-                  ? "bg-ink text-cloud"
-                  : "bg-white/42 text-ink/62 hover:bg-white/70 hover:text-ink"
+                  ? "bg-surface-elevated text-foreground shadow-soft"
+                  : "bg-white/18 text-white/76 hover:bg-white/24 hover:text-white"
               }`}
               href={getHref(creationHref)}
               title="Novas criações"
@@ -679,8 +680,10 @@ export function DashboardShell({
             </Link>
           </nav>
 
-          {subscriptionNotice ? <SubscriptionAccessBanner notice={subscriptionNotice} /> : null}
-          {children}
+          <DashboardBillingNoticeProvider hasSubscriptionNotice={Boolean(subscriptionNotice)}>
+            {subscriptionNotice ? <SubscriptionAccessBanner notice={subscriptionNotice} /> : null}
+            {children}
+          </DashboardBillingNoticeProvider>
         </div>
       </div>
     </main>

@@ -165,9 +165,9 @@ export async function getOrganizationSubscriptionNotice(
 
   if (!state.subscription || !state.plan) {
     return {
-      title: "Escolha um plano para liberar recursos do CRM e da IA",
+      title: "Sua assinatura está pausada",
       message:
-        "Sua organização ainda não tem uma assinatura ativa. Enquanto isso, billing continua disponível, mas criação de leads, campanhas, convites e recursos de IA ficam bloqueados.",
+        "Nao encontramos uma assinatura ativa nesta organizacao. Abra o billing para escolher um plano e liberar leads, campanhas, convites e IA.",
       actionHref: DEFAULT_ACTION_HREF,
       actionLabel: "Escolher plano"
     };
@@ -177,7 +177,7 @@ export async function getOrganizationSubscriptionNotice(
     title: "Sua assinatura precisa de atenção",
     message: `A assinatura atual está ${getSubscriptionStatusLabel(
       state.subscription.status
-    ).toLowerCase()}. Atualize o billing para voltar a liberar leads, campanhas, convites e IA.`,
+    ).toLowerCase()}. Abra o billing para regularizar e liberar leads, campanhas, convites e IA.`,
     actionHref: DEFAULT_ACTION_HREF,
     actionLabel: "Abrir billing"
   };
@@ -572,9 +572,9 @@ function buildSubscriptionBlockedAccess(
 ): ResourceAccessSummary {
   if (!subscription) {
     return buildDeniedAccess(resource, "no_subscription", {
-      title: "Escolha um plano para continuar",
+      title: "Este recurso está bloqueado",
       message:
-        "Sua organização ainda não tem uma assinatura ativa. Escolha um plano para liberar este recurso.",
+        "Sua organizacao ainda nao tem uma assinatura ativa. Abra o billing para ativar um plano e liberar este recurso.",
       limit: null,
       used: null
     });
@@ -582,9 +582,9 @@ function buildSubscriptionBlockedAccess(
 
   return buildDeniedAccess(resource, "inactive_subscription", {
     title: "Assinatura inativa",
-    message: `A assinatura da sua organização está ${getSubscriptionStatusLabel(
+    message: `A assinatura da sua organizacao está ${getSubscriptionStatusLabel(
       subscription.status
-    ).toLowerCase()}. Atualize o billing para voltar a usar este recurso.`,
+    ).toLowerCase()}. Abra o billing para voltar a usar este recurso.`,
     limit: null,
     used: null
   });

@@ -63,23 +63,23 @@ const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
 const stageToneByValue: Record<LeadStageValue, StageTone> = {
   new: {
-    accent: "bg-cobalt text-white",
-    card: "border-cobalt/18 bg-cobalt/10",
+    accent: "bg-primary text-primary-foreground",
+    card: "border-primary/18 bg-primary/10",
     pulse: "bg-cobalt"
   },
   qualification: {
-    accent: "bg-lagoon text-white",
+    accent: "bg-info/22 text-foreground border border-info/28",
     card: "border-lagoon/20 bg-lagoon/12",
     pulse: "bg-lagoon"
   },
   proposal: {
-    accent: "bg-signal text-ink dark:text-cloud",
+    accent: "bg-signal text-accent-foreground",
     card: "border-signal/40 bg-signal/20",
     pulse: "bg-signal"
   },
   negotiation: {
-    accent: "bg-ink text-cloud",
-    card: "border-ink/14 bg-ink/8",
+    accent: "border border-border/72 bg-surface-elevated text-foreground",
+    card: "border-border/70 bg-surface-elevated/88",
     pulse: "bg-ink"
   },
   won: {
@@ -421,18 +421,18 @@ export function SalesFunnelWorkspace({
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-4xl">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-cloud">
+              <span className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-semibold text-foreground ring-1 ring-border/70">
                 <Kanban size={14} aria-hidden="true" />
                 Funil de vendas
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/64 px-3 py-1.5 text-xs font-semibold text-ink/68">
+              <span className="inline-flex items-center gap-2 rounded-full bg-surface-elevated/90 px-3 py-1.5 text-xs font-semibold text-foreground ring-1 ring-border/70">
                 Quadro drag and drop com popup de lead
               </span>
             </div>
             <h1 className="max-w-4xl text-3xl font-semibold tracking-tight md:text-4xl xl:text-[2.8rem]">
               Um funil mais amplo, legível e pronto para o consultor agir sem sair da tela.
             </h1>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-ink/64 md:text-base">
+            <p className="text-muted-soft mt-4 max-w-3xl text-sm leading-7 md:text-base">
               Mantivemos as etapas atuais do CRM, mas com uma leitura mais próxima de quadro
               comercial: colunas largas, cards clicáveis e acesso rápido a ligação, mensagem e
               comentários do lead.
@@ -464,7 +464,7 @@ export function SalesFunnelWorkspace({
 
             <div className="flex w-full flex-wrap gap-2 xl:justify-end">
               <button
-                className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/54 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white"
+                className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
                 onClick={openFilterPopup}
                 type="button"
               >
@@ -472,14 +472,14 @@ export function SalesFunnelWorkspace({
                 {hasActiveLeadUrlFilters(leadFilters) ? "Filtros ativos" : "Filtros"}
               </button>
               <Link
-                className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white/78"
+                className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
                 href="/dashboard/leads"
               >
                 Ver lista
                 <ArrowRight size={17} aria-hidden="true" />
               </Link>
               <button
-                className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(52,98,238,0.24)]"
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
                 onClick={() => setIsCreateOpen(true)}
                 type="button"
               >
@@ -521,7 +521,7 @@ export function SalesFunnelWorkspace({
           />
         </div>
 
-        <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/58 px-4 py-2 text-xs font-semibold text-ink/64">
+        <p className="surface-pill mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold">
           <Clock3 className="text-signal" size={14} aria-hidden="true" />
           Parado = lead em etapa aberta sem atualizacao ha pelo menos {STALLED_LEAD_DAYS} dias.
         </p>
@@ -586,10 +586,10 @@ export function SalesFunnelWorkspace({
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center rounded-full bg-white/64 px-4 py-2 text-xs font-semibold text-ink/64">
+              <span className="surface-pill inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold">
                 {totalLeads} leads visiveis
               </span>
-              <span className="inline-flex items-center rounded-full bg-white/64 px-4 py-2 text-xs font-semibold text-ink/64">
+              <span className="surface-pill inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold">
                 {columns.length} etapas
               </span>
             </div>
@@ -621,7 +621,7 @@ export function SalesFunnelWorkspace({
                       onDragOver={(event) => handleDragOver(event, column.value)}
                       onDrop={(event) => handleDrop(event, column.value)}
                     >
-                      <div className="mb-3 rounded-[24px] bg-white/54 p-4">
+                      <div className="surface-card mb-3 rounded-[24px] p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <span className={`mb-3 block h-2.5 w-14 rounded-full ${tone.pulse}`} />
@@ -658,7 +658,7 @@ export function SalesFunnelWorkspace({
                         ))}
 
                         {column.cards.length === 0 && (
-                          <div className="flex flex-1 items-center justify-center rounded-[24px] border border-dashed border-ink/14 bg-white/30 p-6 text-center text-sm font-medium leading-6 text-ink/48">
+                          <div className="surface-card flex flex-1 items-center justify-center rounded-[24px] border border-dashed border-border/55 p-6 text-center text-sm font-medium leading-6 text-muted-soft">
                             Solte um lead aqui para marcar como {column.label.toLowerCase()}.
                           </div>
                         )}
@@ -732,12 +732,12 @@ function FunnelLeadCard({
   return (
     <article
       aria-busy={pending}
-      className={`rounded-[18px] border border-white/72 bg-white/72 p-3.5 text-ink shadow-soft transition ${
+      className={`rounded-[18px] border border-border/72 bg-surface-elevated/92 p-3.5 text-foreground shadow-soft transition ${
         stalledState.isStalled ? "ring-1 ring-signal/35" : ""
       } ${
         active
           ? "scale-[0.985] opacity-60"
-          : "hover:-translate-y-1 hover:bg-white/84 hover:shadow-[0_24px_44px_rgba(18,23,33,0.12)]"
+          : "hover:-translate-y-1 hover:bg-surface-elevated hover:shadow-[0_24px_44px_rgba(18,23,33,0.12)]"
       } ${canEditLead ? "cursor-grab active:cursor-grabbing" : "cursor-default opacity-72"}`}
       draggable={canEditLead && !pending}
       onClick={() => onLeadOpen(lead)}
@@ -762,13 +762,13 @@ function FunnelLeadCard({
           <span className="block text-sm font-semibold leading-tight text-ink">{lead.name}</span>
           <span className="mt-1 block text-xs font-medium text-ink/56">{lead.owner}</span>
           {stalledState.isStalled && stalledState.daysWithoutUpdate !== null ? (
-            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-signal/26 px-2.5 py-1 text-[11px] font-semibold text-ink">
+            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-signal/26 px-2.5 py-1 text-[11px] font-semibold text-accent-foreground">
               <Clock3 size={12} aria-hidden="true" />
               Parado ha {stalledState.daysWithoutUpdate} dias
             </span>
           ) : null}
         </div>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-cloud">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-foreground ring-1 ring-border/70">
           {pending ? (
             <Loader2 className="animate-spin" size={16} aria-hidden="true" />
           ) : (
@@ -791,14 +791,14 @@ function FunnelLeadCard({
               Redistribuir
             </button>
           ) : null}
-          <span className="rounded-full bg-ink/6 px-2.5 py-1 text-[11px] font-semibold text-ink/64">
+          <span className="surface-pill rounded-full px-2.5 py-1 text-[11px] font-semibold">
             {lead.source}
           </span>
         </div>
 
         <div className="flex gap-2">
           <button
-            className="icon-button h-10 w-10 bg-white/68"
+            className="icon-button h-10 w-10 bg-surface-elevated/88"
             onClick={(event) => {
               event.stopPropagation();
               onLeadOpen(lead);
@@ -809,7 +809,7 @@ function FunnelLeadCard({
             <MessageCircle size={16} aria-hidden="true" />
           </button>
           <a
-            className="icon-button h-10 w-10 bg-white/68"
+            className="icon-button h-10 w-10 bg-surface-elevated/88"
             href={phoneHref ?? "#"}
             onClick={(event) => {
               event.stopPropagation();
@@ -826,7 +826,7 @@ function FunnelLeadCard({
       </div>
 
       {!canEditLead && (
-        <p className="mt-3 rounded-2xl bg-white/70 px-3 py-2 text-xs font-semibold text-ink/54">
+        <p className="surface-pill mt-3 rounded-2xl px-3 py-2 text-xs font-semibold">
           Somente leitura para este usuario.
         </p>
       )}
@@ -848,17 +848,17 @@ function FunnelHeroMetric({
   value: string;
 }) {
   const toneClass = {
-    blue: "bg-cobalt text-white",
-    teal: "bg-lagoon text-white",
-    dark: "bg-ink text-cloud",
-    yellow: "bg-signal text-ink dark:text-cloud"
+    blue: "bg-primary text-primary-foreground",
+    teal: "border border-info/28 bg-info/22 text-foreground",
+    dark: "border border-border/72 bg-surface-elevated text-foreground",
+    yellow: "bg-signal text-accent-foreground"
   }[tone];
 
   return (
-    <article className="rounded-[28px] border border-white/58 bg-white/44 p-4 shadow-[0_18px_40px_rgba(18,23,33,0.08)]">
+    <article className="surface-card-muted rounded-[28px] p-4 shadow-[0_18px_40px_rgba(18,23,33,0.08)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-ink/54">{label}</p>
+          <p className="text-muted-soft text-sm">{label}</p>
           <strong className="mt-3 block text-4xl font-semibold">{value}</strong>
         </div>
         <span className={`flex h-11 w-11 items-center justify-center rounded-full ${toneClass}`}>
@@ -882,14 +882,14 @@ function FunnelEmptyState({
   onClearFilters: () => void;
 }) {
   return (
-    <section className="rounded-[30px] border border-white/60 bg-white/36 p-8 text-center">
+    <section className="surface-card-muted rounded-[30px] p-8 text-center">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
         <Sparkles size={22} aria-hidden="true" />
       </div>
       <h3 className="text-2xl font-semibold">
         {hasActiveFilters ? "Nenhum resultado com estes filtros" : "Seu funil ainda esta vazio"}
       </h3>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-ink/62">
+      <p className="text-muted-soft mx-auto mt-2 max-w-xl text-sm leading-6">
         {hasActiveFilters
           ? "Ajuste a busca ou limpe os filtros para voltar a ver os cards do funil."
           : "Crie um lead e comece a acompanhar cada etapa comercial em formato kanban."}
@@ -897,7 +897,7 @@ function FunnelEmptyState({
       <div className="mt-5 flex flex-wrap justify-center gap-2">
         {hasActiveFilters && (
           <button
-            className="inline-flex items-center justify-center rounded-full bg-white/64 px-5 py-3 text-sm font-semibold text-ink"
+            className="surface-action-secondary inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold"
             onClick={onClearFilters}
             type="button"
           >
@@ -905,7 +905,7 @@ function FunnelEmptyState({
           </button>
         )}
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
           onClick={onCreateOpen}
           type="button"
         >
@@ -928,7 +928,7 @@ function LeadDataNotice({ leadState }: { leadState: LeadDataState }) {
 
   if (leadState.mode === "not-configured") {
     return (
-      <p className="rounded-[24px] bg-signal/30 px-5 py-3 text-sm font-medium text-ink dark:text-cloud">
+      <p className="rounded-[24px] bg-signal/30 px-5 py-3 text-sm font-medium text-foreground">
         {leadState.message ?? "Usando dados mockados enquanto a base real nao esta disponivel."}
       </p>
     );
@@ -948,7 +948,7 @@ function LeadWorkspaceErrorState({
     <section className="glass-strong rounded-[34px] p-6 md:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal/28 text-ink dark:text-cloud">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal/28 text-accent-foreground">
             <AlertCircle size={20} aria-hidden="true" />
           </div>
           <p className="text-sm font-medium text-cobalt">Funil</p>
@@ -959,7 +959,7 @@ function LeadWorkspaceErrorState({
         </div>
 
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft"
           onClick={onRetry}
           type="button"
         >

@@ -27,7 +27,8 @@ describe('Landing Page (/)', () => {
     const loginLink = screen.getByRole('link', { name: /^Entrar$/ });
     expect(loginLink).toHaveAttribute('href', '/login');
 
-    const pricingLink = screen.getAllByRole('link', { name: /Planos|Ver planos/i });
-    expect(pricingLink.length).toBeGreaterThan(0);
+    const pricingLinks = screen.getAllByRole('link', { name: /Planos|Ver planos/i });
+    expect(pricingLinks.length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: /^Planos$/ })).toHaveAttribute('href', '/pricing');
   });
 });

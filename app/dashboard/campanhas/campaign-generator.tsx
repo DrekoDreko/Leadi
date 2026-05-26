@@ -349,24 +349,24 @@ function CampaignStatCard({
   value: string;
 }) {
   const cardClass = {
-    blue: "border-cobalt/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(236,242,255,0.9))]",
-    teal: "border-lagoon/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(236,251,247,0.9))]",
-    yellow: "border-signal/24 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(255,249,232,0.92))]",
-    dark: "border-ink/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(241,244,251,0.92))]"
+    blue: "surface-card border-primary/18",
+    teal: "surface-card border-info/24",
+    yellow: "surface-card border-signal/24",
+    dark: "surface-card-muted border-border/70"
   }[accent];
 
   const noteClass = {
-    blue: "bg-cobalt text-white",
-    teal: "bg-lagoon text-white",
-    yellow: "bg-signal text-ink dark:text-cloud",
-    dark: "bg-ink text-cloud"
+    blue: "bg-primary text-primary-foreground",
+    teal: "border border-info/28 bg-info/22 text-foreground",
+    yellow: "bg-signal text-accent-foreground",
+    dark: "border border-border/70 bg-surface-elevated text-foreground"
   }[accent];
 
   return (
-    <article className={`min-h-[150px] rounded-[28px] border p-5 shadow-[0_18px_44px_rgba(18,23,33,0.06)] ${cardClass}`}>
-      <p className="text-sm text-ink/54">{label}</p>
+    <article className={`min-h-[150px] rounded-[28px] border p-5 shadow-soft ${cardClass}`}>
+      <p className="text-muted-soft text-sm">{label}</p>
       <div className="mt-3 flex min-h-[96px] flex-col justify-between gap-3">
-        <strong className="text-4xl font-semibold leading-none text-ink">{value}</strong>
+        <strong className="text-4xl font-semibold leading-none text-foreground">{value}</strong>
         <span className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-semibold ${noteClass}`}>
           {note}
         </span>
@@ -610,19 +610,19 @@ export function CampaignGenerator({
 
       {currentAiBalance <= 0 ? (
         <div className="space-y-4">
-          <div className="rounded-[28px] border border-cobalt/18 bg-cobalt/8 p-5 text-sm leading-6 text-ink/72 shadow-soft">
+          <div className="surface-card rounded-[28px] border border-primary/18 p-5 text-sm leading-6 text-foreground/82 shadow-soft">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 shrink-0 text-cobalt" size={20} aria-hidden="true" />
                 <div>
-                  <p className="font-semibold text-ink">Créditos de IA insuficientes</p>
+                  <p className="font-semibold text-foreground">Créditos de IA insuficientes</p>
                   <p className="mt-1">
                     Você pode navegar e preparar a campanha, mas a geração final depende de créditos disponíveis.
                   </p>
                 </div>
               </div>
               <Link
-                className="inline-flex w-fit items-center gap-2 rounded-full bg-white/72 px-4 py-2.5 text-sm font-semibold text-cobalt transition hover:bg-white"
+                className="surface-action-secondary inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-cobalt"
                 href="/dashboard/perfil/creditos"
               >
                 Adicionar créditos
@@ -647,8 +647,8 @@ export function CampaignGenerator({
         <div
           className={`rounded-[26px] border p-4 text-sm ${
             historyMode === "supabase"
-              ? "border-white/46 bg-white/34 text-ink/72"
-              : "border-amber-200/70 bg-amber-50/80 text-amber-900"
+              ? "surface-card border-border/70 text-foreground/82"
+              : "surface-alert-warning text-foreground"
           }`}
         >
           {historyMessage}
@@ -786,7 +786,7 @@ export function CampaignGenerator({
 
 function CampaignHero() {
   return (
-    <section className="campaign-liquid-hero relative overflow-hidden rounded-[38px] border border-white/32 p-5 text-white shadow-[0_36px_120px_rgba(10,18,39,0.34)] md:p-6 xl:p-7">
+    <section className="campaign-liquid-hero relative overflow-hidden rounded-[38px] border border-border/60 p-5 text-white shadow-[0_36px_120px_rgba(10,18,39,0.34)] md:p-6 xl:p-7">
       <div
         aria-hidden="true"
         className="campaign-liquid-glow absolute inset-0"
@@ -841,12 +841,12 @@ function CampaignStepCard({
     <section
       className={`group relative overflow-hidden rounded-[34px] border p-0 shadow-[0_24px_72px_rgba(18,23,33,0.08)] transition duration-200 ${
         featured
-          ? "border-cobalt/28 bg-[linear-gradient(135deg,rgba(52,98,238,0.18),rgba(255,255,255,0.82)_40%,rgba(74,145,168,0.18))]"
+          ? "surface-card-strong border-cobalt/28"
           : current
-            ? "border-cobalt/22 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(240,246,255,0.84))]"
+            ? "surface-card border-cobalt/22"
             : done
-              ? "border-emerald-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(236,253,245,0.72))]"
-              : "border-white/58 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(255,255,255,0.48))]"
+              ? "surface-card border-emerald-500/24"
+              : "surface-card-muted border-border/72"
       } backdrop-blur-2xl`}
     >
       <div
@@ -860,7 +860,7 @@ function CampaignStepCard({
             ? "bg-[radial-gradient(circle_at_top_right,rgba(52,98,238,0.12),transparent_30%)]"
             : done
               ? "bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_30%)]"
-              : "bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.56),transparent_24%)]"
+              : "bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.14),transparent_24%)]"
         }`}
       />
       <button
@@ -876,7 +876,7 @@ function CampaignStepCard({
                 ? "bg-[linear-gradient(135deg,#10b981,#34d399)] text-white"
                 : current
                   ? "bg-[linear-gradient(135deg,#3462EE,#4A91A8)] text-white"
-                  : "bg-white/78 text-ink/58"
+                  : "bg-surface-elevated/92 text-muted-soft"
             }`}
           >
             {done ? <CheckCircle2 size={18} aria-hidden="true" /> : number}
@@ -888,7 +888,7 @@ function CampaignStepCard({
                 Etapa {number}
               </span>
               {current ? (
-                <span className="rounded-full bg-cobalt/10 px-2.5 py-1 text-xs font-semibold text-cobalt">
+                <span className="rounded-full bg-primary/12 px-2.5 py-1 text-xs font-semibold text-primary">
                   Em andamento
                 </span>
               ) : done ? (
@@ -896,20 +896,20 @@ function CampaignStepCard({
                   Concluída
                 </span>
               ) : (
-                <span className="rounded-full bg-white/66 px-2.5 py-1 text-xs font-semibold text-ink/48">
+                <span className="surface-pill rounded-full px-2.5 py-1 text-xs font-semibold">
                   Aguardando avanço
                 </span>
               )}
             </div>
-            <h2 className="mt-2 text-xl font-semibold text-ink md:text-2xl">{title}</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/64">{description}</p>
+            <h2 className="mt-2 text-xl font-semibold text-foreground md:text-2xl">{title}</h2>
+            <p className="text-muted-soft mt-2 max-w-3xl text-sm leading-6">{description}</p>
           </div>
         </div>
         <span
           className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border shadow-[0_12px_28px_rgba(18,23,33,0.08)] transition ${
             current
               ? "border-cobalt/22 bg-cobalt/10 text-cobalt"
-              : "border-white/62 bg-white/78 text-ink/52 group-hover:bg-white"
+              : "border-border/62 bg-surface-elevated/92 text-muted-soft group-hover:bg-surface-elevated"
           }`}
         >
           <ChevronDown
@@ -932,12 +932,12 @@ function CampaignStepCard({
             open ? "translate-y-0 blur-0" : "-translate-y-2 blur-[1px]"
           }`}
         >
-          <div className="relative border-t border-white/54 px-5 pb-5 pt-4 md:px-6 md:pb-6">
+          <div className="relative border-t border-border/60 px-5 pb-5 pt-4 md:px-6 md:pb-6">
             {children}
             {onAdvance ? (
               <div className="mt-5 flex justify-end">
                 <button
-                  className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2d5bf0,#4A91A8)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_44px_rgba(52,98,238,0.24)] transition hover:translate-y-[-1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition hover:translate-y-[-1px] hover:bg-primary/92 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50"
                   onClick={onAdvance}
                   type="button"
                 >
@@ -964,8 +964,8 @@ function CampaignTemplateSelector({
 }) {
   return (
     <div>
-      <div className="rounded-[26px] border border-cobalt/12 bg-[linear-gradient(135deg,rgba(52,98,238,0.08),rgba(255,255,255,0.84)_58%,rgba(74,145,168,0.08))] p-4 text-sm leading-6 text-ink/66">
-        <p className="font-semibold text-ink">Curadoria inicial com linguagem mais segura.</p>
+      <div className="surface-card-muted rounded-[26px] border border-cobalt/14 p-4 text-sm leading-6 text-foreground/78">
+        <p className="font-semibold text-foreground">Curadoria inicial com linguagem mais segura.</p>
         <p className="mt-1">
           Escolha um modelo para dar contexto para a IA. Você continua com liberdade total para editar
           público, oferta, tom e criativo depois.
@@ -979,8 +979,8 @@ function CampaignTemplateSelector({
             <button
               className={`group relative flex min-h-[270px] flex-col overflow-hidden rounded-[28px] border p-5 text-left transition duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50 ${
                 selected
-                  ? "border-cobalt/70 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.78),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(74,145,168,0.24),transparent_34%),linear-gradient(145deg,rgba(52,98,238,0.18)_0%,rgba(255,255,255,0.98)_48%,rgba(74,145,168,0.2)_100%)] shadow-[0_30px_80px_rgba(52,98,238,0.2)]"
-                  : "border-white/58 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.72),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(74,145,168,0.14),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.84),rgba(249,251,253,0.72)_52%,rgba(239,245,248,0.62))] hover:-translate-y-0.5 hover:bg-white/80"
+                  ? "surface-card border-cobalt/70 shadow-[0_30px_80px_rgba(52,98,238,0.14)]"
+                  : "surface-card-muted border-border/72 hover:-translate-y-0.5 hover:border-cobalt/22 hover:bg-surface-elevated"
               }`}
               key={template.id}
               onClick={() => onSelect(template)}
@@ -990,8 +990,8 @@ function CampaignTemplateSelector({
                 aria-hidden="true"
                 className={`absolute inset-0 ${
                   selected
-                    ? "bg-[linear-gradient(180deg,rgba(255,255,255,0.38),transparent_24%),radial-gradient(circle_at_top_right,rgba(52,98,238,0.24),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(74,145,168,0.18),transparent_34%)]"
-                    : "bg-[linear-gradient(180deg,rgba(255,255,255,0.3),transparent_28%),radial-gradient(circle_at_top_right,rgba(74,145,168,0.14),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.22),transparent_26%)]"
+                    ? "bg-[linear-gradient(180deg,rgba(52,98,238,0.08),transparent_24%),radial-gradient(circle_at_top_right,rgba(52,98,238,0.16),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(74,145,168,0.12),transparent_34%)]"
+                    : "bg-[linear-gradient(180deg,rgba(148,163,184,0.08),transparent_28%),radial-gradient(circle_at_top_right,rgba(74,145,168,0.08),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(148,163,184,0.06),transparent_26%)]"
                 }`}
               />
               <div className="flex items-start justify-between gap-3">
@@ -1005,24 +1005,24 @@ function CampaignTemplateSelector({
                   </span>
                 ) : null}
               </div>
-              <h3 className="relative mt-5 text-lg font-semibold leading-7 text-ink">{template.title}</h3>
-              <p className="relative mt-2 text-sm leading-6 text-ink/62">{template.description}</p>
+              <h3 className="relative mt-5 text-lg font-semibold leading-7 text-foreground">{template.title}</h3>
+              <p className="text-muted-soft relative mt-2 text-sm leading-6">{template.description}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {template.tags.slice(1).map((tag) => (
                   <span
-                    className="rounded-full border border-white/66 bg-white/78 px-2.5 py-1 text-xs font-semibold text-ink/56"
+                    className="surface-pill rounded-full px-2.5 py-1 text-xs font-semibold"
                     key={tag}
                   >
                     {tag}
                   </span>
                 ))}
               </div>
-              <div className="mt-auto rounded-[22px] border border-white/60 bg-white/60 p-3 text-xs leading-5 text-ink/58">
+              <div className="surface-card mt-auto rounded-[22px] p-3 text-xs leading-5 text-muted-soft">
                 <p>
-                  <strong className="text-ink/74">Região:</strong> {template.regions.join(", ")}
+                  <strong className="text-foreground/80">Região:</strong> {template.regions.join(", ")}
                 </p>
                 <p className="mt-1">
-                  <strong className="text-ink/74">Tom:</strong> {template.tone}
+                  <strong className="text-foreground/80">Tom:</strong> {template.tone}
                 </p>
               </div>
             </button>
@@ -1058,13 +1058,13 @@ function CampaignConnectionsStep({
 
   if (!metaConnection) {
     return (
-      <div className="rounded-[28px] border border-dashed border-cobalt/24 bg-[linear-gradient(135deg,rgba(52,98,238,0.08),rgba(255,255,255,0.8))] p-5 text-sm leading-6 text-ink/68">
-        <p className="font-semibold text-ink">Nenhuma conexão Meta ativa encontrada.</p>
+      <div className="surface-card-muted rounded-[28px] border border-dashed border-cobalt/24 p-5 text-sm leading-6 text-foreground/78">
+        <p className="font-semibold text-foreground">Nenhuma conexão Meta ativa encontrada.</p>
         <p className="mt-2">
           Conecte sua conta Meta para escolher página, conta de anúncio e formulário de Lead Ads.
         </p>
         <Link
-          className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-cloud"
+          className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
           href="/dashboard/perfil/meta"
         >
           Conectar Meta
@@ -1076,13 +1076,13 @@ function CampaignConnectionsStep({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[28px] border border-white/58 bg-[linear-gradient(135deg,rgba(52,98,238,0.08),rgba(255,255,255,0.86)_52%,rgba(74,145,168,0.08))] p-4">
+      <div className="surface-card-muted rounded-[28px] border border-border/72 p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cobalt/72">
               Torre de controle Meta
             </p>
-            <p className="mt-2 text-sm leading-6 text-ink/66">
+            <p className="text-muted-soft mt-2 text-sm leading-6">
               Escolha os ativos que a IA vai usar para estruturar a campanha de ponta a ponta.
             </p>
           </div>
@@ -1181,8 +1181,8 @@ function CampaignConnectionsStep({
       </div>
 
       {form.publishMode === "paused" ? (
-        <div className="rounded-[28px] border border-ink/10 bg-[linear-gradient(135deg,rgba(18,23,33,0.05),rgba(255,255,255,0.92)_50%,rgba(52,98,238,0.06))] p-4 text-sm leading-6 text-ink/70">
-          <p className="font-semibold text-ink">Modo pausado selecionado</p>
+        <div className="surface-card rounded-[28px] border border-border/72 p-4 text-sm leading-6 text-foreground/78">
+          <p className="font-semibold text-foreground">Modo pausado selecionado</p>
           <p className="mt-1">
             A Leadi vai preparar a campanha com os ativos abaixo e manter a veiculacao bloqueada ate a equipe ativar manualmente.
           </p>
@@ -1191,8 +1191,8 @@ function CampaignConnectionsStep({
               <div
                 className={`rounded-[22px] border px-4 py-3 ${
                   item.ready
-                    ? "border-emerald-200/80 bg-emerald-50/80 text-emerald-900"
-                    : "border-amber-200/80 bg-amber-50/80 text-amber-900"
+                    ? "border-emerald-500/24 bg-emerald-500/10 text-foreground"
+                    : "border-signal/28 bg-signal/14 text-foreground"
                 }`}
                 key={item.label}
               >
@@ -1294,7 +1294,7 @@ function CampaignToneStep({
         value={form.adNotes}
       />
       <div>
-        <p className="text-sm font-semibold text-ink/62">Tom da mensagem</p>
+        <p className="text-muted-soft text-sm font-semibold">Tom da mensagem</p>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           {toneOptions.map((tone) => {
             const selected = form.tone === tone;
@@ -1303,8 +1303,8 @@ function CampaignToneStep({
               <button
                 className={`rounded-[24px] border px-4 py-3.5 text-left text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50 ${
                   selected
-                    ? "border-cobalt/70 bg-[linear-gradient(135deg,rgba(52,98,238,0.14),rgba(255,255,255,0.96))] text-cobalt shadow-[0_18px_46px_rgba(52,98,238,0.14)]"
-                    : "border-white/58 bg-white/56 text-ink/68 hover:bg-white/80"
+                    ? "border-cobalt/70 bg-primary/10 text-cobalt shadow-[0_18px_46px_rgba(52,98,238,0.14)]"
+                    : "border-border/65 bg-surface-elevated/88 text-muted-soft hover:bg-surface-elevated"
                 }`}
                 key={tone}
                 onClick={() => onChange("tone", tone)}
@@ -1340,24 +1340,24 @@ function CampaignPublishModeStep({
           <button
             className={`rounded-[26px] border p-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50 ${
               selected
-                ? "border-cobalt/70 bg-[linear-gradient(145deg,rgba(52,98,238,0.12),rgba(255,255,255,0.98)_52%,rgba(74,145,168,0.16))] shadow-[0_24px_60px_rgba(52,98,238,0.16)]"
-                : "border-white/58 bg-[linear-gradient(180deg,rgba(255,255,255,0.76),rgba(255,255,255,0.56))] hover:bg-white/78"
+                ? "border-cobalt/70 bg-primary/10 shadow-[0_24px_60px_rgba(52,98,238,0.16)]"
+                : "border-border/65 bg-surface-elevated/88 hover:bg-surface-elevated"
             }`}
             key={option.value}
             onClick={() => onChange("publishMode", option.value)}
             type="button"
           >
             <span className="flex items-start justify-between gap-3">
-              <span className="font-semibold text-ink">{option.title}</span>
+              <span className="font-semibold text-foreground">{option.title}</span>
               <span
                 className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                  selected ? "bg-cobalt text-white" : "bg-white/84 text-ink/46"
+                  selected ? "bg-primary text-primary-foreground" : "bg-surface-elevated/94 text-muted-soft"
                 }`}
               >
                 {selected ? <CheckCircle2 size={15} aria-hidden="true" /> : <ArrowRight size={14} aria-hidden="true" />}
               </span>
             </span>
-            <span className="mt-3 block text-sm leading-6 text-ink/62">{option.description}</span>
+            <span className="text-muted-soft mt-3 block text-sm leading-6">{option.description}</span>
           </button>
         );
       })}
@@ -1378,10 +1378,10 @@ function CampaignCreativeStep({
 }) {
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 rounded-[28px] border border-cobalt/18 bg-[linear-gradient(135deg,rgba(52,98,238,0.08),rgba(255,255,255,0.86)_56%,rgba(74,145,168,0.08))] p-4 md:flex-row md:items-start">
+      <div className="surface-card-muted flex flex-col gap-3 rounded-[28px] border border-cobalt/18 p-4 md:flex-row md:items-start">
         <FileImage className="shrink-0 text-cobalt" size={24} aria-hidden="true" />
-        <div className="text-sm leading-6 text-ink/66">
-          <p className="font-semibold text-ink">
+        <div className="text-sm leading-6 text-foreground/78">
+          <p className="font-semibold text-foreground">
             Arquivo ou solicitação: carregue um criativo existente ou solicite uma arte/vídeo para esta campanha.
           </p>
           <p className="mt-1">
@@ -1400,8 +1400,8 @@ function CampaignCreativeStep({
             <button
               className={`flex items-center gap-3 rounded-[24px] border px-4 py-3.5 text-left font-semibold transition ${
                 selected
-                  ? "border-cobalt/70 bg-[linear-gradient(145deg,rgba(52,98,238,0.14),rgba(255,255,255,0.96))] text-cobalt shadow-[0_18px_46px_rgba(52,98,238,0.12)]"
-                  : "border-white/58 bg-white/56 text-ink/66"
+                  ? "border-cobalt/70 bg-primary/10 text-cobalt shadow-[0_18px_46px_rgba(52,98,238,0.12)]"
+                  : "border-border/65 bg-surface-elevated/88 text-muted-soft"
               }`}
               key={option.value}
               onClick={() => onChange("creativeMode", option.value)}
@@ -1428,7 +1428,7 @@ function CampaignCreativeStep({
             ))}
           </SelectField>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-ink/62">Objetivo do criativo</span>
+            <span className="text-muted-soft text-sm font-semibold">Objetivo do criativo</span>
             <input
               className="liquid-input"
               onChange={(event) => onChange("creativeObjective", event.target.value)}
@@ -1452,12 +1452,12 @@ function CampaignCreativeStep({
           />
         </div>
       ) : (
-        <div className="rounded-[28px] border border-dashed border-cobalt/26 bg-white/56 p-5">
-          <p className="font-semibold text-ink">Você já tem a arte ou vídeo do anúncio? Envie aqui para anexarmos à campanha.</p>
-          <p className="mt-2 text-sm leading-6 text-ink/62">
+        <div className="surface-card rounded-[28px] border border-dashed border-cobalt/26 p-5">
+          <p className="font-semibold text-foreground">Você já tem a arte ou vídeo do anúncio? Envie aqui para anexarmos à campanha.</p>
+          <p className="text-muted-soft mt-2 text-sm leading-6">
             Envie imagens ou vídeos já prontos para esta campanha.
           </p>
-          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-cobalt/90">
+          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92">
             <Paperclip size={16} aria-hidden="true" />
             Adicionar arquivo
             <input
@@ -1476,7 +1476,7 @@ function CampaignCreativeStep({
             <div className="mt-4 flex flex-wrap gap-2">
               {form.uploadedFiles.map((fileName) => (
                 <span
-                  className="inline-flex items-center gap-2 rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink/64"
+                  className="surface-pill inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
                   key={fileName}
                 >
                   <Paperclip size={13} aria-hidden="true" />
@@ -1485,7 +1485,7 @@ function CampaignCreativeStep({
               ))}
             </div>
           ) : (
-            <p className="mt-4 rounded-[20px] bg-signal/16 px-4 py-3 text-sm font-semibold text-ink dark:text-cloud/70">
+            <p className="surface-alert-warning mt-4 rounded-[20px] px-4 py-3 text-sm font-semibold">
               Nenhum arquivo adicionado ainda. Você pode continuar, mas a equipe precisará receber o criativo depois.
             </p>
           )}
@@ -1519,7 +1519,7 @@ function CampaignSummaryStep({
   return (
     <div className="space-y-4">
       {validationMessages.length ? (
-        <div className="rounded-[24px] border border-amber-200/80 bg-amber-50/90 p-4 text-sm text-amber-950">
+        <div className="surface-alert-warning rounded-[24px] p-4 text-sm text-foreground">
           <p className="font-semibold">Revise antes de enviar:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {validationMessages.map((message) => (
@@ -1528,22 +1528,22 @@ function CampaignSummaryStep({
           </ul>
         </div>
       ) : complianceReview && (complianceReview.riskLevel === "high" || complianceReview.riskLevel === "medium") ? (
-        <div className="rounded-[28px] border border-amber-200/80 bg-[linear-gradient(135deg,rgba(254,243,199,0.4),rgba(255,255,255,0.92)_50%,rgba(254,243,199,0.2))] p-5 text-sm leading-6 text-amber-950 shadow-[0_18px_44px_rgba(18,23,33,0.04)]">
+        <div className="surface-alert-warning rounded-[28px] p-5 text-sm leading-6 text-foreground shadow-soft">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 shrink-0 text-amber-600" size={20} aria-hidden="true" />
             <div>
-              <p className="font-semibold text-amber-900">Atenção ao conteúdo da campanha</p>
+              <p className="font-semibold text-foreground">Atenção ao conteúdo da campanha</p>
               <p className="mt-1 opacity-90">Alguns termos identificados podem gerar restrições ou reprovações na Meta:</p>
               <ul className="mt-3 space-y-3">
                 {complianceReview.reasons.map((reason, index) => (
-                  <li key={index} className="rounded-2xl bg-amber-100/50 p-3">
-                    <strong className="block text-amber-900">{reason.title}</strong>
+                  <li key={index} className="rounded-2xl bg-signal/18 p-3">
+                    <strong className="block text-foreground">{reason.title}</strong>
                     <span className="mt-1 block opacity-80">{reason.detail}</span>
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 rounded-2xl bg-white/60 p-3">
-                <p className="font-medium text-amber-900">Sugestões de ajuste:</p>
+              <div className="surface-card mt-4 rounded-2xl p-3">
+                <p className="font-medium text-foreground">Sugestões de ajuste:</p>
                 <ul className="mt-2 list-inside list-disc opacity-90">
                   {complianceReview.suggestions.map((suggestion, index) => (
                     <li key={index}>{suggestion}</li>
@@ -1557,8 +1557,8 @@ function CampaignSummaryStep({
           </div>
         </div>
       ) : form.publishMode === "paused" ? (
-        <div className="rounded-[28px] border border-ink/10 bg-[linear-gradient(135deg,rgba(18,23,33,0.05),rgba(255,255,255,0.94)_52%,rgba(52,98,238,0.08))] p-5 text-sm leading-6 text-ink/68">
-          <p className="font-semibold text-ink">Publicacao pausada: a campanha sera preparada, nao ativada.</p>
+        <div className="surface-card rounded-[28px] border border-border/72 p-5 text-sm leading-6 text-foreground/78">
+          <p className="font-semibold text-foreground">Publicacao pausada: a campanha sera preparada, nao ativada.</p>
           <p className="mt-1">
             Ao enviar, a Leadi gera a copy, salva o historico e deixa a campanha pronta para uma etapa posterior de envio em estado pausado na Meta.
           </p>
@@ -1567,8 +1567,8 @@ function CampaignSummaryStep({
               <div
                 className={`rounded-[22px] border px-4 py-3 ${
                   item.ready
-                    ? "border-emerald-200/80 bg-emerald-50/80 text-emerald-900"
-                    : "border-amber-200/80 bg-amber-50/80 text-amber-900"
+                    ? "border-emerald-500/24 bg-emerald-500/10 text-foreground"
+                    : "border-signal/28 bg-signal/14 text-foreground"
                 }`}
                 key={item.label}
               >
@@ -1577,20 +1577,20 @@ function CampaignSummaryStep({
               </div>
             ))}
           </div>
-          <p className="mt-4 text-[13px] font-medium text-ink/60">
+          <p className="text-muted-soft mt-4 text-[13px] font-medium">
             O envio efetivo e a ativacao continuam em etapa manual e segura, sem subir a campanha ja em veiculacao.
           </p>
         </div>
       ) : form.publishMode === "manual_review" ? (
-        <div className="rounded-[28px] border border-cobalt/20 bg-[linear-gradient(135deg,rgba(52,98,238,0.08),rgba(255,255,255,0.92)_50%,rgba(52,98,238,0.04))] p-4 text-sm leading-6 text-ink/68">
-          <p className="font-semibold text-ink">Revisão manual: a campanha não será enviada à Meta agora.</p>
+        <div className="surface-card rounded-[28px] border border-primary/18 p-4 text-sm leading-6 text-foreground/78">
+          <p className="font-semibold text-foreground">Revisão manual: a campanha não será enviada à Meta agora.</p>
           <p className="mt-1">
             Ao enviar, a IA vai gerar os textos e preparar tudo na Leadi. Você poderá revisar o resultado com a equipe e exportar ou publicar na Meta apenas quando estiver pronto.
           </p>
         </div>
       ) : (
-        <div className="rounded-[28px] border border-emerald-200/70 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),rgba(255,255,255,0.92)_50%,rgba(52,98,238,0.06))] p-4 text-sm leading-6 text-ink/68">
-          <p className="font-semibold text-ink">Resumo pronto para a camada final de IA.</p>
+        <div className="surface-card rounded-[28px] border border-emerald-500/20 p-4 text-sm leading-6 text-foreground/78">
+          <p className="font-semibold text-foreground">Resumo pronto para a camada final de IA.</p>
           <p className="mt-1">
             Revise os sinais abaixo, salve um rascunho se quiser e envie quando estiver confortável com
             o briefing completo.
@@ -1630,14 +1630,14 @@ function CampaignSummaryStep({
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-white/78 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white"
+          className="surface-action-secondary inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
           onClick={onSaveDraft}
           type="button"
         >
           Salvar rascunho para publicar depois
         </button>
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-cobalt/90"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
           type="submit"
         >
           Enviar campanha
@@ -1686,10 +1686,10 @@ export function RegionTagsInput({
 
   return (
     <div>
-      <label className="text-sm font-semibold text-ink/62" htmlFor="campaign-region-tags">
+      <label className="text-muted-soft text-sm font-semibold" htmlFor="campaign-region-tags">
         Região
       </label>
-      <div className="mt-2 rounded-[24px] border border-white/56 bg-white/58 p-3 transition focus-within:border-cobalt/45 focus-within:bg-white/84 focus-within:shadow-[0_0_0_4px_rgba(52,98,238,0.12)]">
+      <div className="mt-2 rounded-[24px] border border-border/70 bg-surface-elevated/88 p-3 transition focus-within:border-cobalt/45 focus-within:bg-surface-elevated focus-within:shadow-[0_0_0_4px_rgba(52,98,238,0.12)]">
         <div className="flex flex-wrap gap-2">
           {regions.map((region) => (
             <span
@@ -1709,7 +1709,7 @@ export function RegionTagsInput({
           ))}
           <input
             aria-label="Adicionar região"
-            className="min-h-[36px] min-w-[180px] flex-1 bg-transparent px-2 text-sm text-ink outline-none placeholder:text-ink/36"
+            className="min-h-[36px] min-w-[180px] flex-1 bg-transparent px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
             id="campaign-region-tags"
             onBlur={() => addTag(draft)}
             onChange={(event) => setDraft(event.target.value)}
@@ -1738,9 +1738,9 @@ function TextAreaField({
 }) {
   return (
     <label className="space-y-2">
-      <span className="text-sm font-semibold text-ink/62">{label}</span>
+      <span className="text-muted-soft text-sm font-semibold">{label}</span>
       <textarea
-        className={`liquid-input ${minHeightClass} resize-y border-white/58 bg-white/58 leading-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]`}
+        className={`liquid-input ${minHeightClass} resize-y border-border/70 bg-surface-elevated/88 leading-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]`}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         value={value}
@@ -1762,9 +1762,9 @@ function SelectField({
 }) {
   return (
     <label className="space-y-2">
-      <span className="text-sm font-semibold text-ink/62">{label}</span>
+      <span className="text-muted-soft text-sm font-semibold">{label}</span>
       <select
-        className="liquid-input border-white/58 bg-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+        className="liquid-input border-border/70 bg-surface-elevated/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >
@@ -1776,18 +1776,18 @@ function SelectField({
 
 function DetailTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[24px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.8),rgba(255,255,255,0.6))] px-4 py-3 shadow-[0_14px_34px_rgba(18,23,33,0.05)]">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/44">{label}</p>
-      <p className="mt-2 text-sm font-semibold leading-6 text-ink">{value}</p>
+    <div className="surface-card-muted rounded-[24px] px-4 py-3 shadow-soft">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="mt-2 text-sm font-semibold leading-6 text-foreground">{value}</p>
     </div>
   );
 }
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[24px] border border-white/58 bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.62))] px-4 py-3 shadow-[0_14px_34px_rgba(18,23,33,0.04)]">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">{label}</p>
-      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-ink/76">{value || "Não informado"}</p>
+    <div className="surface-card-muted rounded-[24px] px-4 py-3 shadow-soft">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-foreground/82">{value || "Não informado"}</p>
     </div>
   );
 }
@@ -1802,11 +1802,11 @@ function SmallStatusChip({
   tone: "neutral" | "blue" | "yellow" | "teal" | "dark";
 }) {
   const toneClasses = {
-    neutral: "border-white/58 bg-white/72 text-ink/72",
-    blue: "border-cobalt/12 bg-cobalt text-white",
-    yellow: "border-signal/20 bg-signal text-ink dark:text-cloud",
-    teal: "border-lagoon/14 bg-lagoon text-white",
-    dark: "border-ink/14 bg-ink text-cloud"
+    neutral: "border-border/65 bg-surface-elevated/92 text-foreground/80",
+    blue: "border-cobalt/12 bg-primary text-primary-foreground",
+    yellow: "border-signal/20 bg-signal text-accent-foreground",
+    teal: "border-info/22 bg-info/22 text-foreground",
+    dark: "border-border/70 bg-surface-elevated text-foreground"
   }[tone];
 
   return (
@@ -1820,8 +1820,8 @@ function SmallStatusChip({
 function Notice({ message, tone }: { message: string; tone: "success" | "info" }) {
   const toneClass =
     tone === "success"
-      ? "border-emerald-200/70 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),rgba(255,255,255,0.92))] text-emerald-800"
-      : "border-sky-200/70 bg-[linear-gradient(135deg,rgba(14,165,233,0.08),rgba(255,255,255,0.92))] text-sky-800";
+      ? "surface-alert-success text-foreground"
+      : "surface-card border border-info/20 text-foreground";
 
   return <div className={`rounded-[26px] border p-4 text-sm leading-6 shadow-[0_18px_44px_rgba(18,23,33,0.04)] ${toneClass}`}>{message}</div>;
 }

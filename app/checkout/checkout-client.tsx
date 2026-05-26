@@ -42,8 +42,8 @@ export function CheckoutClient({
           paymentMethods: {
             creditCard: "all",
             debitCard: "all",
-            ticket: "all",
-            bankTransfer: "all",
+            ticket: [],
+            bankTransfer: [],
           },
         }}
         onSubmit={async (formData) => {

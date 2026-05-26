@@ -21,12 +21,14 @@ export function TimelineContent({
 }: TimelineContentProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const Component = motion[as as keyof typeof motion] as any;
-  
+  const canObserveViewport = typeof IntersectionObserver !== "undefined";
+
   return (
     <Component
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-100px" }}
+      animate={canObserveViewport ? undefined : "visible"}
+      viewport={canObserveViewport ? { once: true, margin: "-100px" } : undefined}
+      whileInView={canObserveViewport ? "visible" : undefined}
       variants={customVariants}
       custom={animationNum}
       className={className}

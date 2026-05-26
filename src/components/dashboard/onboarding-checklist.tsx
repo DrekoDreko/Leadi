@@ -56,7 +56,7 @@ export function OnboardingChecklist({
   return (
     <div
       className={cn(
-        "glass overflow-hidden rounded-[32px] border border-white/20 !bg-cloud/95 shadow-xl transition-all duration-700 animate-in fade-in slide-in-from-top-4",
+        "surface-card overflow-hidden rounded-[32px] border border-white/20 shadow-xl transition-all duration-700 animate-in fade-in slide-in-from-top-4",
         isDismissing && "scale-95 opacity-0 duration-300"
       )}
     >
@@ -71,10 +71,10 @@ export function OnboardingChecklist({
             {isAllCompleted ? <CheckCircle2 size={24} /> : <CheckCircle2 size={24} />}
           </div>
           <div>
-            <h3 className="text-xl font-bold tracking-tight text-ink">
+            <h3 className="text-xl font-bold tracking-tight text-foreground">
               {isAllCompleted ? "Tudo pronto!" : "Primeiros Passos"}
             </h3>
-            <p className="text-sm text-ink/60">
+            <p className="text-muted-soft text-sm">
               {isAllCompleted
                 ? "Sua conta está ativa e você já explorou as principais funções."
                 : `Complete ${totalSteps} passos para ativar sua conta e gerar valor.`}
@@ -94,7 +94,7 @@ export function OnboardingChecklist({
       <div className="p-6 md:p-8">
         <div className="mb-8 space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-ink/80">Sua jornada de ativação</span>
+            <span className="font-semibold text-foreground/82">Sua jornada de ativação</span>
             <span
               className={cn(
                 "font-bold transition-colors duration-500",
@@ -122,8 +122,8 @@ export function OnboardingChecklist({
               className={cn(
                 "group relative flex flex-col gap-3 rounded-2xl border p-5 transition-all duration-500",
                 step.isCompleted
-                  ? "border-teal-500/20 !bg-cloud/95"
-                  : "border-white/40 !bg-cloud/95 hover:border-cobalt/30 hover:!bg-cloud/95 hover:shadow-lg hover:shadow-cobalt/5"
+                  ? "surface-card border-teal-500/20"
+                  : "surface-card border-white/40 hover:border-cobalt/30 hover:shadow-lg hover:shadow-cobalt/5"
               )}
             >
               <div className="flex items-start justify-between gap-3">

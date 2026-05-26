@@ -196,19 +196,19 @@ export const kanbanColumns = [
   {
     title: "Qualificação",
     total: 11,
-    color: "bg-lagoon text-white",
+    color: "border border-info/28 bg-info/22 text-foreground",
     cards: [leads[1]]
   },
   {
     title: "Proposta",
     total: 7,
-    color: "bg-signal text-ink dark:text-cloud",
+    color: "bg-signal text-accent-foreground",
     cards: [leads[2]]
   },
   {
     title: "Negociação",
     total: 5,
-    color: "bg-ink text-cloud",
+    color: "border border-border/72 bg-surface-elevated text-foreground",
     cards: [leads[3]]
   }
 ];

@@ -54,14 +54,14 @@ export function LeadFiltersPopup({
       role="dialog"
     >
       <section
-        className="mx-auto w-full max-w-3xl overflow-y-auto rounded-[32px] border border-white/70 bg-cloud/95 p-4 shadow-glass sm:p-6"
+        className="surface-modal mx-auto w-full max-w-3xl overflow-y-auto rounded-[32px] p-4 shadow-glass sm:p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-ink/10 pb-5">
           <div>
             <p className="text-sm font-medium text-cobalt">Filtros</p>
             <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">Filtrar leads</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/62">
+            <p className="text-muted-soft mt-2 max-w-2xl text-sm leading-6">
               Ajuste os filtros e aplique em uma única etapa.
             </p>
           </div>

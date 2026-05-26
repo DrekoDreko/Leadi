@@ -19,16 +19,16 @@ export function HeroSection() {
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <a
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-8 py-4 font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-cobalt/95"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-signal px-8 py-4 font-semibold text-accent-foreground shadow-soft transition hover:-translate-y-0.5 hover:bg-signal/92"
               href="https://wa.me/5511920595133?text=Ola!%20Gostaria%20de%20agendar%20uma%20apresenta%C3%A7%C3%A3o%20do%20Leadi!"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Play size={16} aria-hidden="true" className="fill-white" />
+              <Play size={16} aria-hidden="true" className="fill-accent-foreground" />
               Agendar demonstração
             </a>
             <a
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-white/54 dark:bg-white/10 px-8 py-4 font-semibold text-ink shadow-soft backdrop-blur-2xl transition hover:-translate-y-0.5 hover:bg-white/80"
+              className="surface-action-secondary inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 font-semibold shadow-soft backdrop-blur-2xl"
               href="#como-funciona"
             >
               Ver como funciona
@@ -40,4 +40,3 @@ export function HeroSection() {
     </section>
   );
 }
-

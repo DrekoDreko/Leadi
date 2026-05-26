@@ -11,6 +11,14 @@ if (shouldValidateProductionCoreEnv()) {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   devIndicators: false,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com"
+      }
+    ]
+  },
   experimental: {
     devtoolSegmentExplorer: false
   }

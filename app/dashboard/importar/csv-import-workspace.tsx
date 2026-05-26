@@ -652,7 +652,7 @@ export function CsvImportWorkspace({
             {importSummary ? (
               <div
                 className={`mt-5 rounded-[28px] p-4 ${
-                  importSummary.errors.length > 0 ? "bg-signal/18" : "bg-lagoon/16"
+                  importSummary.errors.length > 0 ? "surface-alert-warning" : "surface-alert-success"
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -790,7 +790,7 @@ export function CsvImportWorkspace({
 
               <div className="flex flex-wrap gap-2">
                 <Link
-                  className="inline-flex items-center justify-center rounded-full bg-white/54 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white/76"
+                  className="surface-action-secondary inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold"
                   href="/dashboard/leads"
                 >
                   Ver leads

@@ -110,7 +110,7 @@ export function LeadCreateModal({
         role="dialog"
       >
         <section
-          className="mx-auto w-full max-w-3xl rounded-[32px] border border-white/70 bg-cloud/95 p-4 shadow-glass sm:p-6"
+          className="surface-modal mx-auto w-full max-w-3xl rounded-[32px] p-4 shadow-glass sm:p-6"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex items-start justify-between gap-4 border-b border-ink/10 pb-5">
@@ -202,7 +202,7 @@ export function LeadCreateModal({
       role="dialog"
     >
       <section
-        className="mx-auto max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[32px] border border-white/70 bg-cloud/95 p-4 shadow-glass sm:p-6"
+        className="surface-modal mx-auto max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[32px] p-4 shadow-glass sm:p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-ink/10 pb-5">
@@ -211,7 +211,7 @@ export function LeadCreateModal({
             <h2 className="mt-2 text-2xl font-semibold sm:text-3xl" id="lead-create-title">
               Novo lead
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/62">
+            <p className="text-muted-soft mt-2 max-w-2xl text-sm leading-6">
               Cadastre um contato manualmente e acompanhe o atendimento no funil do Leadi.
             </p>
           </div>
@@ -225,7 +225,7 @@ export function LeadCreateModal({
             <div
               aria-live="polite"
               className={`mb-5 flex items-start gap-3 rounded-[24px] px-4 py-3 text-sm font-medium ${
-                status.type === "success" ? "bg-lagoon/16 text-ink dark:text-cloud" : "bg-signal/34 text-ink dark:text-cloud"
+                status.type === "success" ? "surface-alert-success" : "surface-alert-warning"
               }`}
             >
               {status.type === "success" && (
@@ -332,7 +332,7 @@ export function LeadCreateModal({
             </LeadField>
 
             <LeadField label="Etapa">
-              <div className="liquid-input flex items-center bg-white/40 text-sm font-medium opacity-70">
+              <div className="liquid-input flex items-center bg-surface-elevated/70 text-sm font-medium opacity-80">
                 Novo lead
               </div>
               <input name="stage" type="hidden" value="new" />
@@ -367,7 +367,7 @@ export function LeadCreateModal({
 
           <div className="mt-6 flex flex-col-reverse gap-3 border-t border-ink/10 pt-5 sm:flex-row sm:justify-end">
             <button
-              className="inline-flex items-center justify-center rounded-full bg-white/54 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white/76 disabled:cursor-not-allowed disabled:opacity-60"
+              className="surface-action-secondary inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold"
               disabled={isSubmitting}
               onClick={closeModal}
               type="button"
@@ -406,7 +406,7 @@ function LeadField({
 }) {
   return (
     <label className={`block ${className ?? ""}`}>
-      <span className="mb-2 block text-sm font-medium text-ink/62">{label}</span>
+      <span className="text-muted-soft mb-2 block text-sm font-medium">{label}</span>
       {children}
       {error && <span className="mt-2 block text-xs font-semibold text-ink/62">{error}</span>}
     </label>

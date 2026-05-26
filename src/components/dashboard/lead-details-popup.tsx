@@ -486,7 +486,7 @@ export function LeadDetailsPopup({
       role="dialog"
     >
       <section
-        className="mx-auto max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[32px] border border-white/70 bg-cloud/95 p-4 shadow-glass sm:p-6"
+        className="surface-modal mx-auto max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[32px] p-4 shadow-glass sm:p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex flex-col gap-4 border-b border-ink/10 pb-5 lg:flex-row lg:items-start lg:justify-between">
@@ -556,7 +556,7 @@ export function LeadDetailsPopup({
                   className={`icon-button ${
                     whatsappHref
                       ? "border-emerald-200/80 bg-emerald-50/85 text-emerald-700 hover:bg-emerald-100/90"
-                      : "cursor-not-allowed border-white/60 bg-white/45 text-ink/35 hover:bg-white/45"
+                      : "cursor-not-allowed border-border/60 bg-surface-elevated/55 text-muted-foreground/60 hover:bg-surface-elevated/55"
                   }`}
                   href={whatsappHref ?? "#"}
                   onClick={(event) => {
@@ -600,7 +600,7 @@ export function LeadDetailsPopup({
           <div
             aria-live="polite"
             className={`mt-5 flex items-start gap-3 rounded-[24px] px-4 py-3 text-sm font-medium ${
-              status.type === "success" ? "bg-lagoon/16 text-ink dark:text-cloud" : "bg-signal/34 text-ink dark:text-cloud"
+              status.type === "success" ? "surface-alert-success" : "surface-alert-warning"
             }`}
           >
             {status.type === "success" && (
@@ -616,7 +616,7 @@ export function LeadDetailsPopup({
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 activePanel === "details"
                   ? "bg-ink text-cloud"
-                  : "bg-white/70 text-ink hover:bg-white"
+                  : "surface-action-secondary"
               }`}
               onClick={() => setActivePanel("details")}
               type="button"
@@ -627,7 +627,7 @@ export function LeadDetailsPopup({
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 activePanel === "message"
                   ? "bg-cobalt text-white"
-                  : "bg-white/70 text-ink hover:bg-white"
+                  : "surface-action-secondary"
               }`}
               onClick={() => setActivePanel("message")}
               type="button"
@@ -732,7 +732,7 @@ export function LeadDetailsPopup({
               </LeadField>
 
               <LeadField label="Etapa">
-                <div className="liquid-input flex items-center bg-white/40 text-sm font-medium opacity-70">
+                <div className="liquid-input flex items-center bg-surface-elevated/70 text-sm font-medium opacity-80">
                   {activeStageLabel}
                 </div>
               </LeadField>
@@ -812,7 +812,7 @@ export function LeadDetailsPopup({
 
             <div className="mt-6 flex flex-col-reverse gap-3 border-t border-ink/10 pt-5 sm:flex-row sm:justify-end">
               <button
-                className="inline-flex items-center justify-center rounded-full bg-white/54 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white/76 disabled:cursor-not-allowed disabled:opacity-60"
+                className="surface-action-secondary inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold"
                 disabled={isSubmitting}
                 onClick={cancelEdit}
                 type="button"
@@ -844,24 +844,24 @@ export function LeadDetailsPopup({
           </div>
         ) : (
           <div className="space-y-4 pt-5">
-            <section className="rounded-[28px] bg-white/42 p-5">
+            <section className="surface-card-muted rounded-[28px] p-5">
               <div className="mb-4 flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-cloud">
                   <UserRound size={18} aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="text-sm text-ink/54">Leitura rapida</p>
+                  <p className="text-muted-soft text-sm">Leitura rapida</p>
                   <h3 className="font-semibold">Dados basicos</h3>
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {profileItems.map((item) => (
-                  <div className="rounded-[24px] bg-white/44 p-4" key={item.label}>
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/68">
+                  <div className="surface-card rounded-[24px] p-4" key={item.label}>
+                    <div className="surface-pill mb-3 flex h-10 w-10 items-center justify-center rounded-full">
                       <item.icon size={18} aria-hidden="true" />
                     </div>
-                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
                       {item.label}
                     </p>
                     <p className="mt-1 font-semibold">{item.value}</p>
@@ -871,87 +871,87 @@ export function LeadDetailsPopup({
             </section>
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1.12fr)_minmax(280px,0.88fr)]">
-              <section className="rounded-[28px] bg-white/42 p-5">
+              <section className="surface-card-muted rounded-[28px] p-5">
                 <div className="mb-4 flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lagoon text-white">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-info/22 text-foreground">
                     <CheckCircle2 size={18} aria-hidden="true" />
                   </span>
                   <div>
-                    <p className="text-sm text-ink/54">Leitura comercial</p>
+                    <p className="text-muted-soft text-sm">Leitura comercial</p>
                     <h3 className="font-semibold">Contexto da oportunidade</h3>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className={stagePanelClassName}>
-                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
                       Etapa atual
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
                       <span className={stageBadgeClassName}>{activeStageLabel}</span>
                       <LeadQualityBadge quality={lead.quality} />
-                      <p className="text-sm font-medium text-ink/68">{activeStageDescription}</p>
+                      <p className="text-muted-soft text-sm font-medium">{activeStageDescription}</p>
                     </div>
                   </div>
 
-                  <div className="rounded-[22px] bg-white/52 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                  <div className="surface-card rounded-[22px] p-4">
+                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
                       Qualidade do lead
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
                       <LeadQualityBadge quality={lead.quality} />
-                      <p className="text-sm font-medium text-ink/68">
+                      <p className="text-muted-soft text-sm font-medium">
                         {leadQualityMeta?.description ?? "Classificacao comercial ainda nao definida."}
                       </p>
                     </div>
                   </div>
 
-                  <div className="rounded-[22px] bg-white/52 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                  <div className="surface-card rounded-[22px] p-4">
+                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
                       Interesse principal
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-ink/72">{lead.interest}</p>
+                    <p className="text-muted-strong mt-2 text-sm leading-6">{lead.interest}</p>
                   </div>
 
-                  <div className="rounded-[22px] bg-white/52 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                  <div className="surface-card rounded-[22px] p-4">
+                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
                       Ultima interacao
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-ink/72">{lead.lastInteraction}</p>
+                    <p className="text-muted-strong mt-2 text-sm leading-6">{lead.lastInteraction}</p>
                   </div>
 
-                  <div className="rounded-[22px] bg-white/52 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                  <div className="surface-card rounded-[22px] p-4">
+                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
                       Observacoes
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-ink/72">{lead.notes}</p>
+                    <p className="text-muted-strong mt-2 text-sm leading-6">{lead.notes}</p>
                   </div>
 
                   {isLostLead ? (
-                    <div className="rounded-[22px] bg-white/52 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
+                    <div className="surface-card rounded-[22px] p-4">
+                      <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
                         Motivo de perda
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-ink/72">{lossReasonDescription}</p>
+                      <p className="text-muted-strong mt-2 text-sm leading-6">{lossReasonDescription}</p>
                     </div>
                   ) : null}
                 </div>
               </section>
 
-              <section className="rounded-[28px] bg-white/44 p-5">
+              <section className="surface-card-muted rounded-[28px] p-5">
                 <div className="mb-4 flex items-center gap-3">
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cobalt text-white">
                     <Clock3 size={18} aria-hidden="true" />
                   </span>
                   <div>
-                    <p className="text-sm text-ink/54">Origem e operacao</p>
+                    <p className="text-muted-soft text-sm">Origem e operacao</p>
                     <h3 className="font-semibold">Resumo de origem</h3>
                   </div>
                 </div>
                 <dl className="mt-4 space-y-3 text-sm">
                   {sourceItems.map((item) => (
                     <div className="flex items-center justify-between gap-3" key={item.label}>
-                      <dt className="text-ink/54">{item.label}</dt>
+                      <dt className="text-muted-soft">{item.label}</dt>
                       <dd className="max-w-[190px] text-right font-semibold">{item.value}</dd>
                     </div>
                   ))}
@@ -959,18 +959,18 @@ export function LeadDetailsPopup({
               </section>
             </div>
 
-            <section className="rounded-[28px] bg-white/42 p-5">
+            <section className="surface-card-muted rounded-[28px] p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cobalt text-white">
                     <MessageCircle size={18} aria-hidden="true" />
                   </span>
                   <div>
-                    <p className="text-sm text-ink/54">Historico do lead</p>
+                    <p className="text-muted-soft text-sm">Historico do lead</p>
                     <h3 className="font-semibold">Comentarios internos</h3>
                   </div>
                 </div>
-                <span className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-ink/62">
+                <span className="surface-pill rounded-full px-3 py-1.5 text-xs font-semibold">
                   {comments.length}
                 </span>
               </div>
@@ -1009,7 +1009,7 @@ export function LeadDetailsPopup({
                   value={commentDraft}
                 />
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs font-medium text-ink/46">
+                  <span className="text-muted-soft text-xs font-medium">
                     {commentDraft.trim().length}/2000 caracteres
                   </span>
                   <button
@@ -1035,12 +1035,12 @@ export function LeadDetailsPopup({
 
               <div className="space-y-3">
                 {commentsStatus === "loading" ? (
-                  <div className="flex items-center gap-2 rounded-[20px] bg-white/60 px-4 py-3 text-sm text-ink/62">
+                  <div className="surface-card flex items-center gap-2 rounded-[20px] px-4 py-3 text-sm text-muted-soft">
                     <Loader2 className="animate-spin" size={16} aria-hidden="true" />
                     Carregando comentarios...
                   </div>
                 ) : comments.length === 0 ? (
-                  <div className="rounded-[20px] border border-dashed border-ink/12 bg-white/54 px-4 py-5 text-sm leading-6 text-ink/56">
+                  <div className="surface-card rounded-[20px] border border-dashed border-border/55 px-4 py-5 text-sm leading-6 text-muted-soft">
                     Nenhum comentario registrado ainda. Use esse espaco para contexto de ligacao,
                     objecoes e proximos passos.
                   </div>
@@ -1048,7 +1048,7 @@ export function LeadDetailsPopup({
                   comments.map((comment) => (
                     <article
                       className={`rounded-[22px] p-4 ${
-                        comment.type === "contact" ? "bg-amber-50 border border-amber-200/60" : "bg-white/58"
+                        comment.type === "contact" ? "surface-alert-warning" : "surface-card"
                       }`}
                       key={comment.id}
                     >
@@ -1063,14 +1063,14 @@ export function LeadDetailsPopup({
                               </span>
                             )}
                           </div>
-                          <p className="mt-1 text-xs text-ink/46">{comment.authorEmail}</p>
+                          <p className="text-muted-soft mt-1 text-xs">{comment.authorEmail}</p>
                         </div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-white/72 px-3 py-1.5 text-[11px] font-semibold text-ink/56">
+                        <span className="surface-pill inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold">
                           <Clock3 size={12} aria-hidden="true" />
                           {formatCommentTimestamp(comment.createdAt)}
                         </span>
                       </div>
-                      <p className="mt-3 whitespace-pre-line text-sm leading-6 text-ink/70">
+                      <p className="text-muted-strong mt-3 whitespace-pre-line text-sm leading-6">
                         {comment.body}
                       </p>
                     </article>

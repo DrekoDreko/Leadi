@@ -181,7 +181,7 @@ export function DashboardHome({
           : "Resumo da conta, conexoes ativas, anuncios criados e prioridades para a operacao comercial."}
       >
         <Link
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
           href={relatoriosHref}
         >
           {preview ? "Entrar" : "Relatorios"}
@@ -230,11 +230,11 @@ export function DashboardHome({
         <Metric label="Vendas" value={metrics.sales} note={metrics.salesNote} tone="teal" />
       </div>
 
-      <section className="glass !bg-cloud/85 rounded-[30px] p-4">
+      <section className="surface-card rounded-[30px] p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm font-medium text-cobalt">Contexto da conta</p>
-            <p className="mt-1 text-sm leading-6 text-ink/62">
+            <p className="text-muted-soft mt-1 text-sm leading-6">
               Anuncios, saldo de IA e custo inicial continuam visiveis, mas fora da linha principal
               de prioridades comerciais.
             </p>
@@ -242,11 +242,11 @@ export function DashboardHome({
           <div className="flex flex-wrap gap-2">
             {contextItems.map((item) => (
               <div
-                className="rounded-full bg-white/60 px-4 py-2 text-sm text-ink/62"
+                className="surface-pill rounded-full px-4 py-2 text-sm"
                 key={item.label}
               >
                 <span className="font-semibold text-ink">{item.label}:</span> {item.value}
-                <span className="text-ink/54"> • {item.note}</span>
+                <span className="text-muted-soft"> • {item.note}</span>
               </div>
             ))}
           </div>
@@ -261,16 +261,16 @@ export function DashboardHome({
 
         <aside className="min-w-0 flex h-full flex-col gap-4">
           <Link
-            className="glass !bg-cloud/95 flex flex-col justify-between rounded-[34px] p-5 transition hover:!bg-cloud/95"
+            className="surface-card flex flex-col justify-between rounded-[34px] p-5 transition"
             href={anunciosHref}
           >
             <div className="mb-5 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-lagoon text-white">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-info/22 text-foreground">
                 <ShieldCheck size={19} aria-hidden="true" />
               </span>
               <div>
                 <h2 className="font-semibold">Meus Anuncios</h2>
-                <p className="text-sm text-ink/54">
+                <p className="text-muted-soft text-sm">
                   {campaignsCount > 0
                     ? `${campaignsCount} anuncios salvos`
                     : "Nenhum anuncio salvo ainda"}
@@ -279,11 +279,11 @@ export function DashboardHome({
             </div>
             <div className="space-y-3">
               {campaignsCount > 0 ? (
-                <div className="rounded-[22px] bg-white/44 p-4 text-sm leading-6 text-ink/62">
+                <div className="surface-card-muted rounded-[22px] p-4 text-sm leading-6 text-muted-soft">
                   Veja o historico principal de campanhas geradas e retome qualquer anuncio para revisar ou reaproveitar a ideia.
                 </div>
               ) : (
-                <div className="rounded-[22px] bg-white/44 p-4 text-sm leading-6 text-ink/62">
+                <div className="surface-card-muted rounded-[22px] p-4 text-sm leading-6 text-muted-soft">
                   A primeira campanha criada em Criações aparece aqui como resumo da conta.
                 </div>
               )}
@@ -294,16 +294,16 @@ export function DashboardHome({
             </div>
           </Link>
 
-          <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+          <section className="surface-card rounded-[34px] p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-ink/54">Campanhas ativas</p>
+                <p className="text-muted-soft text-sm">Campanhas ativas</p>
                 <h2 className="mt-1 text-xl font-semibold">
                   {campaignSummary.activeCount + campaignSummary.readyCount === 0
                     ? "Nenhuma campanha ativa ou pronta"
                     : `${campaignSummary.activeCount + campaignSummary.readyCount} campanha${campaignSummary.activeCount + campaignSummary.readyCount > 1 ? "s" : ""} ativa${campaignSummary.activeCount + campaignSummary.readyCount > 1 ? "s" : ""} ou pronta${campaignSummary.activeCount + campaignSummary.readyCount > 1 ? "s" : ""}`}
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-ink/62">
+                <p className="text-muted-soft mt-2 text-sm leading-6">
                   {getCampaignActivityHeadline(campaignSummary, campaignsCount)}
                 </p>
               </div>
@@ -316,26 +316,26 @@ export function DashboardHome({
               {campaignSummary.campaigns.length > 0 ? (
                 campaignSummary.campaigns.map((campaign) => (
                   <Link
-                    className="block rounded-[24px] bg-white/52 p-4 transition hover:bg-white/72 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/40"
+                    className="surface-card-muted block rounded-[24px] p-4 transition hover:border-cobalt/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/40"
                     href={anunciosHref}
                     key={campaign.id}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-semibold text-ink line-clamp-1">{campaign.campaignName}</p>
-                        <p className="mt-1 text-sm leading-6 text-ink/62">
+                        <p className="text-muted-soft mt-1 text-sm leading-6">
                           {getCampaignPublicationStatusLabel(campaign.publicationStatus)} •{" "}
                           {getCampaignPublishModeLabel(campaign.publishMode)}
                         </p>
                       </div>
-                      <span className="rounded-full bg-cloud px-3 py-1.5 text-xs font-semibold text-ink/62 whitespace-nowrap">
+                      <span className="surface-pill rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap">
                         {campaign.publicationStatus === "published" ? "Ativa" : "Pronta"}
                       </span>
                     </div>
                   </Link>
                 ))
               ) : (
-                <div className="rounded-[24px] bg-white/44 p-4 text-sm leading-6 text-ink/62">
+                <div className="surface-card-muted rounded-[24px] p-4 text-sm leading-6 text-muted-soft">
                   {getCampaignActivityEmptyState(campaignSummary, campaignsCount)}
                 </div>
               )}
@@ -348,12 +348,12 @@ export function DashboardHome({
 
           <RemindersCalendarCard initialReminders={dashboardReminders} />
 
-          <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+          <section className="surface-card rounded-[34px] p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-ink/54">Funil comercial</p>
+                <p className="text-muted-soft text-sm">Funil comercial</p>
                 <h2 className="mt-1 text-xl font-semibold">Conversao por etapa</h2>
-                <p className="mt-2 text-sm leading-6 text-ink/62">
+                <p className="text-muted-soft mt-2 text-sm leading-6">
                   {dashboardStageConversionSummary.note}
                 </p>
               </div>
@@ -365,19 +365,19 @@ export function DashboardHome({
             <div className="mt-5 space-y-3">
               {dashboardStageConversionSummary.status === "available" ? (
                 dashboardStageConversionSummary.rows.map((row) => (
-                  <div className="rounded-[24px] bg-white/52 p-4" key={row.stageValue}>
+                  <div className="surface-card-muted rounded-[24px] p-4" key={row.stageValue}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-semibold text-ink">{row.label}</p>
-                        <p className="mt-1 text-sm leading-6 text-ink/62">
+                        <p className="text-muted-soft mt-1 text-sm leading-6">
                           {row.count} lead{row.count === 1 ? "" : "s"} na etapa atual
                         </p>
                       </div>
-                      <span className="rounded-full bg-cloud px-3 py-1.5 text-xs font-semibold text-ink/62 whitespace-nowrap">
+                      <span className="surface-pill rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap">
                         {formatStageShare(row.percentage)}
                       </span>
                     </div>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80">
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted/90">
                       <div
                         aria-hidden="true"
                         className={`h-full rounded-full ${getStageToneClass(row.tone)}`}
@@ -387,7 +387,7 @@ export function DashboardHome({
                   </div>
                 ))
               ) : (
-                <div className="rounded-[24px] bg-white/44 p-4 text-sm leading-6 text-ink/62">
+                <div className="surface-card-muted rounded-[24px] p-4 text-sm leading-6 text-muted-soft">
                   Nenhum lead com etapa valida foi encontrado para montar a leitura do funil.
                 </div>
               )}
@@ -399,16 +399,16 @@ export function DashboardHome({
           </section>
 
           {canManageLeadOwners && (
-            <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+            <section className="surface-card rounded-[34px] p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm text-ink/54">Carteira por consultor</p>
+                  <p className="text-muted-soft text-sm">Carteira por consultor</p>
                   <h2 className="mt-1 text-xl font-semibold">
                     {teamConsultantSummary.status === "available"
                       ? `${teamConsultantSummary.totalConsultants} consultor${teamConsultantSummary.totalConsultants === 1 ? "" : "es"} com carteira visivel`
                       : "Nenhuma carteira distribuida no momento"}
                   </h2>
-                  <p className="mt-2 text-sm leading-6 text-ink/62">
+                  <p className="text-muted-soft mt-2 text-sm leading-6">
                     {teamConsultantSummary.note}
                   </p>
                 </div>
@@ -420,18 +420,18 @@ export function DashboardHome({
               <div className="mt-5 space-y-3">
                 {teamConsultantSummary.status === "available" ? (
                   teamConsultantSummary.rows.map((row) => (
-                    <div className="rounded-[24px] bg-white/52 p-4" key={row.ownerProfileId ?? row.ownerName}>
+                    <div className="surface-card-muted rounded-[24px] p-4" key={row.ownerProfileId ?? row.ownerName}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="font-semibold text-ink">{row.ownerName}</p>
-                          <p className="mt-1 text-sm leading-6 text-ink/62">
+                          <p className="text-muted-soft mt-1 text-sm leading-6">
                             {getConsultantRoleLabel(row.role)} • {row.leadCount} lead{row.leadCount === 1 ? "" : "s"} na carteira
                           </p>
                         </div>
                         <span
                           className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${
                             row.overdueCount > 0
-                              ? "bg-signal/10 text-signal"
+                          ? "bg-signal/14 text-foreground"
                               : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"
                           }`}
                         >
@@ -441,7 +441,7 @@ export function DashboardHome({
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-[24px] bg-white/44 p-4 text-sm leading-6 text-ink/62">
+                  <div className="surface-card-muted rounded-[24px] p-4 text-sm leading-6 text-muted-soft">
                     Assim que houver leads distribuidos para a equipe, a leitura por consultor aparece aqui.
                   </div>
                 )}
@@ -450,14 +450,14 @@ export function DashboardHome({
           )}
 
           {overdueTasks.length > 0 && (
-            <section className="glass !bg-cloud/95 rounded-[34px] p-5 border border-signal/20">
+            <section className="surface-card rounded-[34px] border border-signal/22 p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm text-ink/54">Tarefas pendentes</p>
+                  <p className="text-muted-soft text-sm">Tarefas pendentes</p>
                   <h2 className="mt-1 text-xl font-semibold text-signal">
                     {overdueTasks.length} tarefa{overdueTasks.length > 1 ? "s" : ""} em atraso
                   </h2>
-                  <p className="mt-2 text-sm leading-6 text-ink/62">
+                  <p className="text-muted-soft mt-2 text-sm leading-6">
                     Atrasos operacionais no relacionamento com os leads.
                   </p>
                 </div>
@@ -469,7 +469,7 @@ export function DashboardHome({
               <div className="mt-5 space-y-3">
                 {overdueTasks.slice(0, 3).map((task) => (
                   <button
-                    className="w-full rounded-[24px] bg-white/52 p-4 text-left transition hover:bg-white/72 focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal/40"
+                    className="surface-card-muted w-full rounded-[24px] p-4 text-left transition hover:border-signal/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal/40"
                     key={task.id}
                     onClick={() => {
                       const matchingLead = leads.find((lead) => lead.id === task.leadId) ?? null;
@@ -482,7 +482,7 @@ export function DashboardHome({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-semibold text-ink line-clamp-1">{task.title}</p>
-                        <p className="mt-1 text-sm leading-6 text-ink/62 line-clamp-1">
+                        <p className="text-muted-soft mt-1 text-sm leading-6 line-clamp-1">
                           {task.leadName} • {task.leadStage}
                         </p>
                       </div>
@@ -494,7 +494,7 @@ export function DashboardHome({
                 ))}
 
                 {overdueTasks.length > 3 && (
-                  <div className="text-sm font-semibold text-signal text-center mt-2">
+                  <div className="mt-2 text-center text-sm font-semibold text-warning">
                     + {overdueTasks.length - 3} tarefas vencidas
                   </div>
                 )}
@@ -502,16 +502,16 @@ export function DashboardHome({
             </section>
           )}
 
-          <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+          <section className="surface-card rounded-[34px] p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-ink/54">Sem primeiro contato</p>
+                <p className="text-muted-soft text-sm">Sem primeiro contato</p>
                 <h2 className="mt-1 text-xl font-semibold">
                   {noContactSummary.total === 0
                     ? "Nenhum lead aguardando abordagem"
                     : `${noContactSummary.total} lead${noContactSummary.total > 1 ? "s" : ""} aguardando abordagem`}
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-ink/62">
+                <p className="text-muted-soft mt-2 text-sm leading-6">
                   Regra inicial: lead sem registro manual de contato no histórico comercial.
                 </p>
               </div>
@@ -524,7 +524,7 @@ export function DashboardHome({
               {noContactSummary.leads.length > 0 ? (
                 noContactSummary.leads.map((leadSummary) => (
                   <button
-                    className="w-full rounded-[24px] bg-white/52 p-4 text-left transition hover:bg-white/72 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/40"
+                    className="surface-card-muted w-full rounded-[24px] p-4 text-left transition hover:border-cobalt/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/40"
                     key={leadSummary.id}
                     onClick={() => {
                       const matchingLead = leads.find((lead) => lead.id === leadSummary.id) ?? null;
@@ -535,19 +535,19 @@ export function DashboardHome({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-semibold text-ink">{leadSummary.name}</p>
-                        <p className="mt-1 text-sm leading-6 text-ink/62">
+                        <p className="text-muted-soft mt-1 text-sm leading-6">
                           {leadSummary.owner} • {leadSummary.source}
                         </p>
                       </div>
-                      <span className="rounded-full bg-cloud px-3 py-1.5 text-xs font-semibold text-ink/62">
+                      <span className="surface-pill rounded-full px-3 py-1.5 text-xs font-semibold">
                         {leadSummary.createdAtLabel}
                       </span>
                     </div>
-                    <p className="mt-3 text-sm text-ink/54">{leadSummary.stage}</p>
+                    <p className="text-muted-soft mt-3 text-sm">{leadSummary.stage}</p>
                   </button>
                 ))
               ) : (
-                <div className="rounded-[24px] bg-white/44 p-4 text-sm leading-6 text-ink/62">
+                <div className="surface-card-muted rounded-[24px] p-4 text-sm leading-6 text-muted-soft">
                   Todos os leads visiveis no dashboard ja contam com ao menos um contato registrado.
                 </div>
               )}
@@ -558,16 +558,16 @@ export function DashboardHome({
             </div>
           </section>
 
-          <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+          <section className="surface-card rounded-[34px] p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-ink/54">Gerar Campanha</p>
+                <p className="text-muted-soft text-sm">Gerar Campanha</p>
                 <h2 className="mt-1 text-xl font-semibold">Criar nova campanha</h2>
-                <p className="mt-2 text-sm leading-6 text-ink/62">
+                <p className="text-muted-soft mt-2 text-sm leading-6">
                   Monte a campanha com publico, oferta e briefing criativo no fluxo principal de Criações.
                 </p>
               </div>
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/62 text-cobalt">
+              <span className="surface-pill flex h-11 w-11 items-center justify-center rounded-full text-cobalt">
                 <Sparkles size={19} aria-hidden="true" />
               </span>
             </div>
@@ -601,18 +601,18 @@ export function DashboardHome({
           </section>
 
           <Link
-            className="glass !bg-cloud/95 flex flex-col justify-between rounded-[34px] p-5 transition hover:!bg-cloud/95"
+            className="surface-card flex flex-col justify-between rounded-[34px] p-5 transition"
             href={creativeRequestHref}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-ink/54">Solicitar Criativo</p>
+                <p className="text-muted-soft text-sm">Solicitar Criativo</p>
                 <h2 className="mt-1 text-xl font-semibold">Abrir novo briefing</h2>
-                <p className="mt-2 text-sm leading-6 text-ink/62">
+                <p className="text-muted-soft mt-2 text-sm leading-6">
                   Envie um pedido de design para campanhas e entre direto no formulario de solicitacao.
                 </p>
               </div>
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/62 text-cobalt">
+              <span className="surface-pill flex h-11 w-11 items-center justify-center rounded-full text-cobalt">
                 <Palette size={19} aria-hidden="true" />
               </span>
             </div>

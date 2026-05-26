@@ -14,15 +14,15 @@ import { campaignDraft, kanbanColumns, leads } from "@/data/mock";
 
 export function MockDashboardPreview() {
   return (
-    <div className="pointer-events-none relative w-full select-none overflow-hidden rounded-[34px] border border-[#1d2229] bg-white/24 shadow-[0_24px_70px_rgba(18,23,33,0.10)] backdrop-blur-3xl">
-      <div className="relative flex h-12 items-center border-b border-white/10 bg-[#303438] px-4 text-white">
+    <div className="pointer-events-none relative w-full select-none overflow-hidden rounded-[34px] border border-border/60 bg-surface-elevated/80 shadow-[0_24px_70px_rgba(18,23,33,0.16)] backdrop-blur-3xl">
+      <div className="relative flex h-12 items-center border-b border-white/12 bg-[#1b2230] px-4 text-white">
         <div className="flex items-center gap-2 pr-3">
           <span className="h-3.5 w-3.5 rounded-full bg-[#ff5f57]" aria-hidden="true" />
           <span className="h-3.5 w-3.5 rounded-full bg-[#ffbd2e]" aria-hidden="true" />
           <span className="h-3.5 w-3.5 rounded-full bg-[#28c840]" aria-hidden="true" />
         </div>
 
-        <div className="hidden items-center rounded-full border border-white/10 bg-[#24292a] p-1 md:flex">
+        <div className="hidden items-center rounded-full border border-white/10 bg-[#141b27] p-1 md:flex">
           <div className="flex h-7 w-8 items-center justify-center rounded-full text-white/86">
             <ChevronLeft size={18} aria-hidden="true" />
           </div>
@@ -31,7 +31,7 @@ export function MockDashboardPreview() {
           </div>
         </div>
 
-        <div className="pointer-events-none absolute left-1/2 top-1/2 flex h-7 w-[clamp(220px,40vw,460px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#24292a] px-3 text-sm font-semibold text-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 flex h-7 w-[clamp(220px,40vw,460px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#141b27] px-3 text-sm font-semibold text-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]">
           <span className="truncate">Leadi</span>
           <div className="absolute right-3 hidden items-center gap-2 text-white/74 lg:flex">
             <RotateCw size={15} aria-hidden="true" />
@@ -56,7 +56,7 @@ export function MockDashboardPreview() {
 
       <div className="p-3 sm:p-4 lg:p-5 xl:p-6">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[64px_minmax(0,1fr)_320px] xl:grid-cols-[70px_minmax(0,1fr)_360px]">
-        <aside className="hidden rounded-[32px] bg-[#303438] px-3 py-5 text-white shadow-soft lg:flex lg:flex-col lg:items-center lg:justify-between">
+        <aside className="hidden rounded-[32px] bg-[#1b2230] px-3 py-5 text-white shadow-soft lg:flex lg:flex-col lg:items-center lg:justify-between">
           <div className="space-y-4">
             {[
               { label: "Leads", icon: UsersRound },
@@ -72,7 +72,7 @@ export function MockDashboardPreview() {
               </div>
             ))}
           </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-signal text-ink dark:text-cloud">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-signal text-ink">
             <Sparkles size={18} aria-hidden="true" />
           </div>
         </aside>
@@ -87,7 +87,7 @@ export function MockDashboardPreview() {
           <section className="glass-strong rounded-[34px] p-5">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm text-ink/55">Funil de oportunidades</p>
+              <p className="text-muted-soft text-sm">Funil de oportunidades</p>
                 <h2 className="text-2xl font-semibold">Plano de Saúde PME</h2>
               </div>
               <div className="flex gap-2">
@@ -99,8 +99,8 @@ export function MockDashboardPreview() {
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {kanbanColumns.map((column) => (
-                <div className="min-w-0 rounded-[28px] bg-white/42 p-3" key={column.title}>
-                  <p className="text-xs font-semibold text-ink/50 mb-2 px-1 uppercase tracking-wider">{column.title}</p>
+                <div className="surface-card-muted min-w-0 rounded-[28px] p-3" key={column.title}>
+                  <p className="text-muted-soft mb-2 px-1 text-xs font-semibold uppercase tracking-wider">{column.title}</p>
                   <div className="flex flex-col gap-2">
                     {column.cards.map((lead) => (
                       <div
@@ -131,7 +131,7 @@ export function MockDashboardPreview() {
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
                   <h3 className="font-semibold">Captura automática Meta</h3>
-                  <p className="mt-1 text-sm text-ink/54">
+                  <p className="text-muted-soft mt-1 text-sm">
                     Leads importados dos formulários.
                   </p>
                 </div>
@@ -140,12 +140,12 @@ export function MockDashboardPreview() {
               <div className="space-y-2">
                 {leads.slice(0, 3).map((lead) => (
                   <div
-                    className="flex items-start justify-between gap-3 rounded-[22px] bg-white/44 p-3"
+                    className="surface-card-muted flex items-start justify-between gap-3 rounded-[22px] p-3"
                     key={lead.id}
                   >
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{lead.name}</p>
-                      <p className="mt-1 text-xs text-ink/48">{lead.companyName || "PME"}</p>
+                      <p className="text-muted-soft mt-1 text-xs">{lead.companyName || "PME"}</p>
                     </div>
                     <span className="rounded-full bg-cobalt/10 text-cobalt px-2.5 py-1 text-[11px] font-semibold">
                       Meta Ads
@@ -161,19 +161,19 @@ export function MockDashboardPreview() {
                   <Sparkles size={16} className="text-cobalt" />
                   <h3 className="font-semibold">Campanha criada com IA</h3>
                 </div>
-                <span className="rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-xs font-semibold">
+                <span className="surface-alert-success rounded-full px-2.5 py-0.5 text-xs font-semibold">
                   Checklist aprovado
                 </span>
               </div>
-              <p className="text-base font-semibold text-ink leading-snug">{campaignDraft.title}</p>
-              <p className="mt-3 text-sm leading-6 text-ink/64">
+              <p className="text-base font-semibold leading-snug text-foreground">{campaignDraft.title}</p>
+              <p className="text-muted-soft mt-3 text-sm leading-6">
                 {campaignDraft.copy}
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <span className="rounded-full bg-cobalt px-3 py-1.5 text-xs font-medium text-white">
                   Linguagem Consultiva
                 </span>
-                <span className="rounded-full bg-signal px-3 py-1.5 text-xs font-medium text-ink dark:text-cloud">
+                <span className="rounded-full bg-signal px-3 py-1.5 text-xs font-medium text-ink">
                   Preparado para Meta
                 </span>
               </div>
@@ -187,17 +187,17 @@ export function MockDashboardPreview() {
               MA
             </div>
             <h3 className="text-xl font-bold">{leads[0].name}</h3>
-            <p className="mt-1 text-xs text-ink/58">{leads[0].companyName} • {leads[0].livesCount} vidas</p>
+            <p className="text-muted-soft mt-1 text-xs">{leads[0].companyName} • {leads[0].livesCount} vidas</p>
             
             {/* Suggested WhatsApp message block */}
-            <div className="mt-4 rounded-2xl bg-white/60 p-3.5 border border-white/50 text-left text-xs">
+            <div className="surface-card-muted mt-4 rounded-2xl p-3.5 text-left text-xs">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-bold text-cobalt uppercase tracking-wider flex items-center gap-1">
                   <Sparkles size={10} /> Mensagem por IA
                 </span>
                 <span className="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded">Recomendada</span>
               </div>
-              <p className="text-ink/75 leading-relaxed italic">
+              <p className="text-foreground/76 leading-relaxed italic">
                 &ldquo;Olá Marina! Vi que solicitou cotação para 48 vidas da Azevedo Clínica. Montei um estudo Bradesco e Amil...&rdquo;
               </p>
             </div>
@@ -238,7 +238,7 @@ function MetricCard({
 }) {
   return (
     <div className="glass rounded-[28px] p-5">
-      <p className="text-sm text-ink/56">{label}</p>
+      <p className="text-muted-soft text-sm">{label}</p>
       <div className="mt-2 flex items-end justify-between gap-4">
         <strong className="text-3xl font-semibold">{value}</strong>
         <span className="rounded-full bg-signal px-2.5 py-1 text-xs font-medium">
@@ -252,7 +252,7 @@ function MetricCard({
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-ink/8 pb-3 last:border-0 last:pb-0">
-      <span className="text-ink/48">{label}</span>
+      <span className="text-muted-soft">{label}</span>
       <span className="text-right font-medium">{value}</span>
     </div>
   );

@@ -32,7 +32,7 @@ export function PageHeading({
         <div className="max-w-3xl">
           <p className="text-sm font-medium text-cobalt">{eyebrow}</p>
           <h1 className="mt-2 text-3xl font-semibold md:text-4xl">{title}</h1>
-          <p className="mt-3 leading-7 text-ink/64">{description}</p>
+          <p className="text-muted-soft mt-3 leading-7">{description}</p>
         </div>
         {children && <div className="flex flex-wrap gap-2">{children}</div>}
       </div>
@@ -52,15 +52,15 @@ export function Metric({
   tone: MetricTone;
 }) {
   const toneClass = {
-    blue: "bg-cobalt text-white",
-    yellow: "bg-signal text-ink dark:text-cloud",
-    teal: "bg-lagoon text-white",
-    dark: "bg-ink text-cloud"
+    blue: "bg-primary text-primary-foreground",
+    yellow: "bg-signal text-accent-foreground",
+    teal: "border border-info/28 bg-info/18 text-foreground",
+    dark: "bg-foreground text-background"
   }[tone];
 
   return (
-    <article className="glass !bg-cloud/95 rounded-[30px] p-5">
-      <p className="text-sm text-ink/54">{label}</p>
+    <article className="surface-card rounded-[30px] p-5">
+      <p className="text-muted-soft text-sm">{label}</p>
       <div className="mt-3 flex flex-col gap-3">
         <strong className="text-4xl font-semibold">{value}</strong>
         <span className={`${toneClass} w-fit rounded-full px-3 py-1.5 text-xs font-semibold`}>
@@ -79,10 +79,10 @@ export function LeadTable({
   onLeadOpen: (lead: Lead) => void;
 }) {
   return (
-    <section className="glass-strong rounded-[34px] p-5 xl:min-h-[520px] xl:flex xl:flex-col">
+    <section className="surface-card-strong rounded-[34px] p-5 xl:min-h-[520px] xl:flex xl:flex-col">
       <div className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <p className="text-sm text-ink/54">CRM</p>
+          <p className="text-muted-soft text-sm">CRM</p>
           <h2 className="text-2xl font-semibold">Leads</h2>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -92,14 +92,14 @@ export function LeadTable({
           <button className="icon-button" type="button" title="Importar CSV">
             <Upload size={18} aria-hidden="true" />
           </button>
-          <button className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white">
+          <button className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92">
             <Plus size={18} aria-hidden="true" />
             Novo lead
           </button>
         </div>
       </div>
-      <div className="overflow-hidden rounded-[26px] border border-white/48 bg-white/28 xl:flex-1">
-        <div className="hidden grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px_44px] gap-4 border-b border-ink/8 px-5 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
+        <div className="surface-card-muted overflow-hidden rounded-[26px] xl:flex-1">
+        <div className="text-muted-soft hidden grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px_44px] gap-4 border-b border-border/50 px-5 py-3 text-xs font-semibold uppercase tracking-normal md:grid">
           <span>Lead</span>
           <span>Telefone</span>
           <span>Email</span>
@@ -108,13 +108,13 @@ export function LeadTable({
           <span aria-hidden="true" />
         </div>
         {tableLeads.length === 0 && (
-          <div className="px-5 py-8 text-sm font-medium text-ink/56">
+          <div className="text-muted-soft px-5 py-8 text-sm font-medium">
             Nenhum lead cadastrado ainda.
           </div>
         )}
         {tableLeads.map((lead) => (
           <div
-            className="grid gap-3 border-b border-ink/8 px-5 py-4 last:border-0 md:grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px_44px] md:items-center"
+            className="grid gap-3 border-b border-border/45 px-5 py-4 last:border-0 md:grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px_44px] md:items-center"
             key={lead.id}
           >
             <button
@@ -123,7 +123,7 @@ export function LeadTable({
               type="button"
             >
               <span className="block font-semibold leading-tight">{lead.name}</span>
-              <span className="mt-1 block text-sm text-ink/54 md:hidden">{lead.phone}</span>
+              <span className="text-muted-soft mt-1 block text-sm md:hidden">{lead.phone}</span>
             </button>
             <button
               className="text-left text-sm font-medium text-ink transition hover:opacity-85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50"
@@ -133,28 +133,28 @@ export function LeadTable({
               {lead.phone}
             </button>
             <button
-              className="text-left text-sm text-ink/62 transition hover:opacity-85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50"
+              className="text-muted-soft text-left text-sm transition hover:opacity-85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50"
               onClick={() => onLeadOpen(lead)}
               type="button"
             >
               {lead.email}
             </button>
             <button
-              className="text-left text-sm text-ink/62 transition hover:opacity-85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50"
+              className="text-muted-soft text-left text-sm transition hover:opacity-85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50"
               onClick={() => onLeadOpen(lead)}
               type="button"
             >
               {lead.owner}
             </button>
             <button
-              className="w-fit rounded-full bg-white/60 px-3 py-1.5 text-left text-xs font-semibold transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50"
+              className="surface-pill w-fit rounded-full px-3 py-1.5 text-left text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50"
               onClick={() => onLeadOpen(lead)}
               type="button"
             >
               {lead.stage}
             </button>
             <button
-              className="hidden h-10 w-10 items-center justify-center rounded-full bg-white/54 text-ink/58 transition hover:bg-white/72 md:inline-flex"
+              className="surface-action-secondary hidden h-10 w-10 items-center justify-center rounded-full md:inline-flex"
               onClick={() => onLeadOpen(lead)}
               type="button"
               aria-label={`Abrir detalhes de ${lead.name}`}
@@ -180,10 +180,10 @@ export function KanbanBoard({
   const columns = buildKanbanColumns(boardLeads);
 
   return (
-    <section className="glass !bg-cloud/95 rounded-[34px] p-5">
+    <section className="surface-card rounded-[34px] p-5">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-ink/54">Kanban</p>
+          <p className="text-muted-soft text-sm">Kanban</p>
           <h2 className="text-2xl font-semibold">Funil de vendas</h2>
         </div>
         <Link className="icon-button" href={href} title="Abrir página do funil" aria-label="Abrir página do funil">
@@ -192,15 +192,15 @@ export function KanbanBoard({
       </div>
       <div className="grid gap-3 xl:grid-cols-4">
         {columns.map((column) => (
-          <div className="rounded-[28px] bg-white/34 p-3" key={column.title}>
+          <div className="surface-card-muted rounded-[28px] p-3" key={column.title}>
             <div className="mb-3 flex items-center justify-between gap-2 px-1">
-              <span className="text-sm font-semibold text-ink/62">{column.title}</span>
-              <span className="rounded-full bg-white/56 px-2 py-1 text-xs font-semibold text-ink/54">
+              <span className="text-muted-strong text-sm font-semibold">{column.title}</span>
+              <span className="surface-pill rounded-full px-2 py-1 text-xs font-semibold">
                 {column.cards.length}
               </span>
             </div>
             {column.cards.length === 0 && (
-              <div className="rounded-[24px] bg-white/36 p-4 text-sm font-medium text-ink/48">
+              <div className="surface-card rounded-[24px] p-4 text-sm font-medium text-muted-soft">
                 Sem leads nesta etapa.
               </div>
             )}
@@ -228,17 +228,17 @@ export function KanbanBoard({
 
 export function SuggestedCampaignPanel({ href = "/dashboard/criacoes/campanhas" }: { href?: string }) {
   return (
-    <section className="glass-strong rounded-[34px] p-5 md:p-6">
+    <section className="surface-card-strong rounded-[34px] p-5 md:p-6">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl">
           <p className="text-sm font-medium text-cobalt">Criar nova campanha</p>
           <h2 className="mt-2 text-2xl font-semibold md:text-3xl">IA Gerador de Campanha</h2>
-          <p className="mt-3 max-w-xl leading-7 text-ink/64">
+          <p className="text-muted-soft mt-3 max-w-xl leading-7">
             Comece uma campanha nova com publico, oferta, observacoes e briefing criativo em um fluxo unico dentro de Criações.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             {["Criacoes", "Publico e objetivo", "Briefing criativo"].map((tag) => (
-              <span className="rounded-full bg-white/58 px-3 py-1.5 text-xs font-semibold" key={tag}>
+              <span className="surface-pill rounded-full px-3 py-1.5 text-xs font-semibold" key={tag}>
                 {tag}
               </span>
             ))}
@@ -290,7 +290,7 @@ export function ComplianceChecklist() {
   return (
     <div className="space-y-3">
       {["Sem promessa garantida", "Sem pergunta de saúde", "Formulário seguro"].map((item) => (
-        <div className="flex items-center gap-3 rounded-2xl bg-white/38 px-4 py-3" key={item}>
+        <div className="surface-card-muted flex items-center gap-3 rounded-2xl px-4 py-3" key={item}>
           <CheckCircle2 size={18} className="text-lagoon" aria-hidden="true" />
           <span className="text-sm font-medium">{item}</span>
         </div>

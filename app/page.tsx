@@ -20,7 +20,7 @@ const navLinks = [
   { label: "Início", href: "#inicio" },
   { label: "Como funciona", href: "#como-funciona" },
   { label: "Recursos", href: "#recursos" },
-  { label: "Planos", href: "#planos" },
+  { label: "Planos", href: "/pricing" },
   { label: "FAQ", href: "#faq" }
 ];
 
@@ -45,7 +45,7 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <Link
-              className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud shadow-soft transition hover:-translate-y-0.5"
+              className="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:-translate-y-0.5 hover:bg-primary/92"
               href="/login"
             >
               Entrar
@@ -117,4 +117,3 @@ export default function Home() {
     </main>
   );
 }
-

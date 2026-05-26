@@ -74,10 +74,10 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
             <h2 className="mt-2 text-4xl font-semibold">
               {isSignUp ? "Criar conta" : "Login"}
             </h2>
-            <div className="mt-6 grid rounded-full bg-white/38 p-1 text-sm font-semibold text-ink/68 sm:grid-cols-2">
+            <div className="surface-pill mt-6 grid rounded-full p-1 text-sm font-semibold sm:grid-cols-2">
               <button
                 className={`rounded-full px-5 py-3 text-center transition ${
-                  !isSignUp ? "bg-ink text-cloud shadow-soft" : "hover:bg-white/46"
+                  !isSignUp ? "bg-foreground text-background shadow-soft" : "hover:bg-foreground/8"
                 }`}
                 onClick={() => setMode("login")}
                 type="button"
@@ -86,7 +86,7 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
               </button>
               <button
                 className={`rounded-full px-5 py-3 text-center transition ${
-                  isSignUp ? "bg-ink text-cloud shadow-soft" : "hover:bg-white/46"
+                  isSignUp ? "bg-foreground text-background shadow-soft" : "hover:bg-foreground/8"
                 }`}
                 onClick={() => setMode("signup")}
                 type="button"
@@ -95,7 +95,7 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
               </button>
             </div>
             {error && (
-              <p className="mt-5 rounded-[22px] bg-signal/34 px-4 py-3 text-sm font-medium text-ink dark:text-cloud">
+              <p className="surface-alert-warning mt-5 rounded-[22px] px-4 py-3 text-sm font-medium">
                 {error}
               </p>
             )}
@@ -113,7 +113,7 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
                 aria-hidden={!isSignUp}
               >
                 <label className="block pb-1">
-                  <span className="mb-2 block text-sm font-medium text-ink/62">
+                  <span className="text-muted-soft mb-2 block text-sm font-medium">
                     Nome completo
                   </span>
                   <input
@@ -130,12 +130,12 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
                 </label>
               </div>
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-ink/62">
+                <span className="text-muted-soft mb-2 block text-sm font-medium">
                   E-mail
                 </span>
                 <div className="relative">
                   <Mail
-                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink/38"
+                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/70"
                     size={18}
                     aria-hidden="true"
                   />
@@ -153,7 +153,7 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
                 </div>
               </label>
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-ink/62">
+                <span className="text-muted-soft mb-2 block text-sm font-medium">
                   Senha
                 </span>
                 <input

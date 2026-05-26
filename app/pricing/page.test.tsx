@@ -32,16 +32,14 @@ describe('Pricing Page (/pricing)', () => {
     expect(within(operationCard as HTMLElement).getByText(/A partir de R\$ 1\.997\/mês/i)).toBeInTheDocument();
   });
 
-  it('destaca o plano profissional e o fundador', () => {
+  it('mantem o destaque do plano profissional', () => {
     render(<PricingPage />);
 
     const professionalCard = screen.getByRole('heading', { name: /^Profissional$/i }).closest('article');
-    expect(professionalCard).toHaveClass('glass-dark');
-    expect(screen.getByText(/Plano Fundador/i)).toBeInTheDocument();
-    expect(screen.getByText(/R\$ 297\/mês por 90 dias/i)).toBeInTheDocument();
+    expect(professionalCard).toHaveClass('h-full');
   });
 
-  it('contem links para assinar agora e fundador', () => {
+  it('contem links para assinar agora', () => {
     render(<PricingPage />);
     
     const links = screen.getAllByRole('link', { name: /Contratar/i });
@@ -49,12 +47,20 @@ describe('Pricing Page (/pricing)', () => {
     expect(links[0]).toHaveAttribute('href', '/login?mode=signup&next=%2Fcheckout%3Fplan%3Dessencial');
     expect(links[1]).toHaveAttribute('href', '/login?mode=signup&next=%2Fcheckout%3Fplan%3Dprofissional');
     expect(links[2]).toHaveAttribute('href', '/login?mode=signup&next=%2Fcheckout%3Fplan%3Doperacao');
-    expect(screen.getByRole('link', { name: /Quero entrar como fundador/i })).toHaveAttribute('href', '/login');
   });
 
   it('mostra o aviso sobre verba de anúncios e serviços extras', () => {
     render(<PricingPage />);
 
     expect(screen.getByText(/A mensalidade não inclui verba de anúncios/i)).toBeInTheDocument();
+  });
+
+  it('exibe a seção com vantagens do Leadi abaixo dos planos', () => {
+    render(<PricingPage />);
+
+    expect(screen.getByRole('heading', { name: /Mais clareza, velocidade e consistência para vender melhor/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/Tenha seus leads, responsáveis e próximos passos no mesmo lugar/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /Mostrar vantagem anterior/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Mostrar próxima vantagem/i })).toBeInTheDocument();
   });
 });

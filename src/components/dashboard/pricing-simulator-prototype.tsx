@@ -284,7 +284,7 @@ export function PricingSimulatorPrototype({
             <select
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              className="w-full bg-white/54 border border-white/60 focus:border-cobalt/45 focus:bg-white/78 focus:ring-0 rounded-2xl py-3 px-4 text-sm text-ink outline-none transition"
+              className="w-full rounded-2xl border border-border/70 bg-surface-elevated/88 px-4 py-3 text-sm text-foreground outline-none transition focus:border-cobalt/45 focus:bg-surface-elevated focus:ring-0"
             >
               <option value="SP - Capital e Região Metropolitana">São Paulo - Capital e Região Metropolitana</option>
               <option value="RJ - Rio de Janeiro e Baixada">Rio de Janeiro - Capital e Baixada Fluminense</option>
@@ -451,7 +451,7 @@ export function PricingSimulatorPrototype({
             <div className="space-y-4">
               
               {/* Resumo da Cotação */}
-              <div className="glass-strong rounded-[34px] p-5 md:p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white/70">
+              <div className="surface-card-strong flex flex-col gap-4 rounded-[34px] p-5 md:flex-row md:items-center md:justify-between md:p-6">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-cobalt">Resumo da Busca</span>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -484,7 +484,7 @@ export function PricingSimulatorPrototype({
                       className={`glass rounded-[34px] border transition-all duration-200 overflow-hidden ${
                         isCheapest 
                           ? "border-emerald-500/40 bg-gradient-to-r from-emerald-50/20 to-transparent shadow-sm dark:border-emerald-500/20"
-                          : "border-white/48 bg-white/54"
+                          : "border-border/60 bg-surface-elevated/88"
                       }`}
                     >
                       {/* Destaque do topo do card */}

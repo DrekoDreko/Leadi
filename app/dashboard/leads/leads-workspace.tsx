@@ -446,7 +446,7 @@ export function LeadsWorkspace({
         description="Lista dedicada para qualificar contatos, acompanhar responsáveis e priorizar próximos passos."
       >
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
           onClick={() => setIsMetaImportOpen(true)}
           type="button"
         >
@@ -454,14 +454,14 @@ export function LeadsWorkspace({
           Importar leads Meta
         </button>
         <Link
-          className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white/72 px-5 py-3 text-sm font-semibold text-ink"
+          className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
           href={exportHref}
         >
           <Download size={18} aria-hidden="true" />
           Exportar CSV
         </Link>
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={!canCreateLeads}
           onClick={() => (canCreateLeads ? setIsCreateOpen(true) : undefined)}
           type="button"
@@ -477,7 +477,7 @@ export function LeadsWorkspace({
 
       {feedback && (
         <p
-          className={`flex items-center gap-2 rounded-[24px] px-5 py-3 text-sm font-medium text-ink ${
+          className={`flex items-center gap-2 rounded-[24px] px-5 py-3 text-sm font-medium text-foreground ${
             feedback.tone === "success"
               ? "bg-lagoon/16"
               : feedback.tone === "warning"
@@ -637,7 +637,7 @@ function LeadPaginationControls({
       : `${visibleCount} leads exibidos`;
 
   return (
-    <div className="flex flex-col gap-3 rounded-[26px] border border-white/52 bg-white/38 px-5 py-4 text-sm font-medium text-ink/70 sm:flex-row sm:items-center sm:justify-between">
+    <div className="surface-card-muted flex flex-col gap-3 rounded-[26px] px-5 py-4 text-sm font-medium text-muted-soft sm:flex-row sm:items-center sm:justify-between">
       <div>
         <span>{countLabel}</span>
         {error ? <p className="mt-1 text-sm text-ink">{error}</p> : null}
@@ -645,7 +645,7 @@ function LeadPaginationControls({
 
       {pagination.hasMore ? (
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92 disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isLoading}
           onClick={onLoadMore}
           type="button"
@@ -654,7 +654,7 @@ function LeadPaginationControls({
           {isLoading ? "Carregando" : "Carregar mais"}
         </button>
       ) : (
-        <span className="rounded-full bg-white/64 px-4 py-2 text-xs font-semibold text-ink/56">
+        <span className="surface-pill rounded-full px-4 py-2 text-xs font-semibold">
           Todos carregados
         </span>
       )}
@@ -814,7 +814,7 @@ function MetaLeadImportModal({
       role="dialog"
     >
       <section
-        className="mx-auto flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] border border-white/70 bg-cloud/95 shadow-glass"
+        className="surface-modal mx-auto flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] shadow-glass"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-ink/10 p-5 sm:p-6">
@@ -872,7 +872,7 @@ function MetaLeadImportModal({
                 ))}
               </div>
 
-              <aside className="rounded-[26px] border border-white/60 bg-white/44 p-4">
+              <aside className="surface-card-muted rounded-[26px] p-4">
                 <p className="text-sm font-semibold text-ink">Resumo da seleção</p>
                 {selectedSource ? (
                   <div className="mt-4 space-y-3 text-sm text-ink/66">
@@ -900,7 +900,7 @@ function MetaLeadImportModal({
                 ) : null}
 
                 <button
-                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white transition hover:bg-cobalt/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={!canImport}
                   onClick={handleImportSelected}
                   type="button"
@@ -930,8 +930,8 @@ function MetaImportSourceOption({
     <button
       className={`w-full rounded-[24px] border p-4 text-left transition ${
         selected
-          ? "border-cobalt/40 bg-white/78 shadow-glass"
-          : "border-white/54 bg-white/38 hover:bg-white/56"
+          ? "surface-card border-cobalt/40 shadow-glass"
+          : "surface-card-muted hover:border-cobalt/18"
       }`}
       onClick={onSelect}
       type="button"
@@ -947,7 +947,7 @@ function MetaImportSourceOption({
               )}
               {getSourceTypeLabel(source.type)}
             </span>
-            <span className="rounded-full bg-white/76 px-3 py-1 text-xs font-semibold text-ink/70">
+            <span className="surface-pill rounded-full px-3 py-1 text-xs font-semibold">
               {getSourceStatusLabel(source.status)}
             </span>
           </div>
@@ -1002,7 +1002,7 @@ function MetaImportResultSummary({ result }: { result: MetaLeadImportResponse })
         <InfoPill label="Erros" value={String(result.summary.errors)} />
       </div>
       {errorItems.length > 0 ? (
-        <div className="mt-3 rounded-[18px] bg-white/56 px-4 py-3">
+        <div className="surface-card mt-3 rounded-[18px] px-4 py-3">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink/42">
             Erros desta tentativa
           </p>
@@ -1033,7 +1033,7 @@ function MetaImportState({
   actionLabel?: string;
 }) {
   return (
-    <div className="rounded-[28px] border border-white/56 bg-white/42 p-6">
+    <div className="surface-card-muted rounded-[28px] p-6">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
         {icon}
       </div>
@@ -1041,7 +1041,7 @@ function MetaImportState({
       <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/62">{description}</p>
       {actionHref && actionLabel ? (
         <Link
-          className="mt-5 inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
+          className="mt-5 inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft"
           href={actionHref}
         >
           {actionLabel}
@@ -1062,7 +1062,7 @@ function InfoLine({ label, value }: { label: string; value: string }) {
 
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
-    <span className="rounded-[18px] bg-white/62 px-3 py-2">
+    <span className="surface-pill rounded-[18px] px-3 py-2">
       <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-ink/38">
         {label}
       </span>
@@ -1163,7 +1163,7 @@ function LeadDataNotice({ leadState }: { leadState: LeadDataState }) {
 
   if (leadState.mode === "not-configured") {
     return (
-      <p className="rounded-[24px] bg-signal/30 px-5 py-3 text-sm font-medium text-ink dark:text-cloud">
+      <p className="rounded-[24px] bg-signal/30 px-5 py-3 text-sm font-medium text-foreground">
         {leadState.message ?? "Usando dados mockados enquanto a base real nao esta disponivel."}
       </p>
     );
@@ -1185,7 +1185,7 @@ function LeadWorkspaceErrorState({
     <section className="glass-strong rounded-[34px] p-6 md:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal/28 text-ink dark:text-cloud">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal/28 text-accent-foreground">
             <AlertCircle size={20} aria-hidden="true" />
           </div>
           <p className="text-sm font-medium text-cobalt">Leads</p>
@@ -1196,7 +1196,7 @@ function LeadWorkspaceErrorState({
         </div>
 
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft"
           onClick={onRetry}
           type="button"
         >
@@ -1242,7 +1242,7 @@ function LeadWorkspaceEmptyState({
         <div className="flex flex-wrap gap-2">
           {isFiltered && onClearFilters && (
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-white/54 px-5 py-3 text-sm font-semibold text-ink"
+              className="surface-action-secondary inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
               onClick={onClearFilters}
               type="button"
             >
@@ -1253,7 +1253,7 @@ function LeadWorkspaceEmptyState({
 
           {onRetry && !isFiltered && (
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-white/54 px-5 py-3 text-sm font-semibold text-ink"
+              className="surface-action-secondary inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
               onClick={onRetry}
               type="button"
             >
@@ -1263,7 +1263,7 @@ function LeadWorkspaceEmptyState({
           )}
 
           <button
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={!onCreateOpen}
             onClick={onCreateOpen}
             type="button"
@@ -1281,7 +1281,7 @@ function SalesFunnelGateway() {
   return (
     <Link
       href="/dashboard/funil"
-      className="group relative flex flex-col overflow-hidden rounded-[34px] border border-white/40 bg-white/40 p-1 transition-all hover:border-cobalt/30 hover:bg-white/60 hover:shadow-2xl hover:shadow-cobalt/10 sm:flex-row sm:items-center sm:gap-8"
+      className="surface-card-muted group relative flex flex-col overflow-hidden rounded-[34px] p-1 transition-all hover:border-cobalt/30 hover:shadow-2xl hover:shadow-cobalt/10 sm:flex-row sm:items-center sm:gap-8"
     >
       <div className="relative aspect-[16/10] overflow-hidden rounded-[30px] sm:aspect-square sm:w-[280px] sm:shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1328,7 +1328,7 @@ function ArchivedLeadsGateway() {
   return (
     <Link
       href="/dashboard/leads/arquivados"
-      className="group relative flex flex-col overflow-hidden rounded-[34px] border border-white/40 bg-white/40 p-1 transition-all hover:border-amber-500/30 hover:bg-white/60 hover:shadow-2xl hover:shadow-amber-500/10"
+      className="surface-card-muted group relative flex flex-col overflow-hidden rounded-[34px] p-1 transition-all hover:border-amber-500/30 hover:shadow-2xl hover:shadow-amber-500/10"
     >
       <div className="relative aspect-[16/10] overflow-hidden rounded-[30px] sm:aspect-video sm:w-full">
         <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-50 to-amber-100/50">
@@ -1445,7 +1445,7 @@ function LeadTablePanel({
             />
           </label>
           <button
-            className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/54 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white"
+            className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
             onClick={onOpenFilters}
             type="button"
           >
@@ -1453,7 +1453,7 @@ function LeadTablePanel({
             {hasActiveFilters ? "Filtros ativos" : "Filtros"}
           </button>
           <button
-            className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={!onCreateOpen}
             onClick={onCreateOpen}
             type="button"
@@ -1478,14 +1478,14 @@ function LeadTablePanel({
           </div>
           <div className="flex flex-col gap-2 md:flex-row md:items-center">
             <button
-              className="inline-flex items-center justify-center rounded-full border border-white/70 bg-white/70 px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white"
+              className="surface-action-secondary inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-semibold"
               onClick={onToggleVisibleLeadSelection}
               type="button"
             >
               {allVisibleLeadsSelected ? "Desmarcar visiveis" : "Selecionar visiveis"}
             </button>
             <button
-              className="inline-flex items-center justify-center rounded-full border border-white/70 bg-white/70 px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="surface-action-secondary inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-semibold"
               disabled={!hasSelectedLeads}
               onClick={onClearLeadSelection}
               type="button"
@@ -1497,7 +1497,7 @@ function LeadTablePanel({
             </label>
             <select
               aria-label="Distribuir leads selecionados para"
-              className="rounded-full border border-white/70 bg-white/80 px-4 py-2.5 text-sm font-medium text-ink shadow-sm outline-none transition focus:border-cobalt/40"
+              className="rounded-full border border-border/70 bg-surface-elevated/92 px-4 py-2.5 text-sm font-medium text-foreground shadow-sm outline-none transition focus:border-cobalt/40"
               id="bulk-owner-profile-id"
               onChange={(event) => onBulkOwnerChange(event.target.value)}
               value={selectedBulkOwnerProfileId}
@@ -1521,7 +1521,7 @@ function LeadTablePanel({
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-[26px] border border-white/48 bg-white/28">
+      <div className="surface-card-muted overflow-hidden rounded-[26px]">
         <div className={tableGridClassName}>
           {canManageLeadOwners ? (
             <span className="flex items-center justify-center">
@@ -1615,7 +1615,7 @@ function LeadTablePanel({
               </div>
 
               <button
-                className="hidden h-10 w-10 items-center justify-center rounded-full bg-white/54 text-ink/58 transition hover:bg-white/76 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50 md:inline-flex"
+                className="surface-action-secondary hidden h-10 w-10 items-center justify-center rounded-full md:inline-flex"
                 onClick={() => onLeadOpen(lead)}
                 type="button"
               >
@@ -1658,7 +1658,7 @@ function LeadStageBadge({
         className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold ring-1 ring-inset ${
           isKanban
             ? "bg-white/10 text-white ring-white/20"
-            : "bg-white/80 text-ink ring-black/5 shadow-sm"
+            : "bg-surface-elevated/92 text-foreground ring-black/5 shadow-sm"
         }`}
       >
         {getLeadStageLabel(stage)}
@@ -1674,7 +1674,7 @@ function LeadQualityBadge({ quality }: { quality: Lead["quality"] }) {
     <span
       className={
         meta?.badgeClassName ??
-        "inline-flex items-center rounded-full bg-white/78 px-2.5 py-1 text-[11px] font-semibold text-ink/58 ring-1 ring-inset ring-black/5"
+        "inline-flex items-center rounded-full bg-surface-elevated/92 px-2.5 py-1 text-[11px] font-semibold text-muted-soft ring-1 ring-inset ring-black/5"
       }
     >
       {meta ? meta.label : getLeadQualityLabel(quality)}

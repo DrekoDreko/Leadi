@@ -1,300 +1,149 @@
 "use client";
+
 import Link from "next/link";
+import { useRef } from "react";
+
+import { CheckCircle2, Sparkles } from "lucide-react";
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { TimelineContent } from "@/components/ui/timeline-animation";
-import { buildPlanSignupPath, type PublicPlanSlug } from "@/lib/billing/checkout-flow";
-import NumberFlow from "@number-flow/react";
-import { Briefcase, CheckCheck, Database, Server } from "lucide-react";
-import { motion } from "motion/react";
-import { useRef, useState } from "react";
+import { pricingPlans } from "@/data/pricing";
 
-const plans = [
-  {
-    slug: "essencial" as PublicPlanSlug,
-    name: "Essencial",
-    description:
-      "Organização comercial básica para centralizar leads, acompanhar oportunidades e manter o histórico.",
-    price: 297,
-    yearlyPrice: 237,
-    buttonText: "Contratar",
-    buttonVariant: "outline" as const,
-    features: [
-      { text: "CRM de leads", icon: <Briefcase size={20} /> },
-      { text: "Funil de oportunidades", icon: <Database size={20} /> },
-      { text: "Histórico de atendimento", icon: <Server size={20} /> },
-    ],
-    includes: [
-      "Incluso no plano:",
-      "Mensagens com IA",
-      "Importação de leads",
-      "Organização de equipe",
-    ],
+const revealVariants = {
+  visible: (index: number) => ({
+    y: 0,
+    opacity: 1,
+    filter: "blur(0px)",
+    transition: {
+      delay: index * 0.12,
+      duration: 0.45,
+    },
+  }),
+  hidden: {
+    y: 18,
+    opacity: 0,
+    filter: "blur(10px)",
   },
-  {
-    slug: "profissional" as PublicPlanSlug,
-    name: "Profissional",
-    description:
-      "O plano principal para equipes que precisam conectar captação, campanhas e distribuição em um fluxo.",
-    price: 797,
-    yearlyPrice: 637,
-    buttonText: "Contratar",
-    buttonVariant: "default" as const,
-    popular: true,
-    features: [
-      { text: "Tudo do plano Essencial", icon: <Briefcase size={20} /> },
-      { text: "Integração Meta Lead Ads", icon: <Database size={20} /> },
-      { text: "Distribuição de leads", icon: <Server size={20} /> },
-    ],
-    includes: [
-      "Tudo do Essencial, mais:",
-      "Campanhas com IA",
-      "Painel de métricas",
-      "Checklist de compliance",
-    ],
-  },
-  {
-    slug: "operacao" as PublicPlanSlug,
-    name: "Operação",
-    description:
-      "Estrutura para operações com múltiplas equipes, gestão de propostas e mais acompanhamento.",
-    price: 1997,
-    yearlyPrice: 1597,
-    buttonText: "Contratar",
-    buttonVariant: "outline" as const,
-    features: [
-      { text: "Tudo do plano Profissional", icon: <Briefcase size={20} /> },
-      { text: "Múltiplas equipes", icon: <Database size={20} /> },
-      { text: "Gestão de propostas", icon: <Server size={20} /> },
-    ],
-    includes: [
-      "Tudo do Profissional, mais:",
-      "Agenda e lembretes",
-      "Prioridade de suporte",
-      "Onboarding assistido",
-    ],
-  },
-];
-
-const PricingSwitch = ({ onSwitch }: { onSwitch: (value: string) => void }) => {
-  const [selected, setSelected] = useState("0");
-
-  const handleSwitch = (value: string) => {
-    setSelected(value);
-    onSwitch(value);
-  };
-
-  return (
-    <div className="flex justify-center">
-      <div className="relative z-50 mx-auto flex w-fit rounded-full bg-mist/10 dark:bg-ink/50 border border-mist/20 dark:border-cloud/10 p-1">
-        <button
-          onClick={() => handleSwitch("0")}
-          className={`relative z-10 w-fit sm:h-12 h-10 rounded-full sm:px-6 px-3 sm:py-2 py-1 font-medium transition-colors ${
-            selected === "0"
-              ? "text-cloud"
-              : "text-ink/60 dark:text-cloud/60 hover:text-ink dark:hover:text-cloud"
-          }`}
-        >
-          {selected === "0" && (
-            <motion.span
-              layoutId={"switch"}
-              className="absolute top-0 left-0 sm:h-12 h-10 w-full rounded-full border-4 shadow-sm shadow-cobalt/40 border-cobalt bg-gradient-to-t from-cobalt via-cobalt/80 to-cobalt"
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            />
-          )}
-          <span className="relative">Mensal</span>
-        </button>
-
-        <button
-          onClick={() => handleSwitch("1")}
-          className={`relative z-10 w-fit sm:h-12 h-8 flex-shrink-0 rounded-full sm:px-6 px-3 sm:py-2 py-1 font-medium transition-colors ${
-            selected === "1"
-              ? "text-cloud"
-              : "text-ink/60 dark:text-cloud/60 hover:text-ink dark:hover:text-cloud"
-          }`}
-        >
-          {selected === "1" && (
-            <motion.span
-              layoutId={"switch"}
-              className="absolute top-0 left-0 sm:h-12 h-10 w-full rounded-full border-4 shadow-sm shadow-cobalt/40 border-cobalt bg-gradient-to-t from-cobalt via-cobalt/80 to-cobalt"
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            />
-          )}
-          <span className="relative flex items-center gap-2">
-            Anual
-            <span className="rounded-full bg-cobalt/10 dark:bg-cloud/20 px-2 py-0.5 text-xs font-medium text-ink dark:text-cloud">
-              20% OFF
-            </span>
-          </span>
-        </button>
-      </div>
-    </div>
-  );
 };
 
 export function PricingSection() {
-  const [isYearly, setIsYearly] = useState(false);
   const pricingRef = useRef<HTMLDivElement>(null);
 
-  const revealVariants = {
-    visible: (i: number) => ({
-      y: 0,
-      opacity: 1,
-      filter: "blur(0px)",
-      transition: {
-        delay: i * 0.4,
-        duration: 0.5,
-      },
-    }),
-    hidden: {
-      filter: "blur(10px)",
-      y: -20,
-      opacity: 0,
-    },
-  };
-
-  const togglePricingPeriod = (value: string) =>
-    setIsYearly(Number.parseInt(value) === 1);
-
   return (
-    <section className="px-4 py-24 mx-auto relative bg-transparent" ref={pricingRef} id="planos">
-      <div
-        className="absolute top-0 left-[10%] right-[10%] w-[80%] h-full z-0 pointer-events-none"
-        style={{
-          backgroundImage: `
-        radial-gradient(circle at center, rgb(var(--color-cobalt) / 0.05) 0%, transparent 70%)
-      `,
-          opacity: 0.6,
-          mixBlendMode: "normal",
-        }}
-      />
+    <section className="relative overflow-hidden px-4 py-20 md:py-24" id="planos" ref={pricingRef}>
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-10 h-[420px] w-[min(1200px,94vw)] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(52,98,238,0.12)_0%,rgba(234,240,220,0.6)_45%,transparent_78%)] blur-3xl dark:bg-[radial-gradient(circle_at_center,rgba(75,116,240,0.18)_0%,rgba(30,37,50,0.42)_48%,transparent_80%)]" />
+      </div>
 
-      <div className="text-center mb-6 max-w-3xl mx-auto relative z-10">
-        <p className="mb-3 text-sm font-medium text-cobalt">Planos públicos</p>
-        <TimelineContent
-          as="h2"
-          animationNum={0}
-          timelineRef={pricingRef}
-          customVariants={revealVariants}
-          className="md:text-5xl sm:text-4xl text-3xl font-semibold leading-tight text-ink dark:text-cloud mb-4"
-        >
-          Escolha o plano ideal para sua{" "}
+      <div className="section-shell relative z-10">
+        <div className="pb-12 pt-8 text-center">
           <TimelineContent
-            as="span"
+            as="p"
+            animationNum={0}
+            timelineRef={pricingRef}
+            customVariants={revealVariants}
+            className="surface-pill mx-auto mb-5 inline-flex rounded-full px-4 py-2 text-sm font-medium"
+          >
+            Planos para corretores e corretoras que querem organizar leads, campanhas e vendas em um único fluxo.
+          </TimelineContent>
+
+          <TimelineContent
+            as="h2"
             animationNum={1}
             timelineRef={pricingRef}
             customVariants={revealVariants}
-            className="border border-dashed border-cobalt px-2 py-1 rounded-xl bg-cobalt/10 dark:bg-cobalt/20 capitalize inline-block"
+            className="mx-auto max-w-3xl text-5xl font-semibold leading-tight text-foreground md:text-6xl"
           >
-            operação
+            Escolha o plano ideal para sua operação
           </TimelineContent>
-        </TimelineContent>
 
-        <TimelineContent
-          as="p"
-          animationNum={2}
-          timelineRef={pricingRef}
-          customVariants={revealVariants}
-          className="sm:text-lg text-base text-ink/64 dark:text-cloud/64 sm:w-[70%] w-[80%] mx-auto"
-        >
-          Planos para corretores e corretoras que querem organizar leads, campanhas e vendas em um único fluxo.
-        </TimelineContent>
-      </div>
-
-      <TimelineContent
-        as="div"
-        animationNum={3}
-        timelineRef={pricingRef}
-        customVariants={revealVariants}
-      >
-        <PricingSwitch onSwitch={togglePricingPeriod} />
-      </TimelineContent>
-
-      <div className="grid lg:grid-cols-3 md:grid-cols-2 max-w-6xl gap-6 pt-10 mx-auto relative z-10">
-        {plans.map((plan, index) => (
           <TimelineContent
-            key={plan.name}
-            as="div"
-            animationNum={4 + index}
+            as="p"
+            animationNum={2}
             timelineRef={pricingRef}
             customVariants={revealVariants}
-            className="h-full"
+            className="text-muted-soft mx-auto mt-5 max-w-2xl text-lg leading-8"
           >
-            <Card
-              className={`relative h-full flex flex-col border-mist/20 dark:border-cloud/10 ${
-                plan.popular ? "ring-2 ring-signal dark:bg-ink bg-signal/20 dark:bg-signal/10" : "bg-cloud dark:bg-ink"
-              }`}
-            >
-              <CardHeader className="text-left">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-2xl font-semibold text-ink dark:text-cloud">
-                    {plan.name}
-                  </h3>
-                  {plan.popular && (
-                    <div className="">
-                      <span className="bg-signal text-ink px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
-                        Popular
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-sm text-ink/60 dark:text-cloud/60 mb-4 line-clamp-3 min-h-[60px]">{plan.description}</p>
-                <div className="flex items-baseline">
-                  <span className="text-4xl font-semibold text-ink dark:text-cloud">
-                    R$
-                    <NumberFlow
-                      value={isYearly ? plan.yearlyPrice : plan.price}
-                      className="text-4xl font-semibold mx-1"
-                    />
-                  </span>
-                  <span className="text-ink/60 dark:text-cloud/60 ml-1">
-                    /mês
-                  </span>
-                </div>
-              </CardHeader>
-
-              <CardContent className="pt-0 flex flex-col flex-1">
-                <Link
-                  href={buildPlanSignupPath(plan.slug)}
-                  className={`w-full inline-flex justify-center items-center mb-6 p-4 text-sm font-semibold rounded-xl transition hover:-translate-y-0.5 ${
-                    plan.popular
-                      ? "bg-signal text-ink shadow-soft hover:brightness-105"
-                      : "bg-ink dark:bg-cloud text-cloud dark:text-ink shadow-soft hover:opacity-90"
-                  }`}
-                >
-                  {plan.buttonText}
-                </Link>
-                <ul className="space-y-3 font-medium py-2 flex-1">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center">
-                      <span className="text-cobalt grid place-content-center mt-0.5 mr-3 shrink-0">
-                        {feature.icon}
-                      </span>
-                      <span className="text-sm text-ink/80 dark:text-cloud/80">
-                        {feature.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="space-y-3 pt-6 border-t border-mist/20 dark:border-cloud/10 mt-4">
-                  <h4 className="font-medium text-sm text-ink dark:text-cloud">
-                    {plan.includes[0]}
-                  </h4>
-                  <ul className="space-y-2 font-medium">
-                    {plan.includes.slice(1).map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center">
-                        <span className="h-5 w-5 bg-cobalt/10 border border-cobalt/20 rounded-full grid place-content-center mt-0.5 mr-3 shrink-0">
-                          <CheckCheck className="h-3 w-3 text-cobalt " />
-                        </span>
-                        <span className="text-sm text-ink/70 dark:text-cloud/70">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+            O Leadi foi pensado para organizar leads, integrar Meta Lead Ads, usar IA em campanhas e mensagens e apoiar a operação comercial da corretora.
           </TimelineContent>
-        ))}
+        </div>
+
+        <div className="grid gap-4 pb-4 lg:grid-cols-3">
+          {pricingPlans.map((plan, index) => (
+            <TimelineContent
+              key={plan.name}
+              as="article"
+              animationNum={3 + index}
+              timelineRef={pricingRef}
+              customVariants={revealVariants}
+              className="h-full"
+            >
+              <Card
+                className={`group relative flex min-h-[430px] h-full flex-col overflow-hidden rounded-[34px] p-0 transition-all duration-300 ease-out will-change-transform hover:-translate-y-2 hover:scale-[1.015] hover:shadow-[0_30px_80px_rgba(18,34,61,0.16)] motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 dark:hover:shadow-[0_30px_80px_rgba(0,0,0,0.38)] ${
+                  plan.highlight
+                    ? "!border-primary/20 !bg-[linear-gradient(180deg,rgba(18,23,33,0.98),rgba(25,35,55,0.96))] !text-cloud shadow-soft"
+                    : "surface-card-strong"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute inset-0 z-0 rounded-[34px] opacity-0 transition-opacity duration-300 group-hover:opacity-100 ${
+                    plan.highlight
+                      ? "bg-[radial-gradient(circle_at_50%_0%,rgba(255,245,72,0.14),transparent_58%)]"
+                      : "bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.68),transparent_54%)] dark:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08),transparent_58%)]"
+                  }`}
+                />
+                <CardHeader className="relative z-10 flex-1 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-2xl font-semibold">{plan.name}</h3>
+                      <p className={`mt-3 leading-7 ${plan.highlight ? "text-white/74" : "text-muted-soft"}`}>
+                        {plan.description}
+                      </p>
+                      <p className={`mt-3 text-sm font-semibold ${plan.highlight ? "text-white/84" : "text-cobalt"}`}>
+                        {plan.label}
+                      </p>
+                    </div>
+                    {plan.highlight && <Sparkles className="text-signal" size={24} aria-hidden="true" />}
+                  </div>
+
+                  <p className="mt-8 text-4xl font-semibold">{plan.price}</p>
+                  {plan.implantation && (
+                    <p className={`mt-2 text-sm font-medium ${plan.highlight ? "text-white/62" : "text-muted-soft"}`}>
+                      {plan.implantation}
+                    </p>
+                  )}
+
+                  <div className="mt-8 space-y-3">
+                    {plan.features.map((feature) => (
+                      <div className="flex items-center gap-3" key={feature}>
+                        <CheckCircle2
+                          className={plan.highlight ? "text-signal" : "text-lagoon"}
+                          size={18}
+                          aria-hidden="true"
+                        />
+                        <span className={plan.highlight ? "text-white/84" : "text-foreground/78"}>
+                          {feature}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardHeader>
+
+                <CardContent className="relative z-10 p-6 pt-0">
+                  <Link
+                    className={`inline-flex w-full justify-center rounded-full px-5 py-4 font-semibold transition hover:-translate-y-0.5 ${
+                      plan.highlight ? "bg-signal text-accent-foreground" : "bg-primary text-primary-foreground hover:bg-primary/92"
+                    }`}
+                    href={plan.href}
+                  >
+                    {plan.cta}
+                  </Link>
+                </CardContent>
+              </Card>
+            </TimelineContent>
+          ))}
+        </div>
       </div>
     </section>
   );
