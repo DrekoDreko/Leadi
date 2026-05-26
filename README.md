@@ -141,6 +141,7 @@ Essas variáveis não bloqueiam o build, mas são exigidas em tempo de execuçã
 | `META_VERIFY_TOKEN` | Meta Webhook | Token de verificação do webhook de Lead Ads |
 | `META_REDIRECT_URI` | Meta OAuth | Callback cadastrado no painel Meta |
 | `META_GRAPH_API_VERSION`| Meta Graph | Versão da Graph API (ex: `v22.0`) |
+| `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | Mercado Pago | Chave pública usada pelo checkout/renderização do Brick no client |
 | `MERCADO_PAGO_ACCESS_TOKEN`| Mercado Pago | Token de acesso para checkout e planos |
 | `MERCADO_PAGO_WEBHOOK_SECRET`| Mercado Pago | Segredo de assinatura do webhook de pagamentos |
 | `META_WHATSAPP_ACCESS_TOKEN`| WhatsApp Oficial | Token oficial para envio de WhatsApp via Meta Graph API |

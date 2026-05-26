@@ -7,23 +7,24 @@ import { useRouter } from "next/navigation";
 export function CheckoutClient({
   planSlug,
   amount,
+  publicKey,
 }: {
   planSlug: string;
   amount: number;
+  publicKey: string;
 }) {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
     if (publicKey) {
       initMercadoPago(publicKey, { locale: "pt-BR" });
       setIsReady(true);
     } else {
       setError("Chave pública do Mercado Pago não configurada no cliente.");
     }
-  }, []);
+  }, [publicKey]);
 
   if (error) {
     return <div className="rounded-lg bg-red-50 p-4 text-red-600">{error}</div>;

@@ -39,6 +39,7 @@ export default async function CheckoutPage({
   // Extrai valor numérico do "price" (ex: "R$ 297/mês" -> 297)
   const priceMatches = plan.price.match(/\d+/g);
   const numericPrice = priceMatches ? parseInt(priceMatches.join(""), 10) : 0;
+  const mercadoPagoPublicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY?.trim() ?? "";
 
   return (
     <main className="min-h-screen px-4 py-4 md:py-8">
@@ -87,7 +88,11 @@ export default async function CheckoutPage({
 
           <section className="rounded-[34px] bg-white p-6 shadow-soft md:p-8">
             <h2 className="mb-6 text-xl font-semibold text-ink">Pagamento</h2>
-            <CheckoutClient planSlug={planSlug} amount={numericPrice} />
+            <CheckoutClient
+              planSlug={planSlug}
+              amount={numericPrice}
+              publicKey={mercadoPagoPublicKey}
+            />
           </section>
         </div>
       </div>
