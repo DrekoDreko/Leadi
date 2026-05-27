@@ -1613,15 +1613,6 @@ function LeadTablePanel({
                   variant="table"
                 />
               </div>
-
-              <button
-                className="surface-action-secondary hidden h-10 w-10 items-center justify-center rounded-full md:inline-flex"
-                onClick={() => onLeadOpen(lead)}
-                type="button"
-              >
-                <span className="sr-only">Abrir detalhes de {lead.name}</span>
-                <ChevronRight size={18} aria-hidden="true" />
-              </button>
             </article>
           );
         })}
