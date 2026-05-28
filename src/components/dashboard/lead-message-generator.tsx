@@ -301,20 +301,20 @@ export function LeadMessageGenerator({
       ) : null}
 
       {systemTemplates.length > 0 && (
-        <div className="mt-4 rounded-[24px] border border-white/50 bg-white/44 p-4">
+        <div className="mt-6">
           <p className="text-sm font-medium text-cobalt">Templates prontos</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {systemTemplates.map((template) => (
               <button
                 key={template.id}
                 onClick={() => applyTemplate(template)}
-                className="flex flex-col items-start rounded-[18px] bg-white/54 p-3 text-left transition hover:bg-white/82"
+                className="flex h-full flex-col items-start justify-between rounded-[20px] border border-ink/10 bg-white p-4 text-left shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:-translate-y-0.5 hover:border-cobalt/30 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
                 type="button"
               >
-                <span className="text-xs font-semibold text-ink">
+                <span className="text-sm font-bold text-ink">
                   {template.title}
                 </span>
-                <span className="mt-1 text-[10px] text-ink/54 line-clamp-1">
+                <span className="mt-1.5 text-xs leading-relaxed text-ink/60 line-clamp-2">
                   {template.description}
                 </span>
               </button>

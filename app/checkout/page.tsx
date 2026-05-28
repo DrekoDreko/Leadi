@@ -56,7 +56,7 @@ export default async function CheckoutPage({
         </header>
 
         <div className="grid gap-8 lg:grid-cols-2">
-          <section className="flex flex-col rounded-[34px] bg-white p-6 shadow-soft md:p-8">
+          <section className="flex flex-col rounded-[34px] surface-card p-6 md:p-8">
             <h1 className="text-3xl font-semibold text-ink">Finalizar Assinatura</h1>
             <p className="mt-2 text-ink/64">
               Você está assinando o plano <strong>{plan.name}</strong>.
@@ -86,7 +86,7 @@ export default async function CheckoutPage({
             </div>
           </section>
 
-          <section className="rounded-[34px] bg-white p-6 shadow-soft md:p-8">
+          <section className="rounded-[34px] surface-card p-6 md:p-8">
             <h2 className="mb-6 text-xl font-semibold text-ink">Pagamento</h2>
             <CheckoutClient
               planSlug={planSlug}

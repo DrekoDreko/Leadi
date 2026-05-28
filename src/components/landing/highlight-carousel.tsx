@@ -215,35 +215,35 @@ export function HighlightCarousel() {
     },
     {
       id: 3,
-      bgColor: "bg-gradient-to-br from-[#EAF0DC] to-[#DCE3CE] dark:from-surface-elevated dark:to-dashboard-card-muted",
+      bgColor: "bg-gradient-to-br from-[#EAF0DC] to-[#DCE3CE] dark:from-[#26344A] dark:to-[#1B2432]",
       textColor: "text-ink dark:text-cloud",
-      borderColor: "border-white/50 dark:border-border/70",
+      borderColor: "border-white/50 dark:border-[#587092]/78",
       titleText: "Capture leads com formulário padrão. Os interessados preenchem um formulário simples e entram no fluxo comercial da operação.",
       visual: (
-        <div className="w-[85%] max-w-sm rounded-2xl border border-white/60 bg-white/70 p-5 text-left shadow-sm backdrop-blur-xl dark:border-border/70 dark:bg-dashboard-card-muted/92">
-          <div className="mb-3 border-b border-ink/8 pb-2 flex items-center justify-between">
-            <h4 className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Meta Lead Ads Form</h4>
+        <div className="w-[85%] max-w-sm rounded-2xl border border-white/60 bg-white/70 p-5 text-left shadow-sm backdrop-blur-xl dark:border-[#536A89]/65 dark:bg-[#223046]">
+          <div className="mb-3 border-b border-ink/8 pb-2 flex items-center justify-between dark:border-white/12">
+            <h4 className="text-[10px] font-bold text-ink/40 uppercase tracking-widest dark:text-cloud/56">Meta Lead Ads Form</h4>
             <Facebook size={14} className="text-[#1877F2] fill-[#1877F2] shrink-0" />
           </div>
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl border border-ink/5 bg-white/80 p-2 shadow-inner dark:border-border/60 dark:bg-surface-elevated/92">
-                <span className="block text-[8px] text-ink/40 font-bold uppercase">Nome</span>
-                <span className="text-xs font-bold text-ink/85">Marcos Silva</span>
+              <div className="rounded-xl border border-ink/5 bg-white/80 p-2 shadow-inner dark:border-white/8 dark:bg-[#2A3950] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <span className="block text-[8px] text-ink/40 font-bold uppercase dark:text-cloud/42">Nome</span>
+                <span className="text-xs font-bold text-ink/85 dark:text-cloud/88">Marcos Silva</span>
               </div>
-              <div className="rounded-xl border border-ink/5 bg-white/80 p-2 shadow-inner dark:border-border/60 dark:bg-surface-elevated/92">
-                <span className="block text-[8px] text-ink/40 font-bold uppercase">Tipo de Plano</span>
-                <span className="text-xs font-bold text-ink/85 truncate block">PME</span>
+              <div className="rounded-xl border border-ink/5 bg-white/80 p-2 shadow-inner dark:border-white/8 dark:bg-[#2A3950] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <span className="block text-[8px] text-ink/40 font-bold uppercase dark:text-cloud/42">Tipo de Plano</span>
+                <span className="text-xs font-bold text-ink/85 truncate block dark:text-cloud/88">PME</span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl border border-ink/5 bg-white/80 p-2 shadow-inner dark:border-border/60 dark:bg-surface-elevated/92">
-                <span className="block text-[8px] text-ink/40 font-bold uppercase">Telefone</span>
-                <span className="text-xs font-bold text-ink/85">(31) 98765-4321</span>
+              <div className="rounded-xl border border-ink/5 bg-white/80 p-2 shadow-inner dark:border-white/8 dark:bg-[#2A3950] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <span className="block text-[8px] text-ink/40 font-bold uppercase dark:text-cloud/42">Telefone</span>
+                <span className="text-xs font-bold text-ink/85 dark:text-cloud/88">(31) 98765-4321</span>
               </div>
-              <div className="rounded-xl border border-ink/5 bg-white/80 p-2 shadow-inner dark:border-border/60 dark:bg-surface-elevated/92">
-                <span className="block text-[8px] text-ink/40 font-bold uppercase">Quantidade de vidas</span>
-                <span className="text-xs font-bold text-ink/85">4</span>
+              <div className="rounded-xl border border-ink/5 bg-white/80 p-2 shadow-inner dark:border-white/8 dark:bg-[#2A3950] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <span className="block text-[8px] text-ink/40 font-bold uppercase dark:text-cloud/42">Quantidade de vidas</span>
+                <span className="text-xs font-bold text-ink/85 dark:text-cloud/88">4</span>
               </div>
             </div>
           </div>
@@ -252,12 +252,12 @@ export function HighlightCarousel() {
     },
     {
       id: 4,
-      bgColor: "bg-gradient-to-br from-[#E8F0FE] to-[#D2E3FC] dark:from-surface-elevated dark:to-dashboard-card-muted",
+      bgColor: "bg-gradient-to-br from-[#E8F0FE] to-[#D2E3FC] dark:from-[#263752] dark:to-[#1A2433]",
       textColor: "text-ink dark:text-cloud",
-      borderColor: "border-white/50 dark:border-border/70",
+      borderColor: "border-white/50 dark:border-cobalt/28",
       titleText: "Importe os leads para o CRM. Leve os leads para a plataforma e centralize atendimento, histórico e próximas ações.",
       visual: (
-        <div className="w-[85%] max-w-sm rounded-2xl border border-white/60 bg-white/60 p-5 text-center shadow-sm dark:border-border/70 dark:bg-dashboard-card-muted/92">
+        <div className="w-[85%] max-w-sm rounded-2xl border border-white/60 bg-white/60 p-5 text-center shadow-sm dark:border-cobalt/16 dark:bg-[#243449]">
           <div className="flex items-center justify-between gap-2.5 mb-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 font-bold text-[10px] shrink-0">
               <Facebook size={11} className="fill-blue-600/10" /> Meta Ads
@@ -275,7 +275,7 @@ export function HighlightCarousel() {
               <Zap size={11} className="fill-cobalt" /> Leadi
             </div>
           </div>
-          <div className="surface-card-strong rounded-xl border border-ink/5 p-3 flex items-center justify-between text-left shadow-sm dark:border-border/70 dark:bg-surface-elevated/92">
+          <div className="surface-card-strong rounded-xl border border-ink/5 p-3 flex items-center justify-between text-left shadow-sm dark:border-white/8 dark:bg-[#182231]">
             <div>
               <p className="text-xs font-bold text-ink dark:text-cloud">Marcos Silva</p>
               <p className="mt-0.5 text-[10px] text-ink/50 dark:text-cloud/58">Campanha • MG • PME • 4 vidas</p>
@@ -289,35 +289,35 @@ export function HighlightCarousel() {
     },
     {
       id: 5,
-      bgColor: "bg-white dark:bg-surface-elevated/90",
+      bgColor: "bg-white dark:bg-[#24344B]",
       textColor: "text-ink dark:text-cloud",
-      borderColor: "border-neutral-200/60 dark:border-border/70",
+      borderColor: "border-neutral-200/60 dark:border-[#677F9F]/85",
       titleText: "Distribua os leads para a equipe. No plano Equipe, o supervisor pode organizar e direcionar oportunidades para cada consultor.",
       visual: (
-        <div className="w-[85%] max-w-sm rounded-2xl border border-ink/6 bg-neutral-50/80 p-5 text-left shadow-sm dark:border-border/60 dark:bg-dashboard-card-muted/90">
+        <div className="w-[85%] max-w-sm rounded-2xl border border-ink/6 bg-neutral-50/80 p-5 text-left shadow-sm dark:border-[#637A9A]/68 dark:bg-[#2E3E55]/95">
           <div className="mb-3.5 flex items-center justify-between">
             <span className="text-[9px] font-bold text-ink/40 uppercase tracking-widest dark:text-cloud/48">Painel Supervisor</span>
             <span className="text-[9px] font-semibold bg-cobalt text-white px-2 py-0.5 rounded-full">Automático</span>
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-ink/5 bg-white p-2.5 shadow-sm dark:border-border/60 dark:bg-surface-elevated/92">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-ink/5 bg-white p-2.5 shadow-sm dark:border-white/10 dark:bg-[#1C2738]">
               <div className="min-w-0">
                 <p className="truncate text-xs font-bold text-ink dark:text-cloud">Marcos Silva</p>
                 <p className="text-[9px] text-ink/40 dark:text-cloud/56">4 vidas</p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                <span className="surface-pill rounded-lg px-2.5 py-0.5 text-[10px] font-bold text-ink/70 dark:bg-surface dark:text-cloud/82">Consultor Gabriel</span>
+                <span className="surface-pill rounded-lg px-2.5 py-0.5 text-[10px] font-bold text-ink/70 dark:border-white/10 dark:bg-[#253247] dark:text-cloud/82">Consultor Gabriel</span>
               </div>
             </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-ink/5 bg-white p-2.5 shadow-sm dark:border-border/60 dark:bg-surface-elevated/92">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-ink/5 bg-white p-2.5 shadow-sm dark:border-white/10 dark:bg-[#1C2738]">
               <div className="min-w-0">
                 <p className="truncate text-xs font-bold text-ink dark:text-cloud">Marina Azevedo</p>
                 <p className="text-[9px] text-ink/40 dark:text-cloud/56">48 vidas</p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                <span className="surface-pill rounded-lg px-2.5 py-0.5 text-[10px] font-bold text-ink/70 dark:bg-surface dark:text-cloud/82">Consultora Beatriz</span>
+                <span className="surface-pill rounded-lg px-2.5 py-0.5 text-[10px] font-bold text-ink/70 dark:border-white/10 dark:bg-[#253247] dark:text-cloud/82">Consultora Beatriz</span>
               </div>
             </div>
           </div>
@@ -366,18 +366,18 @@ export function HighlightCarousel() {
     },
     {
       id: 7,
-      bgColor: "bg-gradient-to-br from-[#FFF577] to-[#DDD022] dark:from-[#FFF577]/10 dark:to-[#DDD022]/10",
-      textColor: "text-ink",
-      borderColor: "border-yellow-400/40",
+      bgColor: "bg-gradient-to-br from-[#FFF577] to-[#DDD022] dark:from-[#262216] dark:to-[#1D1A16]",
+      textColor: "text-ink dark:text-cloud",
+      borderColor: "border-yellow-400/40 dark:border-yellow-300/26",
       titleText: "Turbine os anúncios com mais potencial. Pause, ajuste ou turbine campanhas com base no que está performando melhor.",
       visual: (
-        <div className="w-[85%] rounded-2xl border border-ink/6 bg-white/80 p-5 text-center shadow-sm max-w-sm dark:border-border/65 dark:bg-dashboard-card-muted/92">
+        <div className="w-[85%] rounded-2xl border border-ink/6 bg-white/80 p-5 text-center shadow-sm max-w-sm dark:border-white/10 dark:bg-[#2A241D]">
           <p className="mb-3.5 text-left text-[9px] font-bold uppercase tracking-widest text-ink/40 dark:text-cloud/48">Controle de Otimização</p>
           <div className="flex gap-2 justify-center">
-            <button className="flex-1 rounded-xl border border-ink/5 bg-white/50 px-2 py-2.5 text-[10px] font-extrabold text-ink/50 transition-colors hover:bg-white/70 dark:border-border/60 dark:bg-surface-elevated/90 dark:text-cloud/68 dark:hover:bg-surface-elevated">
+            <button className="flex-1 rounded-xl border border-ink/5 bg-white/50 px-2 py-2.5 text-[10px] font-extrabold text-ink/50 transition-colors hover:bg-white/70 dark:border-white/8 dark:bg-[#6A5524] dark:text-cloud/84 dark:hover:bg-[#786028]">
               Pausar
             </button>
-            <button className="flex-1 rounded-xl border border-ink/5 bg-white/50 px-2 py-2.5 text-[10px] font-extrabold text-ink/50 transition-colors hover:bg-white/70 dark:border-border/60 dark:bg-surface-elevated/90 dark:text-cloud/68 dark:hover:bg-surface-elevated">
+            <button className="flex-1 rounded-xl border border-ink/5 bg-white/50 px-2 py-2.5 text-[10px] font-extrabold text-ink/50 transition-colors hover:bg-white/70 dark:border-white/8 dark:bg-[#6A5524] dark:text-cloud/84 dark:hover:bg-[#786028]">
               Ajustar
             </button>
             <button className="relative flex-[1.3] overflow-hidden rounded-xl border border-signal/60 bg-signal px-3 py-2.5 text-[10px] font-extrabold text-accent-foreground shadow-md shadow-black/10 transition-transform duration-200 hover:scale-[1.02] flex items-center justify-center gap-1.5 group">
@@ -385,7 +385,7 @@ export function HighlightCarousel() {
               Turbinar
             </button>
           </div>
-          <p className="mt-3.5 flex items-center justify-center gap-1 select-none text-[9px] font-bold text-ink/50 dark:text-cloud/58">
+          <p className="mt-3.5 flex items-center justify-center gap-1 select-none text-[9px] font-bold text-ink/50 dark:text-cloud/54">
             <Sparkles size={10} className="text-cobalt fill-cobalt/10" /> Destaque máximo de performance
           </p>
         </div>
@@ -393,12 +393,12 @@ export function HighlightCarousel() {
     },
     {
       id: 8,
-      bgColor: "bg-gradient-to-br from-white to-[#F0F3F6] dark:from-white/5 dark:to-white/10",
-      textColor: "text-ink",
-      borderColor: "border-neutral-200/60",
+      bgColor: "bg-gradient-to-br from-white to-[#F0F3F6] dark:from-[#243046] dark:to-[#1A2232]",
+      textColor: "text-ink dark:text-cloud",
+      borderColor: "border-neutral-200/60 dark:border-cobalt/24",
       titleText: "Acompanhe o funil e ganhe produtividade. Veja o andamento dos leads, acompanhe a equipe e conduza mais oportunidades com organização.",
       visual: (
-        <div className="w-[95%] sm:w-full rounded-2xl border border-ink/6 bg-white/80 p-4 text-left shadow-sm max-w-sm md:max-w-md relative overflow-hidden select-none dark:border-border/65 dark:bg-dashboard-card-muted/92">
+        <div className="w-[95%] sm:w-full rounded-2xl border border-ink/6 bg-white/80 p-4 text-left shadow-sm max-w-sm md:max-w-md relative overflow-hidden select-none dark:border-white/10 dark:bg-[#253247]">
           <style>{`
             @keyframes mini-kanban-float {
               0%, 100% { transform: translateY(0) rotate(-3deg); }
@@ -425,19 +425,19 @@ export function HighlightCarousel() {
                   <span className="h-1.5 w-1.5 rounded-full bg-cobalt"></span>
                   <span className="text-[9px] font-bold text-ink/70 dark:text-cloud/82">Novo Lead</span>
                 </div>
-                <span className="rounded bg-ink/5 px-1 text-[8px] font-bold text-ink/40 dark:bg-surface-elevated dark:text-cloud/56">1</span>
+                <span className="rounded bg-ink/5 px-1 text-[8px] font-bold text-ink/40 dark:bg-[#1A2332] dark:text-cloud/56">1</span>
               </div>
               
               <div className="space-y-1.5">
                 {/* Static Lead Card */}
-                <div className="rounded-lg border border-ink/5 bg-white p-1.5 shadow-sm dark:border-border/60 dark:bg-surface-elevated/92">
+                <div className="rounded-lg border border-ink/5 bg-white p-1.5 shadow-sm dark:border-white/10 dark:bg-[#1A2332]">
                   <span className="block h-1 w-5 rounded-full bg-cobalt mb-1" />
                   <p className="text-[9px] font-bold leading-tight text-ink dark:text-cloud">Ana Souza</p>
                   <p className="mt-0.5 text-[7px] text-ink/40 dark:text-cloud/56">PME • 5 vidas</p>
                 </div>
                 
                 {/* Ghost Card Placeholder (representing the card being dragged) */}
-                <div className="border border-dashed border-cobalt/20 bg-cobalt/[0.02] rounded-lg h-[38px] flex items-center justify-center">
+                <div className="border border-dashed border-cobalt/20 bg-cobalt/[0.02] rounded-lg h-[38px] flex items-center justify-center dark:border-cobalt/36 dark:bg-cobalt/10">
                   <span className="text-[6px] font-bold text-cobalt/30 uppercase tracking-widest scale-90">Movendo...</span>
                 </div>
               </div>
@@ -450,18 +450,18 @@ export function HighlightCarousel() {
                   <span className="h-1.5 w-1.5 rounded-full bg-lagoon"></span>
                   <span className="text-[9px] font-bold text-ink/70 dark:text-cloud/82">Qualificação</span>
                 </div>
-                <span className="rounded bg-ink/5 px-1 text-[8px] font-bold text-ink/40 dark:bg-surface-elevated dark:text-cloud/56">2</span>
+                <span className="rounded bg-ink/5 px-1 text-[8px] font-bold text-ink/40 dark:bg-[#1A2332] dark:text-cloud/56">2</span>
               </div>
               
               <div className="space-y-1.5">
                 {/* Active Dropzone Placeholder */}
-                <div className="border border-dashed border-cobalt/60 bg-cobalt/5 rounded-lg h-[38px] flex flex-col items-center justify-center border-spacing-2 animate-pulse">
+                <div className="border border-dashed border-cobalt/60 bg-cobalt/5 rounded-lg h-[38px] flex flex-col items-center justify-center border-spacing-2 animate-pulse dark:bg-cobalt/12">
                   <span className="text-[7px] font-bold text-cobalt uppercase tracking-widest scale-90">Solte Aqui</span>
                   <span className="text-[5px] text-cobalt/60 font-semibold uppercase tracking-wider scale-90">Mover Etapa</span>
                 </div>
 
                 {/* Existing Card */}
-                <div className="rounded-lg border border-ink/5 bg-white p-1.5 shadow-sm opacity-60 dark:border-border/60 dark:bg-surface-elevated/92">
+                <div className="rounded-lg border border-ink/5 bg-white p-1.5 shadow-sm opacity-60 dark:border-white/10 dark:bg-[#1A2332]">
                   <span className="block h-1 w-5 rounded-full bg-lagoon mb-1" />
                   <p className="text-[9px] font-bold leading-tight text-ink dark:text-cloud">Lucas Lima</p>
                   <p className="mt-0.5 text-[7px] text-ink/40 dark:text-cloud/56">PME • 12 vidas</p>
@@ -476,12 +476,12 @@ export function HighlightCarousel() {
                   <span className="h-1.5 w-1.5 rounded-full bg-signal"></span>
                   <span className="text-[9px] font-bold text-ink/70 dark:text-cloud/82">Proposta</span>
                 </div>
-                <span className="rounded bg-ink/5 px-1 text-[8px] font-bold text-ink/40 dark:bg-surface-elevated dark:text-cloud/56">1</span>
+                <span className="rounded bg-ink/5 px-1 text-[8px] font-bold text-ink/40 dark:bg-[#1A2332] dark:text-cloud/56">1</span>
               </div>
               
               <div className="space-y-1.5">
                 {/* Existing Card */}
-                <div className="rounded-lg border border-ink/5 bg-white p-1.5 shadow-sm dark:border-border/60 dark:bg-surface-elevated/92">
+                <div className="rounded-lg border border-ink/5 bg-white p-1.5 shadow-sm dark:border-white/10 dark:bg-[#1A2332]">
                   <span className="block h-1 w-5 rounded-full bg-signal mb-1" />
                   <p className="text-[9px] font-bold leading-tight text-ink dark:text-cloud">Marcos Silva</p>
                   <p className="mt-0.5 text-[7px] text-ink/40 dark:text-cloud/56">PME • 4 vidas</p>
@@ -490,7 +490,7 @@ export function HighlightCarousel() {
             </div>
 
             {/* Dragging Card Overlay (floating) */}
-            <div className="absolute top-[38px] left-[18%] sm:left-[20%] z-20 w-[90px] sm:w-[100px] rounded-lg border border-cobalt/35 bg-white p-1.5 shadow-xl animate-mini-float pointer-events-none dark:border-cobalt/45 dark:bg-surface-elevated/96">
+            <div className="absolute top-[38px] left-[18%] sm:left-[20%] z-20 w-[90px] sm:w-[100px] rounded-lg border border-cobalt/35 bg-white p-1.5 shadow-xl animate-mini-float pointer-events-none dark:border-cobalt/45 dark:bg-[#324560]">
               <div className="flex items-start justify-between">
                 <span className="block h-1 w-5 rounded-full bg-cobalt mb-1" />
                 <span className="text-cobalt/60">
@@ -541,7 +541,7 @@ export function HighlightCarousel() {
           <div
             key={card.id}
             data-card="true"
-            className={`w-[290px] sm:w-[480px] md:w-[560px] aspect-[1.15/1] sm:aspect-[4/3] md:aspect-[1.4/1] shrink-0 rounded-[30px] border ${card.borderColor} ${card.bgColor} p-6 sm:p-9 md:p-10 flex flex-col justify-between snap-start transition-all duration-500 hover:shadow-[0_24px_60px_rgba(0,0,0,0.06)] hover:scale-[1.005] relative group`}
+            className={`w-[290px] sm:w-[480px] md:w-[560px] aspect-[1.15/1] sm:aspect-[4/3] md:aspect-[1.4/1] shrink-0 rounded-[30px] border ${card.borderColor} ${card.bgColor} p-6 sm:p-9 md:p-10 flex flex-col justify-between snap-start shadow-[0_24px_60px_rgba(18,23,33,0.08)] transition-all duration-500 hover:scale-[1.005] hover:shadow-[0_24px_60px_rgba(0,0,0,0.06)] dark:ring-1 dark:ring-white/6 dark:shadow-[0_28px_90px_rgba(0,0,0,0.40)] dark:hover:shadow-[0_38px_120px_rgba(0,0,0,0.48)] relative group`}
           >
             {/* Top Left single block bold typography */}
             <div className="text-left">

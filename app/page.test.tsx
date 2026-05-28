@@ -31,4 +31,12 @@ describe('Landing Page (/)', () => {
     expect(pricingLinks.length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: /^Planos$/ })).toHaveAttribute('href', '/pricing');
   });
+
+  it('usa o CTA de comparação na LP sem renderizar a tabela detalhada', async () => {
+    render(<Home />);
+
+    expect(screen.getByRole('link', { name: /Compare os planos em detalhes/i })).toHaveAttribute('href', '/pricing');
+    expect(screen.queryByText(/Veja o que está incluso em cada plano antes de escolher/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Adicionais opcionais/i)).not.toBeInTheDocument();
+  });
 });

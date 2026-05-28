@@ -5,7 +5,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   CheckCircle2,
-  ChevronRight,
   Filter,
   Plus,
   ShieldCheck,
@@ -99,13 +98,12 @@ export function LeadTable({
         </div>
       </div>
         <div className="surface-card-muted overflow-hidden rounded-[26px] xl:flex-1">
-        <div className="text-muted-soft hidden grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px_44px] gap-4 border-b border-border/50 px-5 py-3 text-xs font-semibold uppercase tracking-normal md:grid">
+        <div className="text-muted-soft hidden grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px] gap-4 border-b border-border/50 px-5 py-3 text-xs font-semibold uppercase tracking-normal md:grid">
           <span>Lead</span>
           <span>Telefone</span>
           <span>Email</span>
           <span>Responsável</span>
           <span>Status</span>
-          <span aria-hidden="true" />
         </div>
         {tableLeads.length === 0 && (
           <div className="text-muted-soft px-5 py-8 text-sm font-medium">
@@ -114,7 +112,7 @@ export function LeadTable({
         )}
         {tableLeads.map((lead) => (
           <div
-            className="grid gap-3 border-b border-border/45 px-5 py-4 last:border-0 md:grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px_44px] md:items-center"
+            className="grid gap-3 border-b border-border/45 px-5 py-4 last:border-0 md:grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px] md:items-center"
             key={lead.id}
           >
             <button
@@ -152,14 +150,6 @@ export function LeadTable({
               type="button"
             >
               {lead.stage}
-            </button>
-            <button
-              className="surface-action-secondary hidden h-10 w-10 items-center justify-center rounded-full md:inline-flex"
-              onClick={() => onLeadOpen(lead)}
-              type="button"
-              aria-label={`Abrir detalhes de ${lead.name}`}
-            >
-              <ChevronRight size={18} aria-hidden="true" />
             </button>
           </div>
         ))}
