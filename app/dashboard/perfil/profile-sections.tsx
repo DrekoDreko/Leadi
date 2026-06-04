@@ -1,7 +1,10 @@
-import { Activity, ArrowUpRight, CheckCircle2, CircleAlert, RefreshCw, TimerReset, Unplug } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, CircleAlert, RefreshCw, TimerReset, Unplug } from "lucide-react";
 import type { ConnectedAccountsState } from "@/lib/integrations/types";
 
 const PROFILE_META_SECTION_HREF = "/dashboard/perfil/meta";
+const META_CONNECT_HREF = `/api/integrations/meta/connect?returnTo=${encodeURIComponent(
+  PROFILE_META_SECTION_HREF
+)}`;
 const META_ACTIVE_STATUSES = new Set(["connected", "active"]);
 const META_ATTENTION_STATUSES = new Set(["pending", "expired", "error", "disconnected", "inactive", "revoked"]);
 
@@ -66,127 +69,161 @@ type MetaOverviewCardProps = {
 
 type MetaConnectionStatusValue = NonNullable<ConnectedAccountsState["metaConnection"]>["status"] | null;
 
+export function MetaHeaderActions({
+  canManage,
+  isConnected
+}: {
+  canManage: boolean;
+  isConnected: boolean;
+}) {
+  if (!canManage) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink/62">
+        Apenas owner e admins podem gerenciar.
+      </span>
+    );
+  }
+
+  return (
+    <>
+      {isConnected ? (
+        <form action="/api/integrations/meta/sync" method="post">
+          <input name="returnTo" type="hidden" value={PROFILE_META_SECTION_HREF} />
+          <button
+            className="inline-flex items-center gap-2 rounded-full bg-white/68 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white"
+            type="submit"
+          >
+            <RefreshCw size={18} aria-hidden="true" />
+            Sincronizar
+          </button>
+        </form>
+      ) : null}
+      <a
+        className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
+        href={META_CONNECT_HREF}
+      >
+        {isConnected ? "Gerenciar conexão" : "Conectar Meta"}
+        <ArrowUpRight size={18} aria-hidden="true" />
+      </a>
+    </>
+  );
+}
+
+export function MetaOnboardingCard({
+  connectedAccounts,
+  billingNotice,
+  metaParam,
+  missingMetaOAuthEnvKeys = [],
+  missingMetaSyncEnvKeys = [],
+  syncParam
+}: MetaOverviewCardProps) {
+  const diagnostics = buildMetaConnectionDiagnostics(connectedAccounts, {
+    billingNotice,
+    metaParam,
+    missingMetaOAuthEnvKeys,
+    missingMetaSyncEnvKeys,
+    syncParam
+  });
+  const missingEnvKeys = Array.from(new Set([...missingMetaOAuthEnvKeys, ...missingMetaSyncEnvKeys]));
+  const blockedByEnv = missingEnvKeys.length > 0;
+  const blockedByPermission = !connectedAccounts.canManageConnections || metaParam === "forbidden";
+  const canConnect = !blockedByEnv && !blockedByPermission;
+
+  const steps = [
+    {
+      title: "Conectar a conta",
+      description: "Autorize o login da Meta para vincular o perfil da empresa a este workspace."
+    },
+    {
+      title: "Sincronizar ativos",
+      description: "Traga páginas, formulários e contas de anúncio autorizados na Meta."
+    },
+    {
+      title: "Importar leads",
+      description: "Use os formulários conectados para importar leads direto no CRM."
+    }
+  ];
+
+  return (
+    <section className="glass-strong rounded-[34px] p-6 md:p-8">
+      <span className="inline-flex items-center gap-2 rounded-full bg-slate-500/12 px-3 py-1.5 text-xs font-semibold text-slate-700">
+        <Unplug size={14} aria-hidden="true" />
+        Conexão não iniciada
+      </span>
+      <h3 className="mt-4 text-2xl font-semibold md:text-3xl">Conecte a conta Meta da empresa</h3>
+      <p className="mt-3 max-w-2xl text-sm leading-7 text-ink/62">
+        Vincule o perfil Meta para importar páginas, formulários e contas de anúncio e preparar a
+        importação de leads no CRM. Leva menos de um minuto.
+      </p>
+
+      <div className="mt-6">
+        {canConnect ? (
+          <a
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-semibold text-cloud transition hover:bg-ink/90"
+            href={META_CONNECT_HREF}
+          >
+            Conectar Meta
+            <ArrowUpRight size={18} aria-hidden="true" />
+          </a>
+        ) : (
+          <div className="flex items-start gap-3 rounded-[22px] bg-amber-500/12 px-4 py-3 text-sm leading-6 text-amber-900">
+            <CircleAlert size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
+            <span>
+              {blockedByEnv
+                ? diagnostics.summary
+                : "Apenas owner e admins podem conectar a Meta. Entre com um perfil autorizado para continuar."}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-8 grid gap-3 md:grid-cols-3">
+        {steps.map((step, index) => (
+          <div className="rounded-[24px] border border-white/44 bg-white/36 p-5" key={step.title}>
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-ink text-sm font-semibold text-cloud">
+              {index + 1}
+            </span>
+            <p className="mt-3 text-sm font-semibold text-ink">{step.title}</p>
+            <p className="mt-1 text-sm leading-6 text-ink/62">{step.description}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function MetaConnectedAccountsSection({
   connectedAccounts
 }: {
   connectedAccounts: ConnectedAccountsState;
 }) {
-  const connection = connectedAccounts.metaConnection;
-
+  const hasAssets =
+    connectedAccounts.metaPages.length > 0 ||
+    connectedAccounts.metaAdAccounts.length > 0 ||
+    connectedAccounts.metaLeadForms.length > 0;
 
   return (
     <section className="rounded-[34px] p-6 glass-strong">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-cobalt">Contas Meta conectadas</p>
-          <h3 className="mt-2 text-2xl font-semibold">
-            {connection?.metaUserName ?? "Nenhuma conta Meta conectada"}
-          </h3>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/62">
-            Ativos disponíveis para páginas, formulários, contas de anúncio e importação manual de
-            leads históricos.
-          </p>
+          <p className="text-sm font-medium text-cobalt">Ativos sincronizados</p>
+          <h3 className="mt-1 text-2xl font-semibold">Páginas, formulários e contas de anúncio</h3>
+          <p className="mt-1 text-sm text-ink/62">Ativos prontos para importar leads no CRM.</p>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          {connectedAccounts.canManageConnections ? (
-            <>
-              <form action="/api/integrations/meta/sync" method="post">
-                <input name="returnTo" type="hidden" value={PROFILE_META_SECTION_HREF} />
-                <button
-                  className="inline-flex items-center gap-2 rounded-full bg-white/68 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white"
-                  type="submit"
-                >
-                  <RefreshCw size={18} aria-hidden="true" />
-                  Sincronizar novamente
-                </button>
-              </form>
-              <a
-                className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
-                href={`/api/integrations/meta/connect?returnTo=${encodeURIComponent(PROFILE_META_SECTION_HREF)}`}
-              >
-                Gerenciar conexão
-                <ArrowUpRight size={18} aria-hidden="true" />
-              </a>
-            </>
-          ) : (
-            <span className="rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink/62">
-              Apenas owner e admins podem gerenciar.
-            </span>
-          )}
-        </div>
+        <a
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-xs font-semibold text-cloud transition hover:bg-ink/90"
+          href="/dashboard/leads"
+          title="Importar leads no CRM"
+        >
+          Importar leads
+          <ArrowUpRight size={16} aria-hidden="true" />
+        </a>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        {/* Sessão 1: Informações da Conta */}
-        <article className="rounded-[28px] border border-white/44 bg-white/36 p-5 flex flex-col gap-4">
-          <p className="text-sm font-semibold text-cobalt">Informações da conta</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <InfoTile label="Perfil Meta" value={connection?.metaUserName ?? "Não conectado"} />
-            <InfoTile label="ID do perfil" value={connection?.metaUserId ?? "Não informado"} />
-            <InfoTile label="Status" value={connection?.connectionStatusLabel ?? "Pendente"} />
-            <InfoTile label="Última sincronização" value={formatDateTime(connection?.lastSyncAt)} />
-          </div>
-        </article>
-
-        {/* Sessão 2: Resumo dos Ativos */}
-        <article className="rounded-[28px] border border-white/44 bg-white/36 p-5 flex flex-col gap-4">
-          <p className="text-sm font-semibold text-cobalt">Resumo dos ativos</p>
-          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-            <InfoTile label="Páginas conectadas" value={String(connectedAccounts.metaPages.length)} />
-            <InfoTile
-              label="Contas de anúncio"
-              value={String(connectedAccounts.metaAdAccounts.length)}
-            />
-            <InfoTile label="Formulários de lead" value={String(connectedAccounts.metaLeadForms.length)} />
-          </div>
-        </article>
-      </div>
-
-      {/* Sessão 3: Permissões concedidas */}
-      <article className="mt-6 rounded-[28px] border border-white/44 bg-white/36 p-5 flex flex-col gap-4">
-        <p className="text-sm font-semibold text-ink">Permissões concedidas</p>
-        <div className="rounded-[22px] bg-white/48 p-4">
-          {connection?.permissions.length ? (
-            <div className="flex flex-wrap gap-2">
-              {connection.permissions.map((permission) => (
-                <span
-                  className="rounded-full bg-white/76 px-3 py-1.5 text-xs font-semibold text-ink/70"
-                  key={permission}
-                >
-                  {permission}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-ink/58">Permissões ainda não disponíveis.</p>
-          )}
-        </div>
-      </article>
-
-      {/* Sessão 4: Ativos Sincronizados */}
-      <article className="mt-6 rounded-[28px] border border-white/44 bg-white/36 p-5 flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-cobalt">Páginas, formulários e contas de anúncio</p>
-            <p className="mt-1 text-sm text-ink/62">Ativos prontos para importar leads.</p>
-          </div>
-          <a
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-xs font-semibold text-cloud transition hover:bg-ink/90"
-            href="/dashboard/leads"
-            title="Importar leads no CRM"
-          >
-            Importar leads
-            <ArrowUpRight size={16} aria-hidden="true" />
-          </a>
-        </div>
-
-        <div className="mt-2 flex flex-col gap-5">
-          {connectedAccounts.metaPages.length === 0 &&
-          connectedAccounts.metaAdAccounts.length === 0 &&
-          connectedAccounts.metaLeadForms.length === 0 ? (
+      <div className="mt-6 flex flex-col gap-5">
+          {!hasAssets ? (
             <p className="rounded-[24px] border border-white/50 bg-white/30 px-4 py-5 text-sm leading-6 text-ink/62">
-              Nenhum ativo Meta sincronizado ainda. Use “Sincronizar novamente” depois de conectar sua conta.
+              Nenhum ativo Meta sincronizado ainda. Use “Sincronizar” no topo da página depois de conectar sua conta.
             </p>
           ) : (
             <>
@@ -336,14 +373,12 @@ export function MetaConnectedAccountsSection({
               )}
             </>
           )}
-        </div>
-      </article>
+      </div>
     </section>
   );
 }
 
 export function MetaOverviewCard({
-  workspaceName,
   connectedAccounts,
   billingNotice,
   metaParam,
@@ -351,6 +386,7 @@ export function MetaOverviewCard({
   missingMetaSyncEnvKeys = [],
   syncParam
 }: MetaOverviewCardProps) {
+  const connection = connectedAccounts.metaConnection;
   const summary = buildMetaOperationalSummary(connectedAccounts);
   const diagnostics = buildMetaConnectionDiagnostics(connectedAccounts, {
     billingNotice,
@@ -361,58 +397,102 @@ export function MetaOverviewCard({
   });
   const connectionTone = getMetaConnectionToneStyles(summary.connectionTone);
   const diagnosisTone = getMetaConnectionToneStyles(diagnostics.tone);
+  const diagnosticsOpenByDefault = diagnostics.tone !== "connected";
 
   return (
     <article className="glass-strong rounded-[34px] p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <span
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${connectionTone.badgeClassName}`}
-          >
-            {connectionTone.icon}
-            {summary.connectionTitle}
-          </span>
-          <h3 className="mt-3 text-xl font-semibold">Status operacional da Meta</h3>
-          <p className="mt-2 text-sm leading-6 text-ink/62">
-            {summary.connectionDescription}
-          </p>
-        </div>
-        <div className="rounded-[24px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/64">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">
-            Workspace monitorado
-          </p>
-          <p className="mt-2 font-semibold text-ink">{workspaceName}</p>
-          <p className="mt-1">
-            {summary.hasConnection
-              ? "A conexao ativa sustenta paginas, formularios e contas de anuncio da operacao."
-              : "Conecte uma conta Meta para destravar sincronizacao e importacao assistida."}
-          </p>
-        </div>
+      {/* Hero: fonte de verdade da conexão */}
+      <div className="max-w-2xl">
+        <span
+          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${connectionTone.badgeClassName}`}
+        >
+          {connectionTone.icon}
+          {summary.connectionTitle}
+        </span>
+        <h3 className="mt-3 text-2xl font-semibold">{connection?.metaUserName ?? "Conta Meta"}</h3>
+        <p className="mt-1 text-sm text-ink/58">
+          ID {connection?.metaUserId ?? "—"} · Última sincronização {formatDateTime(summary.lastSyncAt)}
+        </p>
+        <p className="mt-3 text-sm leading-6 text-ink/62">{summary.connectionDescription}</p>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <InfoTile label="Status da conexao" value={summary.connectionTitle} />
-        <InfoTile label="Ultima sincronizacao" value={formatDateTime(summary.lastSyncAt)} />
-        <InfoTile label="Ultimo resultado" value={summary.latestSyncStatus} />
-        <InfoTile label="Paginas" value={String(summary.pagesCount)} />
-        <InfoTile label="Formularios" value={String(summary.formsCount)} />
-        <InfoTile label="Contas de anuncio" value={String(summary.adAccountsCount)} />
+      {/* Próximo passo em destaque */}
+      <div className="mt-5 rounded-[24px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/64">
+        <span className="font-semibold text-ink">Próximo passo:</span> {diagnostics.nextStep}
       </div>
 
+      {/* Faixa de números consolidada */}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <InfoTile label="Páginas" value={String(summary.pagesCount)} />
+        <InfoTile label="Formulários" value={String(summary.formsCount)} />
+        <InfoTile label="Contas de anúncio" value={String(summary.adAccountsCount)} />
+        <InfoTile label="Permissões" value={String(summary.permissionsCount)} />
+      </div>
+      <p className="mt-2 px-1 text-xs text-ink/50">
+        {summary.activeAssetsCount} pronto(s) · {summary.attentionAssetsCount} com alerta ·{" "}
+        {summary.totalAssetsCount} no total
+      </p>
+
+      {/* Últimas sincronizações */}
       <article className="mt-5 rounded-[28px] border border-white/44 bg-white/36 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-cobalt">Diagnostico rapido da conexao</p>
-            <h4 className="mt-2 text-lg font-semibold text-ink">{diagnostics.title}</h4>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/62">{diagnostics.summary}</p>
+            <p className="text-sm font-semibold text-cobalt">Últimas sincronizações</p>
+            <p className="mt-1 text-sm text-ink/62">
+              Eventos recentes para identificar sucesso, alerta ou erro sem sair da área Meta.
+            </p>
           </div>
+          <TimerReset size={20} aria-hidden="true" className="text-cobalt" />
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {summary.recentSyncItems.length ? (
+            summary.recentSyncItems.map((item) => {
+              const syncTone = getMetaSyncToneStyles(item.status);
+
+              return (
+                <div className="rounded-[22px] bg-white/48 px-4 py-3" key={item.id}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${syncTone.badgeClassName}`}
+                      >
+                        {syncTone.icon}
+                        {syncTone.label}
+                      </span>
+                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">
+                        {item.assetTypeLabel}
+                      </span>
+                    </div>
+                    <span className="text-xs text-ink/46">{formatDateTime(item.createdAt)}</span>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-ink">{item.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-ink/62">{item.message}</p>
+                </div>
+              );
+            })
+          ) : (
+            <div className="rounded-[22px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/62">
+              Ainda não existem eventos recentes de sincronização Meta neste workspace.
+            </div>
+          )}
+        </div>
+      </article>
+
+      {/* Diagnóstico técnico e permissões (recolhível) */}
+      <details
+        className="mt-5 rounded-[28px] border border-white/44 bg-white/36 p-5"
+        open={diagnosticsOpenByDefault}
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+          <span className="text-sm font-semibold text-ink">Diagnóstico técnico e permissões</span>
           <span
             className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${diagnosisTone.badgeClassName}`}
           >
             {diagnosisTone.icon}
             {diagnostics.categoryLabel}
           </span>
-        </div>
+        </summary>
 
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {diagnostics.checks.map((check) => {
@@ -437,86 +517,28 @@ export function MetaOverviewCard({
           })}
         </div>
 
-        <div className="mt-4 rounded-[22px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/64">
-          <span className="font-semibold text-ink">Proximo passo:</span> {diagnostics.nextStep}
-        </div>
-      </article>
-
-      <div className="mt-5 grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
-        <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-cobalt">Resumo operacional</p>
-              <p className="mt-2 text-sm leading-6 text-ink/62">
-                Acompanhe rapidamente o que ja esta pronto para uso e o que ainda pede revisao na
-                integracao.
-              </p>
-            </div>
-            <Activity size={20} aria-hidden="true" className="text-cobalt" />
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <InfoTile label="Ativos totais" value={String(summary.totalAssetsCount)} />
-            <InfoTile label="Ativos prontos" value={String(summary.activeAssetsCount)} />
-            <InfoTile label="Com alerta" value={String(summary.attentionAssetsCount)} />
-          </div>
-
-          <div className="mt-4 rounded-[22px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/64">
-            {summary.hasConnection
-              ? `A conta Meta do workspace ${workspaceName} esta ${summary.connectionTitle.toLowerCase()} com ${summary.permissionsCount} permissoes registradas.`
-              : `Ainda nao ha conta Meta conectada no workspace ${workspaceName}. Assim que a conexao for feita, a tela passa a resumir ativos, ultima sync e eventos recentes.`}
-          </div>
-        </article>
-
-        <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-cobalt">Ultimas sincronizacoes</p>
-              <p className="mt-2 text-sm leading-6 text-ink/62">
-                Eventos recentes de sync para ajudar a identificar sucesso, alerta ou erro sem sair
-                da area Meta.
-              </p>
-            </div>
-            <TimerReset size={20} aria-hidden="true" className="text-cobalt" />
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {summary.recentSyncItems.length ? (
-              summary.recentSyncItems.map((item) => {
-                const syncTone = getMetaSyncToneStyles(item.status);
-
-                return (
-                  <div
-                    className="rounded-[22px] bg-white/48 px-4 py-3"
-                    key={item.id}
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">
+            Permissões concedidas
+          </p>
+          <div className="mt-2 rounded-[22px] bg-white/48 p-4">
+            {connection?.permissions.length ? (
+              <div className="flex flex-wrap gap-2">
+                {connection.permissions.map((permission) => (
+                  <span
+                    className="rounded-full bg-white/76 px-3 py-1.5 text-xs font-semibold text-ink/70"
+                    key={permission}
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${syncTone.badgeClassName}`}
-                        >
-                          {syncTone.icon}
-                          {syncTone.label}
-                        </span>
-                        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">
-                          {item.assetTypeLabel}
-                        </span>
-                      </div>
-                      <span className="text-xs text-ink/46">{formatDateTime(item.createdAt)}</span>
-                    </div>
-                    <p className="mt-3 text-sm font-semibold text-ink">{item.title}</p>
-                    <p className="mt-1 text-sm leading-6 text-ink/62">{item.message}</p>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="rounded-[22px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/62">
-                Ainda nao existem eventos recentes de sincronizacao Meta neste workspace.
+                    {permission}
+                  </span>
+                ))}
               </div>
+            ) : (
+              <p className="text-sm text-ink/58">Permissões ainda não disponíveis.</p>
             )}
           </div>
-        </article>
-      </div>
+        </div>
+      </details>
     </article>
   );
 }

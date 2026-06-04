@@ -4,7 +4,12 @@ import { getCurrentSubscriptionNotice } from "@/lib/billing/subscription-limits.
 import { getMissingEnvForIntegration } from "@/lib/env/server";
 import { getManagedConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 import { requireWorkspaceManager } from "@/lib/workspaces/context";
-import { MetaConnectedAccountsSection, MetaOverviewCard } from "../profile-sections";
+import {
+  MetaConnectedAccountsSection,
+  MetaHeaderActions,
+  MetaOnboardingCard,
+  MetaOverviewCard
+} from "../profile-sections";
 
 const integrationFeedbackMessages: Record<string, string> = {
   connected: "Conta Meta conectada com sucesso.",
@@ -52,6 +57,7 @@ export default async function PerfilMetaPage({
     connectedAccounts.message ||
     null;
   const isMetaConfigurationMissing = params?.meta === "missing";
+  const isConnected = Boolean(connectedAccounts.metaConnection);
 
   return (
     <div className="space-y-4">
@@ -63,6 +69,10 @@ export default async function PerfilMetaPage({
         <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
           {context.workspaceName}
         </span>
+        <MetaHeaderActions
+          canManage={connectedAccounts.canManageConnections}
+          isConnected={isConnected}
+        />
       </PageHeading>
 
       {isMetaConfigurationMissing && companyMessage ? (
@@ -75,8 +85,21 @@ export default async function PerfilMetaPage({
         <IntegrationNotice message={companyMessage} />
       ) : null}
 
-      <section className="space-y-4">
-        <MetaOverviewCard
+      {isConnected ? (
+        <section className="space-y-4">
+          <MetaOverviewCard
+            billingNotice={billingNotice}
+            connectedAccounts={connectedAccounts}
+            missingMetaOAuthEnvKeys={missingMetaOAuthEnvKeys}
+            missingMetaSyncEnvKeys={missingMetaSyncEnvKeys}
+            metaParam={params?.meta ?? null}
+            syncParam={params?.sync ?? null}
+            workspaceName={context.workspaceName}
+          />
+          <MetaConnectedAccountsSection connectedAccounts={connectedAccounts} />
+        </section>
+      ) : (
+        <MetaOnboardingCard
           billingNotice={billingNotice}
           connectedAccounts={connectedAccounts}
           missingMetaOAuthEnvKeys={missingMetaOAuthEnvKeys}
@@ -85,8 +108,7 @@ export default async function PerfilMetaPage({
           syncParam={params?.sync ?? null}
           workspaceName={context.workspaceName}
         />
-        <MetaConnectedAccountsSection connectedAccounts={connectedAccounts} />
-      </section>
+      )}
     </div>
   );
 }
