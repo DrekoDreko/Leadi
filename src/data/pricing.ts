@@ -1,16 +1,23 @@
-import { buildPlanSignupPath, type PublicPlanSlug } from "@/lib/billing/checkout-flow";
+import {
+  type BillingCycle,
+  type PublicPlanSlug
+} from "@/lib/billing/checkout-flow";
 
 export type PricingPlan = {
   slug: PublicPlanSlug;
   name: string;
+  badge?: string;
   label: string;
   description: string;
-  price: string;
-  implantation?: string;
-  cta: string;
-  href: string;
   highlight?: boolean;
+  cta: string;
+  includedCredits: number;
+  includedUsers: number;
+  extraUserPriceCents?: number;
+  prices: Record<BillingCycle, PricingPlanPrice>;
   features: string[];
+  isTeam?: boolean;
+  detailsUrl?: string;
 };
 
 export type FounderOffer = {
@@ -23,29 +30,21 @@ export type FounderOffer = {
   href: string;
 };
 
-export type PricingCycle = "monthly" | "annual";
+export type PricingCycle = BillingCycle;
 export type MarketingPlanSlug = "essencial" | "profissional" | "equipe";
-export type ComparisonPlanSlug = MarketingPlanSlug | "operacao";
+export type ComparisonPlanSlug = MarketingPlanSlug;
 export type PricingComparisonValue = boolean | string;
 
-export type MarketingPrice = {
+export type PricingPlanPrice = {
   amount: string;
   suffix: string;
   note: string;
+  checkoutAmountCents: number;
+  available: boolean;
+  unavailableMessage?: string;
 };
 
-export type MarketingPricingPlan = {
-  slug: MarketingPlanSlug;
-  name: string;
-  badge?: string;
-  label: string;
-  description: string;
-  cta: string;
-  href: string;
-  highlight?: boolean;
-  prices: Record<PricingCycle, MarketingPrice>;
-  features: string[];
-};
+export type MarketingPricingPlan = PricingPlan;
 
 export type PricingComparisonCategory = {
   title: string;
@@ -55,111 +54,41 @@ export type PricingComparisonCategory = {
   }>;
 };
 
-export type PricingOperationCta = {
-  slug: "operacao";
-  name: string;
-  price: string;
-  label: string;
-  description: string;
-  cta: string;
-  href: string;
-  features: string[];
-};
-
 export type PricingAddon = {
   title: string;
   price: string;
+  description: string;
 };
 
-function buildPreparedSignupPath(planSlug: string) {
-  const searchParams = new URLSearchParams({
-    mode: "signup",
-    plan: planSlug,
-  });
-
-  return `/login?${searchParams.toString()}`;
-}
-
-// Checkout continues consuming this catalog directly.
 export const pricingPlans: PricingPlan[] = [
   {
     slug: "essencial",
     name: "Essencial",
     label: "Para consultores individuais",
-    description:
-      "Organização comercial simples para centralizar leads, acompanhar oportunidades e manter o histórico de atendimento.",
-    price: "R$ 59/mês",
-    cta: "Contratar",
-    href: buildPlanSignupPath("essencial"),
-    highlight: false,
-    features: [
-      "CRM de leads",
-      "Funil de oportunidades",
-      "Histórico de atendimento",
-      "Importação manual ou CSV",
-      "Lembretes e calendário",
-    ],
-  },
-  {
-    slug: "profissional",
-    name: "Profissional",
-    label: "Para consultores que captam leads com frequência",
-    description:
-      "O plano principal para quem precisa criar campanhas, organizar leads e acompanhar oportunidades em um fluxo mais produtivo.",
-    price: "R$ 99/mês",
-    cta: "Contratar",
-    href: buildPlanSignupPath("profissional"),
-    highlight: true,
-    features: [
-      "Tudo do Essencial",
-      "Integração Meta Lead Ads",
-      "20 campanhas com IA por mês",
-      "Validador de anúncio/compliance",
-      "Biblioteca de campanhas",
-      "Relatórios de origem dos leads",
-    ],
-  },
-  {
-    slug: "operacao",
-    name: "Operação",
-    label: "Para operações maiores",
-    description:
-      "Estrutura para equipes maiores que precisam de onboarding assistido, governança comercial e relatórios avançados.",
-    price: "R$ 349/mês",
-    cta: "Contratar",
-    href: buildPlanSignupPath("operacao"),
-    highlight: false,
-    features: [
-      "Até 8 usuários",
-      "Múltiplas equipes",
-      "Relatórios avançados",
-      "Permissões por perfil",
-      "Suporte prioritário",
-      "Onboarding assistido",
-    ],
-  },
-];
-
-export const marketingPricingPlans: MarketingPricingPlan[] = [
-  {
-    slug: "essencial",
-    name: "Essencial",
-    label: "Para consultores individuais",
+    badge: undefined,
     description:
       "Organização comercial simples para centralizar leads, acompanhar oportunidades e manter o histórico de atendimento.",
     cta: "Contratar",
-    href: buildPlanSignupPath("essencial"),
+    highlight: false,
+    includedCredits: 25,
+    includedUsers: 1,
     prices: {
       monthly: {
         amount: "R$ 59",
         suffix: "/mês",
         note: "ou R$ 49/mês no plano anual",
+        checkoutAmountCents: 5900,
+        available: true
       },
       annual: {
         amount: "R$ 49",
         suffix: "/mês",
-        note: "cobrado com desconto no plano anual",
-      },
+        note: "Cobrança anual será liberada assim que o plano anual estiver disponível no checkout.",
+        checkoutAmountCents: 4900,
+        available: false,
+        unavailableMessage:
+          "O plano anual do Essencial ainda não está disponível no checkout. Escolha o mensal por enquanto."
+      }
     },
     features: [
       "CRM de leads",
@@ -167,9 +96,10 @@ export const marketingPricingPlans: MarketingPricingPlan[] = [
       "Histórico de atendimento",
       "Importação manual ou CSV",
       "Lembretes e calendário",
-      "5 campanhas com IA por mês",
-      "20 mensagens com IA por mês",
-    ],
+      "25 créditos de IA por mês",
+      "Mensagens com IA",
+      "Textos de anúncio com IA"
+    ]
   },
   {
     slug: "profissional",
@@ -179,29 +109,37 @@ export const marketingPricingPlans: MarketingPricingPlan[] = [
     description:
       "O plano principal para quem precisa criar campanhas, organizar leads e acompanhar oportunidades em um fluxo mais produtivo.",
     cta: "Contratar",
-    href: buildPlanSignupPath("profissional"),
     highlight: true,
+    includedCredits: 75,
+    includedUsers: 1,
     prices: {
       monthly: {
-        amount: "R$ 99",
+        amount: "R$ 119",
         suffix: "/mês",
-        note: "ou R$ 79/mês no plano anual",
+        note: "ou R$ 89/mês no plano anual",
+        checkoutAmountCents: 11900,
+        available: true
       },
       annual: {
-        amount: "R$ 79",
+        amount: "R$ 89",
         suffix: "/mês",
-        note: "cobrado com desconto no plano anual",
-      },
+        note: "Cobrança anual será liberada assim que o plano anual estiver disponível no checkout.",
+        checkoutAmountCents: 8900,
+        available: false,
+        unavailableMessage:
+          "O plano anual do Profissional ainda não está disponível no checkout. Escolha o mensal por enquanto."
+      }
     },
     features: [
       "Tudo do Essencial",
       "Integração Meta Lead Ads",
-      "20 campanhas com IA por mês",
+      "75 créditos de IA por mês",
+      "Campanhas completas com IA",
       "Validador de anúncio/compliance",
       "Biblioteca de campanhas",
       "Relatórios de origem dos leads",
-      "Mensagens com IA ampliadas",
-    ],
+      "Mensagens com IA ampliadas"
+    ]
   },
   {
     slug: "equipe",
@@ -209,31 +147,46 @@ export const marketingPricingPlans: MarketingPricingPlan[] = [
     label: "Para pequenas equipes comerciais",
     description:
       "Estrutura para distribuir leads, acompanhar responsáveis e organizar a rotina comercial da equipe.",
-    cta: "Contratar",
-    href: buildPreparedSignupPath("equipe"),
+    cta: "Conhecer Plano Equipe",
+    highlight: false,
+    isTeam: true,
+    detailsUrl: "/pricing/equipe",
+    badge: "Novo",
+    includedCredits: 150,
+    includedUsers: 3,
+    extraUserPriceCents: 5900,
     prices: {
       monthly: {
-        amount: "R$ 189",
+        amount: "R$ 249",
         suffix: "/mês",
-        note: "ou R$ 149/mês no plano anual",
+        note: "ou R$ 199/mês no plano anual",
+        checkoutAmountCents: 24900,
+        available: true
       },
       annual: {
-        amount: "R$ 149",
+        amount: "R$ 199",
         suffix: "/mês",
-        note: "cobrado com desconto no plano anual",
-      },
+        note: "Cobrança anual será liberada assim que o plano anual estiver disponível no checkout.",
+        checkoutAmountCents: 19900,
+        available: false,
+        unavailableMessage:
+          "O plano anual do Equipe ainda não está disponível no checkout. Escolha o mensal por enquanto."
+      }
     },
     features: [
       "Tudo do Profissional",
       "Até 3 usuários",
+      "150 créditos de IA por mês",
       "Distribuição de leads",
       "Painel de equipe",
       "Relatórios por responsável",
       "Funis compartilhados",
-      "Usuário extra por R$ 39/mês",
-    ],
-  },
+      "Usuário extra por R$ 59/mês"
+    ]
+  }
 ];
+
+export const marketingPricingPlans: MarketingPricingPlan[] = pricingPlans;
 
 export const pricingComparisonCategories: PricingComparisonCategory[] = [
   {
@@ -241,188 +194,126 @@ export const pricingComparisonCategories: PricingComparisonCategory[] = [
     rows: [
       {
         label: "CRM de leads",
-        values: { essencial: true, profissional: true, equipe: true, operacao: true },
+        values: { essencial: true, profissional: true, equipe: true }
       },
       {
         label: "Funil de oportunidades",
-        values: { essencial: true, profissional: true, equipe: true, operacao: true },
+        values: { essencial: true, profissional: true, equipe: true }
       },
       {
         label: "Histórico de atendimento",
-        values: { essencial: true, profissional: true, equipe: true, operacao: true },
-      },
-      {
-        label: "Lembretes e calendário",
-        values: { essencial: true, profissional: true, equipe: true, operacao: true },
+        values: { essencial: true, profissional: true, equipe: true }
       },
       {
         label: "Importação manual/CSV",
-        values: { essencial: true, profissional: true, equipe: true, operacao: true },
+        values: { essencial: true, profissional: true, equipe: true }
       },
-    ],
+      {
+        label: "Lembretes e calendário",
+        values: { essencial: true, profissional: true, equipe: true }
+      }
+    ]
   },
   {
-    title: "IA",
+    title: "IA e Campanhas",
     rows: [
       {
-        label: "Campanhas com IA",
+        label: "Créditos de IA inclusos",
         values: {
-          essencial: "5/mês",
-          profissional: "20/mês",
-          equipe: "50/mês",
-          operacao: "150/mês",
-        },
+          essencial: "25 créditos/mês",
+          profissional: "75 créditos/mês",
+          equipe: "150 créditos/mês"
+        }
       },
       {
         label: "Mensagens com IA",
-        values: {
-          essencial: "20/mês",
-          profissional: "100/mês",
-          equipe: "300/mês",
-          operacao: "1.000/mês",
-        },
+        values: { essencial: true, profissional: true, equipe: true }
       },
       {
-        label: "Biblioteca de campanhas",
-        values: {
-          essencial: "Básica",
-          profissional: true,
-          equipe: true,
-          operacao: true,
-        },
+        label: "Textos de anúncio com IA",
+        values: { essencial: true, profissional: true, equipe: true }
+      },
+      {
+        label: "Campanhas completas com IA",
+        values: { essencial: false, profissional: true, equipe: true }
       },
       {
         label: "Validador de anúncio/compliance",
-        values: { essencial: false, profissional: true, equipe: true, operacao: true },
+        values: { essencial: false, profissional: true, equipe: true }
       },
-    ],
+      {
+        label: "Biblioteca de campanhas",
+        values: { essencial: false, profissional: true, equipe: true }
+      }
+    ]
   },
   {
-    title: "Meta e Leads",
+    title: "Meta e Equipe",
     rows: [
       {
         label: "Integração Meta Lead Ads",
-        values: { essencial: false, profissional: true, equipe: true, operacao: true },
+        values: { essencial: false, profissional: true, equipe: true }
       },
       {
-        label: "Importação automática de leads",
-        values: { essencial: false, profissional: true, equipe: true, operacao: true },
+        label: "Relatórios de origem dos leads",
+        values: { essencial: false, profissional: true, equipe: true }
       },
-      {
-        label: "Relatório de origem dos leads",
-        values: { essencial: false, profissional: true, equipe: true, operacao: true },
-      },
-      {
-        label: "Custo por lead",
-        values: {
-          essencial: false,
-          profissional: true,
-          equipe: true,
-          operacao: "Avançado",
-        },
-      },
-    ],
-  },
-  {
-    title: "Equipe",
-    rows: [
       {
         label: "Usuários inclusos",
-        values: { essencial: "1", profissional: "1", equipe: "3", operacao: "8" },
+        values: { essencial: "1", profissional: "1", equipe: "3" }
       },
       {
         label: "Usuário extra",
         values: {
           essencial: "Não disponível",
-          profissional: "R$ 39/mês",
-          equipe: "R$ 39/mês",
-          operacao: "R$ 39/mês",
-        },
+          profissional: "Não disponível",
+          equipe: "R$ 59/mês"
+        }
       },
       {
         label: "Distribuição de leads",
-        values: { essencial: false, profissional: false, equipe: true, operacao: true },
+        values: { essencial: false, profissional: false, equipe: true }
       },
       {
         label: "Painel por responsável",
-        values: { essencial: false, profissional: false, equipe: true, operacao: true },
+        values: { essencial: false, profissional: false, equipe: true }
       },
       {
-        label: "Permissões por perfil",
-        values: {
-          essencial: false,
-          profissional: false,
-          equipe: "Básico",
-          operacao: "Avançado",
-        },
-      },
-    ],
-  },
-  {
-    title: "Suporte",
-    rows: [
-      {
-        label: "Suporte",
-        values: {
-          essencial: "Padrão",
-          profissional: "Padrão",
-          equipe: "Prioritário",
-          operacao: "Prioritário",
-        },
-      },
-      {
-        label: "Onboarding assistido",
-        values: {
-          essencial: false,
-          profissional: "Opcional",
-          equipe: "Opcional",
-          operacao: true,
-        },
-      },
-      {
-        label: "Setup assistido",
-        values: {
-          essencial: "Opcional",
-          profissional: "Opcional",
-          equipe: "Opcional",
-          operacao: "Incluso",
-        },
-      },
-    ],
-  },
+        label: "Funis compartilhados",
+        values: { essencial: false, profissional: false, equipe: true }
+      }
+    ]
+  }
 ];
 
-export const pricingOperationPlan: PricingOperationCta = {
-  slug: "operacao",
-  name: "Operação",
-  price: "Sob consulta",
-  label: "Para operações maiores",
-  description:
-    "Fale com a equipe para planos com múltiplas equipes, onboarding assistido e volume maior de campanhas.",
-  cta: "Falar com a equipe",
-  href: buildPreparedSignupPath("operacao"),
-  features: [
-    "Até 8 usuários",
-    "Múltiplas equipes",
-    "Relatórios avançados",
-    "Permissões por perfil",
-    "Suporte prioritário",
-    "Onboarding assistido",
-    "Usuário extra por R$ 39/mês",
-  ],
-};
-
 export const pricingAddons: PricingAddon[] = [
-  { title: "Pacote extra de 30 campanhas com IA", price: "R$ 29" },
-  { title: "Pacote extra de 100 mensagens com IA", price: "R$ 19" },
-  { title: "Setup assistido Meta/CRM", price: "R$ 197 uma vez" },
-  { title: "Configuração assistida de campanha", price: "a partir de R$ 97" },
-  { title: "Design para anúncio", price: "sob orçamento" },
-  { title: "Vídeo curto para anúncio", price: "sob orçamento" },
+  {
+    title: "100 créditos",
+    price: "R$ 30,00",
+    description: "Créditos extras para continuar usando a IA quando a franquia mensal acabar."
+  },
+  {
+    title: "300 créditos",
+    price: "R$ 70,00",
+    description: "Boa opção para rotinas recorrentes com mensagens, textos e campanhas."
+  },
+  {
+    title: "1000 créditos",
+    price: "R$ 150,00",
+    description: "Maior volume com melhor custo por crédito para uso adicional no mês."
+  }
 ];
 
 export const pricingNotice =
-  "O investimento em anúncios na Meta não está incluso nos planos. A verba de mídia é paga diretamente pelo cliente à Meta.";
+  "Os créditos inclusos são renovados a cada ciclo da assinatura e o sistema sempre consome primeiro a franquia do plano antes dos créditos extras comprados.";
+
+export const aiCreditsInfo = {
+  title: "Como funcionam os créditos de IA?",
+  description:
+    "Cada assinatura inclui uma pequena franquia mensal para testar a IA dentro do fluxo comercial.",
+  details:
+    "Se a sua operação precisar de mais volume, você compra créditos extras separadamente e eles entram como saldo adicional da organização."
+};
 
 export const founderOffer: FounderOffer = {
   eyebrow: "Plano Fundador",
@@ -433,18 +324,10 @@ export const founderOffer: FounderOffer = {
   details: [
     "Oferta limitada para clientes piloto",
     "Sem taxa de implantação durante o período fundador",
-    "Após os 90 dias, a conta migra para um dos planos oficiais",
+    "Após os 90 dias, a conta migra para um dos planos oficiais"
   ],
   cta: "Quero entrar como fundador",
-  href: "/login",
-};
-
-export const aiCreditsInfo = {
-  title: "Como funcionam os créditos de IA?",
-  description:
-    "Os recursos de Inteligência Artificial (Mensagens e Campanhas) utilizam um sistema de créditos. Cada plano inclui uma franquia mensal de créditos para sua operação.",
-  details:
-    "Caso você precise de um volume maior de processamento, é possível adquirir pacotes de créditos adicionais diretamente no painel a qualquer momento.",
+  href: "/login"
 };
 
 /**

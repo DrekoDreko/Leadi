@@ -9,6 +9,13 @@ export type CampaignPublicationStatus =
   | "paused"
   | "failed";
 
+export type CampaignApprovalStatus =
+  | "not_required"
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "needs_adjustment";
+
 export type CampaignGenerationForm = {
   brokerageName: string;
   audience: string;
@@ -29,6 +36,7 @@ export type CampaignGenerationForm = {
   metaLeadFormId: string | null;
   publishMode: CampaignPublishMode;
   publicationStatus: CampaignPublicationStatus;
+  approvalStatus: CampaignApprovalStatus;
   metaCampaignId: string | null;
   metaAdSetId: string | null;
   metaAdId: string | null;
@@ -80,6 +88,7 @@ export type CampaignStoredInputPayload = {
   publication: {
     publishMode: CampaignPublishMode;
     publicationStatus: CampaignPublicationStatus;
+    approvalStatus: CampaignApprovalStatus;
     metaCampaignId: string | null;
     metaAdSetId: string | null;
     metaAdId: string | null;
@@ -116,6 +125,7 @@ export type CampaignHistoryItem = {
   metaLeadFormId: string | null;
   publishMode: CampaignPublishMode;
   publicationStatus: CampaignPublicationStatus;
+  approvalStatus: CampaignApprovalStatus;
   metaCampaignId: string | null;
   metaAdSetId: string | null;
   metaAdId: string | null;
@@ -145,6 +155,7 @@ export type CampaignActivitySummary = {
     id: string;
     campaignName: string;
     publicationStatus: CampaignPublicationStatus;
+    approvalStatus: CampaignApprovalStatus;
     publishMode: CampaignPublishMode;
   }>;
   mode: "supabase" | "not-configured" | "unauthenticated" | "error";

@@ -32,10 +32,12 @@ export default async function InvitePage({ params }: InvitePageProps) {
     .single();
 
   if (error) {
+    const errorCopy = getInviteErrorCopy(error.message);
+
     return (
       <InviteMessage
-        title="Convite indisponivel"
-        message="Este convite nao foi encontrado, ja foi usado ou expirou. Peca um novo link para o owner ou admin da equipe."
+        title={errorCopy.title}
+        message={errorCopy.message}
       />
     );
   }
@@ -63,4 +65,32 @@ function InviteMessage({ title, message }: { title: string; message: string }) {
       </section>
     </main>
   );
+}
+
+function getInviteErrorCopy(message: string) {
+  if (message.includes("pendente de aprovacao")) {
+    return {
+      title: "Convite pendente de aprovacao",
+      message: "O gestor ainda precisa aprovar este convite antes de liberar seu acesso."
+    };
+  }
+
+  if (message.includes("Convite rejeitado")) {
+    return {
+      title: "Convite rejeitado",
+      message: "Este convite foi rejeitado pelo gestor. Solicite um novo link se o acesso ainda for necessario."
+    };
+  }
+
+  if (message.includes("expirado")) {
+    return {
+      title: "Convite expirado",
+      message: "Este convite expirou e nao pode mais ser usado. Peca um novo link para o gestor ou supervisor da equipe."
+    };
+  }
+
+  return {
+    title: "Convite indisponivel",
+    message: "Este convite nao foi encontrado, ja foi usado ou expirou. Peca um novo link para o gestor ou supervisor da equipe."
+  };
 }

@@ -33,6 +33,7 @@ import {
   getLeadOriginDetails
 } from "@/lib/leads/source";
 import { normalizePhone } from "@/lib/leads/normalization";
+import { isLeadPendingFirstContact } from "@/lib/leads/first-contact";
 import { LeadMessageGenerator } from "./lead-message-generator";
 import type { SystemTemplate } from "@/lib/templates/types";
 import type { LeadOwnerOption } from "@/lib/leads/repository.server";
@@ -135,6 +136,7 @@ export function LeadDetailsPopup({
   const [commentDraft, setCommentDraft] = useState("");
   const [commentType, setCommentType] = useState<"comment" | "contact">("comment");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [isRecordingFirstContact, setIsRecordingFirstContact] = useState(false);
   const [status, setStatus] = useState<{
     type: "error" | "success";
     message: string;
@@ -166,6 +168,7 @@ export function LeadDetailsPopup({
     setCommentDraft("");
     setCommentType("comment");
     setIsSubmittingComment(false);
+    setIsRecordingFirstContact(false);
   }, [initialEditMode, initialPanel, lead, messageGeneratorEnabled]);
 
   useEffect(() => {
@@ -269,6 +272,9 @@ export function LeadDetailsPopup({
   const stagePanelClassName = getLeadStagePanelClassName(activeStageMeta?.tone);
   const leadQualityMeta = getLeadQualityMeta(activeLead.quality);
   const lossReasonDescription = lead.lossReason?.trim() || "Motivo de perda ainda nao registrado.";
+  const hasRecordedFirstContact =
+    activeLead.hasRecordedContact === true || comments.some((comment) => comment.type === "contact");
+  const shouldEmphasizeFirstContact = !isEditing;
 
   const closePopup = () => {
     if (!isSubmitting && !isDeleting) {
@@ -458,6 +464,58 @@ export function LeadDetailsPopup({
     }
   }
 
+  async function handleFirstContactToggle(checked: boolean) {
+    if (!checked || hasRecordedFirstContact || isRecordingFirstContact) {
+      return;
+    }
+
+    setCommentsError(null);
+    setStatus(null);
+    setIsRecordingFirstContact(true);
+
+    try {
+      const response = await fetch(`/api/leads/${encodeURIComponent(activeLead.id)}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          body: "Primeiro contato realizado pelo consultor.",
+          type: "contact"
+        })
+      });
+      const data = await parseLeadCommentResponse(response);
+
+      if (!response.ok || !data.comment) {
+        throw new Error(getFriendlyLeadCommentError(data.error, "create"));
+      }
+
+      setComments((currentComments) => [...currentComments, data.comment!]);
+      setCommentsStatus("ready");
+      setStatus({
+        type: "success",
+        message:
+          data.mode === "not-configured"
+            ? "Primeiro contato marcado no modo demonstracao."
+            : "Primeiro contato confirmado. O lead saiu da fila de Novo."
+      });
+
+      if (data.lead) {
+        onUpdated?.(data.lead, data.mode);
+      }
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel confirmar o primeiro contato agora."
+      });
+    } finally {
+      setIsRecordingFirstContact(false);
+    }
+  }
+
   const profileItems = [
     { icon: UserRound, label: "Responsavel", value: resolvedOwnerName },
     { icon: UserRound, label: "Empresa", value: lead.companyName ?? "Empresa nao informada" },
@@ -635,6 +693,54 @@ export function LeadDetailsPopup({
               Gerar mensagem
             </button>
           </div>
+        ) : null}
+
+        {shouldEmphasizeFirstContact ? (
+          <section
+            className={`mt-5 rounded-[28px] border px-5 py-4 ${
+              hasRecordedFirstContact
+                ? "border-emerald-200/70 bg-emerald-50/80 dark:border-emerald-500/30 dark:bg-emerald-500/10"
+                : "border-cobalt/18 bg-[linear-gradient(135deg,rgba(34,70,224,0.14),rgba(74,145,168,0.08))] shadow-[0_18px_50px_rgba(34,70,224,0.12)]"
+            }`}
+          >
+            <label className="flex cursor-pointer items-start gap-4">
+              <input
+                checked={hasRecordedFirstContact}
+                className="mt-1 h-5 w-5 rounded border border-cobalt/30 text-cobalt focus:ring-cobalt disabled:cursor-not-allowed"
+                disabled={hasRecordedFirstContact || isRecordingFirstContact || isSubmittingComment}
+                onChange={(event) => void handleFirstContactToggle(event.target.checked)}
+                type="checkbox"
+              />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-cobalt">
+                    Ação rápida
+                  </span>
+                  {isLeadPendingFirstContact(activeLead) ? (
+                    <span className="inline-flex items-center rounded-full bg-cobalt px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+                      Novo
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-2 text-base font-semibold text-ink">
+                  {hasRecordedFirstContact
+                    ? "Primeiro contato já confirmado para este lead."
+                    : "Marque assim que fizer o primeiro contato com este lead."}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-ink/68">
+                  {hasRecordedFirstContact
+                    ? "A etiqueta de Novo já foi removida e o lead não precisa mais ficar no topo da fila."
+                    : "Use esta caixa depois da primeira ligação, WhatsApp ou e-mail para tirar o lead do estado Novo e empurrá-lo para o fim da lista."}
+                </p>
+                {isRecordingFirstContact ? (
+                  <p className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-cobalt">
+                    <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+                    Confirmando contato...
+                  </p>
+                ) : null}
+              </div>
+            </label>
+          </section>
         ) : null}
 
         {isEditing && formValues ? (

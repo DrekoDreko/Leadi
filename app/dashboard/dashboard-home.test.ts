@@ -69,7 +69,8 @@ function buildLead(overrides: Partial<Lead>): Lead {
     lastInteraction: overrides.lastInteraction ?? "Sem interacao registrada.",
     notes: overrides.notes ?? "Observacao base.",
     quality: overrides.quality ?? "medium",
-    receivedAt: overrides.receivedAt ?? "2026-05-21T09:00:00.000Z",
+    receivedAt:
+      "receivedAt" in overrides ? (overrides.receivedAt ?? null) : "2026-05-21T09:00:00.000Z",
     updatedAt: overrides.updatedAt ?? "2026-05-21T09:00:00.000Z",
     archivedAt: overrides.archivedAt ?? null,
     archiveReason: overrides.archiveReason ?? null,

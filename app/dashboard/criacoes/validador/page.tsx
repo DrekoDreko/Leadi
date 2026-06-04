@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
 import { getCreativeRequestsForCurrentUser } from "@/lib/creative-requests/repository.server";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
@@ -16,6 +17,10 @@ export default async function CriacoesValidadorPage({ searchParams }: CriacoesVa
     getCreativeRequestsForCurrentUser(),
     getCurrentResourceAccess("creative_requests")
   ]);
+
+  if (context.isTeamSeller) {
+    redirect("/dashboard/criacoes");
+  }
 
   return (
     <PedidosWorkspace

@@ -19,6 +19,7 @@ type CampaignPayloadRow = {
   meta_lead_form_id: string | null;
   publish_mode: string | null;
   publication_status: string | null;
+  approval_status: string | null;
   meta_campaign_id: string | null;
   meta_adset_id: string | null;
   meta_ad_id: string | null;
@@ -71,6 +72,7 @@ export function buildCampaignInputPayload(form: CampaignGenerationForm): Campaig
     publication: {
       publishMode: form.publishMode,
       publicationStatus: form.publicationStatus,
+      approvalStatus: form.approvalStatus,
       metaCampaignId: form.metaCampaignId,
       metaAdSetId: form.metaAdSetId,
       metaAdId: form.metaAdId
@@ -164,6 +166,11 @@ export function parseCampaignInputPayload(row: CampaignPayloadRow): CampaignGene
         stringFromPayload(payload?.publicationStatus) ??
         row.publication_status
     ),
+    approvalStatus: normalizeCampaignApprovalStatus(
+      stringFromPayload(publication?.approvalStatus) ??
+        stringFromPayload(payload?.approvalStatus) ??
+        row.approval_status
+    ),
     metaCampaignId:
       stringFromPayload(publication?.metaCampaignId) ??
       stringFromPayload(payload?.metaCampaignId) ??
@@ -249,6 +256,22 @@ export function normalizeCampaignPublicationStatus(
   }
 
   return "not_connected";
+}
+
+export function normalizeCampaignApprovalStatus(
+  value: string | null | undefined
+): "not_required" | "pending" | "approved" | "rejected" | "needs_adjustment" {
+  if (
+    value === "not_required" ||
+    value === "pending" ||
+    value === "approved" ||
+    value === "rejected" ||
+    value === "needs_adjustment"
+  ) {
+    return value;
+  }
+
+  return "not_required";
 }
 
 function arrayFromPayload(

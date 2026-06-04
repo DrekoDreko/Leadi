@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { BillingResourceAccessError } from "@/lib/billing/subscription-limits.server";
 import {
-  assignLeadOwnersInBulkForCurrentUser,
   createLeadForCurrentUser,
   getLeadsForCurrentUser,
   type LeadCreateInput
@@ -50,10 +49,6 @@ const leadCreateSchema = z.object({
   meta_connected_account_id: z.string().trim().max(120).optional()
 }).strict();
 
-const leadBulkAssignSchema = z.object({
-  lead_ids: z.array(z.string().trim().min(1).max(80)).min(1).max(200),
-  owner_profile_id: z.string().trim().min(1).max(80)
-}).strict();
 
 export async function GET(request: Request) {
   await assertRouteRateLimit({
@@ -121,58 +116,6 @@ export async function POST(request: Request) {
   }
 }
 
-export async function PATCH(request: Request) {
-  let body: unknown;
-  try {
-    const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
-    assertSameOrigin(request);
-    await assertRouteRateLimit({
-      request,
-      keyPrefix: "api-leads-patch",
-      limit: 20,
-      windowMs: 60 * 1000
-    });
-
-    if (mode !== "not-configured") {
-      await assertServerAuth();
-    }
-
-    assertPayloadSize(request, "WEBHOOK_JSON");
-    const payload = await parseJsonBody(request, leadBulkAssignSchema);
-    body = payload;
-    const result = await assignLeadOwnersInBulkForCurrentUser({
-      leadIds: payload.lead_ids,
-      ownerProfileId: payload.owner_profile_id
-    });
-
-    return NextResponse.json(
-      {
-        leads: result.leads,
-        mode,
-        updatedCount: result.updatedCount
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    const status = getBulkAssignErrorStatus(error);
-    const errorMessage = getBulkAssignErrorMessage(error);
-
-    logger.error({
-      route: "/api/leads",
-      operation: "BULK_ASSIGN_LEADS",
-      status,
-      message: errorMessage,
-      data: { body }
-    }, error);
-
-    return NextResponse.json(
-      {
-        error: errorMessage
-      },
-      { status }
-    );
-  }
-}
 
 function getCreateLeadErrorMessage(error: unknown) {
   if (error instanceof ApiRouteError) {
@@ -230,54 +173,3 @@ function getCreateLeadErrorStatus(error: unknown) {
   return 400;
 }
 
-function getBulkAssignErrorMessage(error: unknown) {
-  if (error instanceof ApiRouteError) {
-    return error.message;
-  }
-
-  const message = error instanceof Error ? error.message : "";
-
-  if (message.includes("Usuario nao autenticado")) {
-    return "Sua sessao expirou. Entre novamente para distribuir leads.";
-  }
-
-  if (message.includes("Perfil nao encontrado")) {
-    return "Nao encontramos seu perfil no CRM. Recarregue a pagina ou fale com o administrador.";
-  }
-
-  if (message.includes("Somente owner ou admin podem distribuir leads em lote")) {
-    return "Somente owner ou admin podem distribuir leads em lote.";
-  }
-
-  if (message.includes("Selecione um consultor valido")) {
-    return "Selecione um consultor valido para receber os leads.";
-  }
-
-  if (message.includes("Selecione ao menos um lead valido")) {
-    return "Selecione ao menos um lead valido para distribuir.";
-  }
-
-  if (message.includes("nao foram encontrados para distribuicao")) {
-    return "Um ou mais leads selecionados nao foram encontrados para distribuicao.";
-  }
-
-  return "Nao foi possivel distribuir os leads selecionados. Tente novamente.";
-}
-
-function getBulkAssignErrorStatus(error: unknown) {
-  if (error instanceof ApiRouteError) {
-    return getErrorStatus(error);
-  }
-
-  const message = error instanceof Error ? error.message : "";
-
-  if (message.includes("Usuario nao autenticado")) {
-    return 401;
-  }
-
-  if (message.includes("Somente owner ou admin podem distribuir leads em lote")) {
-    return 403;
-  }
-
-  return 400;
-}

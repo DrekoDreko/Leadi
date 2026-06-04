@@ -7,6 +7,7 @@ import {
   buildCampaignResultPayload,
   normalizeCampaignPublicationStatus,
   normalizeCampaignPublishMode,
+  normalizeCampaignApprovalStatus,
   parseCampaignInputPayload,
   parseCampaignResultPayload
 } from "./payload";
@@ -25,7 +26,7 @@ type CampaignInsert = Database["public"]["Tables"]["campaigns"]["Insert"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type CampaignOperationalRow = Pick<
   CampaignRow,
-  "id" | "campaign_name" | "publication_status" | "publish_mode" | "updated_at"
+  "id" | "campaign_name" | "publication_status" | "approval_status" | "publish_mode" | "updated_at"
 >;
 
 const DEFAULT_PRODUCT = "Plano de saude empresarial";
@@ -207,7 +208,7 @@ export async function getCampaignActivitySummaryForCurrentUser(
 
   const { data, error } = await supabase
     .from("campaigns")
-    .select("id, campaign_name, publication_status, publish_mode, updated_at")
+    .select("id, campaign_name, publication_status, approval_status, publish_mode, updated_at")
     .eq("organization_id", profile.organization_id)
     .order("updated_at", { ascending: false });
 
@@ -245,6 +246,86 @@ export async function saveCampaignForCurrentUser(
     throw new Error(error.message);
   }
 
+  return mapCampaignRowToHistoryItem(data);
+}
+
+export async function getPendingCampaignsForCurrentUser(): Promise<CampaignListState> {
+  if (!isSupabaseConfigured()) {
+    return {
+      campaigns: [],
+      mode: "not-configured",
+      message: "Supabase ainda nao configurado. Funcionalidade indisponivel."
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      campaigns: [],
+      mode: "unauthenticated",
+      message: "Usuario nao autenticado."
+    };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (profileError || !profile) {
+    return {
+      campaigns: [],
+      mode: "error",
+      message: "Nao foi possivel carregar o historico de campanhas."
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .select("*")
+    .eq("organization_id", profile.organization_id)
+    .eq("approval_status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return {
+      campaigns: [],
+      mode: "error",
+      message: "Nao foi possivel carregar as campanhas pendentes."
+    };
+  }
+
+  return {
+    campaigns: (data ?? []).map((row) => mapCampaignRowToHistoryItem(row)),
+    mode: "supabase"
+  };
+}
+
+export async function updateCampaignApprovalStatus(
+  campaignId: string,
+  approvalStatus: CampaignSaveInput["form"]["approvalStatus"]
+): Promise<CampaignHistoryItem> {
+  const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+  
+  const { data, error } = await supabase
+    .from("campaigns")
+    .update({ approval_status: approvalStatus })
+    .eq("id", campaignId)
+    .eq("organization_id", profile.organization_id)
+    .select("*")
+    .single();
+    
+  if (error || !data) {
+    throw new Error(error?.message ?? "Falha ao atualizar o status de aprovacao da campanha.");
+  }
+  
   return mapCampaignRowToHistoryItem(data);
 }
 
@@ -322,6 +403,9 @@ function mapCampaignRowToHistoryItem(row: CampaignRow): CampaignHistoryItem {
     publicationStatus: normalizeCampaignPublicationStatus(
       row.publication_status ?? input.publicationStatus
     ),
+    approvalStatus: normalizeCampaignApprovalStatus(
+      row.approval_status ?? input.approvalStatus
+    ),
     metaCampaignId: row.meta_campaign_id ?? input.metaCampaignId,
     metaAdSetId: row.meta_adset_id ?? input.metaAdSetId,
     metaAdId: row.meta_ad_id ?? input.metaAdId,
@@ -369,6 +453,7 @@ function buildMockCampaigns(limit: number): CampaignHistoryItem[] {
             metaLeadFormId: null,
             publishMode: "manual_review",
             publicationStatus: "not_connected",
+            approvalStatus: "not_required",
             metaCampaignId: null,
             metaAdSetId: null,
             metaAdId: null
@@ -416,6 +501,7 @@ function buildMockCampaigns(limit: number): CampaignHistoryItem[] {
             metaLeadFormId: null,
             publishMode: "manual_review",
             publicationStatus: "not_connected",
+            approvalStatus: "not_required",
             metaCampaignId: null,
             metaAdSetId: null,
             metaAdId: null
@@ -460,6 +546,7 @@ function createMockCampaignHistoryItem(
     metaLeadFormId: form.metaLeadFormId,
     publishMode: form.publishMode,
     publicationStatus: form.publicationStatus,
+    approvalStatus: form.approvalStatus,
     metaCampaignId: form.metaCampaignId,
     metaAdSetId: form.metaAdSetId,
     metaAdId: form.metaAdId,
@@ -485,8 +572,10 @@ function buildCampaignActivitySummary(
     id: campaign.id,
     campaignName: "campaign_name" in campaign ? campaign.campaign_name : campaign.campaignName,
     publicationStatus:
-      "publication_status" in campaign ? campaign.publication_status : campaign.publicationStatus,
-    publishMode: "publish_mode" in campaign ? campaign.publish_mode : campaign.publishMode,
+      "publication_status" in campaign ? (campaign.publication_status as CampaignHistoryItem["publicationStatus"]) : campaign.publicationStatus,
+    approvalStatus:
+      "approval_status" in campaign ? (campaign.approval_status as CampaignHistoryItem["approvalStatus"]) : campaign.approvalStatus,
+    publishMode: "publish_mode" in campaign ? (campaign.publish_mode as CampaignHistoryItem["publishMode"]) : campaign.publishMode,
     updatedAt: "updated_at" in campaign ? campaign.updated_at : campaign.updatedAt
   }));
   const visibleCampaigns = operationalCampaigns.filter(
@@ -508,10 +597,11 @@ function buildCampaignActivitySummary(
     campaigns: visibleCampaigns
       .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
       .slice(0, safeLimit)
-      .map(({ id, campaignName, publicationStatus, publishMode }) => ({
+      .map(({ id, campaignName, publicationStatus, approvalStatus, publishMode }) => ({
         id,
         campaignName,
         publicationStatus,
+        approvalStatus,
         publishMode
       }))
   };

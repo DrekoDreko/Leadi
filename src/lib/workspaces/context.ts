@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database, WorkspaceType } from "@/lib/supabase/database.types";
-import { isWorkspaceManagerRole, normalizeWorkspaceRole, type WorkspaceRole } from "./permissions";
+import { isWorkspaceManagerRole, normalizeWorkspaceRole, type WorkspaceRole, can } from "./permissions";
+import type { Permission } from "./permission-map";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type WorkspaceRow = Database["public"]["Tables"]["organizations"]["Row"];
 
-export type DashboardNavVariant = "owner-solo" | "seller-team" | "owner-team";
+export type DashboardNavVariant = "owner-solo" | "consultant-team" | "supervisor-team" | "owner-team";
 
 export type WorkspaceContext = {
   mode: "supabase" | "not-configured";
@@ -26,6 +27,9 @@ export type WorkspaceContext = {
   isSoloOwner: boolean;
   isTeamSeller: boolean;
   navVariant: DashboardNavVariant;
+  teamId?: string;
+  teamName?: string;
+  supervisorName?: string;
 };
 
 const demoWorkspaceContext: WorkspaceContext = {
@@ -44,7 +48,10 @@ const demoWorkspaceContext: WorkspaceContext = {
   isManager: true,
   isSoloOwner: false,
   isTeamSeller: false,
-  navVariant: "owner-team"
+  navVariant: "owner-team",
+  teamId: undefined,
+  teamName: undefined,
+  supervisorName: undefined
 };
 
 export async function getCurrentWorkspaceContext(): Promise<WorkspaceContext> {
@@ -105,7 +112,10 @@ export async function getCurrentWorkspaceContext(): Promise<WorkspaceContext> {
     isManager,
     isSoloOwner,
     isTeamSeller,
-    navVariant: getDashboardNavVariant(role, workspaceType)
+    navVariant: getDashboardNavVariant(role, workspaceType),
+    teamId: undefined, // TODO: Fetch from team_members when implemented
+    teamName: undefined,
+    supervisorName: undefined
   };
 }
 
@@ -132,7 +142,7 @@ export async function requireWorkspaceManager() {
 export async function requireImportPermission() {
   const context = await requireCompletedProfile();
 
-  if (context.mode === "supabase" && !context.isManager && !context.isSoloOwner) {
+  if (context.mode === "supabase" && !can(context.role, "import_leads")) {
     redirect("/dashboard");
   }
 
@@ -159,6 +169,26 @@ export async function requirePlatformAdmin() {
   return context;
 }
 
+export async function requireTeamMember() {
+  const context = await requireCompletedProfile();
+
+  if (context.mode === "supabase" && !context.teamId) {
+    redirect("/dashboard");
+  }
+
+  return context;
+}
+
+export async function requirePermission(permission: Permission) {
+  const context = await requireCompletedProfile();
+
+  if (context.mode === "supabase" && !can(context.role, permission)) {
+    redirect("/dashboard");
+  }
+
+  return context;
+}
+
 function getDashboardNavVariant(
   role: WorkspaceRole,
   workspaceType: WorkspaceType
@@ -167,9 +197,13 @@ function getDashboardNavVariant(
     return "owner-solo";
   }
 
-  if (role === "owner" || role === "admin") {
+  if (role === "owner") {
     return "owner-team";
   }
 
-  return "seller-team";
+  if (role === "admin") {
+    return "supervisor-team";
+  }
+
+  return "consultant-team";
 }

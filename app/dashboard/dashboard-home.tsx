@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -29,12 +29,24 @@ import type { SystemTemplate } from "@/lib/templates/types";
 import { RemindersCalendarCard } from "@/components/dashboard/reminders-calendar-card";
 import { getLeadStageValue, isLeadClosedStage } from "@/lib/leads/stages";
 import type { OverdueLeadTaskItem, LeadOwnerOption } from "@/lib/leads/repository.server";
+import type { WhatsAppDeliveryStatusSummary } from "@/lib/whatsapp/repository.server";
+import type { AiCreditBalance, AiUsageThisPeriodSummary } from "@/lib/ai/credits";
+import {
+  buildChannelCards,
+  getPreviewAiBalanceDetails,
+  getPreviewAiUsageSummary,
+  getPreviewWhatsAppDeliverySummary
+} from "@/components/dashboard/channel-cards";
 import type { CampaignActivitySummary } from "@/lib/campaigns/types";
 import type {
   DashboardConsultantPortfolioSummary,
   DashboardCplSummary,
   DashboardStageConversionSummary
 } from "@/lib/reports/commercial-report.server";
+import {
+  hasLeadRecordedFirstContact,
+  sortLeadsByFirstContactPriority
+} from "@/lib/leads/first-contact";
 
 const NEW_LEADS_WINDOW_DAYS = 7;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -59,6 +71,9 @@ type DashboardHomeProps = {
   consultantPortfolioSummary?: DashboardConsultantPortfolioSummary;
   canManageLeadOwners?: boolean;
   leadOwnerOptions?: LeadOwnerOption[];
+  whatsappDeliverySummary?: WhatsAppDeliveryStatusSummary;
+  aiBalanceDetails?: AiCreditBalance;
+  aiUsageSummary?: AiUsageThisPeriodSummary;
 };
 
 export type DashboardLeadNoContactSummary = {
@@ -90,18 +105,22 @@ export function DashboardHome({
   stageConversionSummary,
   consultantPortfolioSummary,
   canManageLeadOwners = false,
-  leadOwnerOptions = []
+  leadOwnerOptions = [],
+  whatsappDeliverySummary,
+  aiBalanceDetails,
+  aiUsageSummary
 }: DashboardHomeProps) {
+  const [dashboardLeads, setDashboardLeads] = useState(() => sortLeadsByFirstContactPriority(leads));
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const metrics = preview
     ? getPreviewMetrics()
-    : getDashboardMetrics(leads, campaignsCount, aiBalance);
+    : getDashboardMetrics(dashboardLeads, campaignsCount, aiBalance);
   const campaignSummary = preview
     ? getPreviewCampaignActivitySummary()
     : campaignActivitySummary ?? getFallbackCampaignActivitySummary();
   const noContactSummary = preview
     ? getPreviewNoContactSummary()
-    : leadNoContactSummary ?? getFallbackNoContactSummary();
+    : buildLeadNoContactSummary(dashboardLeads, leadNoContactSummary);
   const dashboardCplSummary = preview
     ? getPreviewDashboardCplSummary()
     : cplSummary ?? getFallbackDashboardCplSummary();
@@ -111,16 +130,27 @@ export function DashboardHome({
   const teamConsultantSummary = preview
     ? getPreviewConsultantPortfolioSummary()
     : consultantPortfolioSummary ?? getFallbackConsultantPortfolioSummary();
+  const whatsappDelivery = preview
+    ? getPreviewWhatsAppDeliverySummary()
+    : whatsappDeliverySummary ?? { total: whatsappMessagesCount, sent: 0, failed: 0 };
+  const aiBalanceForCards = preview
+    ? getPreviewAiBalanceDetails()
+    : aiBalanceDetails ?? null;
+  const aiUsage = preview
+    ? getPreviewAiUsageSummary()
+    : aiUsageSummary ?? { usedCredits: 0, periodEnd: aiBalanceForCards?.currentPeriodEnd ?? null };
+  const channelCards = buildChannelCards({
+    aiBalance,
+    aiBalanceDetails: aiBalanceForCards,
+    aiUsage,
+    whatsappDelivery,
+    whatsappMessagesCount
+  });
   const contextItems = [
     {
       label: "Anuncios salvos",
       value: metrics.campaigns,
       note: metrics.campaignsNote
-    },
-    {
-      label: "Saldo de IA",
-      value: metrics.aiBalance,
-      note: metrics.aiBalanceNote
     },
     ...(dashboardCplSummary.status === "mocked"
       ? [
@@ -144,7 +174,8 @@ export function DashboardHome({
       title: "Crie seu primeiro lead",
       description: "Cadastre manualmente ou importe um lead para começar a gerenciar sua carteira.",
       href: "/dashboard/leads",
-      isCompleted: leads.length > 0 || onboardingState?.completedSteps.includes("create-lead") || false
+      isCompleted:
+        dashboardLeads.length > 0 || onboardingState?.completedSteps.includes("create-lead") || false
     },
     {
       id: "generate-campaign",
@@ -170,6 +201,29 @@ export function DashboardHome({
   ];
 
   const showOnboarding = onboardingState && !onboardingState.dismissedAt && !preview;
+
+  useEffect(() => {
+    setDashboardLeads(sortLeadsByFirstContactPriority(leads));
+  }, [leads]);
+
+  useEffect(() => {
+    setSelectedLead((currentLead) => {
+      if (!currentLead) {
+        return currentLead;
+      }
+
+      return dashboardLeads.find((lead) => lead.id === currentLead.id) ?? currentLead;
+    });
+  }, [dashboardLeads]);
+
+  function handleLeadUpdated(updatedLead: Lead) {
+    setDashboardLeads((currentLeads) =>
+      sortLeadsByFirstContactPriority(
+        currentLeads.map((lead) => (lead.id === updatedLead.id ? updatedLead : lead))
+      )
+    );
+    setSelectedLead(updatedLead);
+  }
 
   return (
     <div className="space-y-4">
@@ -230,12 +284,24 @@ export function DashboardHome({
         <Metric label="Vendas" value={metrics.sales} note={metrics.salesNote} tone="teal" />
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {channelCards.map((card) => (
+          <Metric
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            note={card.note}
+            tone={card.tone}
+          />
+        ))}
+      </div>
+
       <section className="surface-card rounded-[30px] p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm font-medium text-cobalt">Contexto da conta</p>
             <p className="text-muted-soft mt-1 text-sm leading-6">
-              Anuncios, saldo de IA e custo inicial continuam visiveis, mas fora da linha principal
+              Anuncios e custo inicial continuam visiveis, mas fora da linha principal
               de prioridades comerciais.
             </p>
           </div>
@@ -255,8 +321,107 @@ export function DashboardHome({
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-stretch">
         <div className="min-w-0 flex h-full flex-col gap-4">
-          <KanbanBoard href={funnelHref} leads={leads} onLeadOpen={setSelectedLead} />
-          <LeadTable leads={leads} onLeadOpen={setSelectedLead} />
+          <KanbanBoard href={funnelHref} leads={dashboardLeads} onLeadOpen={setSelectedLead} />
+          <LeadTable leads={dashboardLeads} onLeadOpen={setSelectedLead} />
+
+          {canManageLeadOwners && (
+            <section className="surface-card rounded-[36px] p-6 lg:p-7">
+              <div className="flex items-start justify-between gap-4">
+                <div className="max-w-3xl">
+                  <p className="text-muted-soft text-sm">Carteira por consultor</p>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-tight">
+                    {teamConsultantSummary.status === "available"
+                      ? `${teamConsultantSummary.totalConsultants} consultor${teamConsultantSummary.totalConsultants === 1 ? "" : "es"} com carteira visivel`
+                      : "Nenhuma carteira distribuida no momento"}
+                  </h2>
+                  <p className="text-muted-soft mt-3 text-sm leading-6">
+                    {teamConsultantSummary.note}
+                  </p>
+                </div>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
+                  <UsersRound size={20} aria-hidden="true" />
+                </span>
+              </div>
+
+              <div className="mt-6">
+                {teamConsultantSummary.status === "available" ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {teamConsultantSummary.rows.map((row) => (
+                      <div
+                        className="surface-card-muted rounded-[28px] p-5"
+                        key={row.ownerProfileId ?? row.ownerName}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-lg font-semibold text-ink">{row.ownerName}</p>
+                            <p className="text-muted-soft mt-1 text-sm leading-6">
+                              {getConsultantRoleLabel(row.role)} • {row.leadCount} lead
+                              {row.leadCount === 1 ? "" : "s"} na carteira
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${
+                              row.overdueCount > 0
+                                ? "bg-signal/14 text-foreground"
+                                : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"
+                            }`}
+                          >
+                            {row.overdueCount} atraso{row.overdueCount === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="surface-card-muted rounded-[28px] p-5 text-sm leading-6 text-muted-soft">
+                    Assim que houver leads distribuidos para a equipe, a leitura por consultor aparece aqui.
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          <section className="surface-card rounded-[34px] p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-muted-soft text-sm">Gerar Campanha</p>
+                <h2 className="mt-1 text-xl font-semibold">Criar nova campanha</h2>
+                <p className="text-muted-soft mt-2 text-sm leading-6">
+                  Monte a campanha com publico, oferta e briefing criativo no fluxo principal de Criações.
+                </p>
+              </div>
+              <span className="surface-pill flex h-11 w-11 items-center justify-center rounded-full text-cobalt">
+                <Sparkles size={19} aria-hidden="true" />
+              </span>
+            </div>
+
+            <Link
+              aria-label="Abrir IA Gerador de Campanha"
+              className="group relative isolate mt-5 flex items-center gap-4 overflow-hidden rounded-[28px] border border-white/24 bg-[linear-gradient(135deg,#2246e0_0%,#3462EE_58%,#4A91A8_100%)] px-5 py-4 text-left text-white shadow-[0_22px_60px_rgba(52,98,238,0.34)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_30px_72px_rgba(52,98,238,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/40"
+              href={campaignHref}
+            >
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_84%_50%,rgba(255,255,255,0.28),transparent_28%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_36%)]"
+              />
+              <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/24">
+                <ShieldCheck size={20} aria-hidden="true" />
+              </span>
+              <span className="relative flex min-w-0 flex-1 flex-col">
+                <span className="text-lg font-semibold leading-tight">Abrir IA Gerador de Campanha</span>
+                <span className="mt-1 text-sm leading-5 text-white/84">
+                  Monte a campanha, anexe criativos e acompanhe o retorno no validador.
+                </span>
+              </span>
+              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/12 ring-1 ring-white/24 transition duration-200 group-hover:bg-white/28 group-hover:shadow-[0_10px_26px_rgba(255,255,255,0.18)] group-hover:ring-white/45">
+                <ArrowRight
+                  size={18}
+                  aria-hidden="true"
+                  className="block -translate-x-px transition duration-200"
+                />
+              </span>
+            </Link>
+          </section>
         </div>
 
         <aside className="min-w-0 flex h-full flex-col gap-4">
@@ -398,57 +563,6 @@ export function DashboardHome({
             </div>
           </section>
 
-          {canManageLeadOwners && (
-            <section className="surface-card rounded-[34px] p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-muted-soft text-sm">Carteira por consultor</p>
-                  <h2 className="mt-1 text-xl font-semibold">
-                    {teamConsultantSummary.status === "available"
-                      ? `${teamConsultantSummary.totalConsultants} consultor${teamConsultantSummary.totalConsultants === 1 ? "" : "es"} com carteira visivel`
-                      : "Nenhuma carteira distribuida no momento"}
-                  </h2>
-                  <p className="text-muted-soft mt-2 text-sm leading-6">
-                    {teamConsultantSummary.note}
-                  </p>
-                </div>
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
-                  <UsersRound size={19} aria-hidden="true" />
-                </span>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                {teamConsultantSummary.status === "available" ? (
-                  teamConsultantSummary.rows.map((row) => (
-                    <div className="surface-card-muted rounded-[24px] p-4" key={row.ownerProfileId ?? row.ownerName}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-ink">{row.ownerName}</p>
-                          <p className="text-muted-soft mt-1 text-sm leading-6">
-                            {getConsultantRoleLabel(row.role)} • {row.leadCount} lead{row.leadCount === 1 ? "" : "s"} na carteira
-                          </p>
-                        </div>
-                        <span
-                          className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${
-                            row.overdueCount > 0
-                          ? "bg-signal/14 text-foreground"
-                              : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"
-                          }`}
-                        >
-                          {row.overdueCount} atraso{row.overdueCount === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="surface-card-muted rounded-[24px] p-4 text-sm leading-6 text-muted-soft">
-                    Assim que houver leads distribuidos para a equipe, a leitura por consultor aparece aqui.
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
           {overdueTasks.length > 0 && (
             <section className="surface-card rounded-[34px] border border-signal/22 p-5">
               <div className="flex items-start justify-between gap-3">
@@ -472,7 +586,7 @@ export function DashboardHome({
                     className="surface-card-muted w-full rounded-[24px] p-4 text-left transition hover:border-signal/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal/40"
                     key={task.id}
                     onClick={() => {
-                      const matchingLead = leads.find((lead) => lead.id === task.leadId) ?? null;
+                      const matchingLead = dashboardLeads.find((lead) => lead.id === task.leadId) ?? null;
                       if (matchingLead) {
                         setSelectedLead(matchingLead);
                       }
@@ -527,7 +641,7 @@ export function DashboardHome({
                     className="surface-card-muted w-full rounded-[24px] p-4 text-left transition hover:border-cobalt/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/40"
                     key={leadSummary.id}
                     onClick={() => {
-                      const matchingLead = leads.find((lead) => lead.id === leadSummary.id) ?? null;
+                      const matchingLead = dashboardLeads.find((lead) => lead.id === leadSummary.id) ?? null;
                       setSelectedLead(matchingLead);
                     }}
                     type="button"
@@ -543,7 +657,14 @@ export function DashboardHome({
                         {leadSummary.createdAtLabel}
                       </span>
                     </div>
-                    <p className="text-muted-soft mt-3 text-sm">{leadSummary.stage}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {leadSummary.stage === "Novo lead" ? (
+                        <span className="inline-flex items-center rounded-full bg-cobalt px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+                          Novo
+                        </span>
+                      ) : null}
+                      <p className="text-muted-soft text-sm">{leadSummary.stage}</p>
+                    </div>
                   </button>
                 ))
               ) : (
@@ -556,48 +677,6 @@ export function DashboardHome({
                 Priorize os mais recentes para acelerar o primeiro retorno
               </span>
             </div>
-          </section>
-
-          <section className="surface-card rounded-[34px] p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-muted-soft text-sm">Gerar Campanha</p>
-                <h2 className="mt-1 text-xl font-semibold">Criar nova campanha</h2>
-                <p className="text-muted-soft mt-2 text-sm leading-6">
-                  Monte a campanha com publico, oferta e briefing criativo no fluxo principal de Criações.
-                </p>
-              </div>
-              <span className="surface-pill flex h-11 w-11 items-center justify-center rounded-full text-cobalt">
-                <Sparkles size={19} aria-hidden="true" />
-              </span>
-            </div>
-
-            <Link
-              aria-label="Abrir IA Gerador de Campanha"
-              className="group relative isolate mt-5 flex items-center gap-4 overflow-hidden rounded-[28px] border border-white/24 bg-[linear-gradient(135deg,#2246e0_0%,#3462EE_58%,#4A91A8_100%)] px-5 py-4 text-left text-white shadow-[0_22px_60px_rgba(52,98,238,0.34)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_30px_72px_rgba(52,98,238,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/40"
-              href={campaignHref}
-            >
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_84%_50%,rgba(255,255,255,0.28),transparent_28%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_36%)]"
-              />
-              <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/24">
-                <ShieldCheck size={20} aria-hidden="true" />
-              </span>
-              <span className="relative flex min-w-0 flex-1 flex-col">
-                <span className="text-lg font-semibold leading-tight">Abrir IA Gerador de Campanha</span>
-                <span className="mt-1 text-sm leading-5 text-white/84">
-                  Monte a campanha, anexe criativos e acompanhe o retorno no validador.
-                </span>
-              </span>
-              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/12 ring-1 ring-white/24 transition duration-200 group-hover:bg-white/28 group-hover:shadow-[0_10px_26px_rgba(255,255,255,0.18)] group-hover:ring-white/45">
-                <ArrowRight
-                  size={18}
-                  aria-hidden="true"
-                  className="block -translate-x-px transition duration-200"
-                />
-              </span>
-            </Link>
           </section>
 
           <Link
@@ -632,6 +711,7 @@ export function DashboardHome({
         leadOwnerOptions={leadOwnerOptions}
         messageGeneratorEnabled
         onClose={() => setSelectedLead(null)}
+        onUpdated={handleLeadUpdated}
         whatsappTemplates={whatsappTemplates}
       />
     </div>
@@ -674,6 +754,35 @@ export function getDashboardMetrics(
   };
 }
 
+function buildLeadNoContactSummary(
+  leads: Lead[],
+  fallbackSummary?: DashboardLeadNoContactSummary
+): DashboardLeadNoContactSummary {
+  const hasExplicitFirstContactState = leads.some((lead) => lead.hasRecordedContact !== undefined);
+
+  if (!hasExplicitFirstContactState) {
+    return fallbackSummary ?? getFallbackNoContactSummary();
+  }
+
+  const leadsWithoutContact = leads.filter((lead) => !hasLeadRecordedFirstContact(lead));
+
+  if (leadsWithoutContact.length === 0) {
+    return fallbackSummary?.total === 0 ? fallbackSummary : getFallbackNoContactSummary();
+  }
+
+  return {
+    total: leadsWithoutContact.length,
+    leads: leadsWithoutContact.slice(0, 3).map((lead) => ({
+      id: lead.id,
+      name: lead.name,
+      owner: lead.owner,
+      source: lead.source,
+      stage: lead.stage,
+      createdAtLabel: lead.createdAt
+    }))
+  };
+}
+
 function getPreviewMetrics() {
   return {
     activeLeads: "128",
@@ -702,18 +811,21 @@ function getPreviewCampaignActivitySummary(): CampaignActivitySummary {
         id: "preview-campaign-1",
         campaignName: "Plano PME Campinas",
         publicationStatus: "published",
+        approvalStatus: "not_required",
         publishMode: "scheduled"
       },
       {
         id: "preview-campaign-2",
         campaignName: "Troca de Operadora Interior",
         publicationStatus: "pending_review",
+        approvalStatus: "not_required",
         publishMode: "manual_review"
       },
       {
         id: "preview-campaign-3",
         campaignName: "Lead Form Empresarial",
         publicationStatus: "draft_created",
+        approvalStatus: "not_required",
         publishMode: "draft"
       }
     ],

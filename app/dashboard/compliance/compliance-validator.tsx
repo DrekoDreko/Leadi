@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -11,6 +12,7 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { Metric, PageHeading } from "@/components/dashboard/widgets";
+import { getAiCreditCost } from "@/lib/ai/credit-costs";
 
 type RiskLevel = "low" | "medium" | "high";
 
@@ -64,10 +66,12 @@ const severityClasses: Record<RiskLevel, string> = {
 };
 
 export function ComplianceValidator({
+  aiBalance = 0,
   eyebrow = "Compliance",
   title = "Validador de campanha",
   description = "Cole textos de anuncio, formulario ou mensagem para detectar linguagem sensivel antes de publicar."
 }: {
+  aiBalance?: number;
   eyebrow?: string;
   title?: string;
   description?: string;
@@ -77,6 +81,8 @@ export function ComplianceValidator({
   const [error, setError] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [currentAiBalance, setCurrentAiBalance] = useState(aiBalance);
+  const validationCost = getAiCreditCost("generate_compliance_review");
 
   const visibleReview = review ?? getInitialReview();
   const highRiskCount = visibleReview.reasons.filter(
@@ -111,6 +117,7 @@ export function ComplianceValidator({
       });
       const payload = (await response.json().catch(() => null)) as {
         review?: ComplianceReview;
+        aiBalance?: number;
         error?: string;
       } | null;
 
@@ -119,6 +126,9 @@ export function ComplianceValidator({
       }
 
       setReview(payload.review);
+      if (typeof payload.aiBalance === "number") {
+        setCurrentAiBalance(payload.aiBalance);
+      }
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -156,7 +166,7 @@ export function ComplianceValidator({
       >
         <button
           className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={isValidating}
+          disabled={isValidating || currentAiBalance < validationCost}
           form="compliance-validator-form"
           type="submit"
         >
@@ -169,17 +179,40 @@ export function ComplianceValidator({
         </button>
       </PageHeading>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Metric label="Resultado" value={`${visibleReview.score}%`} note={riskLabels[visibleReview.riskLevel]} tone={metricTone} />
         <Metric label="Alertas" value={String(visibleReview.reasons.length)} note="motivos" tone="dark" />
         <Metric label="Risco alto" value={String(highRiskCount)} note="bloqueios" tone={highRiskCount ? "yellow" : "teal"} />
         <Metric label="Analise" value={sourceLabel} note={channelLabels[form.channel]} tone="blue" />
+        <Metric
+          label="Saldo IA"
+          value={currentAiBalance > 0 ? String(currentAiBalance) : "0"}
+          note={currentAiBalance > 0 ? "créditos disponíveis" : "sem saldo"}
+          tone={currentAiBalance > 0 ? "teal" : "yellow"}
+        />
       </div>
+
+      {currentAiBalance < validationCost ? (
+        <div className="rounded-[24px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
+          <p>Você não tem créditos suficientes para esta ação.</p>
+          <Link
+            className="mt-3 inline-flex font-semibold text-cobalt underline underline-offset-4"
+            href="/dashboard/perfil/creditos"
+          >
+            Comprar créditos
+          </Link>
+        </div>
+      ) : null}
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
         <div className="min-w-0 space-y-4">
           <section className="glass-strong rounded-[34px] p-5 md:p-6">
             <form className="grid gap-4" id="compliance-validator-form" onSubmit={handleSubmit}>
+              <div className="rounded-[22px] bg-white/42 px-4 py-3 text-sm font-medium text-ink/70">
+                Esta ação consumirá {validationCost} crédito
+                {validationCost === 1 ? "" : "s"} de IA por execução.
+              </div>
+
               <label className="space-y-2" htmlFor="text">
                 <span className="text-sm font-semibold text-ink/62">Texto para revisar</span>
                 <textarea
@@ -239,7 +272,17 @@ export function ComplianceValidator({
             {error ? (
               <div className="mt-4 flex items-start gap-3 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
                 <AlertTriangle className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
-                <p>{error}</p>
+                <div>
+                  <p>{error}</p>
+                  {error.includes("créditos de IA") ? (
+                    <Link
+                      className="mt-2 inline-flex font-semibold text-cobalt underline underline-offset-4"
+                      href="/dashboard/perfil/creditos"
+                    >
+                      Comprar créditos de IA
+                    </Link>
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </section>

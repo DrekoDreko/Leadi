@@ -52,6 +52,10 @@ import {
   getLeadOriginBadgeClassName,
   getLeadOriginSummary
 } from "@/lib/leads/source";
+import {
+  isLeadPendingFirstContact,
+  sortLeadsByFirstContactPriority
+} from "@/lib/leads/first-contact";
 
 const filterKeys: Array<keyof LeadUrlFilters> = [
   "stage",
@@ -75,6 +79,8 @@ type LeadBulkAssignResponse = {
 
 export function LeadsWorkspace({
   canManageLeadOwners,
+  canExportLeads = true,
+  canImportLeads = true,
   createLeadAccess,
   aiBalance,
   initialLeadId,
@@ -86,6 +92,8 @@ export function LeadsWorkspace({
   title = "Leads"
 }: {
   canManageLeadOwners: boolean;
+  canExportLeads?: boolean;
+  canImportLeads?: boolean;
   createLeadAccess: ResourceAccessSummary;
   aiBalance: number;
   initialLeadId: string | null;
@@ -124,7 +132,7 @@ export function LeadsWorkspace({
     ? leadOwnerOptions.filter((option) => option.role === "seller")
     : [];
 
-  const visibleLeads = leads;
+  const visibleLeads = sortLeadsByFirstContactPriority(leads);
   const hasActiveFilters = searchTerm.trim().length > 0 || hasActiveLeadUrlFilters(leadFilters);
   const isErrorState = leadState.mode === "error" || leadState.mode === "unauthenticated";
   const isEmptyWithoutFilters = !isErrorState && leads.length === 0 && !hasActiveFilters;
@@ -383,14 +391,14 @@ export function LeadsWorkspace({
     setIsBulkAssigning(true);
 
     try {
-      const response = await fetch("/api/leads", {
-        method: "PATCH",
+      const response = await fetch("/api/leads/assign", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          lead_ids: selectedLeadIds,
-          owner_profile_id: selectedBulkOwnerProfileId
+          leadIds: selectedLeadIds,
+          ownerProfileId: selectedBulkOwnerProfileId
         })
       });
       const data = (await response.json()) as LeadBulkAssignResponse;
@@ -445,21 +453,25 @@ export function LeadsWorkspace({
         title={title}
         description="Lista dedicada para qualificar contatos, acompanhar responsáveis e priorizar próximos passos."
       >
-        <button
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
-          onClick={() => setIsMetaImportOpen(true)}
-          type="button"
-        >
-          <UploadCloud size={18} aria-hidden="true" />
-          Importar leads Meta
-        </button>
-        <Link
-          className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
-          href={exportHref}
-        >
-          <Download size={18} aria-hidden="true" />
-          Exportar CSV
-        </Link>
+        {canImportLeads && (
+          <button
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
+            onClick={() => setIsMetaImportOpen(true)}
+            type="button"
+          >
+            <UploadCloud size={18} aria-hidden="true" />
+            Importar leads Meta
+          </button>
+        )}
+        {canExportLeads && (
+          <Link
+            className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
+            href={exportHref}
+          >
+            <Download size={18} aria-hidden="true" />
+            Exportar CSV
+          </Link>
+        )}
         <button
           className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={!canCreateLeads}
@@ -1569,6 +1581,7 @@ function LeadTablePanel({
               >
                 <span className="block font-semibold leading-tight">{lead.name}</span>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {isLeadPendingFirstContact(lead) ? <LeadNewBadge /> : null}
                   <LeadQualityBadge quality={lead.quality} />
                   <LeadOriginBadge source={lead.source} />
                 </div>
@@ -1615,6 +1628,11 @@ function LeadTablePanel({
             </article>
           );
         })}
+      </div>
+
+      <div className="mt-4 flex items-center justify-center gap-2 text-xs font-medium text-ink/50">
+        <div className="h-1.5 w-1.5 rounded-full bg-lagoon animate-pulse" />
+        <span>Dados reais do Supabase carregados para a organização logada.</span>
       </div>
     </section>
   );
@@ -1674,4 +1692,12 @@ function LeadQualityBadge({ quality }: { quality: Lead["quality"] }) {
 
 function LeadOriginBadge({ source }: { source: Lead["source"] }) {
   return <span className={getLeadOriginBadgeClassName(source)}>{source}</span>;
+}
+
+function LeadNewBadge() {
+  return (
+    <span className="inline-flex items-center rounded-full bg-cobalt px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+      Novo
+    </span>
+  );
 }

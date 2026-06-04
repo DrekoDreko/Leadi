@@ -4,6 +4,7 @@ import { requireIntegrationEnv } from "@/lib/env/server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import { createBillingAdminClient } from "@/lib/billing/admin";
 import { createMercadoPagoPreapproval } from "@/lib/billing/mercadopago";
+import { isBillingCycle, type BillingCycle } from "@/lib/billing/checkout-flow";
 import {
   ApiRouteError,
   assertRouteRateLimit,
@@ -15,6 +16,7 @@ import {
 
 const createSubscriptionSchema = z.object({
   planSlug: z.string().min(1),
+  cycle: z.string().optional(),
   token: z.string().min(1),
   issuer_id: z.string().optional(),
   payment_method_id: z.string().optional(),
@@ -60,6 +62,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Plano inválido ou indisponível." }, { status: 400 });
     }
 
+    const cycle = parseCycle(body.cycle);
+
+    if (cycle === "annual") {
+      return NextResponse.json(
+        {
+          error:
+            "A cobrança anual ainda não está disponível no checkout. Escolha o ciclo mensal por enquanto."
+        },
+        { status: 409 }
+      );
+    }
+
+    const planMetadata =
+      plan.metadata && typeof plan.metadata === "object" && !Array.isArray(plan.metadata)
+        ? (plan.metadata as Record<string, unknown>)
+        : {};
+    const includedCredits = getMetadataNumber(planMetadata, "included_credits");
+    const includedUsers = getMetadataNumber(planMetadata, "included_users");
+    const extraUserAmountCents = getMetadataNumber(planMetadata, "extra_user_amount_cents");
+
     // Cria a assinatura local em status 'pending'
     const { data: subscription, error: subError } = await supabase
       .from("subscriptions")
@@ -70,6 +92,12 @@ export async function POST(request: Request) {
         gateway: "mercado_pago",
         current_period_start: new Date().toISOString(),
         current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        metadata: {
+          requested_cycle: cycle,
+          included_credits: includedCredits,
+          included_users: includedUsers,
+          extra_user_amount_cents: extraUserAmountCents
+        }
       })
       .select("*")
       .single();
@@ -84,7 +112,8 @@ export async function POST(request: Request) {
       externalReference: subscription.id,
       payerEmail: body.payer.email,
       cardTokenId: body.token,
-      amount: plan.amount_cents / 100, // Mercado Pago espera reais (10.50), não centavos
+      amount: plan.amount_cents / 100,
+      billingCycle: cycle
     });
 
     // Atualiza a assinatura local com o ID retornado pelo Mercado Pago
@@ -129,4 +158,17 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
   return "Não foi possível criar a assinatura.";
+}
+
+function parseCycle(value: string | undefined): BillingCycle {
+  if (value && isBillingCycle(value)) {
+    return value;
+  }
+
+  return "monthly";
+}
+
+function getMetadataNumber(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }

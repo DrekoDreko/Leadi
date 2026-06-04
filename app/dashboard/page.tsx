@@ -9,8 +9,11 @@ import {
   getCampaignActivitySummaryForCurrentUser,
   getCampaignsForCurrentUser
 } from "@/lib/campaigns/repository.server";
-import { getCurrentAiBalance } from "@/lib/ai/credits";
-import { getWhatsAppMessagesCountForCurrentUser } from "@/lib/whatsapp/repository.server";
+import { getAiUsageThisPeriod, getCurrentAiBalance, getCurrentAiBalanceDetails } from "@/lib/ai/credits";
+import {
+  getWhatsAppDeliverySummaryForCurrentUser,
+  getWhatsAppMessagesCountForCurrentUser
+} from "@/lib/whatsapp/repository.server";
 import { getOnboardingStateForCurrentUser } from "@/lib/onboarding/repository.server";
 import { getCreativeRequestsCountForCurrentUser } from "@/lib/creative-requests/repository.server";
 import { getDashboardRemindersForCurrentUser } from "@/lib/dashboard-reminders/repository.server";
@@ -21,10 +24,18 @@ import {
 } from "@/lib/reports/commercial-report.server";
 import { getSystemTemplates } from "@/lib/templates/repository.server";
 import { DashboardHome, type DashboardLeadNoContactSummary } from "./dashboard-home";
+import { ManagerDashboard } from "./manager-dashboard";
+import { getPendingCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
+import { getTeamSetupData } from "@/lib/workspaces/team";
+import { listCreditRequests } from "@/lib/ai/credit-requests.server";
+import { getCurrentSubscriptionNotice } from "@/lib/billing/subscription-limits.server";
+import { SupervisorDashboard } from "./supervisor-dashboard";
+import { ConsultantDashboard } from "./consultant-dashboard";
 
 export default async function DashboardPage() {
+  const context = await requireCompletedProfile();
+
   const [
-    context,
     leadState,
     campaignState,
     campaignActivitySummary,
@@ -34,11 +45,17 @@ export default async function DashboardPage() {
     reminderState,
     whatsappTemplates,
     overdueTasks,
-    leadOwnerOptions
+    leadOwnerOptions,
+    pendingCampaignsResult,
+    teamSetupData,
+    creditRequests,
+    subscriptionNotice,
+    whatsappDeliverySummary,
+    aiBalanceDetails,
+    aiUsageSummary
   ] = await Promise.all([
-    requireCompletedProfile(),
     getLeadsForCurrentUser(),
-    getCampaignsForCurrentUser(6),
+    getCampaignsForCurrentUser(4),
     getCampaignActivitySummaryForCurrentUser(),
     getWhatsAppMessagesCountForCurrentUser(),
     getOnboardingStateForCurrentUser(),
@@ -46,7 +63,14 @@ export default async function DashboardPage() {
     getDashboardRemindersForCurrentUser(),
     getSystemTemplates("whatsapp"),
     listOverdueLeadTasksForCurrentUser(),
-    listLeadOwnerOptionsForCurrentUser()
+    listLeadOwnerOptionsForCurrentUser(),
+    getPendingCampaignsForCurrentUser(),
+    context.isManager && context.workspaceType === "team" ? getTeamSetupData(context) : Promise.resolve(null),
+    context.isManager && context.workspaceType === "team" && context.workspace ? listCreditRequests(context.workspace.id, context.isAdmin ? context.teamId : undefined) : Promise.resolve(null),
+    getCurrentSubscriptionNotice(),
+    getWhatsAppDeliverySummaryForCurrentUser(),
+    getCurrentAiBalanceDetails(),
+    getAiUsageThisPeriod()
   ]);
   const aiBalance = await getCurrentAiBalance();
   const contactedLeadIds = new Set(
@@ -67,6 +91,74 @@ export default async function DashboardPage() {
       )
     : undefined;
 
+  const isManagerDashboard = context.isOwner && context.workspaceType === "team";
+  const isSupervisorDashboard = context.isAdmin && context.workspaceType === "team";
+  const isConsultantDashboard = context.isTeamSeller;
+
+  if (isManagerDashboard) {
+    const pendingCreditRequestsCount = creditRequests?.filter(r => r.status === "pending").length ?? 0;
+    
+    return (
+      <ManagerDashboard
+        aiBalance={aiBalance}
+        leadsCount={leadState.leads.length}
+        campaignsCount={campaignState.campaigns.length}
+        teamSetupData={teamSetupData ?? undefined}
+        pendingCampaignsCount={pendingCampaignsResult?.campaigns?.length ?? 0}
+        pendingCreditRequestsCount={pendingCreditRequestsCount}
+        campaignActivitySummary={campaignActivitySummary}
+        cplSummary={cplSummary}
+        stageConversionSummary={stageConversionSummary}
+        consultantPortfolioSummary={consultantPortfolioSummary}
+        whatsappMessagesCount={whatsappMessagesCount}
+        creativeRequestsCount={creativeRequestsCount}
+        dashboardReminders={reminderState.reminders}
+        onboardingState={onboardingState}
+        whatsappTemplates={whatsappTemplates}
+        overdueTasks={overdueTasks}
+        leadOwnerOptions={leadOwnerOptions}
+        subscriptionNotice={subscriptionNotice}
+      />
+    );
+  }
+
+  if (isSupervisorDashboard) {
+    const pendingCreditRequestsCount = creditRequests?.filter(r => r.status === "pending").length ?? 0;
+
+    return (
+      <SupervisorDashboard
+        aiBalance={aiBalance}
+        leads={leadState.leads}
+        campaignsCount={campaignState.campaigns.length}
+        campaignActivitySummary={campaignActivitySummary}
+        consultantPortfolioSummary={consultantPortfolioSummary}
+        overdueTasks={overdueTasks}
+        pendingCampaignsCount={pendingCampaignsResult?.campaigns?.length ?? 0}
+        pendingCreditRequestsCount={pendingCreditRequestsCount}
+        dashboardReminders={reminderState.reminders}
+        onboardingState={onboardingState}
+        whatsappTemplates={whatsappTemplates}
+        leadOwnerOptions={leadOwnerOptions}
+        teamName={context.teamName}
+      />
+    );
+  }
+
+  if (isConsultantDashboard) {
+    return (
+      <ConsultantDashboard
+        aiBalance={aiBalance}
+        leads={leadState.leads}
+        dashboardReminders={reminderState.reminders}
+        overdueTasks={overdueTasks}
+        teamName={context.teamName}
+        supervisorName={context.supervisorName}
+        organizationName={context.workspaceName}
+        whatsappTemplates={whatsappTemplates}
+      />
+    );
+  }
+
   return (
     <DashboardHome
       aiBalance={aiBalance}
@@ -86,6 +178,9 @@ export default async function DashboardPage() {
       canManageLeadOwners={context.isManager}
       leadOwnerOptions={leadOwnerOptions}
       consultantPortfolioSummary={consultantPortfolioSummary}
+      whatsappDeliverySummary={whatsappDeliverySummary}
+      aiBalanceDetails={aiBalanceDetails}
+      aiUsageSummary={aiUsageSummary}
     />
   );
 }

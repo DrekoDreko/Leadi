@@ -18,6 +18,27 @@ vi.mock('@/lib/supabase/config', () => ({
   isSupabaseConfigured: vi.fn()
 }));
 
+vi.mock('@/lib/api/route-security', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/api/route-security')>('@/lib/api/route-security');
+  return {
+    ...actual,
+    assertRouteRateLimit: vi.fn().mockResolvedValue(undefined),
+    assertSameOrigin: vi.fn(),
+    assertServerAuth: vi.fn().mockResolvedValue(null)
+  };
+});
+
+vi.mock('@/lib/payload-limits', () => ({
+  assertPayloadSize: vi.fn(),
+  PayloadTooLargeError: class extends Error {
+    status = 413;
+    constructor(message: string) {
+      super(message);
+      this.name = 'PayloadTooLargeError';
+    }
+  }
+}));
+
 vi.mock('@/lib/billing/subscription-limits.server', () => {
   return {
     BillingResourceAccessError: class extends Error {
@@ -116,61 +137,23 @@ describe('Leads API - /api/leads', () => {
       expect(response.status).toBe(403);
       expect(data.error).toBe('Ja existe um lead do Meta Ads com esse contato. Conecte uma conta Meta ativa para alterar esse registro.');
     });
-  });
 
-  describe('PATCH', () => {
-    it('distribui leads em lote com sucesso', async () => {
+    it('retorna 403 quando papel sem permissão tenta criar lead', async () => {
       vi.mocked(isSupabaseConfigured).mockReturnValue(true);
-      const updatedLeads = [
-        { id: 'lead-1', ownerProfileId: 'seller-1', owner: 'Fernanda' },
-        { id: 'lead-2', ownerProfileId: 'seller-1', owner: 'Fernanda' }
-      ];
-
-      vi.mocked(assignLeadOwnersInBulkForCurrentUser).mockResolvedValue({
-        leads: updatedLeads as never,
-        updatedCount: 2
-      });
+      vi.mocked(createLeadForCurrentUser).mockRejectedValue(new Error('Sem permissao para criar lead'));
 
       const request = new Request('http://localhost:3000/api/leads', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          lead_ids: ['lead-1', 'lead-2'],
-          owner_profile_id: 'seller-1'
-        })
+        method: 'POST',
+        body: JSON.stringify({ name: 'Consultant Lead' })
       });
 
-      const response = await PATCH(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.leads).toEqual(updatedLeads);
-      expect(data.updatedCount).toBe(2);
-      expect(data.mode).toBe('supabase');
-      expect(assignLeadOwnersInBulkForCurrentUser).toHaveBeenCalledWith({
-        leadIds: ['lead-1', 'lead-2'],
-        ownerProfileId: 'seller-1'
-      });
-    });
-
-    it('retorna erro quando um seller tenta distribuir em lote', async () => {
-      vi.mocked(isSupabaseConfigured).mockReturnValue(true);
-      vi.mocked(assignLeadOwnersInBulkForCurrentUser).mockRejectedValue(
-        new Error('Somente owner ou admin podem distribuir leads em lote.')
-      );
-
-      const request = new Request('http://localhost:3000/api/leads', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          lead_ids: ['lead-1'],
-          owner_profile_id: 'seller-1'
-        })
-      });
-
-      const response = await PATCH(request);
+      const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Somente owner ou admin podem distribuir leads em lote.');
+      expect(data.error).toBe('Voce nao tem permissao para criar esse lead.');
     });
   });
+
+
 });

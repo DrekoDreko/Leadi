@@ -19,6 +19,23 @@ export type MercadoPagoCheckoutInput = {
   payerEmail?: string;
 };
 
+export type MercadoPagoCardPaymentInput = {
+  transactionAmount: number;
+  token: string;
+  description: string;
+  externalReference: string;
+  paymentMethodId: string;
+  issuerId?: string;
+  installments?: number;
+  payer: {
+    email: string;
+    identification?: {
+      type: string;
+      number: string;
+    };
+  };
+};
+
 type MercadoPagoPreferenceResponse = {
   id?: string;
   init_point?: string;
@@ -116,6 +133,44 @@ export async function fetchMercadoPagoPayment(paymentId: string) {
   return payload;
 }
 
+export async function createMercadoPagoCardPayment(input: MercadoPagoCardPaymentInput) {
+  requireIntegrationEnv("billing");
+
+  const response = await fetch("https://api.mercadopago.com/v1/payments", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getMercadoPagoAccessToken()}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": input.externalReference
+    },
+    body: JSON.stringify({
+      transaction_amount: input.transactionAmount,
+      token: input.token,
+      description: input.description,
+      external_reference: input.externalReference,
+      payment_method_id: input.paymentMethodId,
+      issuer_id: input.issuerId || undefined,
+      installments: input.installments && input.installments > 0 ? input.installments : 1,
+      payer: {
+        email: input.payer.email,
+        identification: input.payer.identification
+      },
+      notification_url: getMercadoPagoNotificationUrl()
+    })
+  });
+
+  const payload = (await response.json().catch(() => null)) as MercadoPagoPaymentResponse | null;
+
+  if (!response.ok || !payload?.id) {
+    throw new Error(
+      (payload as { message?: string } | null)?.message ??
+        "Nao foi possivel criar o pagamento no Mercado Pago."
+    );
+  }
+
+  return payload;
+}
+
 export function validateMercadoPagoWebhookSignature(input: {
   signatureHeader: string | null;
   requestIdHeader: string | null;
@@ -190,6 +245,7 @@ export async function createMercadoPagoPreapproval(input: {
   payerEmail: string;
   cardTokenId: string;
   amount: number;
+  billingCycle: "monthly" | "annual";
 }) {
   requireIntegrationEnv("billing");
 
@@ -205,7 +261,7 @@ export async function createMercadoPagoPreapproval(input: {
       payer_email: input.payerEmail,
       card_token_id: input.cardTokenId,
       auto_recurring: {
-        frequency: 1,
+        frequency: input.billingCycle === "annual" ? 12 : 1,
         frequency_type: "months",
         transaction_amount: input.amount,
         currency_id: "BRL",

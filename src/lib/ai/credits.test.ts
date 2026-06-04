@@ -93,11 +93,10 @@ describe("runAiActionWithCredits", () => {
     expect(generate).toHaveBeenCalledWith("sk-platform-test");
     expect(mockAdmin.rpcCalls).toHaveLength(1);
     expect(mockAdmin.rpcCalls[0]).toMatchObject({
-      fn: "apply_ai_credit_change",
+      fn: "consume_ai_credits",
       args: {
         target_org_id: "org-1",
-        amount: -1,
-        p_type: "usage"
+        amount: 1
       }
     });
     expect(mockAdmin.usageEvents).toHaveLength(1);
@@ -160,14 +159,13 @@ describe("runAiActionWithCredits", () => {
     expect(generate).toHaveBeenCalledWith("sk-platform-test");
     expect(mockAdmin.rpcCalls).toHaveLength(2);
     expect(mockAdmin.rpcCalls[0]).toMatchObject({
-      fn: "apply_ai_credit_change",
+      fn: "consume_ai_credits",
       args: {
-        amount: -1,
-        p_type: "usage"
+        amount: 1
       }
     });
     expect(mockAdmin.rpcCalls[1]).toMatchObject({
-      fn: "apply_ai_credit_change",
+      fn: "add_ai_credits",
       args: {
         amount: 1,
         p_type: "refund"

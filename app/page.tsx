@@ -26,9 +26,9 @@ const navLinks = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen overflow-hidden">
+    <>
       {/* ── Header ── */}
-      <header className="section-shell fixed left-1/2 top-4 z-20 -translate-x-1/2">
+      <header className="section-shell fixed left-1/2 top-4 z-[120] -translate-x-1/2">
         <nav className="glass flex items-center justify-between rounded-full px-4 py-3">
           <BrandMark />
           <div className="hidden items-center gap-1 text-sm text-ink/68 md:flex">
@@ -54,8 +54,9 @@ export default function Home() {
         </nav>
       </header>
 
-      {/* ── Hero ── */}
-      <HeroSection />
+      <main className="min-h-screen overflow-hidden">
+        {/* ── Hero ── */}
+        <HeroSection />
 
 
 
@@ -115,5 +116,6 @@ export default function Home() {
         </div>
       </footer>
     </main>
+    </>
   );
 }

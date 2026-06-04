@@ -1,6 +1,19 @@
 import type { ProfileRole, WorkspaceType } from "@/lib/supabase/database.types";
+import { PERMISSION_MAP, type Permission } from "./permission-map";
 
 export type WorkspaceRole = Extract<ProfileRole, "owner" | "admin" | "seller">;
+
+/**
+ * Mapeamento de papéis técnicos para papéis de produto na interface.
+ * owner: Gestor (Dono da corretora, acesso total, poder financeiro final)
+ * admin: Supervisor (Gerencia equipe, sem acesso financeiro direto)
+ * seller: Consultor (Operacional, trabalha apenas seus leads)
+ */
+export const ROLE_LABELS: Record<WorkspaceRole, string> = {
+  owner: "Gestor",
+  admin: "Supervisor",
+  seller: "Consultor",
+};
 
 export function normalizeWorkspaceRole(role: string | null | undefined): WorkspaceRole {
   if (role === "owner" || role === "admin" || role === "seller") {
@@ -87,3 +100,27 @@ export function canRemoveWorkspaceMember(
 
   return normalizedRole === "admin" && normalizedTargetRole === "seller";
 }
+
+export function can(role: string | null | undefined, permission: Permission): boolean {
+  const normalizedRole = normalizeWorkspaceRole(role);
+  const allowedRoles = PERMISSION_MAP[permission] || [];
+  
+  return allowedRoles.includes(normalizedRole);
+}
+
+export function canOrThrow(role: string | null | undefined, permission: Permission, customMessage?: string): void {
+  if (!can(role, permission)) {
+    throw new Error(customMessage || `Access denied. Requires permission: ${permission}`);
+  }
+}
+
+export function canAll(role: string | null | undefined, permissions: Permission[]): boolean {
+  if (!permissions.length) return true;
+  return permissions.every((p) => can(role, p));
+}
+
+export function canAny(role: string | null | undefined, permissions: Permission[]): boolean {
+  if (!permissions.length) return false;
+  return permissions.some((p) => can(role, p));
+}
+

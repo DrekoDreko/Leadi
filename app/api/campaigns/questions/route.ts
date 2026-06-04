@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     const { result, remainingCredits } = await runAiActionWithCredits({
       orgId: billingContext.organizationId,
       userId: billingContext.profileId,
-      feature: "generate_creative_brief",
+      feature: "generate_campaign_questions",
       description: "Geracao de perguntas de campanha com IA",
       metadata: {
         route: "campaigns/questions",

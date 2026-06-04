@@ -5,22 +5,24 @@ import {
   Calculator, 
   Plus, 
   Minus, 
-  Building2, 
   Check, 
+  CheckCircle2,
   Info, 
   Sparkles, 
-  AlertTriangle, 
   ArrowRight,
   ShieldCheck,
   Zap,
-  CheckCircle2
+  MapPin,
+  HeartPulse,
+  Briefcase,
+  X,
+  BarChart3,
+  Globe2
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { GodRays, MeshGradient } from "@paper-design/shaders-react";
 import { PageHeading } from "@/components/dashboard/widgets";
-import type { 
-  BeneficiaryRange, 
-  HealthPlanAccommodation, 
-  HealthPlanCoparticipation 
-} from "@/data/pricing";
+import type { BeneficiaryRange } from "@/data/pricing";
 
 // Faixas etárias ANS e labels amigáveis
 const AGE_RANGES: { value: BeneficiaryRange; label: string }[] = [
@@ -36,28 +38,6 @@ const AGE_RANGES: { value: BeneficiaryRange; label: string }[] = [
   { value: "59+", label: "59 anos ou mais" }
 ];
 
-// Operadoras disponíveis no mock
-const OPERATORS = [
-  { id: "amil", name: "Amil Saúde", color: "from-blue-600 to-indigo-600", basePrice: 160 },
-  { id: "bradesco", name: "Bradesco Saúde", color: "from-red-600 to-rose-600", basePrice: 190 },
-  { id: "sulamerica", name: "SulAmérica", color: "from-sky-600 to-blue-700", basePrice: 175 },
-  { id: "unimed", name: "Unimed Nacional", color: "from-emerald-600 to-teal-700", basePrice: 150 }
-];
-
-// Multiplicadores de faixa etária (ANS aproximados)
-const RANGE_MULTIPLIERS: Record<BeneficiaryRange, number> = {
-  "0-18": 1.0,
-  "19-23": 1.25,
-  "24-28": 1.45,
-  "29-33": 1.68,
-  "34-38": 1.88,
-  "39-43": 2.15,
-  "44-48": 2.65,
-  "49-53": 3.25,
-  "54-58": 4.10,
-  "59+": 6.10
-};
-
 export function PricingSimulatorPrototype({
   workspaceName,
   brokerageName
@@ -65,14 +45,12 @@ export function PricingSimulatorPrototype({
   workspaceName: string;
   brokerageName?: string;
 }) {
-  // Estado das configurações do formulário
-  const [cnpjType, setCnpjType] = useState<"MEI" | "PME" | "Física">("PME");
-  const [region, setRegion] = useState("SP - Capital e Região Metropolitana");
-  const [accommodation, setAccommodation] = useState<HealthPlanAccommodation>("Apartamento");
-  const [coparticipation, setCoparticipation] = useState<HealthPlanCoparticipation>("Com Coparticipação");
-  const [selectedOperators, setSelectedOperators] = useState<string[]>(["amil", "bradesco", "sulamerica"]);
+  // Estado das configurações do formulário baseadas no print
+  const [location, setLocation] = useState("São Paulo - SP");
+  const [productType, setProductType] = useState("Saúde");
+  const [planType, setPlanType] = useState("PME");
   
-  // Contagem de beneficiários por faixa etária (inicializado com exemplo comum)
+  // Contagem de beneficiários por faixa etária
   const [beneficiaries, setBeneficiaries] = useState<Record<BeneficiaryRange, number>>({
     "0-18": 1,
     "19-23": 0,
@@ -100,8 +78,8 @@ export function PricingSimulatorPrototype({
     setBeneficiaries(prev => ({ ...prev, [range]: Math.max(0, prev[range] - 1) }));
   };
 
-  // Limpar todas as vidas
-  const clearAllVidas = () => {
+  // Limpar todas as vidas e filtros
+  const clearAll = () => {
     setBeneficiaries({
       "0-18": 0,
       "19-23": 0,
@@ -114,74 +92,12 @@ export function PricingSimulatorPrototype({
       "54-58": 0,
       "59+": 0
     });
+    setLocation("São Paulo - SP");
+    setProductType("Saúde");
+    setPlanType("PME");
   };
 
-  // Alternar operadora
-  const toggleOperator = (id: string) => {
-    setSelectedOperators(prev => 
-      prev.includes(id) 
-        ? prev.filter(op => op !== id) 
-        : [...prev, id]
-    );
-  };
-
-  // Total de vidas adicionadas
   const totalVidas = Object.values(beneficiaries).reduce((acc, curr) => acc + curr, 0);
-
-  // Cálculo da cotação mock baseada nos inputs atuais
-  const calculateQuote = (operatorBasePrice: number) => {
-    let total = 0;
-    const pricePerRange: Record<string, number> = {};
-
-    Object.entries(beneficiaries).forEach(([range, count]) => {
-      if (count > 0) {
-        // Cálculo base do preço por vida nesta operadora
-        let pricePerLife = operatorBasePrice * RANGE_MULTIPLIERS[range as BeneficiaryRange];
-        
-        // Ajuste CNPJ (Descontos corporativos)
-        if (cnpjType === "PME") {
-          pricePerLife *= 0.70; // 30% desconto PME
-        } else if (cnpjType === "MEI") {
-          pricePerLife *= 0.80; // 20% desconto MEI
-        }
-
-        // Ajuste Internação
-        if (accommodation === "Apartamento") {
-          pricePerLife *= 1.15; // 15% mais caro
-        }
-
-        // Ajuste Coparticipação
-        if (coparticipation === "Com Coparticipação") {
-          pricePerLife *= 0.85; // 15% de desconto na mensalidade fixa
-        }
-
-        const roundPrice = Math.round(pricePerLife * 100) / 100;
-        pricePerRange[range] = roundPrice;
-        total += roundPrice * count;
-      }
-    });
-
-    return {
-      total: Math.round(total * 100) / 100,
-      pricePerRange
-    };
-  };
-
-  // Gerar resultados
-  const quotes = OPERATORS
-    .filter(op => selectedOperators.includes(op.id))
-    .map(op => {
-      const calculation = calculateQuote(op.basePrice);
-      return {
-        ...op,
-        total: calculation.total,
-        pricePerRange: calculation.pricePerRange
-      };
-    })
-    .sort((a, b) => a.total - b.total);
-
-  const cheapest = quotes[0];
-  const premiumOption = quotes[quotes.length - 1];
 
   const handleNotifyInterest = () => {
     if (!voted) {
@@ -194,41 +110,105 @@ export function PricingSimulatorPrototype({
     <div className="space-y-4">
       {/* Cabeçalho */}
       <PageHeading
-        eyebrow="Configurações / Módulos"
-        title="Simulador de Planos de Saúde"
-        description="Mapeie hospitais, combine faixas etárias, operadoras e gere propostas visuais instantâneas para seus leads."
+        eyebrow="Simulador / Módulos"
+        title="Simulador de Preços"
+        description="Mapeie os parâmetros de contratação, abrangências regionais e vidas da oportunidade."
       >
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-signal/15 border border-signal/28 px-4 py-2 text-xs font-semibold text-signal">
-          <Sparkles size={14} className="animate-pulse" />
-          Módulo em Pré-lançamento
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 dark:bg-yellow-500/20 border border-yellow-300 dark:border-yellow-500/30 px-4 py-2 text-xs font-bold text-yellow-800 dark:text-yellow-400 shadow-sm">
+          <Sparkles size={14} className="animate-pulse text-yellow-600 dark:text-yellow-400" />
+          Módulo em Fase de Testes
         </span>
       </PageHeading>
 
-      {/* Alerta explicativo de Protótipo e "Em breve" */}
-      <div className="glass border border-white/50 rounded-[30px] p-5 md:p-6 bg-gradient-to-r from-blue-50/40 via-indigo-50/30 to-transparent dark:from-blue-950/20 dark:via-indigo-950/10">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-start gap-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt dark:bg-cobalt/20">
-              <Info size={20} />
-            </span>
-            <div className="space-y-1">
-              <h3 className="font-semibold text-lg">Mapeamento de Demanda Comercial</h3>
-              <p className="text-sm text-ink/62 leading-relaxed">
-                Este simulador está na fase de **Protótipo de Interface**. As tabelas de preços, abrangências regionais e regras de vidas por CNPJ refletem valores e descontos comerciais médios do mercado para demonstração rápida.
-              </p>
-            </div>
+      {/* Alerta explicativo - Animated Hero Destaque */}
+      <div className="relative overflow-hidden rounded-[30px] border border-blue-200 dark:border-blue-900 bg-white dark:bg-[#071328] p-6 md:p-8 shadow-xl transition-all w-full min-h-[160px] flex flex-col justify-center">
+        
+        {/* GodRays Background */}
+        <div className="absolute inset-0 pointer-events-none rounded-[30px] overflow-hidden mix-blend-overlay opacity-80">
+          <GodRays
+            colorBack="#00000000"
+            colors={["#3b82f640", "#60a5fa40", "#2563eb40", "#1d4ed840"]}
+            colorBloom="#3b82f6"
+            offsetX={0.85}
+            offsetY={-1}
+            intensity={0.6}
+            spotty={0.45}
+            midSize={10}
+            midIntensity={0}
+            density={0.38}
+            bloom={0.3}
+            speed={0.5}
+            scale={1.6}
+            frame={3332042.8159981333}
+            style={{
+              height: "100%",
+              width: "100%",
+              position: "absolute",
+              top: 0,
+              left: 0,
+            }}
+          />
+        </div>
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 text-left">
+          <div className="flex flex-col items-start gap-3">
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+              className="inline-flex items-center rounded-full border border-blue-200 dark:border-blue-800 bg-white/50 dark:bg-blue-900/30 px-4 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 backdrop-blur-sm shadow-sm"
+            >
+              <span className="flex h-2 w-2 rounded-full bg-blue-600 mr-2 animate-pulse"></span>
+              Fase de Testes: Sua Opinião Importa
+            </motion.div>
+
+            <motion.h3 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="text-2xl sm:text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-blue-700 to-indigo-600 dark:from-blue-400 dark:to-indigo-300"
+            >
+              Simulador de Preços em Fase de Testes
+            </motion.h3>
+
+            <motion.p 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-2xl leading-relaxed font-medium"
+            >
+              Estamos testando nosso novo Simulador de Preços. É muito importante sabermos o seu interesse para priorizarmos o desenvolvimento. Clique no botão ao lado se você deseja usar essa funcionalidade!
+            </motion.p>
           </div>
-          <button
-            onClick={() => setShowNotification(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white shadow-soft hover:bg-cobalt/90 transition shrink-0"
-          >
-            <Zap size={16} />
-            Tenho interesse neste módulo
-          </button>
+
+          <AnimatePresence initial={false}>
+            {!showNotification && (
+              <motion.div className="inline-block relative shrink-0 mt-4 md:mt-0">
+                <motion.div
+                  style={{ borderRadius: "100px" }}
+                  layout
+                  layoutId="cta-card"
+                  className="absolute inset-0 bg-blue-600 shadow-xl shadow-blue-500/30"
+                />
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  layout={false}
+                  onClick={() => setShowNotification(true)}
+                  className="relative flex items-center gap-2 h-12 px-8 text-sm font-bold text-white tracking-wide hover:opacity-90 transition-opacity"
+                >
+                  <Zap className="w-4 h-4" />
+                  Tenho interesse neste módulo
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      {/* Grid Principal */}
+      {/* Grid Principal - Mantendo o Layout Original xl:grid-cols-[450px_1fr] */}
       <div className="grid gap-4 xl:grid-cols-[450px_1fr] xl:items-start">
         
         {/* Lado Esquerdo: Filtros e Configurações */}
@@ -238,109 +218,72 @@ export function PricingSimulatorPrototype({
               <Calculator size={20} className="text-cobalt" />
               Parâmetros de Cotação
             </h2>
-            {totalVidas > 0 && (
-              <button 
-                onClick={clearAllVidas}
-                className="text-xs font-semibold text-ink/42 hover:text-red-500 transition"
-              >
-                Limpar vidas ({totalVidas})
-              </button>
-            )}
+            <button 
+              onClick={clearAll}
+              className="text-xs font-semibold text-ink/42 hover:text-red-500 transition"
+            >
+              Limpar tudo
+            </button>
           </div>
 
-          {/* Tipo de Contratação */}
-          <div className="space-y-2">
+          {/* Selecione: Parâmetros baseados no print */}
+          <div className="space-y-4">
             <label className="text-xs font-semibold uppercase tracking-wider text-ink/42 flex items-center gap-1.5">
-              <Building2 size={13} />
-              Tipo de Contratação (CNPJ)
-            </label>
-            <div className="grid grid-cols-3 gap-2 bg-white/28 border border-white/40 p-1.5 rounded-full">
-              {(["PME", "MEI", "Física"] as const).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setCnpjType(type)}
-                  className={`py-2 px-3 text-xs font-semibold rounded-full transition-all ${
-                    cnpjType === type 
-                      ? "bg-white text-ink shadow-soft dark:bg-ink dark:text-cloud" 
-                      : "text-ink/62 hover:bg-white/34"
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-            <p className="text-[11px] text-ink/48 px-1">
-              {cnpjType === "PME" && "✓ Desconto corporativo de 30% (mínimo de 3 vidas)."}
-              {cnpjType === "MEI" && "✓ Desconto MEI de 20% (CNPJ ativo há mais de 6 meses)."}
-              {cnpjType === "Física" && "Tabelas de referência individual familiar sem CNPJ."}
-            </p>
-          </div>
-
-          {/* Região Comercial */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-ink/42">
+              <MapPin size={13} />
               Praça / Região de Abrangência
             </label>
             <select
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
               className="w-full rounded-2xl border border-border/70 bg-surface-elevated/88 px-4 py-3 text-sm text-foreground outline-none transition focus:border-cobalt/45 focus:bg-surface-elevated focus:ring-0"
             >
-              <option value="SP - Capital e Região Metropolitana">São Paulo - Capital e Região Metropolitana</option>
-              <option value="RJ - Rio de Janeiro e Baixada">Rio de Janeiro - Capital e Baixada Fluminense</option>
-              <option value="MG - Belo Horizonte e Grande BH">Belo Horizonte - Região Metropolitana</option>
-              <option value="SUL - Curitiba, POA e Floripa">Sul - Curitiba, Porto Alegre e Florianópolis</option>
+              <option value="São Paulo - SP">São Paulo - SP</option>
+              <option value="Rio de Janeiro - RJ">Rio de Janeiro - RJ</option>
+              <option value="Belo Horizonte - MG">Belo Horizonte - MG</option>
+              <option value="Curitiba - PR">Curitiba - PR</option>
+              <option value="Boa Vista - RR">Boa Vista - RR</option>
+              <option value="Porto Alegre - RS">Porto Alegre - RS</option>
+              <option value="Florianópolis - SC">Florianópolis - SC</option>
+              <option value="Aracaju - SE">Aracaju - SE</option>
+              <option value="Palmas - TO">Palmas - TO</option>
             </select>
           </div>
 
-          {/* Acomodação e Coparticipação */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-ink/42">
-                Acomodação
+              <label className="text-xs font-semibold uppercase tracking-wider text-ink/42 flex items-center gap-1.5">
+                <HeartPulse size={13} />
+                Tipo de Produto
               </label>
-              <div className="flex flex-col gap-2">
-                {(["Apartamento", "Enfermaria"] as HealthPlanAccommodation[]).map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setAccommodation(opt)}
-                    className={`flex items-center justify-between p-3 rounded-2xl border text-left text-xs font-semibold transition ${
-                      accommodation === opt
-                        ? "bg-white/80 border-cobalt/38 text-ink shadow-soft dark:bg-white/10"
-                        : "bg-white/28 border-white/30 text-ink/62 hover:bg-white/44"
-                    }`}
-                  >
-                    <span>{opt}</span>
-                    {accommodation === opt && <Check size={14} className="text-cobalt" />}
-                  </button>
-                ))}
-              </div>
+              <select
+                value={productType}
+                onChange={(e) => setProductType(e.target.value)}
+                className="w-full rounded-2xl border border-border/70 bg-surface-elevated/88 px-4 py-3 text-sm text-foreground outline-none transition focus:border-cobalt/45 focus:bg-surface-elevated focus:ring-0"
+              >
+                <option value="Saúde">Saúde</option>
+                <option value="Odonto">Odonto</option>
+              </select>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-ink/42">
-                Coparticipação
+              <label className="text-xs font-semibold uppercase tracking-wider text-ink/42 flex items-center gap-1.5">
+                <Briefcase size={13} />
+                Tipo de Plano
               </label>
-              <div className="flex flex-col gap-2">
-                {(["Com Coparticipação", "Sem Coparticipação"] as HealthPlanCoparticipation[]).map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setCoparticipation(opt)}
-                    className={`flex items-center justify-between p-3 rounded-2xl border text-left text-xs font-semibold transition ${
-                      coparticipation === opt
-                        ? "bg-white/80 border-cobalt/38 text-ink shadow-soft dark:bg-white/10"
-                        : "bg-white/28 border-white/30 text-ink/62 hover:bg-white/44"
-                    }`}
-                  >
-                    <span className="truncate">{opt}</span>
-                    {coparticipation === opt && <Check size={14} className="text-cobalt" />}
-                  </button>
-                ))}
-              </div>
+              <select
+                value={planType}
+                onChange={(e) => setPlanType(e.target.value)}
+                className="w-full rounded-2xl border border-border/70 bg-surface-elevated/88 px-4 py-3 text-sm text-foreground outline-none transition focus:border-cobalt/45 focus:bg-surface-elevated focus:ring-0"
+              >
+                <option value="Individual">Individual</option>
+                <option value="Familiar">Familiar</option>
+                <option value="PME">PME</option>
+                <option value="Adesão">Adesão</option>
+              </select>
             </div>
           </div>
 
-          {/* Adicionar Vidas por Faixa Etária */}
+          {/* Adicionar Vidas por Faixa Etária (Layout original de listagem com +/-) */}
           <div className="space-y-3">
             <label className="text-xs font-semibold uppercase tracking-wider text-ink/42 flex items-center justify-between">
               <span>Faixas Etárias & Vidas</span>
@@ -348,7 +291,7 @@ export function PricingSimulatorPrototype({
                 Total: {totalVidas} {totalVidas === 1 ? "vida" : "vidas"}
               </span>
             </label>
-            <div className="border border-white/45 bg-white/28 rounded-[26px] overflow-hidden max-h-[300px] overflow-y-auto p-2 space-y-1">
+            <div className="border border-white/45 bg-white/28 rounded-[26px] overflow-hidden max-h-[350px] overflow-y-auto p-2 space-y-1">
               {AGE_RANGES.map(({ value, label }) => {
                 const count = beneficiaries[value];
                 return (
@@ -360,7 +303,7 @@ export function PricingSimulatorPrototype({
                   >
                     <div>
                       <span className="text-xs font-semibold text-ink">{label}</span>
-                      <p className="text-[10px] text-ink/42">ANS {value}</p>
+                      <p className="text-[10px] text-ink/42">Titulares e dependentes</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -390,41 +333,9 @@ export function PricingSimulatorPrototype({
               })}
             </div>
           </div>
-
-          {/* Selecionar Operadoras */}
-          <div className="space-y-3">
-            <label className="text-xs font-semibold uppercase tracking-wider text-ink/42">
-              Selecione as Operadoras
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {OPERATORS.map((op) => {
-                const active = selectedOperators.includes(op.id);
-                return (
-                  <button
-                    key={op.id}
-                    onClick={() => toggleOperator(op.id)}
-                    className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition ${
-                      active
-                        ? "bg-white/80 border-cobalt/38 text-ink shadow-sm dark:bg-white/10"
-                        : "bg-white/28 border-white/30 text-ink/42 hover:bg-white/44"
-                    }`}
-                  >
-                    <span className={`h-4.5 w-4.5 rounded-md flex items-center justify-center border transition ${
-                      active 
-                        ? "bg-cobalt border-cobalt text-white" 
-                        : "border-ink/20 bg-white/50"
-                    }`}>
-                      {active && <Check size={12} strokeWidth={3} />}
-                    </span>
-                    <span className="text-xs font-semibold">{op.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </section>
 
-        {/* Lado Direito: Resultados da Comparação e Mock Quotes */}
+        {/* Lado Direito: Resumo e Detalhamento */}
         <section className="space-y-4">
           
           {totalVidas === 0 ? (
@@ -434,34 +345,22 @@ export function PricingSimulatorPrototype({
               </div>
               <h2 className="text-xl font-semibold">Aguardando inserção de vidas</h2>
               <p className="text-sm text-ink/54 max-w-sm mt-2 leading-relaxed">
-                Adicione a quantidade de beneficiários por faixa etária no painel ao lado para gerar o comparativo de preços em tempo real.
-              </p>
-            </div>
-          ) : quotes.length === 0 ? (
-            <div className="glass-strong rounded-[34px] p-8 text-center flex flex-col items-center justify-center min-h-[450px]">
-              <div className="h-16 w-16 rounded-full bg-signal/15 flex items-center justify-center text-signal mb-4">
-                <AlertTriangle size={28} />
-              </div>
-              <h2 className="text-xl font-semibold">Nenhuma operadora selecionada</h2>
-              <p className="text-sm text-ink/54 max-w-sm mt-2 leading-relaxed">
-                Selecione pelo menos uma das operadoras no painel ao lado para visualizar os preços comparativos.
+                Adicione a quantidade de beneficiários por faixa etária no painel ao lado para gerar o mapeamento detalhado da demanda.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
               
-              {/* Resumo da Cotação */}
+              {/* Resumo da Busca */}
               <div className="surface-card-strong flex flex-col gap-4 rounded-[34px] p-5 md:flex-row md:items-center md:justify-between md:p-6">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-cobalt">Resumo da Busca</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-cobalt">Resumo da Seleção</span>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
-                    <span className="text-sm font-semibold">{cnpjType}</span>
+                    <span className="text-sm font-semibold">{planType}</span>
                     <span className="text-ink/38">•</span>
-                    <span className="text-sm text-ink/62">{accommodation}</span>
+                    <span className="text-sm text-ink/62">{productType}</span>
                     <span className="text-ink/38">•</span>
-                    <span className="text-sm text-ink/62">{coparticipation}</span>
-                    <span className="text-ink/38">•</span>
-                    <span className="text-sm text-ink/62 font-medium">{region}</span>
+                    <span className="text-sm text-ink/62 font-medium">{location}</span>
                   </div>
                 </div>
                 <div className="text-right">
@@ -472,100 +371,19 @@ export function PricingSimulatorPrototype({
                 </div>
               </div>
 
-              {/* Lista de Cotações Comparativas */}
-              <div className="space-y-3">
-                {quotes.map((q) => {
-                  const isCheapest = cheapest && q.id === cheapest.id;
-                  const isPremium = premiumOption && q.id === premiumOption.id && quotes.length > 1;
-                  
-                  return (
-                    <div 
-                      key={q.id}
-                      className={`glass rounded-[34px] border transition-all duration-200 overflow-hidden ${
-                        isCheapest 
-                          ? "border-emerald-500/40 bg-gradient-to-r from-emerald-50/20 to-transparent shadow-sm dark:border-emerald-500/20"
-                          : "border-border/60 bg-surface-elevated/88"
-                      }`}
-                    >
-                      {/* Destaque do topo do card */}
-                      <div className="px-5 py-3.5 border-b border-ink/8 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className={`h-2.5 w-2.5 rounded-full bg-gradient-to-r ${q.color}`} />
-                          <h3 className="font-semibold text-ink">{q.name}</h3>
-                          <span className="text-xs text-ink/42 font-medium">Plano PME Referência</span>
-                        </div>
-                        {isCheapest && (
-                          <span className="rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-[11px] font-semibold flex items-center gap-1 border border-emerald-200/40 dark:bg-emerald-500/12 dark:text-emerald-200 dark:border-0">
-                            <Zap size={11} />
-                            Mais Econômico
-                          </span>
-                        )}
-                        {!isCheapest && isPremium && (
-                          <span className="rounded-full bg-blue-50 text-blue-700 px-3 py-1 text-[11px] font-semibold border border-blue-200/40 dark:bg-blue-500/12 dark:text-blue-200 dark:border-0">
-                            Linha Executiva
-                          </span>
-                        )}
-                      </div>
 
-                      {/* Conteúdo da Cotação */}
-                      <div className="p-5 md:p-6 grid gap-4 md:grid-cols-[1fr_200px] md:items-center">
-                        
-                        {/* Detalhes de faixa etária */}
-                        <div className="space-y-3">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-ink/42">Detalhamento por Faixas Cotadas</span>
-                          <div className="flex flex-wrap gap-2">
-                            {Object.entries(beneficiaries).map(([range, count]) => {
-                              if (count === 0) return null;
-                              const price = q.pricePerRange[range] || 0;
-                              return (
-                                <div key={range} className="rounded-2xl bg-white/48 border border-white/60 p-2 text-xs flex items-center gap-2">
-                                  <span className="font-semibold text-ink">{range}:</span>
-                                  <span className="text-ink/62">{count}x R$ {Math.round(price).toLocaleString("pt-BR")}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          
-                          <div className="flex items-center gap-4 text-xs text-ink/42 mt-1 font-medium">
-                            <span className="flex items-center gap-1">
-                              <CheckCircle2 size={13} className="text-emerald-600" />
-                              Rede Credenciada Básica
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <CheckCircle2 size={13} className="text-emerald-600" />
-                              Taxa de implantação isenta
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Preço e Botão */}
-                        <div className="text-left md:text-right border-t border-ink/4 pt-4 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-ink/8 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-4">
-                          <div>
-                            <span className="text-xs text-ink/42 font-medium block">Preço Mensal Total</span>
-                            <strong className="text-2xl font-bold text-ink whitespace-nowrap">
-                              R$ {q.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </strong>
-                            <span className="text-[10px] text-ink/42 block">Preços simulados</span>
-                          </div>
-                        </div>
-
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
 
               {/* Botões de Ações Comerciais */}
-              <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-                <span className="text-xs text-ink/42 flex items-center gap-1 font-medium">
-                  <ShieldCheck size={14} className="text-cobalt" />
-                  Salvar orçamento no prontuário do lead disponível em breve
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-4 pt-4">
+                <span className="text-xs text-ink/42 flex items-center gap-1.5 font-medium">
+                  <ShieldCheck size={14} className="text-emerald-600" />
+                  Salvar mapeamento no prontuário do lead disponível em breve
                 </span>
                 <button
                   onClick={() => setShowNotification(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-semibold text-cloud shadow-soft hover:bg-ink/90 transition duration-200"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-ink px-8 py-3.5 text-sm font-semibold text-cloud shadow-soft hover:bg-ink/90 transition duration-200"
                 >
-                  Gerar Proposta Comercial
+                  Salvar Mapeamento
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -577,80 +395,112 @@ export function PricingSimulatorPrototype({
 
       </div>
 
-      {/* Modal Promocional de Feedback de Interesse */}
-      {showNotification && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/45 backdrop-blur-sm animate-fade-in">
-          <div className="glass-strong border border-white/60 rounded-[38px] p-6 md:p-8 max-w-lg w-full space-y-6 shadow-2xl relative animate-scale-up text-ink">
-            
-            <div className="text-center space-y-3">
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-cobalt/10 text-cobalt dark:bg-cobalt/20 mb-2">
-                <Sparkles size={26} />
-              </span>
-              <h3 className="text-2xl font-semibold">Simulador de Preços Comercial</h3>
-              <p className="text-sm text-ink/62 leading-relaxed">
-                Estamos homologando os motores de cálculo automático e centralizando as tabelas regionais das operadoras para a corretora **{brokerageName || workspaceName}**.
-              </p>
-            </div>
-
-            <div className="bg-white/44 border border-white/60 p-4 rounded-3xl space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-cobalt">O que o módulo completo trará:</h4>
-              <ul className="space-y-2 text-xs text-ink/80">
-                <li className="flex items-start gap-2">
-                  <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
-                  <span>**Cálculo Real 100% Atualizado**: Tabelas de preços atualizadas mensalmente de forma direta com as operadoras.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
-                  <span>**Integração com Lead do CRM**: Puxar idades e CNPJ diretamente do prontuário comercial em um clique.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
-                  <span>**Propostas em PDF & WhatsApp**: Gerar link de proposta interativa para o cliente com templates de WhatsApp IA.</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleNotifyInterest}
-                className={`w-full py-3.5 px-5 rounded-full text-sm font-semibold transition flex items-center justify-center gap-2 ${
-                  voted 
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200/50" 
-                    : "bg-cobalt text-white hover:bg-cobalt/90 shadow-soft"
-                }`}
+      {/* Modal Promocional de Feedback de Interesse - Animated */}
+      <AnimatePresence>
+        {showNotification && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md">
+            <motion.div
+              layoutId="cta-card"
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              style={{ borderRadius: "32px" }}
+              className="relative flex w-full max-w-2xl flex-col overflow-hidden bg-blue-700 shadow-2xl"
+            >
+              {/* Mesh Gradient Background */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 pointer-events-none opacity-90"
               >
-                {voted ? (
-                  <>
-                    <CheckCircle2 size={16} />
-                    Interesse registrado! Obrigado pelo feedback.
-                  </>
-                ) : (
-                  <>
-                    <Zap size={16} />
-                    Quero acesso antecipado a este módulo
-                  </>
-                )}
-              </button>
+                <MeshGradient
+                  speed={0.6}
+                  colors={["#1d4ed8", "#1e40af", "#172554", "#1e3a8a"]}
+                  distortion={0.8}
+                  swirl={0.1}
+                  grainMixer={0.15}
+                  grainOverlay={0}
+                  style={{ height: "100%", width: "100%" }}
+                />
+              </motion.div>
 
-              {voted && (
-                <p className="text-[11px] text-center text-ink/42 font-medium">
-                  {interestedCount > 0 
-                    ? `✓ Você e outros corretores da organização já demonstraram interesse.` 
-                    : "Sua opinião é vital para acelerarmos este lançamento!"}
-                </p>
-              )}
-
-              <button
+              {/* Close Button */}
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 onClick={() => setShowNotification(false)}
-                className="w-full py-3 px-5 rounded-full text-xs font-semibold text-ink/56 hover:bg-white/34 transition"
+                className="absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20"
               >
-                Voltar ao protótipo
-              </button>
-            </div>
+                <X className="h-5 w-5" />
+              </motion.button>
 
+              <div className="relative z-10 flex flex-col w-full p-8 sm:p-12 text-white">
+                <div className="flex flex-col justify-center gap-8">
+                  <div className="space-y-4 text-center">
+                    <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-blue-200 border border-white/20 shadow-lg shadow-blue-900/50 backdrop-blur-sm mb-2">
+                      <Sparkles size={32} />
+                    </span>
+                    <h2 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
+                      Simulador de Preços
+                    </h2>
+                    <p className="text-blue-100 text-lg mx-auto max-w-md">
+                      Estamos validando o interesse nesta funcionalidade antes do lançamento oficial na <strong>{brokerageName || workspaceName}</strong>. Sua participação é fundamental!
+                    </p>
+                  </div>
+
+                  <div className="space-y-6 max-w-lg mx-auto w-full mt-4">
+                    <div className="flex gap-4 items-start">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/10 shadow-inner">
+                        <BarChart3 className="w-6 h-6 text-blue-200" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">Inteligência de Dados</h3>
+                        <p className="text-blue-100/80 text-sm leading-relaxed mt-1">
+                          Vincule a demanda da oportunidade aos algoritmos de cotação.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 items-start">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/10 shadow-inner">
+                        <Globe2 className="w-6 h-6 text-blue-200" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">Salvar no Prontuário</h3>
+                        <p className="text-blue-100/80 text-sm leading-relaxed mt-1">
+                          Todo o histórico mapeado fica salvo diretamente no lead.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-8 border-t border-white/20 max-w-lg mx-auto w-full text-center">
+                    <button
+                      onClick={handleNotifyInterest}
+                      className={`w-full py-4 px-6 rounded-xl text-base font-bold transition flex items-center justify-center gap-3 ${
+                        voted 
+                          ? "bg-green-500/20 text-green-100 border border-green-400/30 backdrop-blur-md cursor-default" 
+                          : "bg-white text-blue-700 hover:bg-blue-50 hover:scale-[1.02] shadow-xl"
+                      }`}
+                    >
+                      {voted ? (
+                        <>
+                          <CheckCircle2 size={20} className="text-green-300" />
+                          Interesse registrado! Obrigado.
+                        </>
+                      ) : (
+                        <>
+                          <Zap size={20} className="text-blue-600" />
+                          Quero acesso antecipado a este módulo
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
     </div>
   );

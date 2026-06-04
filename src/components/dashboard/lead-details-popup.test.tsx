@@ -170,7 +170,7 @@ describe("LeadDetailsPopup", () => {
 
     expect(whatsappLink).toHaveAttribute(
       "href",
-      "https://wa.me/5519988421042?text=Ola%2C%20Marina!%20Tudo%20bem%3F%20Vi%20seu%20interesse%20sobre%20Plano%20empresarial%20com%20coparticipacao%20para%20Azevedo%20Clinica%20e%20posso%20te%20ajudar%20por%20aqui."
+      "https://wa.me/5519988421042?text=Ola%2C%20Marina!%20Tudo%20bem%3F%20Vi%20seu%20interesse%20sobre%20Plano%20empresarial%20com%20coparticipa%C3%A7%C3%A3o%20para%20Azevedo%20Clinica%20e%20posso%20te%20ajudar%20por%20aqui."
     );
     expect(whatsappLink).toHaveAttribute("target", "_blank");
     expect(whatsappLink).toHaveAttribute("aria-disabled", "false");
@@ -221,5 +221,114 @@ describe("LeadDetailsPopup", () => {
     fireEvent.click(screen.getByRole("button", { name: "Gerar mensagem" }));
 
     expect(screen.getByRole("heading", { name: "WhatsApp do lead" })).toBeInTheDocument();
+  });
+
+  it("permite confirmar o primeiro contato pela caixa destacada", async () => {
+    const onUpdated = vi.fn();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          comment: {
+            id: "comment-contact-1",
+            leadId: leads[0].id,
+            authorProfileId: "profile-1",
+            authorName: "Gabriel",
+            authorEmail: "gabriel@leadi.local",
+            body: "Primeiro contato realizado pelo consultor.",
+            type: "contact",
+            createdAt: "2026-05-21T11:30:00.000Z",
+            updatedAt: "2026-05-21T11:30:00.000Z"
+          },
+          lead: {
+            ...leads[0],
+            id: "LE-9100",
+            hasRecordedContact: true
+          },
+          mode: "supabase"
+        })
+      });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <LeadDetailsPopup
+        lead={{ ...leads[0], id: "LE-9100", hasRecordedContact: false }}
+        onClose={() => undefined}
+        onUpdated={onUpdated}
+      />
+    );
+
+    const firstContactCheckbox = await screen.findByRole("checkbox");
+    fireEvent.click(firstContactCheckbox);
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        "/api/leads/LE-9100/comments",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            body: "Primeiro contato realizado pelo consultor.",
+            type: "contact"
+          })
+        })
+      );
+    });
+
+    await waitFor(() => {
+        expect(onUpdated).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: "LE-9100",
+            hasRecordedContact: true
+          }),
+        "supabase"
+      );
+    });
+
+    expect(screen.getByText("Primeiro contato confirmado. O lead saiu da fila de Novo.")).toBeInTheDocument();
+  });
+
+  it("mantem a caixa marcada quando o primeiro contato ja existe", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        comments: [
+          {
+            id: "comment-contact-2",
+            leadId: leads[0].id,
+            authorProfileId: "profile-1",
+            authorName: "Gabriel",
+            authorEmail: "gabriel@leadi.local",
+            body: "Primeiro contato realizado pelo consultor.",
+            type: "contact",
+            createdAt: "2026-05-21T10:30:00.000Z",
+            updatedAt: "2026-05-21T10:30:00.000Z"
+          }
+        ]
+      })
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <LeadDetailsPopup
+        lead={{ ...leads[0], id: "LE-9101", hasRecordedContact: true }}
+        onClose={() => undefined}
+      />
+    );
+
+    const firstContactCheckbox = await screen.findByRole("checkbox");
+
+    expect(firstContactCheckbox).toBeChecked();
+    expect(firstContactCheckbox).toBeDisabled();
+    expect(
+      screen.getByText("Primeiro contato já confirmado para este lead.")
+    ).toBeInTheDocument();
   });
 });

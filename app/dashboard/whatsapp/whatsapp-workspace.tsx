@@ -274,8 +274,7 @@ export function WhatsAppWorkspace({
       {!generateAccess.allowed ? <SubscriptionAccessBanner notice={generateAccess} /> : null}
       {currentAiBalance < messageCost ? (
         <div className="rounded-[26px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
-          Você não possui créditos de IA suficientes para executar esta ação. Adicione créditos
-          ou atualize seu plano em{" "}
+          Você não tem créditos suficientes para esta ação. Adicione créditos ou atualize seu plano em{" "}
           <Link
             className="font-semibold text-cobalt underline underline-offset-4"
             href="/dashboard/perfil/creditos"
@@ -285,6 +284,10 @@ export function WhatsAppWorkspace({
           para continuar gerando mensagens com IA.
         </div>
       ) : null}
+
+      <div className="rounded-[22px] bg-white/42 px-4 py-3 text-sm font-medium text-ink/70">
+        Esta ação consumirá {messageCost} crédito{messageCost === 1 ? "" : "s"}.
+      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Metric label="Conversas" value={metrics.conversations} note={metrics.conversationsNote} tone="blue" />

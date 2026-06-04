@@ -6,16 +6,22 @@ import {
   assertCurrentResourceAccess
 } from "@/lib/billing/subscription-limits.server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import type { InviteApprovalStatus, InviteStatus } from "@/lib/supabase/database.types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { startMemberDeactivationForCurrentUser, TeamAccessError } from "@/lib/workspaces/team";
 
 type TeamRole = "admin" | "seller";
 
 type CreateInviteResult =
   | {
       ok: true;
+      id: string;
       invitePath: string;
       expiresAt: string;
       roleToAssign: TeamRole;
+      status: InviteStatus;
+      requiresApproval: boolean;
+      approvalStatus: InviteApprovalStatus;
     }
   | {
       ok: false;
@@ -40,7 +46,15 @@ type UpdateMemberRoleResult =
       error: string;
     };
 
-type RemoveMemberResult = UpdateMemberRoleResult;
+type RemoveMemberResult =
+  | {
+      ok: true;
+      result: Awaited<ReturnType<typeof startMemberDeactivationForCurrentUser>>;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
 
 export async function createInviteAction(formData: FormData): Promise<CreateInviteResult> {
   const roleToAssign = parseInviteRole(formData.get("roleToAssign"));
@@ -48,9 +62,13 @@ export async function createInviteAction(formData: FormData): Promise<CreateInvi
   if (!isSupabaseConfigured()) {
     return {
       ok: true,
+      id: "demo-invite",
       invitePath: "/invite/demo",
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      roleToAssign
+      roleToAssign,
+      status: "active",
+      requiresApproval: false,
+      approvalStatus: "not_required"
     };
   }
 
@@ -68,13 +86,23 @@ export async function createInviteAction(formData: FormData): Promise<CreateInvi
       };
     }
 
+    const { data: inviteRow } = await supabase
+      .from("invites")
+      .select("id, status, requires_approval, approval_status")
+      .eq("token", data.token)
+      .maybeSingle();
+
     revalidatePath("/team/setup");
 
     return {
       ok: true,
+      id: inviteRow?.id ?? data.token,
       invitePath: data.invite_url_path,
       expiresAt: data.expires_at,
-      roleToAssign: parseInviteRole(data.role_to_assign)
+      roleToAssign: parseInviteRole(data.role_to_assign),
+      status: inviteRow?.status ?? "active",
+      requiresApproval: inviteRow?.requires_approval ?? false,
+      approvalStatus: inviteRow?.approval_status ?? "not_required"
     };
   } catch (error) {
     if (error instanceof BillingResourceAccessError) {
@@ -169,25 +197,35 @@ export async function removeMemberAction(formData: FormData): Promise<RemoveMemb
   }
 
   if (!isSupabaseConfigured()) {
-    return { ok: true };
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.rpc("remove_workspace_member", {
-    target_profile_id: targetProfileId
-  });
-
-  if (error) {
     return {
-      ok: false,
-      error: "Nao foi possivel remover o membro agora."
+      ok: true,
+      result: {
+        outcome: "deactivated",
+        targetProfileId,
+        closedRequestIds: []
+      }
     };
   }
 
-  revalidatePath("/team/setup");
-  revalidatePath("/dashboard");
+  try {
+    const result = await startMemberDeactivationForCurrentUser(targetProfileId);
 
-  return { ok: true };
+    revalidatePath("/team/setup");
+    revalidatePath("/dashboard");
+
+    return {
+      ok: true,
+      result
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof TeamAccessError
+          ? error.message
+          : "Nao foi possivel concluir a desativacao do membro agora."
+    };
+  }
 }
 
 function parseInviteRole(value: FormDataEntryValue | null): TeamRole {

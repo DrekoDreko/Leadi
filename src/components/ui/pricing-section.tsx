@@ -15,11 +15,11 @@ import {
   pricingAddons,
   pricingComparisonCategories,
   pricingNotice,
-  pricingOperationPlan,
-  type PricingCycle,
+  type PricingCycle
 } from "@/data/pricing";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { buildPlanSignupPath } from "@/lib/billing/checkout-flow";
 
 const revealVariants = {
   visible: (index: number) => ({
@@ -135,6 +135,7 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
         <div className="grid gap-5 pb-6 lg:grid-cols-3">
           {marketingPricingPlans.map((plan, index) => {
             const currentPrice = plan.prices[cycle];
+            const checkoutHref = buildPlanSignupPath(plan.slug, cycle);
 
             return (
               <TimelineContent
@@ -150,6 +151,8 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
                     "group relative flex min-h-[510px] h-full flex-col overflow-hidden rounded-[34px] p-0 transition-all duration-300 ease-out will-change-transform hover:-translate-y-2 hover:scale-[1.015] hover:shadow-[0_30px_80px_rgba(18,34,61,0.16)] motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 dark:hover:shadow-[0_30px_80px_rgba(0,0,0,0.38)]",
                     plan.highlight
                       ? "!border-signal/35 !bg-[linear-gradient(180deg,rgba(18,23,33,0.98),rgba(25,35,55,0.96))] !text-cloud shadow-soft"
+                      : plan.isTeam
+                      ? "!border-violet-500/35 !bg-[linear-gradient(180deg,rgba(18,12,33,0.98),rgba(25,18,50,0.96))] !text-cloud shadow-soft"
                       : "surface-card-strong"
                   )}
                 >
@@ -159,6 +162,8 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
                       "pointer-events-none absolute inset-0 z-0 rounded-[34px] opacity-0 transition-opacity duration-300 group-hover:opacity-100",
                       plan.highlight
                         ? "bg-[radial-gradient(circle_at_50%_0%,rgba(255,245,72,0.18),transparent_58%)]"
+                        : plan.isTeam
+                        ? "bg-[radial-gradient(circle_at_50%_0%,rgba(139,92,246,0.18),transparent_58%)]"
                         : "bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.68),transparent_54%)] dark:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08),transparent_58%)]"
                     )}
                   />
@@ -167,20 +172,23 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         {plan.badge ? (
-                          <span className="inline-flex rounded-full bg-signal px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-accent-foreground">
+                          <span className={cn(
+                            "inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]",
+                            plan.isTeam ? "bg-violet-600 text-white" : "bg-signal text-accent-foreground"
+                          )}>
                             {plan.badge}
                           </span>
                         ) : null}
                         <h3 className="mt-4 text-2xl font-semibold">{plan.name}</h3>
-                        <p className={cn("mt-3 text-sm font-semibold", plan.highlight ? "text-signal" : "text-cobalt")}>
+                        <p className={cn("mt-3 text-sm font-semibold", plan.highlight ? "text-signal" : plan.isTeam ? "text-violet-400" : "text-cobalt")}>
                           {plan.label}
                         </p>
-                        <p className={cn("mt-3 leading-7", plan.highlight ? "text-white/76" : "text-muted-soft")}>
+                        <p className={cn("mt-3 leading-7", plan.highlight || plan.isTeam ? "text-white/76" : "text-muted-soft")}>
                           {plan.description}
                         </p>
                       </div>
 
-                      {plan.highlight ? <Sparkles className="text-signal" size={24} aria-hidden="true" /> : null}
+                      {plan.highlight ? <Sparkles className="text-signal" size={24} aria-hidden="true" /> : plan.isTeam ? <Sparkles className="text-violet-400" size={24} aria-hidden="true" /> : null}
                     </div>
 
                     <div className="mt-8">
@@ -189,7 +197,7 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
                         <span
                           className={cn(
                             "pb-1 text-base font-medium",
-                            plan.highlight ? "text-white/74" : "text-foreground/62"
+                            plan.highlight || plan.isTeam ? "text-white/74" : "text-foreground/62"
                           )}
                         >
                           {currentPrice.suffix}
@@ -198,22 +206,32 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
                       <p
                         className={cn(
                           "mt-2 text-sm font-medium",
-                          plan.highlight ? "text-white/62" : "text-muted-soft"
+                          plan.highlight || plan.isTeam ? "text-white/62" : "text-muted-soft"
                         )}
                       >
                         {currentPrice.note}
                       </p>
+                      {!currentPrice.available ? (
+                        <p
+                          className={cn(
+                            "mt-3 text-sm leading-6",
+                            plan.highlight || plan.isTeam ? "text-white/78" : "text-ink/70 dark:text-cloud/72"
+                          )}
+                        >
+                          {currentPrice.unavailableMessage}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="mt-8 space-y-3">
                       {plan.features.map((feature) => (
                         <div className="flex items-start gap-3" key={feature}>
                           <CheckCircle2
-                            className={plan.highlight ? "mt-0.5 text-signal" : "mt-0.5 text-lagoon"}
+                            className={plan.highlight ? "mt-0.5 text-signal" : plan.isTeam ? "mt-0.5 text-violet-400" : "mt-0.5 text-lagoon"}
                             size={18}
                             aria-hidden="true"
                           />
-                          <span className={plan.highlight ? "text-white/84" : "text-foreground/78"}>
+                          <span className={plan.highlight || plan.isTeam ? "text-white/84" : "text-foreground/78"}>
                             {feature}
                           </span>
                         </div>
@@ -228,10 +246,12 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
                         "w-full py-4 text-sm",
                         plan.highlight
                           ? "bg-signal !text-[#121721] hover:bg-signal/90"
+                          : plan.isTeam
+                          ? "bg-violet-600 !text-white hover:bg-violet-700"
                           : "bg-primary text-primary-foreground hover:bg-primary/92"
                       )}
-                    >
-                      <Link href={plan.href}>{plan.cta}</Link>
+                      >
+                      <Link href={plan.detailsUrl ? plan.detailsUrl : checkoutHref}>{plan.cta}</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -255,59 +275,19 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
               categories={pricingComparisonCategories}
               cycle={cycle}
               plans={marketingPricingPlans}
-              operationPlan={pricingOperationPlan}
             />
 
             <div className="rounded-[28px] border border-cobalt/12 bg-cobalt/8 px-5 py-4 text-sm leading-7 text-ink/70 dark:border-cobalt/18 dark:bg-cobalt/12 dark:text-cloud/72">
               {pricingNotice}
             </div>
 
-            <div className="glass-strong rounded-[32px] px-6 py-7 md:px-8">
-              <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cobalt">
-                    Precisa de uma operação maior?
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <h3 className="text-2xl font-semibold text-ink dark:text-cloud">{pricingOperationPlan.name}</h3>
-                    <span className="rounded-full bg-ink px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cloud dark:bg-cloud dark:text-ink">
-                      {pricingOperationPlan.price}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-base leading-7 text-ink/68 dark:text-cloud/68">
-                    {pricingOperationPlan.label}. {pricingOperationPlan.description}
-                  </p>
-
-                  <div className="mt-5 flex flex-wrap gap-2.5">
-                    {pricingOperationPlan.features.map((feature) => (
-                      <span
-                        key={feature}
-                        className="rounded-full border border-white/55 bg-white/64 px-3 py-2 text-sm font-medium text-ink/74 dark:border-white/10 dark:bg-white/6 dark:text-cloud/74"
-                      >
-                        {feature}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-start gap-4 lg:items-end">
-                  <Button asChild size="lg" className="w-full lg:w-auto">
-                    <Link href={pricingOperationPlan.href}>{pricingOperationPlan.cta}</Link>
-                  </Button>
-                  <p className="max-w-sm text-sm leading-6 text-ink/58 dark:text-cloud/58 lg:text-right">
-                    Ideal para cenários com mais usuários, múltiplas equipes e acompanhamento mais próximo da implantação.
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div className="rounded-[32px] border border-white/50 bg-white/70 p-6 shadow-soft backdrop-blur dark:border-white/10 dark:bg-white/6 md:p-8">
               <div className="max-w-2xl">
                 <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cobalt">
-                  Adicionais opcionais
+                  Créditos extras
                 </p>
                 <h3 className="mt-3 text-2xl font-semibold text-ink dark:text-cloud">
-                  Recursos extras para adaptar a operação ao seu ritmo.
+                  Compre créditos avulsos quando a franquia do plano terminar.
                 </h3>
               </div>
 
@@ -319,6 +299,9 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
                   >
                     <p className="text-sm font-medium leading-6 text-ink/74 dark:text-cloud/74">{addon.title}</p>
                     <p className="mt-3 text-lg font-semibold text-ink dark:text-cloud">{addon.price}</p>
+                    <p className="mt-2 text-sm leading-6 text-ink/60 dark:text-cloud/68">
+                      {addon.description}
+                    </p>
                   </div>
                 ))}
               </div>

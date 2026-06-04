@@ -9,6 +9,7 @@ import { parseLeadPaginationParams } from "@/lib/leads/repository";
 import { parseLeadUrlFilters } from "@/lib/leads/filters";
 import { getSystemTemplates } from "@/lib/templates/repository.server";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
+import { can } from "@/lib/workspaces/permissions";
 
 type ArchivedLeadsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined> & {
@@ -39,9 +40,14 @@ export default async function ArchivedLeadsPage({ searchParams }: ArchivedLeadsP
     listLeadOwnerOptionsForCurrentUser()
   ]);
 
+  const canExportLeads = workspaceContext.mode === "supabase" ? can(workspaceContext.role, "export_leads") : true;
+  const canImportLeads = workspaceContext.mode === "supabase" ? can(workspaceContext.role, "import_leads") : true;
+
   return (
     <LeadsWorkspace
       canManageLeadOwners={workspaceContext.isManager}
+      canExportLeads={canExportLeads}
+      canImportLeads={canImportLeads}
       createLeadAccess={createLeadAccess}
       aiBalance={aiBalance}
       initialLeadId={initialLeadId ?? null}

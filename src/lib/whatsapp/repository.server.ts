@@ -116,6 +116,64 @@ export async function getWhatsAppMessagesCountForCurrentUser(): Promise<number> 
   return count ?? 0;
 }
 
+export type WhatsAppDeliveryStatusSummary = {
+  total: number;
+  sent: number;
+  failed: number;
+};
+
+const FAILED_DELIVERY_STATUSES: WhatsAppDeliveryStatus[] = [
+  "failed",
+  "blocked",
+  "rate_limited"
+];
+
+export async function getWhatsAppDeliverySummaryForCurrentUser(): Promise<WhatsAppDeliveryStatusSummary> {
+  const empty: WhatsAppDeliveryStatusSummary = { total: 0, sent: 0, failed: 0 };
+
+  if (!isSupabaseConfigured()) {
+    return empty;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) return empty;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile) return empty;
+
+  const { data, error } = await supabase
+    .from("whatsapp_messages")
+    .select("delivery_status")
+    .eq("organization_id", profile.organization_id);
+
+  if (error) {
+    console.error("Erro ao agregar entregas WhatsApp:", error);
+    return empty;
+  }
+
+  const rows = data ?? [];
+
+  return rows.reduce<WhatsAppDeliveryStatusSummary>((summary, row) => {
+    const status = normalizeDeliveryStatus(row.delivery_status);
+    summary.total += 1;
+    if (status === "sent") {
+      summary.sent += 1;
+    } else if (FAILED_DELIVERY_STATUSES.includes(status)) {
+      summary.failed += 1;
+    }
+    return summary;
+  }, { ...empty });
+}
+
 export async function saveWhatsAppMessageForCurrentUser(
   input: WhatsAppSaveInput
 ): Promise<WhatsAppHistoryItem> {

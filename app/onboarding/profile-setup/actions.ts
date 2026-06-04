@@ -31,7 +31,8 @@ function getSetupErrorCode(error: { code?: string; message?: string } | null) {
     error?.code === "42703" ||
     error?.message?.includes("complete_profile_setup") ||
     error?.message?.includes("profile_setup_completed") ||
-    error?.message?.includes("organizations.type")
+    error?.message?.includes("organizations.type") ||
+    error?.message?.includes("Tipo de perfil invalido")
   ) {
     return "setup-schema-missing";
   }

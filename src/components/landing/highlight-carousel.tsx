@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Sparkles,
   Facebook,
@@ -22,16 +22,12 @@ interface JourneyCard {
 
 export function HighlightCarousel() {
   const carouselRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (carouselRef.current) {
       const container = carouselRef.current;
-      const { scrollLeft, scrollWidth, clientWidth } = container;
-      setCanScrollLeft(scrollLeft > 5);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
+      const { scrollLeft } = container;
 
       const cardsList = Array.from(container.children).filter(
         (el) => el.getAttribute("data-card") === "true"
@@ -57,66 +53,9 @@ export function HighlightCarousel() {
 
       setActiveIndex(activeIdx);
     }
-  };
-
-  useEffect(() => {
-    const el = carouselRef.current;
-    if (el) {
-      el.addEventListener("scroll", handleScroll);
-      // Wait for components to mount fully so computed styles and positions are correct
-      const timer = setTimeout(() => {
-        handleScroll();
-      }, 100);
-      return () => {
-        el.removeEventListener("scroll", handleScroll);
-        clearTimeout(timer);
-      };
-    }
   }, []);
 
-  const scroll = (direction: "left" | "right") => {
-    if (carouselRef.current) {
-      const container = carouselRef.current;
-      const cardsList = Array.from(container.children).filter(
-        (el) => el.getAttribute("data-card") === "true"
-      ) as HTMLElement[];
-
-      if (cardsList.length === 0) return;
-
-      const style = window.getComputedStyle(container);
-      const paddingLeft = parseFloat(style.paddingLeft) || 0;
-      const currentScroll = container.scrollLeft;
-
-      let currentCardIndex = 0;
-      let minDiff = Infinity;
-
-      cardsList.forEach((card, idx) => {
-        const cardTargetScroll = card.offsetLeft - paddingLeft;
-        const diff = Math.abs(cardTargetScroll - currentScroll);
-        if (diff < minDiff) {
-          minDiff = diff;
-          currentCardIndex = idx;
-        }
-      });
-
-      let targetIndex = currentCardIndex;
-      if (direction === "right") {
-        targetIndex = Math.min(cardsList.length - 1, currentCardIndex + 1);
-      } else {
-        targetIndex = Math.max(0, currentCardIndex - 1);
-      }
-
-      const targetCard = cardsList[targetIndex];
-      if (targetCard) {
-        container.scrollTo({
-          left: targetCard.offsetLeft - paddingLeft,
-          behavior: "smooth"
-        });
-      }
-    }
-  };
-
-  const scrollToCard = (index: number) => {
+  const scrollToCard = useCallback((index: number) => {
     if (carouselRef.current) {
       const container = carouselRef.current;
       const cardsList = Array.from(container.children).filter(
@@ -127,13 +66,32 @@ export function HighlightCarousel() {
       if (targetCard) {
         const style = window.getComputedStyle(container);
         const paddingLeft = parseFloat(style.paddingLeft) || 0;
+
         container.scrollTo({
           left: targetCard.offsetLeft - paddingLeft,
           behavior: "smooth"
         });
+        setActiveIndex(index);
       }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (el) {
+      el.addEventListener("scroll", handleScroll);
+      window.addEventListener("resize", handleScroll);
+
+      // Wait for components to mount fully so computed styles and positions are correct
+      const timer = window.setTimeout(handleScroll, 100);
+
+      return () => {
+        el.removeEventListener("scroll", handleScroll);
+        window.removeEventListener("resize", handleScroll);
+        window.clearTimeout(timer);
+      };
+    }
+  }, [handleScroll]);
 
   const cards: JourneyCard[] = [
     {
@@ -513,6 +471,20 @@ export function HighlightCarousel() {
     }
   ];
 
+  const canScrollLeft = activeIndex > 0;
+  const canScrollRight = activeIndex < cards.length - 1;
+
+  const scroll = (direction: "left" | "right") => {
+    const nextIndex =
+      direction === "right"
+        ? Math.min(cards.length - 1, activeIndex + 1)
+        : Math.max(0, activeIndex - 1);
+
+    if (nextIndex !== activeIndex) {
+      scrollToCard(nextIndex);
+    }
+  };
+
   return (
     <section className="relative overflow-hidden py-24" id="como-funciona">
       {/* Header aligned with section-shell */}
@@ -527,6 +499,7 @@ export function HighlightCarousel() {
       {/* Carousel Window - FULL WIDTH of the screen */}
       <div
         ref={carouselRef}
+        onScroll={handleScroll}
         className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-10 scrollbar-none scroll-smooth w-full"
         style={{
           scrollbarWidth: "none",
@@ -560,14 +533,15 @@ export function HighlightCarousel() {
 
       {/* Bottom Navigation & Indicators Block (Apple Style: Right aligned setas, left aligned indicators) */}
       <div className="section-shell">
-        <div className="mt-8 flex items-center justify-between px-4">
+        <div className="relative z-20 mt-8 flex items-center justify-between px-4">
           {/* Pagination Indicators (Left) */}
           <div className="flex gap-2">
             {cards.map((_, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => scrollToCard(i)}
-                className={`h-2 rounded-full transition-all duration-300 ${
+                className={`relative z-10 h-2 touch-manipulation rounded-full transition-all duration-300 ${
                   i === activeIndex ? "w-6 bg-cobalt" : "w-2 bg-ink/15 hover:bg-ink/30"
                 }`}
                 aria-label={`Ir para destaque ${i + 1}`}
@@ -578,9 +552,10 @@ export function HighlightCarousel() {
           {/* Action Navigation Arrows (Right) */}
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={() => scroll("left")}
               disabled={!canScrollLeft}
-              className={`surface-card-strong h-11 w-11 rounded-full border border-neutral-300 bg-white/80 text-ink dark:text-cloud flex items-center justify-center transition-all duration-300 ${
+              className={`surface-card-strong relative z-10 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-neutral-300 bg-white/80 text-ink transition-all duration-300 dark:text-cloud ${
                 !canScrollLeft ? "opacity-30 cursor-not-allowed" : "active:scale-95 hover:border-ink/20 hover:-translate-x-0.5 shadow-sm"
               }`}
               aria-label="Destaque anterior"
@@ -588,9 +563,10 @@ export function HighlightCarousel() {
               <ChevronLeft size={20} className="stroke-[2.5px]" />
             </button>
             <button
+              type="button"
               onClick={() => scroll("right")}
               disabled={!canScrollRight}
-              className={`surface-card-strong h-11 w-11 rounded-full border border-neutral-300 bg-white/80 text-ink dark:text-cloud flex items-center justify-center transition-all duration-300 ${
+              className={`surface-card-strong relative z-10 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-neutral-300 bg-white/80 text-ink transition-all duration-300 dark:text-cloud ${
                 !canScrollRight ? "opacity-30 cursor-not-allowed" : "active:scale-95 hover:border-ink/20 hover:translate-x-0.5 shadow-sm"
               }`}
               aria-label="Próximo destaque"

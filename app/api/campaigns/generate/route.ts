@@ -155,6 +155,7 @@ export async function POST(request: Request) {
           metaLeadFormId: input.metaLeadFormId,
           publishMode: input.publishMode,
           publicationStatus: input.publicationStatus,
+          approvalStatus: billingContext.role === "seller" ? "pending" : "not_required",
           metaCampaignId: input.metaCampaignId,
           metaAdSetId: input.metaAdSetId,
           metaAdId: input.metaAdId

@@ -90,19 +90,19 @@ const DEFAULT_PLAN_LIMITS: Record<
       teamInvites: false
     }
   },
-  operation_plan: {
+  equipe: {
     limits: {
-      leads: 50000,
-      users: 20,
-      campaigns: 500
+      leads: 10000,
+      users: 3,
+      campaigns: 180
     },
     features: {
       ai: true,
-      creativeRequests: true,
+      creativeRequests: false,
       teamInvites: true
     }
   },
-  solo_plan: {
+  essencial: {
     limits: {
       leads: 1500,
       users: 1,
@@ -114,16 +114,16 @@ const DEFAULT_PLAN_LIMITS: Record<
       teamInvites: false
     }
   },
-  team_plan: {
+  profissional: {
     limits: {
-      leads: 10000,
-      users: 5,
+      leads: 5000,
+      users: 1,
       campaigns: 180
     },
     features: {
       ai: true,
       creativeRequests: false,
-      teamInvites: true
+      teamInvites: false
     }
   }
 };
@@ -242,7 +242,7 @@ export async function getOrganizationResourceAccess(
     return buildDeniedAccess(resource, "feature_unavailable", {
       title: "Seu plano ainda não inclui pedidos criativos",
       message:
-        "Pedidos de criativo ficam disponíveis no plano Operação. Faça upgrade para liberar esse fluxo.",
+        "Pedidos de criativo não fazem parte dos planos públicos atuais. Fale com a equipe se precisar desse fluxo.",
       limit: null,
       used: null
     });

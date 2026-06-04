@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Copy, Loader2, Send, Sparkles } from "lucide-react";
 import type { Lead } from "@/data/mock";
@@ -265,7 +266,8 @@ export function LeadMessageGenerator({
           <p className="text-sm font-medium text-cobalt">Gerar mensagem</p>
           <h3 className="mt-2 text-xl font-semibold">WhatsApp do lead</h3>
           <p className="mt-2 text-sm leading-6 text-ink/62">
-            Escolha a etapa da conversa e o tom desejado. A geração consome Créditos de IA da plataforma.
+            Escolha a etapa da conversa e o tom desejado. Esta ação consumirá {messageCost} crédito
+            {messageCost === 1 ? "" : "s"} de IA da plataforma.
           </p>
           {selectedStage === "awaiting_response" ? (
             <p className="mt-2 text-sm leading-6 text-ink/54">
@@ -279,8 +281,13 @@ export function LeadMessageGenerator({
 
       {currentAiBalance < messageCost ? (
         <div className="mt-4 rounded-[24px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
-          Você não possui créditos de IA suficientes para executar esta ação. Adicione créditos
-          ou atualize seu plano para continuar.
+          <p>Você não tem créditos suficientes para esta ação.</p>
+          <Link
+            className="mt-3 inline-flex font-semibold text-cobalt underline underline-offset-4"
+            href="/dashboard/perfil/creditos"
+          >
+            Comprar créditos
+          </Link>
         </div>
       ) : null}
 

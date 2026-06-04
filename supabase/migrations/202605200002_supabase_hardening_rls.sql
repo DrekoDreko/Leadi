@@ -70,9 +70,7 @@ alter table public.lead_webhook_integrations enable row level security;
 alter table public.lead_webhook_events enable row level security;
 alter table public.subscriptions enable row level security;
 alter table public.payment_events enable row level security;
-alter table public.credit_wallets enable row level security;
-alter table public.credit_transactions enable row level security;
-alter table public.billing_purchases enable row level security;
+
 alter table public.org_ai_balances enable row level security;
 alter table public.ai_credit_ledger enable row level security;
 alter table public.ai_usage_events enable row level security;
@@ -204,32 +202,7 @@ using (
   and public.current_profile_is_manager()
 );
 
-drop policy if exists "Members can read credit wallets" on public.credit_wallets;
-create policy "Managers can read credit wallets"
-on public.credit_wallets
-for select
-using (
-  organization_id = public.current_profile_organization_id()
-  and public.current_profile_is_manager()
-);
 
-drop policy if exists "Members can read credit transactions" on public.credit_transactions;
-create policy "Managers can read credit transactions"
-on public.credit_transactions
-for select
-using (
-  organization_id = public.current_profile_organization_id()
-  and public.current_profile_is_manager()
-);
-
-drop policy if exists "Members can read billing purchases" on public.billing_purchases;
-create policy "Managers can read billing purchases"
-on public.billing_purchases
-for select
-using (
-  organization_id = public.current_profile_organization_id()
-  and public.current_profile_is_manager()
-);
 
 drop policy if exists "Members can read organization AI balances" on public.org_ai_balances;
 create policy "Managers can read organization AI balances"

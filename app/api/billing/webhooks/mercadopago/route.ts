@@ -6,6 +6,15 @@ import {
   updateBillingPurchase
 } from "@/lib/billing/admin";
 import {
+  grantSubscriptionIncludedAiCredits,
+  finalizeAiCreditOrderPayment
+} from "@/lib/ai/credits";
+import {
+  getAiCreditOrderByExternalReference,
+  getAiCreditOrderByPaymentId,
+  updateAiCreditOrder
+} from "@/lib/ai/credit-orders.server";
+import {
   getBillingSubscriptionByExternalReference,
   updateBillingSubscription,
   createBillingPaymentEvent
@@ -89,7 +98,7 @@ export async function POST(request: Request) {
           planId: subscription.plan_id,
           gateway: "mercado_pago",
           eventType: "payment",
-          status: payment.status ?? "unknown",
+          status: mapBillingPaymentEventStatus(payment.status),
           externalId: paymentId,
           amountCents: payment.transaction_amount ? Math.round(payment.transaction_amount * 100) : 0,
           payload: payment
@@ -97,12 +106,81 @@ export async function POST(request: Request) {
 
         // Atualiza status da assinatura
         if (payment.status === "approved") {
-          await updateBillingSubscription(subscription.id, { status: "active" });
+          const cycle = resolveSubscriptionCyclePeriod(
+            subscription.current_period_start,
+            subscription.current_period_end,
+            payment.date_approved ?? payment.date_last_updated ?? null
+          );
+
+          await updateBillingSubscription(subscription.id, {
+            status: "active",
+            current_period_start: cycle.currentPeriodStart,
+            current_period_end: cycle.currentPeriodEnd
+          });
+
+          await grantSubscriptionIncludedAiCredits({
+            subscriptionId: subscription.id,
+            referenceId: `${subscription.id}:${cycle.currentPeriodStart}`,
+            metadata: {
+              payment_id: paymentId,
+              payment_status: payment.status,
+              payment_approved_at: payment.date_approved ?? payment.date_last_updated ?? null
+            }
+          });
         } else if (payment.status === "rejected" || payment.status === "cancelled") {
           await updateBillingSubscription(subscription.id, { status: "past_due" });
         }
 
         return NextResponse.json({ ok: true, type: "subscription_payment", status: payment.status });
+      }
+
+      const aiCreditOrder =
+        (await getAiCreditOrderByPaymentId(paymentId)) ||
+        (externalReference ? await getAiCreditOrderByExternalReference(externalReference) : null);
+
+      if (aiCreditOrder) {
+        const mappedStatus = mapMercadoPagoOrderStatus(payment.status);
+        const metadata = {
+          webhook: {
+            data_id: dataId,
+            request_id: requestId
+          },
+          payment: {
+            id: paymentId,
+            status: payment.status,
+            status_detail: payment.status_detail ?? null,
+            external_reference: externalReference || null,
+            transaction_amount: payment.transaction_amount ?? null,
+            currency_id: payment.currency_id ?? null,
+            date_approved: payment.date_approved ?? null,
+            date_created: payment.date_created ?? null,
+            date_last_updated: payment.date_last_updated ?? null
+          }
+        };
+
+        await updateAiCreditOrder(aiCreditOrder.id, {
+          status: payment.status === "approved" ? undefined : mappedStatus,
+          providerPaymentId: paymentId,
+          metadata
+        });
+
+        if (payment.status !== "approved") {
+          return NextResponse.json({ ok: true, type: "ai_credit_order", status: payment.status });
+        }
+
+        const finalization = await finalizeAiCreditOrderPayment({
+          orderId: aiCreditOrder.id,
+          providerPaymentId: paymentId,
+          paidAt: payment.date_approved ?? payment.date_last_updated ?? null,
+          metadata
+        });
+
+        return NextResponse.json({
+          ok: true,
+          type: "ai_credit_order",
+          status: payment.status,
+          credited: !finalization.alreadyProcessed
+        });
       }
 
       // Caso contrário, é uma compra avulsa (Credit Pack)
@@ -212,4 +290,81 @@ function getMercadoPagoWebhookErrorMessage(error: unknown) {
   }
 
   return "Nao foi possivel processar o webhook.";
+}
+
+function mapMercadoPagoOrderStatus(status: string | undefined) {
+  if (status === "approved") {
+    return "paid" as const;
+  }
+
+  if (status === "cancelled") {
+    return "cancelled" as const;
+  }
+
+  if (status === "rejected") {
+    return "failed" as const;
+  }
+
+  if (status === "refunded" || status === "charged_back") {
+    return "refunded" as const;
+  }
+
+  return "pending" as const;
+}
+
+function mapBillingPaymentEventStatus(status: string | undefined) {
+  if (status === "approved") {
+    return "processed";
+  }
+
+  if (status === "cancelled") {
+    return "cancelled";
+  }
+
+  if (status === "rejected" || status === "charged_back") {
+    return "failed";
+  }
+
+  return "pending";
+}
+
+function resolveSubscriptionCyclePeriod(
+  currentPeriodStart: string,
+  currentPeriodEnd: string,
+  paidAt: string | null
+) {
+  const paymentDate = paidAt ? new Date(paidAt) : new Date();
+  const fallbackStart = new Date();
+  const fallbackEnd = addMonths(fallbackStart, 1);
+  let start = isValidDate(currentPeriodStart) ? new Date(currentPeriodStart) : fallbackStart;
+  let end = isValidDate(currentPeriodEnd) ? new Date(currentPeriodEnd) : fallbackEnd;
+
+  if (!(end.getTime() > start.getTime())) {
+    start = fallbackStart;
+    end = fallbackEnd;
+  }
+
+  while (paymentDate.getTime() >= end.getTime()) {
+    start = end;
+    end = addMonths(end, 1);
+  }
+
+  return {
+    currentPeriodStart: start.toISOString(),
+    currentPeriodEnd: end.toISOString()
+  };
+}
+
+function addMonths(date: Date, months: number) {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months);
+  return next;
+}
+
+function isValidDate(value: string | null | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  return Number.isFinite(new Date(value).getTime());
 }

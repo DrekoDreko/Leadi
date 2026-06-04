@@ -7,6 +7,10 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import {
+  createLeadAccessScope,
+  type LeadAccessScope
+} from "./access";
+import {
   applyLeadUrlFilters,
   defaultLeadUrlFilters,
   getLeadPeriodStart,
@@ -32,7 +36,9 @@ import {
   type LeadPaginationOptions
 } from "./repository";
 
-import { isWorkspaceManagerRole } from "@/lib/workspaces/permissions";
+import { recordAuditLogForCurrentUser } from "@/lib/audit/audit-log.server";
+
+import { isWorkspaceManagerRole, can } from "@/lib/workspaces/permissions";
 
 type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
 type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
@@ -43,11 +49,16 @@ type LeadTaskInsert = Database["public"]["Tables"]["lead_tasks"]["Insert"];
 type LeadTaskUpdate = Database["public"]["Tables"]["lead_tasks"]["Update"];
 type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type TeamMemberRow = Database["public"]["Tables"]["team_members"]["Row"];
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
+type LeadDataClient = ServerClient | AdminClient;
+type LeadAccessProfile = Pick<ProfileRow, "id" | "organization_id" | "role">;
 export type LeadDuplicateReason = "meta_lead_id" | "phone_e164" | "email";
 export type LeadTaskStatusValue = Database["public"]["Enums"]["lead_task_status"];
 export type LeadTaskPriorityValue = Database["public"]["Enums"]["lead_task_priority"];
+
+const NO_RESULTS_FILTER_ID = "00000000-0000-0000-0000-000000000000";
 
 export type LeadTaskItem = {
   id: string;
@@ -215,7 +226,16 @@ export async function getLeadsForCurrentUser(
         const matchesArchived = filters.archived ? lead.archivedAt !== null : lead.archivedAt === null;
         return matchesFilters && matchesArchived;
       });
-      const paginatedLeads = paginateLeads(filteredLeads, pagination);
+      const recordedContactLeadIds = getRecordedContactLeadIdsFromComments(
+        mockLeadComments,
+        filteredLeads.map((lead) => lead.id)
+      );
+      const recordedContactLeadIdSet = new Set(recordedContactLeadIds);
+      const decoratedLeads = filteredLeads.map((lead) => ({
+        ...lead,
+        hasRecordedContact: recordedContactLeadIdSet.has(lead.id)
+      }));
+      const paginatedLeads = paginateLeads(decoratedLeads, pagination);
 
       return {
         leads: paginatedLeads,
@@ -224,7 +244,7 @@ export async function getLeadsForCurrentUser(
         canCreateMetaAdsLeads: true,
         pagination: buildLeadPaginationMeta(
           pagination,
-          filteredLeads.length,
+          decoratedLeads.length,
           paginatedLeads.length
         ),
         message: "Supabase ainda nao configurado. Exibindo dados mockados."
@@ -269,10 +289,12 @@ export async function getLeadsForCurrentUser(
       await getMetaConnectionForOrganization(profile.organization_id)
     );
     const ownerProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
+    const accessScope = await resolveLeadAccessScope(supabase, profile);
 
     let { data, error, count } = await runLeadListQuery({
       supabase,
       profile,
+      accessScope,
       filters,
       pagination,
       includeArchivedFilter: true
@@ -286,6 +308,7 @@ export async function getLeadsForCurrentUser(
       ({ data, error, count } = await runLeadListQuery({
         supabase,
         profile,
+        accessScope,
         filters,
         pagination,
         includeArchivedFilter: false
@@ -304,8 +327,20 @@ export async function getLeadsForCurrentUser(
       };
     }
 
-    const leads = ((data ?? []) as LeadRow[]).map((lead) =>
-      mapLeadRowToLead(lead, profile, hasMetaConnection, ownerProfiles)
+    const leadRows = (data ?? []) as LeadRow[];
+    const recordedContactLeadIdSet = await listRecordedContactLeadIdSetForOrganization(
+      supabase,
+      profile.organization_id,
+      leadRows.map((lead) => lead.id)
+    );
+    const leads = leadRows.map((lead) =>
+      mapLeadRowToLead(
+        lead,
+        profile,
+        hasMetaConnection,
+        ownerProfiles,
+        recordedContactLeadIdSet.has(lead.id)
+      )
     );
     const total = pagination.limit === null ? leads.length : count ?? pagination.offset + leads.length;
 
@@ -356,6 +391,7 @@ export async function getLeadExportRowsForCurrentUser(
     await getMetaConnectionForOrganization(profile.organization_id)
   );
   const supabase = await createSupabaseServerClient();
+  const accessScope = await resolveLeadAccessScope(supabase, profile);
   const exportProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
   const ownerProfileIdsFilter = await resolveOwnerProfileIdsFilter(
     supabase,
@@ -365,7 +401,7 @@ export async function getLeadExportRowsForCurrentUser(
   
   const query = buildLeadQuery(
     supabase.from("leads").select("*").eq("organization_id", profile.organization_id),
-    profile,
+    accessScope,
     filters,
     sellerProfileId,
     ownerProfileIdsFilter
@@ -402,14 +438,14 @@ export async function getLeadsCountForCurrentUser(): Promise<number> {
 
   if (!profile) return 0;
 
-  let query = supabase
-    .from("leads")
-    .select("*", { count: "exact", head: true })
-    .eq("organization_id", profile.organization_id);
-
-  if (profile.role === "seller") {
-    query = query.eq("owner_profile_id", profile.id);
-  }
+  const accessScope = await resolveLeadAccessScope(supabase, profile);
+  const query = applyLeadAccessScopeToQuery(
+    supabase
+      .from("leads")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", profile.organization_id),
+    accessScope
+  );
 
   const { count, error } = await query;
 
@@ -568,13 +604,20 @@ export async function createLeadForCurrentUser(input: LeadCreateInput): Promise<
     assertCanManageLead(profile, duplicate.lead, "editar", hasMetaConnection);
     const updatePayload = { ...payload };
     delete updatePayload.import_batch_id;
+    const duplicateOwnerProfileId = duplicate.lead.owner_profile_id ?? profile.id;
+    const duplicateOwnerTeamId = await resolveLeadTeamIdForProfile(
+      supabase,
+      profile.organization_id,
+      duplicateOwnerProfileId
+    );
 
     const { data, error } = await supabase
       .from("leads")
       .update({
         ...updatePayload,
         organization_id: profile.organization_id,
-        owner_profile_id: duplicate.lead.owner_profile_id ?? profile.id
+        owner_profile_id: duplicateOwnerProfileId,
+        team_id: duplicateOwnerTeamId
       })
       .eq("id", duplicate.lead.id)
       .select("*")
@@ -738,17 +781,18 @@ export async function updateLeadForCurrentUser(id: string, input: LeadCreateInpu
   }
 
   const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+  const accessScope = await resolveLeadAccessScope(supabase, profile);
   const hasMetaConnection = Boolean(
     await getMetaConnectionForOrganization(profile.organization_id)
   );
-  const existingLead = await getLeadForMutation(id, profile.organization_id);
+  const existingLead = await getLeadForMutation(id, profile, accessScope, supabase);
   const payload = buildLeadUpdate(existingLead, input);
 
   assertCanManageLead(profile, existingLead, "editar", hasMetaConnection);
-  await assertCanAssignLeadOwner(profile, existingLead, payload);
+  await assertCanAssignLeadOwner(supabase, accessScope, profile, existingLead, payload);
   assertCanApplyLeadUpdate(profile, payload, hasMetaConnection);
 
-  const supabase = await createSupabaseServerClient();
   const ownerProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
   const { data, error } = await supabase
     .from("leads")
@@ -776,7 +820,19 @@ export async function updateLeadForCurrentUser(id: string, input: LeadCreateInpu
     }
   }
 
-  return mapLeadRowToLead(data, profile, hasMetaConnection, ownerProfiles);
+  const recordedContactLeadIdSet = await listRecordedContactLeadIdSetForOrganization(
+    supabase,
+    profile.organization_id,
+    [id]
+  );
+
+  return mapLeadRowToLead(
+    data,
+    profile,
+    hasMetaConnection,
+    ownerProfiles,
+    recordedContactLeadIdSet.has(id)
+  );
 }
 
 export async function assignLeadOwnersInBulkForCurrentUser(
@@ -793,25 +849,33 @@ export async function assignLeadOwnersInBulkForCurrentUser(
   }
 
   const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+  const accessScope = await resolveLeadAccessScope(supabase, profile);
 
   if (!isWorkspaceManagerRole(profile.role)) {
     throw new Error("Somente owner ou admin podem distribuir leads em lote.");
   }
 
   const nextOwnerProfile = await resolveBulkLeadOwnerProfile(
+    supabase,
     profile.organization_id,
-    input.ownerProfileId
+    input.ownerProfileId,
+    accessScope
   );
   const hasMetaConnection = Boolean(
     await getMetaConnectionForOrganization(profile.organization_id)
   );
-  const supabase = await createSupabaseServerClient();
-  const { data: existingLeads, error: existingLeadsError } = await supabase
-    .from("leads")
-    .select("*")
-    .eq("organization_id", profile.organization_id)
-    .is("archived_at", null)
-    .in("id", leadIds);
+  const { data: existingLeads, error: existingLeadsError } = await applyArchivedLeadFilter(
+    applyLeadAccessScopeToQuery(
+      supabase
+        .from("leads")
+        .select("*")
+        .eq("organization_id", profile.organization_id)
+        .in("id", leadIds),
+      accessScope
+    ),
+    false
+  );
 
   if (existingLeadsError) {
     throw new Error(existingLeadsError.message);
@@ -830,7 +894,8 @@ export async function assignLeadOwnersInBulkForCurrentUser(
   const { data: updatedRows, error: updateError } = await supabase
     .from("leads")
     .update({
-      owner_profile_id: nextOwnerProfile.id
+      owner_profile_id: nextOwnerProfile.profile.id,
+      team_id: nextOwnerProfile.primaryTeamId
     })
     .eq("organization_id", profile.organization_id)
     .is("archived_at", null)
@@ -841,9 +906,52 @@ export async function assignLeadOwnersInBulkForCurrentUser(
     throw new Error(updateError.message);
   }
 
+  const assignmentsToInsert = scopedLeads.map(lead => ({
+    organization_id: profile.organization_id,
+    team_id: nextOwnerProfile.primaryTeamId!,
+    lead_id: lead.id,
+    assigned_to_profile_id: nextOwnerProfile.profile.id,
+    assigned_by_profile_id: profile.id,
+    previous_owner_profile_id: lead.owner_profile_id,
+    reason: "Atribuicao em lote"
+  }));
+
+  if (assignmentsToInsert.length > 0) {
+    const { error: assignmentError } = await supabase
+      .from("lead_assignments")
+      .insert(assignmentsToInsert);
+
+    if (assignmentError) {
+      console.error("[assignLeadOwnersInBulkForCurrentUser] Falha ao registrar atribuicoes:", assignmentError);
+    }
+  }
+
+  await recordAuditLogForCurrentUser({
+    action: "Distribuicao de leads",
+    targetType: "leads",
+    teamId: nextOwnerProfile.primaryTeamId,
+    metadata: {
+      count: scopedLeads.length,
+      assignedToProfileId: nextOwnerProfile.profile.id,
+      assignedToTeamId: nextOwnerProfile.primaryTeamId
+    }
+  });
+
   const ownerProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
-  const leads = ((updatedRows ?? []) as LeadRow[]).map((lead) =>
-    mapLeadRowToLead(lead, profile, hasMetaConnection, ownerProfiles)
+  const updatedLeadRows = (updatedRows ?? []) as LeadRow[];
+  const recordedContactLeadIdSet = await listRecordedContactLeadIdSetForOrganization(
+    supabase,
+    profile.organization_id,
+    updatedLeadRows.map((lead) => lead.id)
+  );
+  const leads = updatedLeadRows.map((lead) =>
+    mapLeadRowToLead(
+      lead,
+      profile,
+      hasMetaConnection,
+      ownerProfiles,
+      recordedContactLeadIdSet.has(lead.id)
+    )
   );
 
   return {
@@ -862,14 +970,15 @@ export async function archiveLeadForCurrentUser(id: string) {
   }
 
   const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+  const accessScope = await resolveLeadAccessScope(supabase, profile);
   const hasMetaConnection = Boolean(
     await getMetaConnectionForOrganization(profile.organization_id)
   );
-  const existingLead = await getLeadForMutation(id, profile.organization_id);
+  const existingLead = await getLeadForMutation(id, profile, accessScope, supabase);
 
   assertCanManageLead(profile, existingLead, "arquivar", hasMetaConnection);
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("leads")
     .update({ archived_at: new Date().toISOString() })
@@ -897,7 +1006,7 @@ export async function listLeadCommentsForCurrentUser(id: string): Promise<LeadCo
   }
 
   const profile = await getCurrentProfile();
-  const lead = await getLeadForMutation(id, profile.organization_id);
+  const lead = await getLeadForMutation(id, profile);
 
   assertCanAccessLead(profile, lead, "visualizar");
 
@@ -938,15 +1047,19 @@ export async function createLeadCommentForCurrentUser(
     };
 
     mockLeadComments.push(comment);
+    const updatedLead = updateMockLeadCommentLead(id, rawBody);
 
     return {
       comment,
-      lead: updateMockLeadCommentLead(id, rawBody)
+      lead: {
+        ...updatedLead,
+        hasRecordedContact: isContact || updatedLead.hasRecordedContact
+      }
     };
   }
 
   const profile = await getCurrentProfile();
-  const lead = await getLeadForMutation(id, profile.organization_id);
+  const lead = await getLeadForMutation(id, profile);
 
   assertCanAccessLead(profile, lead, "comentar");
 
@@ -976,9 +1089,24 @@ export async function createLeadCommentForCurrentUser(
     throw new Error(error.message);
   }
 
+  const recordedContactLeadIdSet = await listRecordedContactLeadIdSetForOrganization(
+    supabase,
+    profile.organization_id,
+    [lead.id]
+  );
+  const hasMetaConnection = Boolean(
+    await getMetaConnectionForOrganization(profile.organization_id)
+  );
+
   return {
     comment: mapLeadCommentRowToItem(data),
-    lead: mapLeadRowToLead(updatedLeadRow, profile)
+    lead: mapLeadRowToLead(
+      updatedLeadRow,
+      profile,
+      hasMetaConnection,
+      undefined,
+      isContact || recordedContactLeadIdSet.has(lead.id)
+    )
   };
 }
 
@@ -990,7 +1118,7 @@ export async function listLeadTasksForCurrentUser(leadId: string): Promise<LeadT
   }
 
   const profile = await getCurrentProfile();
-  const lead = await getLeadForMutation(leadId, profile.organization_id);
+  const lead = await getLeadForMutation(leadId, profile);
 
   assertCanAccessLead(profile, lead, "visualizar");
 
@@ -1025,7 +1153,7 @@ export async function createLeadTaskForCurrentUser(
   }
 
   const profile = await getCurrentProfile();
-  const lead = await getLeadForMutation(leadId, profile.organization_id);
+  const lead = await getLeadForMutation(leadId, profile);
 
   assertCanAccessLead(profile, lead, "criar tarefas para");
 
@@ -1068,7 +1196,7 @@ export async function updateLeadTaskForCurrentUser(
 
   const profile = await getCurrentProfile();
   const task = await getLeadTaskForMutation(taskId, profile.organization_id);
-  const lead = await getLeadForMutation(task.lead_id, profile.organization_id);
+  const lead = await getLeadForMutation(task.lead_id, profile);
 
   assertCanAccessLead(profile, lead, "gerenciar tarefas de");
   assertCanMutateLeadTask(profile, task);
@@ -1180,13 +1308,20 @@ async function updateDuplicateWebhookLead(input: {
 }): Promise<LeadCreationResult> {
   const updatePayload = { ...input.payload };
   delete updatePayload.import_batch_id;
+  const duplicateOwnerProfileId = input.duplicate.owner_profile_id ?? input.profile.id;
+  const duplicateOwnerTeamId = await resolveLeadTeamIdForProfile(
+    input.supabase,
+    input.profile.organization_id,
+    duplicateOwnerProfileId
+  );
 
   const { data, error } = await input.supabase
     .from("leads")
     .update({
       ...updatePayload,
       organization_id: input.profile.organization_id,
-      owner_profile_id: input.duplicate.owner_profile_id ?? input.profile.id
+      owner_profile_id: duplicateOwnerProfileId,
+      team_id: duplicateOwnerTeamId
     })
     .eq("id", input.duplicate.id)
     .select("*")
@@ -1313,14 +1448,22 @@ function mapLeadTaskRowToItem(row: LeadTaskRow): LeadTaskItem {
   };
 }
 
-async function getLeadForMutation(id: string, organizationId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("leads")
-    .select("*")
-    .eq("id", id)
-    .eq("organization_id", organizationId)
-    .maybeSingle();
+async function getLeadForMutation(
+  id: string,
+  profile: LeadAccessProfile,
+  accessScope?: LeadAccessScope,
+  supabaseClient?: ServerClient
+) {
+  const supabase = supabaseClient ?? await createSupabaseServerClient();
+  const scopedAccess = accessScope ?? await resolveLeadAccessScope(supabase, profile);
+  const { data, error } = await applyLeadAccessScopeToQuery(
+    supabase
+      .from("leads")
+      .select("*")
+      .eq("id", id)
+      .eq("organization_id", profile.organization_id),
+    scopedAccess
+  ).maybeSingle();
 
   if (error) {
     throw new Error(error.message);
@@ -1377,8 +1520,63 @@ async function resolveLeadTaskAssigneeProfile(organizationId: string, profileId:
   return data;
 }
 
-async function resolveLeadOwnerProfile(organizationId: string, profileId: string) {
-  const supabase = await createSupabaseServerClient();
+async function listActiveTeamIdsForProfile(
+  supabase: LeadDataClient,
+  organizationId: string,
+  profileId: string
+) {
+  const { data, error } = await supabase
+    .from("team_members")
+    .select("team_id")
+    .eq("organization_id", organizationId)
+    .eq("profile_id", profileId)
+    .eq("status", "active");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return [
+    ...new Set(
+      ((data ?? []) as Pick<TeamMemberRow, "team_id">[])
+        .map((row) => row.team_id)
+        .filter(Boolean)
+    )
+  ];
+}
+
+async function resolveLeadAccessScope(
+  supabase: LeadDataClient,
+  profile: LeadAccessProfile
+): Promise<LeadAccessScope> {
+  if (profile.role === "owner" || profile.role === "seller") {
+    return createLeadAccessScope({
+      role: profile.role,
+      profileId: profile.id
+    });
+  }
+
+  return createLeadAccessScope({
+    role: profile.role,
+    profileId: profile.id,
+    teamIds: await listActiveTeamIdsForProfile(supabase, profile.organization_id, profile.id)
+  });
+}
+
+async function resolveLeadTeamIdForProfile(
+  supabase: LeadDataClient,
+  organizationId: string,
+  profileId: string
+) {
+  const teamIds = await listActiveTeamIdsForProfile(supabase, organizationId, profileId);
+  return teamIds[0] ?? null;
+}
+
+async function resolveLeadOwnerProfileWithTeamContext(
+  supabase: LeadDataClient,
+  organizationId: string,
+  profileId: string
+) {
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -1395,17 +1593,36 @@ async function resolveLeadOwnerProfile(organizationId: string, profileId: string
     throw new Error("Responsavel do lead nao encontrado nesta organizacao.");
   }
 
-  return data;
+  const teamIds = await listActiveTeamIdsForProfile(supabase, organizationId, data.id);
+
+  return {
+    profile: data,
+    teamIds,
+    primaryTeamId: teamIds[0] ?? null
+  };
 }
 
-async function resolveBulkLeadOwnerProfile(organizationId: string, profileId: string) {
-  const profile = await resolveLeadOwnerProfile(organizationId, profileId);
+async function resolveBulkLeadOwnerProfile(
+  supabase: ServerClient,
+  organizationId: string,
+  profileId: string,
+  accessScope: LeadAccessScope
+) {
+  const resolution = await resolveLeadOwnerProfileWithTeamContext(
+    supabase,
+    organizationId,
+    profileId
+  );
 
-  if (profile.role !== "seller") {
+  if (resolution.profile.role !== "seller" || !resolution.primaryTeamId) {
     throw new Error("Selecione um consultor valido para receber os leads.");
   }
 
-  return profile;
+  if (accessScope.role === "admin" && !accessScope.teamIds.includes(resolution.primaryTeamId)) {
+    throw new Error("Selecione um consultor valido para receber os leads.");
+  }
+
+  return resolution;
 }
 
 async function getCurrentProfile() {
@@ -1437,6 +1654,7 @@ async function resolveOwnerProfileIdsFilter(
   ownerName?: string
 ) {
   if (!ownerName) return null;
+  if (ownerName.toLowerCase() === "unassigned") return ["UNASSIGNED_FILTER_ID"];
   const { data } = await supabase
     .from("profiles")
     .select("id")
@@ -1444,26 +1662,47 @@ async function resolveOwnerProfileIdsFilter(
     .ilike("full_name", `%${ownerName}%`);
   
   if (data && data.length > 0) {
-    return data.map(p => p.id);
+    return data.map((profile) => profile.id);
   }
-  return ["00000000-0000-0000-0000-000000000000"];
+  return [NO_RESULTS_FILTER_ID];
+}
+
+function applyLeadAccessScopeToQuery(
+  query: ReturnType<ServerClient["from"]>,
+  accessScope: LeadAccessScope,
+  sellerProfileId: string | null = null
+) {
+  if (accessScope.role === "admin") {
+    query = query.in(
+      "team_id",
+      accessScope.teamIds.length > 0 ? accessScope.teamIds : [NO_RESULTS_FILTER_ID]
+    );
+  }
+
+  const ownerProfileId = resolveLeadOwnerProfileId(accessScope, sellerProfileId);
+
+  if (ownerProfileId) {
+    query = query.eq("owner_profile_id", ownerProfileId);
+  }
+
+  return query;
 }
 
 function buildLeadQuery(
   query: ReturnType<ServerClient["from"]>,
-  profile: ProfileRow,
+  accessScope: LeadAccessScope,
   filters: LeadUrlFilters,
   sellerProfileId: string | null = null,
   ownerProfileIdsFilter: string[] | null = null
 ) {
-  const ownerProfileId = resolveLeadOwnerProfileId(profile, sellerProfileId);
-
-  if (ownerProfileId && !isWorkspaceManagerRole(profile.role)) {
-    query = query.eq("owner_profile_id", ownerProfileId);
-  }
+  query = applyLeadAccessScopeToQuery(query, accessScope, sellerProfileId);
 
   if (ownerProfileIdsFilter) {
-    query = query.in("owner_profile_id", ownerProfileIdsFilter);
+    if (ownerProfileIdsFilter.includes("UNASSIGNED_FILTER_ID")) {
+      query = query.is("owner_profile_id", null);
+    } else {
+      query = query.in("owner_profile_id", ownerProfileIdsFilter);
+    }
   }
 
   if (filters.campaign) {
@@ -1509,6 +1748,7 @@ function buildLeadQuery(
 async function runLeadListQuery(input: {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   profile: ProfileRow;
+  accessScope: LeadAccessScope;
   filters: LeadUrlFilters;
   pagination: ReturnType<typeof normalizeLeadPaginationOptions>;
   includeArchivedFilter: boolean;
@@ -1520,8 +1760,11 @@ async function runLeadListQuery(input: {
   );
 
   let query = buildLeadQuery(
-    input.supabase.from("leads").select("*", { count: "exact" }).eq("organization_id", input.profile.organization_id),
-    input.profile,
+    input.supabase
+      .from("leads")
+      .select("*", { count: "exact" })
+      .eq("organization_id", input.profile.organization_id),
+    input.accessScope,
     input.filters,
     null,
     ownerProfileIdsFilter
@@ -1536,7 +1779,7 @@ async function runLeadListQuery(input: {
   if (input.pagination.limit === null) {
     query = buildLeadQuery(
       input.supabase.from("leads").select("*").eq("organization_id", input.profile.organization_id),
-      input.profile,
+      input.accessScope,
       input.filters,
       null,
       ownerProfileIdsFilter
@@ -1569,9 +1812,9 @@ function isMissingArchivedAtColumnError(error: { code?: string; message?: string
   return error.code === "42703" && message.includes("archived_at");
 }
 
-function resolveLeadOwnerProfileId(profile: ProfileRow, sellerProfileId: string | null) {
-  if (profile.role === "seller") {
-    return profile.id;
+function resolveLeadOwnerProfileId(accessScope: LeadAccessScope, sellerProfileId: string | null) {
+  if (accessScope.role === "seller") {
+    return accessScope.profileId;
   }
 
   if (!sellerProfileId || sellerProfileId === "all") {
@@ -1777,7 +2020,7 @@ function isMetaLeadUniqueViolation(error: { code?: string; message?: string }) {
 }
 
 function canDeleteOrganizationLeads(profile: ProfileRow) {
-  return isWorkspaceManagerRole(profile.role);
+  return can(profile.role, "delete_archive_leads");
 }
 
 function canManageLead(
@@ -1821,6 +2064,8 @@ function assertCanApplyLeadUpdate(
 }
 
 async function assertCanAssignLeadOwner(
+  supabase: ServerClient,
+  accessScope: LeadAccessScope,
   profile: ProfileRow,
   existingLead: LeadRow,
   payload: Database["public"]["Tables"]["leads"]["Update"]
@@ -1841,12 +2086,22 @@ async function assertCanAssignLeadOwner(
     throw new Error("Selecione um responsavel valido para este lead.");
   }
 
-  const nextOwnerProfile = await resolveLeadOwnerProfile(
+  const nextOwnerProfile = await resolveLeadOwnerProfileWithTeamContext(
+    supabase,
     profile.organization_id,
     payload.owner_profile_id
   );
 
-  payload.owner_profile_id = nextOwnerProfile.id;
+  if (
+    accessScope.role === "admin" &&
+    (!nextOwnerProfile.primaryTeamId ||
+      !accessScope.teamIds.includes(nextOwnerProfile.primaryTeamId))
+  ) {
+    throw new Error("Selecione um responsavel valido para este lead.");
+  }
+
+  payload.owner_profile_id = nextOwnerProfile.profile.id;
+  payload.team_id = nextOwnerProfile.primaryTeamId;
 }
 
 function assertCanManageLead(
@@ -2027,6 +2282,7 @@ function createMockLead(input: LeadCreateInput): Lead {
     name,
     owner: selectedOwner.name,
     ownerProfileId: selectedOwner.id,
+    hasRecordedContact: false,
     canEdit: true,
     canDelete: true,
     stage: getLeadStageLabel(stage),
@@ -2086,6 +2342,7 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
     owner: selectedOwner?.name ?? existingLead?.owner ?? mockLeadOwnerOptions[0].name,
     ownerProfileId:
       selectedOwner?.id ?? existingLead?.ownerProfileId ?? mockLeadOwnerOptions[0].id,
+    hasRecordedContact: existingLead?.hasRecordedContact ?? false,
     canEdit: true,
     canDelete: true,
     stage: stage ? getLeadStageLabel(stage) : existingLead?.stage ?? getLeadStageLabel("new"),
@@ -2272,7 +2529,8 @@ function mapLeadRowToLead(
   row: LeadRow,
   profile?: ProfileRow,
   hasMetaConnection = false,
-  ownerProfiles?: Map<string, ProfileRow>
+  ownerProfiles?: Map<string, ProfileRow>,
+  hasRecordedContact = false
 ): Lead {
   const canManage = profile ? canManageLead(profile, row, hasMetaConnection) : false;
 
@@ -2281,8 +2539,9 @@ function mapLeadRowToLead(
     name: row.name,
     owner: getLeadOwnerLabel(row, profile, ownerProfiles),
     ownerProfileId: row.owner_profile_id,
+    hasRecordedContact,
     canEdit: canManage,
-    canDelete: canManage,
+    canDelete: canManage && (profile ? canDeleteOrganizationLeads(profile) : true),
     stage: getLeadStageLabel(row.stage),
     source: sourceLabels[row.source],
     phone: row.phone ?? "Sem telefone",
@@ -2360,6 +2619,31 @@ function getRecordedContactLeadIdsFromComments(
         .map((comment) => comment.leadId)
     )
   ];
+}
+
+async function listRecordedContactLeadIdSetForOrganization(
+  supabase: ServerClient,
+  organizationId: string,
+  leadIds: string[]
+) {
+  const scopedLeadIds = [...new Set(leadIds.filter(Boolean))];
+
+  if (scopedLeadIds.length === 0) {
+    return new Set<string>();
+  }
+
+  const { data, error } = await supabase
+    .from("lead_comments")
+    .select("lead_id")
+    .eq("organization_id", organizationId)
+    .in("lead_id", scopedLeadIds)
+    .like("body", "[CONTACT_LOG] %");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return new Set((data ?? []).map((row) => row.lead_id));
 }
 
 function getSupabaseLeadSearchPattern(value: string) {

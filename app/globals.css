@@ -156,7 +156,13 @@ select {
 }
 
 ::selection {
-  background: rgba(var(--color-cobalt), 0.2);
+  background: rgb(var(--color-cobalt));
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background: rgb(var(--color-cobalt));
+  color: #ffffff;
 }
 
 @layer components {

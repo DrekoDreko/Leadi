@@ -89,7 +89,7 @@ export default async function PerfilEmpresaPage() {
           <div className="mt-5">
             <Link
               className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white shadow-soft hover:bg-cobalt/90 transition"
-              href="/dashboard/configuracoes"
+              href="/dashboard/simulador"
             >
               Experimentar Protótipo
               <ArrowUpRight size={18} aria-hidden="true" />

@@ -335,8 +335,8 @@ export function DashboardShell({
   return (
     <main className="min-h-screen px-4 py-4 lg:px-6">
       <div
-        className={`mx-auto grid gap-4 lg:grid-cols-[88px_1fr] ${
-          isFunnelPage ? "max-w-[1720px]" : "max-w-[1500px]"
+        className={`mx-auto grid w-full gap-4 lg:grid-cols-[88px_1fr] ${
+          isFunnelPage ? "max-w-none" : "max-w-[1500px]"
         }`}
       >
         <aside className="glass-dark sticky top-4 hidden h-[calc(100vh-32px)] rounded-[38px] px-4 py-5 text-white lg:flex lg:flex-col lg:items-center lg:justify-between">

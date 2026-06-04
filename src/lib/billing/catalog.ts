@@ -22,33 +22,33 @@ export type BillingProduct = {
 export const BILLING_PRODUCTS: Record<BillingProductKey, BillingProduct> = {
   solo_plan: {
     key: "solo_plan",
-    label: "Plano Solo",
-    description: "Para operações individuais que querem começar com IA e controle de uso.",
+    label: "Plano Essencial",
+    description: "Para consultores individuais que precisam organizar leads, oportunidades e atendimento.",
     kind: "plan",
-    credits: 120,
-    amountCents: 9700,
+    credits: 25,
+    amountCents: 5900,
     badge: "Plano inicial",
     featured: false
   },
   team_plan: {
     key: "team_plan",
-    label: "Plano Equipe",
-    description: "Para times comerciais com mais volume de campanhas e mensagens.",
+    label: "Plano Profissional",
+    description: "Para consultores que captam leads com frequência e precisam criar campanhas com mais produtividade.",
     kind: "plan",
-    credits: 400,
-    amountCents: 24700,
+    credits: 75,
+    amountCents: 11900,
     badge: "Mais escolhido",
     featured: true
   },
   operation_plan: {
     key: "operation_plan",
-    label: "Plano Operação",
-    description: "Para corretoras que querem mais volume, revisão e organização de materiais.",
+    label: "Plano Equipe",
+    description: "Para pequenas equipes comerciais que precisam distribuir leads e acompanhar responsáveis.",
     kind: "plan",
-    credits: 1200,
-    amountCents: 49700,
-    badge: "Volume alto",
-    featured: false
+    credits: 150,
+    amountCents: 24900,
+    badge: "Para corretoras",
+    featured: true
   },
   credit_pack_100: {
     key: "credit_pack_100",
@@ -56,7 +56,7 @@ export const BILLING_PRODUCTS: Record<BillingProductKey, BillingProduct> = {
     description: "Recarga pequena para testar campanhas, mensagens e ajustes de funil.",
     kind: "pack",
     credits: 100,
-    amountCents: 2900,
+    amountCents: 3000,
     featured: false
   },
   credit_pack_300: {
@@ -65,7 +65,7 @@ export const BILLING_PRODUCTS: Record<BillingProductKey, BillingProduct> = {
     description: "Boa opção para manter o time rodando sem interromper a operação.",
     kind: "pack",
     credits: 300,
-    amountCents: 6900,
+    amountCents: 7000,
     featured: true
   },
   credit_pack_1000: {
@@ -74,15 +74,15 @@ export const BILLING_PRODUCTS: Record<BillingProductKey, BillingProduct> = {
     description: "Volume maior para campanhas em escala e múltiplos consultores.",
     kind: "pack",
     credits: 1000,
-    amountCents: 17900,
+    amountCents: 15000,
     featured: false
   }
 };
 
 export const BILLING_FEATURE_COSTS: Record<BillingFeatureKey, number> = {
-  campaign: 12,
-  campaign_questions: 6,
-  whatsapp_message: 3
+  campaign: 4,
+  campaign_questions: 4,
+  whatsapp_message: 1
 };
 
 export const FEATURE_LABELS: Record<BillingFeatureKey, string> = {

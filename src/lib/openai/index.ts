@@ -2,11 +2,13 @@ import "server-only";
 
 import { getServerEnv } from "@/lib/env/server";
 import {
+  buildAdImagePrompt,
   buildCampaignTextPrompt,
   buildComplianceQuestionsPrompt,
   buildComplianceReviewPrompt,
   buildWhatsAppMessagePrompt,
-  leadHealthBaseInstructions
+  leadHealthBaseInstructions,
+  type AdImagePromptInput
 } from "@/lib/openai/prompt-playbooks";
 
 type JsonSchema = Record<string, unknown>;
@@ -143,7 +145,117 @@ export type ComplianceReviewOutput = {
 };
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations";
+const OPENAI_IMAGE_EDITS_URL = "https://api.openai.com/v1/images/edits";
 const DEFAULT_MODEL = "gpt-4o-mini";
+const DEFAULT_IMAGE_MODEL = "gpt-image-1";
+
+export type AdImageSize = "1024x1024" | "1024x1536" | "1536x1024";
+
+export type AdImageInput = AdImagePromptInput & {
+  size?: AdImageSize;
+  referenceImages?: File[];
+};
+
+export type AdImageOutput = {
+  b64: string;
+  mimeType: string;
+  size: AdImageSize;
+};
+
+type OpenAIImagePayload = {
+  data?: Array<{ b64_json?: string }>;
+  error?: { message?: string; type?: string };
+};
+
+export async function generateAdImage(
+  input: AdImageInput,
+  options?: OpenAIRequestOptions
+): Promise<AdImageOutput> {
+  const resolvedApiKey = getOpenAIApiKey(options?.apiKey);
+  const size: AdImageSize = input.size ?? "1024x1024";
+  const model = getOpenAIImageModel();
+  const references = input.referenceImages ?? [];
+  const prompt = buildAdImagePrompt({
+    ...input,
+    hasReferences: references.length > 0
+  });
+
+  let response: Response;
+
+  if (references.length > 0) {
+    const form = new FormData();
+    form.append("model", model);
+    form.append("prompt", prompt);
+    form.append("size", size);
+    for (const file of references) {
+      form.append("image[]", file, file.name);
+    }
+
+    response = await fetch(OPENAI_IMAGE_EDITS_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${resolvedApiKey}` },
+      body: form
+    });
+  } else {
+    response = await fetch(OPENAI_IMAGES_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resolvedApiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ model, prompt, size, n: 1 })
+    });
+  }
+
+  const payload = (await response.json().catch(() => null)) as OpenAIImagePayload | null;
+
+  if (!response.ok) {
+    throw new LeadHealthOpenAIError(
+      getImageRequestErrorMessage(response.status, payload?.error?.message),
+      "request_failed"
+    );
+  }
+
+  const b64 = payload?.data?.[0]?.b64_json;
+
+  if (!b64) {
+    throw new LeadHealthOpenAIError(
+      "A IA nao retornou nenhuma imagem. Tente novamente em instantes.",
+      "empty_response"
+    );
+  }
+
+  return { b64, mimeType: "image/png", size };
+}
+
+function getOpenAIImageModel() {
+  return getServerEnv("OPENAI_IMAGE_MODEL") || DEFAULT_IMAGE_MODEL;
+}
+
+function getImageRequestErrorMessage(status: number, message?: string) {
+  if (status === 401) {
+    return "A chave global da plataforma parece inválida ou sem permissão. Verifique a configuração no servidor.";
+  }
+
+  if (status === 429) {
+    const normalized = message?.toLowerCase() ?? "";
+
+    if (normalized.includes("quota") || normalized.includes("billing") || normalized.includes("credit")) {
+      return "A plataforma atingiu a cota mensal ou ficou sem credito para IA.";
+    }
+
+    return "A OpenAI limitou temporariamente as chamadas. Aguarde alguns instantes e tente novamente.";
+  }
+
+  if (status >= 500) {
+    return "A OpenAI esta temporariamente indisponivel. Tente novamente em instantes.";
+  }
+
+  return message
+    ? `Nao foi possivel gerar a imagem com IA: ${message}`
+    : "Nao foi possivel gerar a imagem com IA. Revise os dados e tente novamente.";
+}
 
 export async function generateCampaignText(
   input: CampaignTextInput,

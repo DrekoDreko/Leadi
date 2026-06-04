@@ -1,35 +1,25 @@
 "use client";
 
-import * as React from "react";
-import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 
 export function ThemeToggle() {
-  const { setTheme, theme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  const theme = resolvedTheme === "dark" ? "dark" : "light";
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    // Avoid hydration mismatch by rendering a placeholder of the exact same size
-    return (
-      <div className="icon-button" aria-hidden="true" />
-    );
-  }
-
-  const currentTheme = theme === "system" ? resolvedTheme : theme;
+  const handleToggle = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
 
   return (
     <button
-      onClick={() => setTheme(currentTheme === "light" ? "dark" : "light")}
-      className="icon-button relative flex items-center justify-center"
-      title={currentTheme === "light" ? "Ativar modo escuro" : "Ativar modo claro"}
+      onClick={handleToggle}
+      className="icon-button relative z-10 flex touch-manipulation items-center justify-center"
+      title={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"}
       type="button"
       aria-label="Alternar tema"
     >
-      {currentTheme === "light" ? (
+      {theme === "light" ? (
         <Moon size={18} className="transition-all" aria-hidden="true" />
       ) : (
         <Sun size={18} className="transition-all" aria-hidden="true" />

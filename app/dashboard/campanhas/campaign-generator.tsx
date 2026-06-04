@@ -655,6 +655,10 @@ export function CampaignGenerator({
         </div>
       ) : null}
 
+      <div className="surface-card rounded-[26px] border border-border/70 px-4 py-3 text-sm font-medium text-foreground/78">
+        Esta ação consumirá {campaignCost} créditos de IA.
+      </div>
+
       <section className="space-y-4">
         <form className="space-y-4" id="campaign-generator-form" onSubmit={handleSubmit}>
           <CampaignStepCard

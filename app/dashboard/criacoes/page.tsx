@@ -9,6 +9,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
+import { requireCompletedProfile } from "@/lib/workspaces/context";
 
 const primaryCreations = [
   {
@@ -28,7 +29,7 @@ const primaryCreations = [
   {
     title: "Solicitacao de criativo",
     description: "Abra um briefing para arte, imagem, video ou outro material ligado a campanha.",
-    href: "/dashboard/criacoes/campanhas",
+    href: "/dashboard/criacoes/solicitar",
     icon: Palette,
     tone: "bg-signal text-accent-foreground"
   }
@@ -55,13 +56,25 @@ const secondaryCreations = [
   }
 ];
 
-export default function CriacoesPage() {
+export default async function CriacoesPage() {
+  const context = await requireCompletedProfile();
+  const isConsultant = context.isTeamSeller;
+
+  // Consultor só acessa a solicitação de criativo (sem IA Gerador nem validadores).
+  const visiblePrimary = isConsultant
+    ? primaryCreations.filter((item) => item.title === "Solicitacao de criativo")
+    : primaryCreations;
+
   return (
     <div className="space-y-4">
       <PageHeading
         eyebrow="Criar"
         title="Novas criacoes"
-        description="Este e o hub de criacao do Leadi: campanhas, validador, solicitacao de criativo e futuras rotinas da operacao."
+        description={
+          isConsultant
+            ? "Abra aqui a sua solicitacao de criativo para a equipe de operacao."
+            : "Este e o hub de criacao do Leadi: campanhas, validador, solicitacao de criativo e futuras rotinas da operacao."
+        }
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft">
           <Plus size={18} aria-hidden="true" />
@@ -70,7 +83,7 @@ export default function CriacoesPage() {
       </PageHeading>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        {primaryCreations.map((item) => (
+        {visiblePrimary.map((item) => (
           <Link
             className="group surface-card flex min-h-[250px] flex-col justify-between rounded-[34px] p-6 transition hover:-translate-y-1 hover:border-cobalt/24 hover:bg-surface-elevated"
             href={item.href}
@@ -97,8 +110,9 @@ export default function CriacoesPage() {
         ))}
       </section>
 
-      <section className="space-y-5">
-        <div className="flex flex-col justify-between gap-3 px-1 md:flex-row md:items-end">
+      {!isConsultant && (
+      <section className="surface-card space-y-6 rounded-[34px] p-6 md:p-7">
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-medium text-cobalt">Complementos</p>
             <h2 className="mt-2 text-2xl font-semibold">Tudo o que apoia a criacao</h2>
@@ -120,11 +134,13 @@ export default function CriacoesPage() {
                   <span className="surface-pill-strong flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-foreground">
                     <item.icon size={19} aria-hidden="true" />
                   </span>
-                  <ArrowRight
-                    className="mt-2 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-foreground"
-                    size={18}
-                    aria-hidden="true"
-                  />
+                  <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-transparent text-muted-foreground transition group-hover:border-cobalt/20 group-hover:bg-cobalt/10 group-hover:text-cobalt group-hover:shadow-[0_8px_24px_rgba(37,99,235,0.16)]">
+                    <ArrowRight
+                      className="transition group-hover:translate-x-0.5"
+                      size={18}
+                      aria-hidden="true"
+                    />
+                  </span>
                 </div>
                 <h3 className="mt-5 font-semibold">{item.title}</h3>
                 <p className="text-muted-soft mt-2 text-sm leading-6">{item.description}</p>
@@ -133,6 +149,7 @@ export default function CriacoesPage() {
           ))}
         </div>
       </section>
+      )}
     </div>
   );
 }

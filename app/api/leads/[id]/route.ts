@@ -6,6 +6,8 @@ import {
   type LeadCreateInput
 } from "@/lib/leads/repository.server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getCurrentWorkspaceContext } from "@/lib/workspaces/context";
+import { can } from "@/lib/workspaces/permissions";
 
 type RouteContext = {
   params: Promise<{
@@ -105,6 +107,10 @@ export async function DELETE(request: Request, context: RouteContext) {
 
     if (mode !== "not-configured") {
       await assertServerAuth();
+      const workspaceContext = await getCurrentWorkspaceContext();
+      if (!can(workspaceContext.role, "delete_archive_leads")) {
+        throw new ApiRouteError(403, "Voce nao tem permissao para arquivar leads.");
+      }
     }
 
     await archiveLeadForCurrentUser(id);

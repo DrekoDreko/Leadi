@@ -25,6 +25,7 @@ export type Lead = {
   name: string;
   owner: string;
   ownerProfileId?: string | null;
+  hasRecordedContact?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
   stage: string;

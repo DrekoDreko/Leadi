@@ -11,6 +11,10 @@ import {
   Upload
 } from "lucide-react";
 import { kanbanColumns, leads, type Lead } from "@/data/mock";
+import {
+  isLeadPendingFirstContact,
+  sortLeadsByFirstContactPriority
+} from "@/lib/leads/first-contact";
 
 type MetricTone = "blue" | "yellow" | "teal" | "dark";
 
@@ -77,6 +81,8 @@ export function LeadTable({
   leads?: Lead[];
   onLeadOpen: (lead: Lead) => void;
 }) {
+  const sortedLeads = sortLeadsByFirstContactPriority(tableLeads);
+
   return (
     <section className="surface-card-strong rounded-[34px] p-5 xl:min-h-[520px] xl:flex xl:flex-col">
       <div className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center">
@@ -105,12 +111,12 @@ export function LeadTable({
           <span>Responsável</span>
           <span>Status</span>
         </div>
-        {tableLeads.length === 0 && (
+        {sortedLeads.length === 0 && (
           <div className="text-muted-soft px-5 py-8 text-sm font-medium">
             Nenhum lead cadastrado ainda.
           </div>
         )}
-        {tableLeads.map((lead) => (
+        {sortedLeads.map((lead) => (
           <div
             className="grid gap-3 border-b border-border/45 px-5 py-4 last:border-0 md:grid-cols-[minmax(240px,1.35fr)_160px_210px_120px_110px] md:items-center"
             key={lead.id}
@@ -121,6 +127,11 @@ export function LeadTable({
               type="button"
             >
               <span className="block font-semibold leading-tight">{lead.name}</span>
+              {isLeadPendingFirstContact(lead) ? (
+                <span className="mt-2 inline-flex items-center rounded-full bg-cobalt px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+                  Novo
+                </span>
+              ) : null}
               <span className="text-muted-soft mt-1 block text-sm md:hidden">{lead.phone}</span>
             </button>
             <button
@@ -167,7 +178,7 @@ export function KanbanBoard({
   href?: string;
   onLeadOpen: (lead: Lead) => void;
 }) {
-  const columns = buildKanbanColumns(boardLeads);
+  const columns = buildKanbanColumns(sortLeadsByFirstContactPriority(boardLeads));
 
   return (
     <section className="surface-card rounded-[34px] p-5">

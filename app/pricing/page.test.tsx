@@ -34,17 +34,17 @@ describe("Pricing Page (/pricing)", () => {
     expect(teamCard).not.toBeNull();
 
     expect(within(essentialCard as HTMLElement).getByText("R$ 59")).toBeInTheDocument();
-    expect(within(professionalCard as HTMLElement).getByText("R$ 99")).toBeInTheDocument();
-    expect(within(teamCard as HTMLElement).getByText("R$ 189")).toBeInTheDocument();
+    expect(within(professionalCard as HTMLElement).getByText("R$ 119")).toBeInTheDocument();
+    expect(within(teamCard as HTMLElement).getByText("R$ 249")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Anual/i }));
 
     expect(within(essentialCard as HTMLElement).getByText("R$ 49")).toBeInTheDocument();
-    expect(within(professionalCard as HTMLElement).getByText("R$ 79")).toBeInTheDocument();
-    expect(within(teamCard as HTMLElement).getByText("R$ 149")).toBeInTheDocument();
+    expect(within(professionalCard as HTMLElement).getByText("R$ 89")).toBeInTheDocument();
+    expect(within(teamCard as HTMLElement).getByText("R$ 199")).toBeInTheDocument();
   });
 
-  it("mantem os links de contratar e prepara equipe e operacao sem novo checkout", () => {
+  it("mantem os links de contratar com ciclo mensal e alterna o ciclo anual no checkout", () => {
     render(<PricingPage />);
 
     const essentialCard = screen.getByRole("heading", { name: /^Essencial$/i }).closest("article");
@@ -53,33 +53,37 @@ describe("Pricing Page (/pricing)", () => {
 
     expect(within(essentialCard as HTMLElement).getByRole("link", { name: /Contratar/i })).toHaveAttribute(
       "href",
-      "/login?mode=signup&next=%2Fcheckout%3Fplan%3Dessencial"
+      "/login?mode=signup&next=%2Fcheckout%3Fplan%3Dessencial%26cycle%3Dmonthly"
     );
     expect(within(professionalCard as HTMLElement).getByRole("link", { name: /Contratar/i })).toHaveAttribute(
       "href",
-      "/login?mode=signup&next=%2Fcheckout%3Fplan%3Dprofissional"
+      "/login?mode=signup&next=%2Fcheckout%3Fplan%3Dprofissional%26cycle%3Dmonthly"
     );
     expect(within(teamCard as HTMLElement).getByRole("link", { name: /Contratar/i })).toHaveAttribute(
       "href",
-      "/login?mode=signup&plan=equipe"
+      "/login?mode=signup&next=%2Fcheckout%3Fplan%3Dequipe%26cycle%3Dmonthly"
     );
-    expect(screen.getByRole("link", { name: /Falar com a equipe/i })).toHaveAttribute(
+
+    fireEvent.click(screen.getByRole("button", { name: /Anual/i }));
+
+    expect(within(teamCard as HTMLElement).getByRole("link", { name: /Contratar/i })).toHaveAttribute(
       "href",
-      "/login?mode=signup&plan=operacao"
+      "/login?mode=signup&next=%2Fcheckout%3Fplan%3Dequipe%26cycle%3Dannual"
     );
   });
 
-  it("exibe a comparação completa, a seção de adicionais e o aviso da Meta", () => {
+  it("exibe a comparação completa, a seção de créditos extras e o aviso sobre consumo", () => {
     render(<PricingPage />);
 
     expect(screen.getByText(/Compare os planos em detalhes/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Veja o que está incluso em cada plano antes de escolher/i })).toBeInTheDocument();
     expect(screen.getAllByText(/^CRM de leads$/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/^Operação$/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: /Recursos extras para adaptar a operação ao seu ritmo/i })).toBeInTheDocument();
-    expect(screen.getByText(/Pacote extra de 30 campanhas com IA/i)).toBeInTheDocument();
-    expect(screen.getByText(/O investimento em anúncios na Meta não está incluso nos planos/i)).toBeInTheDocument();
-    expect(screen.getByText(/Precisa de uma operação maior/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^Operação$/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Compre créditos avulsos quando a franquia do plano terminar/i })).toBeInTheDocument();
+    expect(screen.getByText(/100 créditos/i)).toBeInTheDocument();
+    expect(screen.getByText(/300 créditos/i)).toBeInTheDocument();
+    expect(screen.getByText(/1000 créditos/i)).toBeInTheDocument();
+    expect(screen.getByText(/o sistema sempre consome primeiro a franquia do plano/i)).toBeInTheDocument();
   });
 
   it("mantem a seção com vantagens do Leadi abaixo do pricing", () => {

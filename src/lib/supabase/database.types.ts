@@ -52,15 +52,678 @@ export type WorkspaceType = "solo" | "team";
 export type WorkspaceMemberRole = "owner" | "admin" | "seller";
 export type WorkspaceMemberStatus = "active" | "invited" | "removed";
 export type InviteStatus = "active" | "expired" | "used";
+export type InviteApprovalStatus = "not_required" | "pending" | "approved" | "rejected";
+export type AuditLogStatus = "success" | "failure";
+export type CreditWalletType = "organization" | "team" | "user";
+export type CreditTransactionType = "purchase" | "allocation" | "usage" | "refund" | "revocation";
 
 export type Database = {
   public: {
     Tables: {
+      credit_wallets: {
+        Row: {
+          id: string;
+          organization_id: string;
+          team_id: string | null;
+          profile_id: string | null;
+          wallet_type: CreditWalletType;
+          available_credits: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          team_id?: string | null;
+          profile_id?: string | null;
+          wallet_type: CreditWalletType;
+          available_credits?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          team_id?: string | null;
+          profile_id?: string | null;
+          wallet_type?: CreditWalletType;
+          available_credits?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "credit_wallets_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "credit_wallets_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "credit_wallets_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      credit_transactions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          wallet_id: string;
+          team_id: string | null;
+          actor_id: string;
+          target_user_id: string | null;
+          transaction_type: CreditTransactionType;
+          amount: number;
+          balance_after: number;
+          reason: string | null;
+          reference_type: string | null;
+          reference_id: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          wallet_id: string;
+          team_id?: string | null;
+          actor_id: string;
+          target_user_id?: string | null;
+          transaction_type: CreditTransactionType;
+          amount: number;
+          balance_after: number;
+          reason?: string | null;
+          reference_type?: string | null;
+          reference_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          wallet_id?: string;
+          team_id?: string | null;
+          actor_id?: string;
+          target_user_id?: string | null;
+          transaction_type?: CreditTransactionType;
+          amount?: number;
+          balance_after?: number;
+          reason?: string | null;
+          reference_type?: string | null;
+          reference_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "credit_transactions_wallet_id_fkey";
+            columns: ["wallet_id"];
+            isOneToOne: false;
+            referencedRelation: "credit_wallets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "credit_transactions_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "credit_transactions_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "credit_transactions_target_user_id_fkey";
+            columns: ["target_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      lead_assignments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          team_id: string;
+          lead_id: string;
+          assigned_to_profile_id: string;
+          assigned_by_profile_id: string;
+          previous_owner_profile_id: string | null;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          team_id: string;
+          lead_id: string;
+          assigned_to_profile_id: string;
+          assigned_by_profile_id: string;
+          previous_owner_profile_id?: string | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          team_id?: string;
+          lead_id?: string;
+          assigned_to_profile_id?: string;
+          assigned_by_profile_id?: string;
+          previous_owner_profile_id?: string | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lead_assignments_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lead_assignments_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lead_assignments_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lead_assignments_assigned_to_profile_id_fkey";
+            columns: ["assigned_to_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lead_assignments_assigned_by_profile_id_fkey";
+            columns: ["assigned_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lead_assignments_previous_owner_profile_id_fkey";
+            columns: ["previous_owner_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      approval_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          team_id: string | null;
+          request_type: "credit_purchase" | "credit_allocation" | "ad_publication" | "ad_budget_increase" | "member_add" | "member_remove";
+          status: "pending" | "approved" | "rejected" | "cancelled";
+          requested_by_profile_id: string;
+          reviewed_by_profile_id: string | null;
+          reviewed_at: string | null;
+          title: string;
+          description: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          team_id?: string | null;
+          request_type: "credit_purchase" | "credit_allocation" | "ad_publication" | "ad_budget_increase" | "member_add" | "member_remove";
+          status?: "pending" | "approved" | "rejected" | "cancelled";
+          requested_by_profile_id: string;
+          reviewed_by_profile_id?: string | null;
+          reviewed_at?: string | null;
+          title: string;
+          description?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          team_id?: string | null;
+          request_type?: "credit_purchase" | "credit_allocation" | "ad_publication" | "ad_budget_increase" | "member_add" | "member_remove";
+          status?: "pending" | "approved" | "rejected" | "cancelled";
+          requested_by_profile_id?: string;
+          reviewed_by_profile_id?: string | null;
+          reviewed_at?: string | null;
+          title?: string;
+          description?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "approval_requests_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "approval_requests_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "approval_requests_requested_by_profile_id_fkey";
+            columns: ["requested_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "approval_requests_reviewed_by_profile_id_fkey";
+            columns: ["reviewed_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      ad_approval_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          team_id: string | null;
+          campaign_id: string;
+          requested_by_profile_id: string;
+          reviewed_by_profile_id: string | null;
+          status: "pending" | "approved" | "rejected" | "needs_adjustment";
+          review_notes: string | null;
+          metadata: Json;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          team_id?: string | null;
+          campaign_id: string;
+          requested_by_profile_id: string;
+          reviewed_by_profile_id?: string | null;
+          status?: "pending" | "approved" | "rejected" | "needs_adjustment";
+          review_notes?: string | null;
+          metadata?: Json;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          team_id?: string | null;
+          campaign_id?: string;
+          requested_by_profile_id?: string;
+          reviewed_by_profile_id?: string | null;
+          status?: "pending" | "approved" | "rejected" | "needs_adjustment";
+          review_notes?: string | null;
+          metadata?: Json;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_approval_requests_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_approval_requests_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_approval_requests_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_approval_requests_requested_by_profile_id_fkey";
+            columns: ["requested_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_approval_requests_reviewed_by_profile_id_fkey";
+            columns: ["reviewed_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      audit_logs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          team_id: string | null;
+          actor_profile_id: string | null;
+          actor_role: ProfileRole | null;
+          action: string;
+          target_type: string;
+          target_id: string | null;
+          status: AuditLogStatus;
+          metadata: Json;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          team_id?: string | null;
+          actor_profile_id?: string | null;
+          actor_role?: ProfileRole | null;
+          action: string;
+          target_type?: string;
+          target_id?: string | null;
+          status?: AuditLogStatus;
+          metadata?: Json;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          team_id?: string | null;
+          actor_profile_id?: string | null;
+          actor_role?: ProfileRole | null;
+          action?: string;
+          target_type?: string;
+          target_id?: string | null;
+          status?: AuditLogStatus;
+          metadata?: Json;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "audit_logs_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "audit_logs_actor_profile_id_fkey";
+            columns: ["actor_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      credit_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          team_id: string | null;
+          requested_by_profile_id: string;
+          approved_by_profile_id: string | null;
+          request_type: "team" | "user" | "campaign" | "image";
+          status: "pending" | "approved" | "rejected" | "cancelled";
+          amount_requested: number;
+          amount_approved: number | null;
+          credits_per_consultant: number | null;
+          consultant_count: number | null;
+          reason: string;
+          review_notes: string | null;
+          metadata: Json;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          team_id?: string | null;
+          requested_by_profile_id: string;
+          approved_by_profile_id?: string | null;
+          request_type: "team" | "user" | "campaign" | "image";
+          status?: "pending" | "approved" | "rejected" | "cancelled";
+          amount_requested: number;
+          amount_approved?: number | null;
+          credits_per_consultant?: number | null;
+          consultant_count?: number | null;
+          reason: string;
+          review_notes?: string | null;
+          metadata?: Json;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          team_id?: string | null;
+          requested_by_profile_id?: string;
+          approved_by_profile_id?: string | null;
+          request_type?: "team" | "user" | "campaign" | "image";
+          status?: "pending" | "approved" | "rejected" | "cancelled";
+          amount_requested?: number;
+          amount_approved?: number | null;
+          credits_per_consultant?: number | null;
+          consultant_count?: number | null;
+          reason?: string;
+          review_notes?: string | null;
+          metadata?: Json;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "credit_requests_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "credit_requests_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "credit_requests_requested_by_profile_id_fkey";
+            columns: ["requested_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "credit_requests_approved_by_profile_id_fkey";
+            columns: ["approved_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      teams: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          created_by_profile_id: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          created_by_profile_id: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          created_by_profile_id?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "teams_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "teams_created_by_profile_id_fkey";
+            columns: ["created_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      team_members: {
+        Row: {
+          id: string;
+          team_id: string;
+          profile_id: string;
+          organization_id: string;
+          role: "supervisor" | "consultant";
+          status: "active" | "inactive" | "pending_approval";
+          added_by_profile_id: string;
+          approved_by_profile_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          profile_id: string;
+          organization_id: string;
+          role: "supervisor" | "consultant";
+          status?: "active" | "inactive" | "pending_approval";
+          added_by_profile_id: string;
+          approved_by_profile_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          team_id?: string;
+          profile_id?: string;
+          organization_id?: string;
+          role?: "supervisor" | "consultant";
+          status?: "active" | "inactive" | "pending_approval";
+          added_by_profile_id?: string;
+          approved_by_profile_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_members_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_members_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_members_added_by_profile_id_fkey";
+            columns: ["added_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_members_approved_by_profile_id_fkey";
+            columns: ["approved_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       campaigns: {
         Row: {
           id: string;
           organization_id: string;
           created_by_profile_id: string;
+          team_id: string | null;
           status: CampaignStatus;
           connected_account_id: string | null;
           meta_page_id: string | null;
@@ -68,6 +731,7 @@ export type Database = {
           meta_lead_form_id: string | null;
           publish_mode: CampaignPublishMode;
           publication_status: CampaignPublicationStatus;
+          approval_status: "not_required" | "pending" | "approved" | "rejected" | "needs_adjustment";
           meta_campaign_id: string | null;
           meta_adset_id: string | null;
           meta_ad_id: string | null;
@@ -99,6 +763,7 @@ export type Database = {
           id?: string;
           organization_id: string;
           created_by_profile_id: string;
+          team_id?: string | null;
           status?: CampaignStatus;
           connected_account_id?: string | null;
           meta_page_id?: string | null;
@@ -106,6 +771,7 @@ export type Database = {
           meta_lead_form_id?: string | null;
           publish_mode?: CampaignPublishMode;
           publication_status?: CampaignPublicationStatus;
+          approval_status?: "not_required" | "pending" | "approved" | "rejected" | "needs_adjustment";
           meta_campaign_id?: string | null;
           meta_adset_id?: string | null;
           meta_ad_id?: string | null;
@@ -137,6 +803,7 @@ export type Database = {
           id?: string;
           organization_id?: string;
           created_by_profile_id?: string;
+          team_id?: string | null;
           status?: CampaignStatus;
           connected_account_id?: string | null;
           meta_page_id?: string | null;
@@ -144,6 +811,7 @@ export type Database = {
           meta_lead_form_id?: string | null;
           publish_mode?: CampaignPublishMode;
           publication_status?: CampaignPublicationStatus;
+          approval_status?: "not_required" | "pending" | "approved" | "rejected" | "needs_adjustment";
           meta_campaign_id?: string | null;
           meta_adset_id?: string | null;
           meta_ad_id?: string | null;
@@ -799,34 +1467,142 @@ export type Database = {
       };
       ai_credit_ledger: {
         Row: {
+          balance_after: number;
           id: string;
           org_id: string;
-          user_id: string | null;
-          type: "purchase" | "monthly_grant" | "usage" | "refund" | "adjustment";
           credits: number;
           description: string | null;
           metadata: Json | null;
+          reason: string | null;
+          reference_id: string | null;
+          reference_type: string | null;
+          type: "purchase" | "monthly_grant" | "usage" | "refund" | "adjustment";
+          user_id: string | null;
           created_at: string;
         };
         Insert: {
+          balance_after: number;
           id?: string;
           org_id: string;
-          user_id?: string | null;
-          type: "purchase" | "monthly_grant" | "usage" | "refund" | "adjustment";
           credits: number;
           description?: string | null;
           metadata?: Json | null;
+          reason?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          type: "purchase" | "monthly_grant" | "usage" | "refund" | "adjustment";
+          user_id?: string | null;
           created_at?: string;
         };
         Update: {
+          balance_after?: number;
           id?: string;
           org_id?: string;
-          user_id?: string | null;
-          type?: "purchase" | "monthly_grant" | "usage" | "refund" | "adjustment";
           credits?: number;
           description?: string | null;
           metadata?: Json | null;
+          reason?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          type?: "purchase" | "monthly_grant" | "usage" | "refund" | "adjustment";
+          user_id?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      ai_credit_orders: {
+        Row: {
+          amount_cents: number;
+          created_at: string;
+          credits: number;
+          id: string;
+          metadata: Json;
+          organization_id: string;
+          package_id: string;
+          paid_at: string | null;
+          payment_provider: string;
+          provider_payment_id: string | null;
+          provider_preference_id: string | null;
+          status: "pending" | "paid" | "cancelled" | "failed" | "refunded";
+          updated_at: string;
+          user_id: string | null;
+        };
+        Insert: {
+          amount_cents: number;
+          created_at?: string;
+          credits: number;
+          id?: string;
+          metadata?: Json;
+          organization_id: string;
+          package_id: string;
+          paid_at?: string | null;
+          payment_provider?: string;
+          provider_payment_id?: string | null;
+          provider_preference_id?: string | null;
+          status?: "pending" | "paid" | "cancelled" | "failed" | "refunded";
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          amount_cents?: number;
+          created_at?: string;
+          credits?: number;
+          id?: string;
+          metadata?: Json;
+          organization_id?: string;
+          package_id?: string;
+          paid_at?: string | null;
+          payment_provider?: string;
+          provider_payment_id?: string | null;
+          provider_preference_id?: string | null;
+          status?: "pending" | "paid" | "cancelled" | "failed" | "refunded";
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
+      ai_credit_packages: {
+        Row: {
+          created_at: string;
+          credits: number;
+          currency: string;
+          description: string | null;
+          id: string;
+          is_active: boolean;
+          is_featured: boolean;
+          metadata: Json;
+          name: string;
+          price_cents: number;
+          slug: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          credits: number;
+          currency?: string;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean;
+          is_featured?: boolean;
+          metadata?: Json;
+          name: string;
+          price_cents: number;
+          slug: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          credits?: number;
+          currency?: string;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean;
+          is_featured?: boolean;
+          metadata?: Json;
+          name?: string;
+          price_cents?: number;
+          slug?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -1121,8 +1897,12 @@ export type Database = {
           token: string;
           workspace_id: string;
           created_by_user_id: string;
+          team_id: string | null;
           role_to_assign: "admin" | "seller";
           status: InviteStatus;
+          requires_approval: boolean;
+          approval_status: InviteApprovalStatus;
+          approved_by_user_id: string | null;
           used_by_user_id: string | null;
           used_at: string | null;
           created_at: string;
@@ -1133,8 +1913,12 @@ export type Database = {
           token: string;
           workspace_id: string;
           created_by_user_id: string;
+          team_id?: string | null;
           role_to_assign?: "admin" | "seller";
           status?: InviteStatus;
+          requires_approval?: boolean;
+          approval_status?: InviteApprovalStatus;
+          approved_by_user_id?: string | null;
           used_by_user_id?: string | null;
           used_at?: string | null;
           created_at?: string;
@@ -1145,8 +1929,12 @@ export type Database = {
           token?: string;
           workspace_id?: string;
           created_by_user_id?: string;
+          team_id?: string | null;
           role_to_assign?: "admin" | "seller";
           status?: InviteStatus;
+          requires_approval?: boolean;
+          approval_status?: InviteApprovalStatus;
+          approved_by_user_id?: string | null;
           used_by_user_id?: string | null;
           used_at?: string | null;
           created_at?: string;
@@ -1159,6 +1947,7 @@ export type Database = {
           id: string;
           organization_id: string;
           owner_profile_id: string | null;
+          team_id: string | null;
           name: string;
           phone: string | null;
           phone_e164: string | null;
@@ -1203,6 +1992,7 @@ export type Database = {
           id?: string;
           organization_id: string;
           owner_profile_id?: string | null;
+          team_id?: string | null;
           name: string;
           phone?: string | null;
           phone_e164?: string | null;
@@ -1247,6 +2037,7 @@ export type Database = {
           id?: string;
           organization_id?: string;
           owner_profile_id?: string | null;
+          team_id?: string | null;
           name?: string;
           phone?: string | null;
           phone_e164?: string | null;
@@ -1625,6 +2416,23 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      allocate_credit_wallet_balance: {
+        Args: {
+          p_organization_id: string;
+          p_from_wallet_id: string;
+          p_to_wallet_id: string;
+          p_amount: number;
+          p_reason: string;
+          p_actor_id: string;
+          p_target_user_id?: string | null;
+          p_metadata?: Json | null;
+        };
+        Returns: {
+          from_wallet_balance: number;
+          to_wallet_balance: number;
+          transaction_id: string;
+        }[];
+      };
       accept_workspace_invite: {
         Args: { invite_token: string };
         Returns: {
@@ -1689,6 +2497,37 @@ export type Database = {
           ledger_id: string;
         }[];
       };
+      add_ai_credits: {
+        Args: {
+          amount: number;
+          p_metadata?: Json | null;
+          p_reason?: string | null;
+          p_reference_id?: string | null;
+          p_reference_type?: string | null;
+          p_type?: string;
+          p_user_id?: string | null;
+          target_org_id: string;
+        };
+        Returns: {
+          new_balance: number;
+          ledger_id: string;
+        }[];
+      };
+      consume_ai_credits: {
+        Args: {
+          amount: number;
+          p_metadata?: Json | null;
+          p_reason?: string | null;
+          p_reference_id?: string | null;
+          p_reference_type?: string | null;
+          p_user_id?: string | null;
+          target_org_id: string;
+        };
+        Returns: {
+          new_balance: number;
+          ledger_id: string;
+        }[];
+      };
       current_profile_id: {
         Args: Record<PropertyKey, never>;
         Returns: string;
@@ -1700,6 +2539,21 @@ export type Database = {
       current_profile_role: {
         Args: Record<PropertyKey, never>;
         Returns: ProfileRole;
+      };
+      finalize_ai_credit_order_payment: {
+        Args: {
+          p_metadata?: Json | null;
+          p_paid_at?: string | null;
+          p_provider_payment_id: string;
+          p_provider_preference_id?: string | null;
+          target_order_id: string;
+        };
+        Returns: {
+          already_processed: boolean;
+          ledger_id: string;
+          new_balance: number;
+          order_status: string;
+        }[];
       };
       update_workspace_name: {
         Args: { workspace_name: string };

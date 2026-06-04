@@ -9,6 +9,7 @@ import { parseLeadPaginationParams } from "@/lib/leads/repository";
 import { parseLeadUrlFilters } from "@/lib/leads/filters";
 import { getSystemTemplates } from "@/lib/templates/repository.server";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
+import { can } from "@/lib/workspaces/permissions";
 
 type LeadsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined> & {
@@ -35,6 +36,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     listLeadOwnerOptionsForCurrentUser()
   ]);
 
+  const canExportLeads = workspaceContext.mode === "supabase" ? can(workspaceContext.role, "export_leads") : true;
+  const canImportLeads = workspaceContext.mode === "supabase" ? can(workspaceContext.role, "import_leads") : true;
+
   return (
     <LeadsWorkspace
       createLeadAccess={createLeadAccess}
@@ -42,6 +46,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       initialLeadId={initialLeadId ?? null}
       initialLeadPanel={initialLeadPanel === "message" ? "message" : "details"}
       canManageLeadOwners={workspaceContext.isManager}
+      canExportLeads={canExportLeads}
+      canImportLeads={canImportLeads}
       leadFilters={leadFilters}
       leadOwnerOptions={leadOwnerOptions}
       leadState={leadState}

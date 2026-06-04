@@ -13,7 +13,7 @@ import {
   parseCampaignInputPayload,
   parseCampaignResultPayload
 } from "@/lib/campaigns/payload";
-import type { CampaignHistoryItem, CampaignPublicationStatus, CampaignPublishMode } from "@/lib/campaigns/types";
+import type { CampaignHistoryItem, CampaignPublicationStatus, CampaignPublishMode, CampaignApprovalStatus } from "@/lib/campaigns/types";
 
 type CampaignRow = {
   id: string;
@@ -26,6 +26,7 @@ type CampaignRow = {
   meta_lead_form_id: string | null;
   publish_mode: CampaignPublishMode;
   publication_status: CampaignPublicationStatus;
+  approval_status: CampaignApprovalStatus;
   meta_campaign_id: string | null;
   meta_adset_id: string | null;
   meta_ad_id: string | null;
@@ -117,6 +118,10 @@ export async function publishPausedMetaCampaign(
 
   if (!campaign) {
     throw new Error("Campanha nao encontrada para esta organizacao.");
+  }
+
+  if (campaign.approval_status !== "approved" && campaign.approval_status !== "not_required") {
+    throw new Error("A campanha precisa ser aprovada antes da publicacao na Meta.");
   }
 
   const publishMode = input.publishMode ?? campaign.publish_mode ?? "paused";
@@ -474,6 +479,7 @@ function mapCampaignRowToHistoryItem(row: CampaignRow): CampaignHistoryItem {
     metaLeadFormId: row.meta_lead_form_id,
     publishMode: row.publish_mode,
     publicationStatus: row.publication_status,
+    approvalStatus: row.approval_status,
     metaCampaignId: row.meta_campaign_id,
     metaAdSetId: row.meta_adset_id,
     metaAdId: row.meta_ad_id,

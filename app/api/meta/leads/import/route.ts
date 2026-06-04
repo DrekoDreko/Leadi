@@ -16,6 +16,8 @@ import {
   parseJsonBody,
   requiredTrimmedString
 } from "@/lib/api/route-security";
+import { getCurrentWorkspaceContext } from "@/lib/workspaces/context";
+import { can } from "@/lib/workspaces/permissions";
 
 type ImportRequestBody = {
   sourceType?: MetaLeadImportSourceType;
@@ -41,6 +43,12 @@ export async function POST(request: Request) {
       windowMs: 60 * 1000
     });
     await assertServerAuth();
+    
+    const context = await getCurrentWorkspaceContext();
+    if (context.mode === "supabase" && !can(context.role, "import_leads")) {
+      throw new ApiRouteError(403, "Voce nao tem permissao para importar leads.");
+    }
+
     assertPayloadSize(request, "WEBHOOK_JSON");
     body = await parseJsonBody(request, importRequestSchema);
 

@@ -402,7 +402,7 @@ export function CsvImportWorkspace({
 
           <div className="flex flex-wrap gap-2">
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white/92 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 bg-cloud px-5 py-3 text-sm font-semibold text-slate-950 shadow-soft transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/12"
               disabled={isParsing || isImporting}
               onClick={openFilePicker}
               type="button"
@@ -843,7 +843,7 @@ export function CsvImportWorkspace({
                 Clique para escolher um arquivo e abrir a tela de mapeamento.
               </p>
               <button
-                className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90"
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900 dark:border dark:border-white/12 dark:bg-cloud dark:text-slate-950 dark:hover:bg-white"
                 onClick={openFilePicker}
                 type="button"
               >

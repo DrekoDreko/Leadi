@@ -52,9 +52,9 @@ export async function chargeCreditsForFeature(input: {
 export function buildDemoBillingSnapshot(): BillingSnapshot {
   return {
     wallet: {
-      balance: 240,
-      totalGranted: 360,
-      totalSpent: 120
+      balance: 75,
+      totalGranted: 125,
+      totalSpent: 50
     },
     recentTransactions: [
       {
@@ -62,10 +62,10 @@ export function buildDemoBillingSnapshot(): BillingSnapshot {
         kind: "grant",
         source: "plan",
         featureKey: null,
-        amount: 240,
-        balanceAfter: 240,
+        amount: 75,
+        balanceAfter: 75,
         referenceType: "demo",
-        referenceId: "starter",
+        referenceId: "profissional",
         status: "completed",
         createdAt: new Date().toISOString()
       }
@@ -75,8 +75,8 @@ export function buildDemoBillingSnapshot(): BillingSnapshot {
         id: "demo-purchase-1",
         productKey: "team_plan",
         productKind: "plan",
-        credits: 400,
-        amountCents: 24700,
+        credits: 75,
+        amountCents: 11900,
         status: "approved",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()

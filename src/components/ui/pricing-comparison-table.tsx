@@ -9,15 +9,13 @@ import type {
   MarketingPricingPlan,
   PricingComparisonCategory,
   PricingComparisonValue,
-  PricingCycle,
-  PricingOperationCta,
+  PricingCycle
 } from "@/data/pricing";
 
 type PricingComparisonTableProps = {
   categories: PricingComparisonCategory[];
   cycle: PricingCycle;
   plans: MarketingPricingPlan[];
-  operationPlan: PricingOperationCta;
 };
 
 type ComparisonColumn = {
@@ -31,23 +29,15 @@ type ComparisonColumn = {
 export function PricingComparisonTable({
   categories,
   cycle,
-  plans,
-  operationPlan,
+  plans
 }: PricingComparisonTableProps) {
-  const columns: ComparisonColumn[] = [
-    ...plans.map((plan) => ({
+  const columns: ComparisonColumn[] = plans.map((plan) => ({
       slug: plan.slug,
       name: plan.name,
       priceLabel: `${plan.prices[cycle].amount}${plan.prices[cycle].suffix}`,
       badge: plan.badge,
-      highlight: plan.highlight,
-    })),
-    {
-      slug: operationPlan.slug,
-      name: operationPlan.name,
-      priceLabel: operationPlan.price,
-    },
-  ];
+      highlight: plan.highlight
+    }));
 
   return (
     <div className="overflow-hidden rounded-[32px] border border-white/50 bg-white/72 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[rgba(17,24,36,0.86)]">

@@ -611,32 +611,37 @@ export function SalesFunnelWorkspace({
                   return (
                     <section
                       aria-label={`Etapa ${column.label}`}
-                      className={`flex min-h-[74vh] max-h-[74vh] flex-col rounded-[30px] border p-3 transition ${
+                      className={`flex min-h-[74vh] max-h-[74vh] flex-col overflow-hidden rounded-2xl border transition ${
                         isActiveDrop
-                          ? "border-cobalt/70 bg-cobalt/14 shadow-[0_28px_72px_rgba(52,98,238,0.18)]"
-                          : `${tone.card} border-white/56`
+                          ? `border-cobalt/70 bg-cobalt/10 shadow-[0_12px_40px_rgba(0,0,0,0.12)]`
+                          : "border-border/60 bg-surface/50 dark:bg-surface-elevated/20"
                       }`}
                       key={column.value}
                       onDragLeave={(event) => handleDragLeave(event, column.value)}
                       onDragOver={(event) => handleDragOver(event, column.value)}
                       onDrop={(event) => handleDrop(event, column.value)}
                     >
-                      <div className="surface-card mb-3 rounded-[24px] p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <span className={`mb-3 block h-2.5 w-14 rounded-full ${tone.pulse}`} />
-                            <h3 className="text-lg font-semibold">{column.label}</h3>
-                            <p className="mt-1 text-sm leading-6 text-ink/56">{column.description}</p>
-                          </div>
+                      <div className={`h-1.5 w-full ${tone.pulse}`} />
+                      
+                      <div className="mb-2 px-3 pt-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-[13px] font-bold uppercase tracking-wider text-ink dark:text-cloud">
+                            {column.label}
+                          </h3>
                           <span
-                            className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-sm font-semibold ${tone.accent}`}
+                            className={`inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-xs font-bold ${tone.accent}`}
                           >
                             {column.cards.length}
                           </span>
                         </div>
+                        {column.description && (
+                          <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-ink/60 dark:text-cloud/60">
+                            {column.description}
+                          </p>
+                        )}
                       </div>
 
-                      <div className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
+                      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-2 pb-2 pr-1">
                         {column.cards.map((lead) => (
                           <FunnelLeadCard
                             active={draggedLeadId === lead.id}
@@ -728,16 +733,19 @@ function FunnelLeadCard({
   const canEditLead = lead.canEdit ?? true;
   const phoneHref = buildPhoneHref(lead.phone);
   const stalledState = getLeadStalledState(lead);
+  
+  const stageValue = getLeadStageValue(lead.stage) as LeadStageValue | undefined;
+  const tone = stageValue && stageToneByValue[stageValue] ? stageToneByValue[stageValue] : stageToneByValue.new;
 
   return (
     <article
       aria-busy={pending}
-      className={`rounded-[18px] border border-border/72 bg-surface-elevated/92 p-3.5 text-foreground shadow-soft transition ${
-        stalledState.isStalled ? "ring-1 ring-signal/35" : ""
+      className={`relative overflow-hidden rounded-xl border border-border/70 bg-white p-3.5 text-foreground shadow-sm transition dark:bg-surface-elevated ${
+        stalledState.isStalled ? "ring-1 ring-signal/60" : ""
       } ${
         active
-          ? "scale-[0.985] opacity-60"
-          : "hover:-translate-y-1 hover:bg-surface-elevated hover:shadow-[0_24px_44px_rgba(18,23,33,0.12)]"
+          ? "scale-[0.98] opacity-50"
+          : "hover:-translate-y-0.5 hover:border-border hover:shadow-md"
       } ${canEditLead ? "cursor-grab active:cursor-grabbing" : "cursor-default opacity-72"}`}
       draggable={canEditLead && !pending}
       onClick={() => onLeadOpen(lead)}
@@ -756,13 +764,14 @@ function FunnelLeadCard({
       role="button"
       tabIndex={0}
     >
-      <span className="mb-2.5 block h-1.5 w-10 rounded-full bg-lagoon" />
-      <div className="flex items-start justify-between gap-3">
+      <div className={`absolute bottom-0 left-0 top-0 w-1 ${tone.pulse}`} />
+
+      <div className="flex items-start justify-between gap-3 pl-1.5">
         <div className="min-w-0">
-          <span className="block text-sm font-semibold leading-tight text-ink">{lead.name}</span>
-          <span className="mt-1 block text-xs font-medium text-ink/56">{lead.owner}</span>
+          <span className="block text-sm font-semibold leading-tight text-ink dark:text-cloud">{lead.name}</span>
+          <span className="mt-1 block text-xs font-medium text-ink/60 dark:text-cloud/60">{lead.owner}</span>
           {stalledState.isStalled && stalledState.daysWithoutUpdate !== null ? (
-            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-signal/26 px-2.5 py-1 text-[11px] font-semibold text-accent-foreground">
+            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-signal/20 px-2 py-0.5 text-[11px] font-semibold text-signal-dark dark:text-signal">
               <Clock3 size={12} aria-hidden="true" />
               Parado ha {stalledState.daysWithoutUpdate} dias
             </span>

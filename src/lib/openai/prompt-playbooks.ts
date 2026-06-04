@@ -1,4 +1,5 @@
 import { buildWhatsAppStageObjective, buildWhatsAppStagePrompt } from "../whatsapp/templates";
+import { getAdImageStylePreset } from "../creatives/ad-image-presets";
 import {
   campaignMarketExamples,
   complianceRewriteExamples,
@@ -55,6 +56,22 @@ type ComplianceReviewPromptInput = {
   channel?: "meta_ads" | "lead_form" | "landing_page" | "whatsapp" | "other";
   audience?: string;
   objective?: string;
+};
+
+export type AdImagePromptInput = {
+  title: string;
+  objective?: string;
+  briefing: string;
+  carrier?: string;
+  contractType?: string;
+  discount?: string;
+  offer?: string;
+  phone?: string;
+  brandName?: string;
+  format?: string;
+  style?: string;
+  stylePreset?: string;
+  hasReferences?: boolean;
 };
 
 const sharedRoleContext = [
@@ -277,6 +294,49 @@ export function buildComplianceReviewPrompt(input: ComplianceReviewPromptInput) 
       "Mantenha o texto util para vendas sem relaxar as travas de compliance."
     ]),
     "Inclua sempre a ressalva de que a validacao nao substitui revisao juridica, regulatoria ou comercial."
+  ]);
+}
+
+export function buildAdImagePrompt(input: AdImagePromptInput) {
+  const preset = getAdImageStylePreset(input.stylePreset);
+
+  return joinSections([
+    "Crie uma arte publicitaria profissional para divulgacao de plano de saude no Brasil, pronta para publicar em redes sociais.",
+    preset
+      ? buildSection(`Padrao de arte selecionado: ${preset.label} (siga rigorosamente)`, preset.promptSpec)
+      : "",
+    buildContextSection([
+      `Titulo/chamada principal da arte: ${input.title}`,
+      `Objetivo da peca: ${formatOptional(input.objective, "atrair contato de interessados em plano de saude")}`,
+      `Briefing detalhado: ${input.briefing}`,
+      `Operadora/plano em destaque: ${formatOptional(input.carrier)}`,
+      `Tipo de contratacao: ${formatOptional(input.contractType)}`,
+      `Desconto/condicao em destaque: ${formatOptional(input.discount)}`,
+      `Oferta/condicao comercial: ${formatOptional(input.offer)}`,
+      `Telefone/WhatsApp para exibir na arte: ${formatOptional(input.phone)}`,
+      `Marca/consultor (assinatura da arte): ${formatOptional(input.brandName)}`,
+      `Formato desejado: ${formatOptional(input.format, "feed quadrado 1:1")}`,
+      `Estilo visual desejado: ${formatOptional(input.style, "moderno, confiavel e acolhedor")}`
+    ]),
+    buildSection("Diretrizes visuais", [
+      "Layout limpo e profissional, hierarquia clara entre chamada principal, oferta e contato.",
+      "Use tipografia legivel e bem contrastada; o texto exibido deve estar correto em portugues do Brasil, sem erros de ortografia.",
+      "Transmita confianca e cuidado (saude/familia), com paleta harmonica e identidade de plano de saude.",
+      "Se houver telefone/WhatsApp, exiba-o com destaque em um selo ou rodape claro.",
+      "Se houver marca/consultor, posicione a assinatura de forma discreta e elegante.",
+      "Quando o desconto for informado, destaque-o como elemento visual forte (ex: selo de porcentagem)."
+    ]),
+    input.hasReferences
+      ? buildSection("Referencias enviadas", [
+          "Use as imagens de referencia anexadas como guia de estilo, composicao e tom visual.",
+          "Mantenha a identidade e o clima das referencias, sem copiar marcas registradas ou logos de terceiros literalmente."
+        ])
+      : "",
+    buildSection("Limites de compliance", [
+      "Nao prometa cobertura garantida, aprovacao garantida, ausencia de carencia ou economia garantida.",
+      "Evite explorar doenca, idade sensivel, gravidez ou qualquer atributo protegido.",
+      "Nao invente nome de operadora, rede ou tabela alem do que foi informado."
+    ])
   ]);
 }
 

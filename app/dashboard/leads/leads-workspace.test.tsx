@@ -167,6 +167,53 @@ describe("LeadsWorkspace bulk assignment", () => {
     expect(screen.queryByText("Distribuir em lote")).not.toBeInTheDocument();
   });
 
+  it("mantem o badge Novo apenas para leads sem primeiro contato e joga os contatados para baixo", () => {
+    const leadState = createLeadState();
+    leadState.leads = [
+      {
+        ...mockLeads[0],
+        id: "lead-contactado",
+        name: "Lead contactado",
+        hasRecordedContact: true
+      },
+      {
+        ...mockLeads[0],
+        id: "lead-pendente",
+        name: "Lead pendente",
+        hasRecordedContact: false
+      },
+      {
+        ...mockLeads[1],
+        id: "lead-qualificacao",
+        name: "Lead qualificado",
+        stage: "Qualificação",
+        hasRecordedContact: true
+      }
+    ];
+
+    const { container } = render(
+      <LeadsWorkspace
+        aiBalance={5}
+        canManageLeadOwners={false}
+        createLeadAccess={{ allowed: true } as never}
+        initialLeadId={null}
+        initialLeadPanel="details"
+        leadFilters={defaultLeadUrlFilters}
+        leadOwnerOptions={mockLeadOwnerOptions}
+        leadState={leadState}
+        whatsappTemplates={[]}
+      />
+    );
+
+    expect(screen.getAllByText(/^Novo$/)).toHaveLength(1);
+    expect(container.textContent?.indexOf("Lead pendente")).toBeLessThan(
+      container.textContent?.indexOf("Lead qualificado") ?? 0
+    );
+    expect(container.textContent?.indexOf("Lead qualificado")).toBeLessThan(
+      container.textContent?.indexOf("Lead contactado") ?? 0
+    );
+  });
+
   it("permite selecionar leads e distribuir em lote para um consultor", async () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
@@ -210,14 +257,14 @@ describe("LeadsWorkspace bulk assignment", () => {
     fireEvent.click(screen.getByRole("button", { name: "Distribuir em lote" }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith("/api/leads", {
-        method: "PATCH",
+      expect(global.fetch).toHaveBeenCalledWith("/api/leads/assign", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          lead_ids: [mockLeads[0].id, mockLeads[1].id],
-          owner_profile_id: "demo-profile-fernanda"
+          leadIds: [mockLeads[0].id, mockLeads[1].id],
+          ownerProfileId: "demo-profile-fernanda"
         })
       });
     });
@@ -227,5 +274,28 @@ describe("LeadsWorkspace bulk assignment", () => {
     });
 
     expect(routerRefresh).toHaveBeenCalled();
+  });
+});
+
+describe("LeadsWorkspace permissions", () => {
+  it("não exibe botões de importar e exportar para o consultor", () => {
+    render(
+      <LeadsWorkspace
+        aiBalance={5}
+        canManageLeadOwners={false}
+        canExportLeads={false}
+        canImportLeads={false}
+        createLeadAccess={{ allowed: true } as never}
+        initialLeadId={null}
+        initialLeadPanel="details"
+        leadFilters={defaultLeadUrlFilters}
+        leadOwnerOptions={mockLeadOwnerOptions}
+        leadState={createLeadState()}
+        whatsappTemplates={[]}
+      />
+    );
+
+    expect(screen.queryByText("Importar leads Meta")).not.toBeInTheDocument();
+    expect(screen.queryByText("Exportar CSV")).not.toBeInTheDocument();
   });
 });

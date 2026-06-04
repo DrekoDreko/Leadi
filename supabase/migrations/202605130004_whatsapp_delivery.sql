@@ -101,6 +101,27 @@ using (
   )
 );
 
+create table if not exists public.whatsapp_messages (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  created_by_profile_id uuid not null references public.profiles(id) on delete cascade,
+  lead_id uuid references public.leads(id) on delete set null,
+  lead_name text not null,
+  lead_context text not null default '',
+  product text not null default 'Plano de saude empresarial',
+  stage text not null default 'new' check (stage in ('new', 'qualification', 'proposal', 'negotiation', 'won', 'lost')),
+  objective text not null,
+  tone text not null,
+  opening_message text not null,
+  follow_up_message text not null,
+  objection_reply text not null,
+  compliance_notes jsonb not null default '[]'::jsonb,
+  input_payload jsonb not null default '{}'::jsonb,
+  result_payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.whatsapp_messages
   add column if not exists delivery_provider public.whatsapp_delivery_provider,
   add column if not exists delivery_status public.whatsapp_delivery_status not null default 'not_requested',

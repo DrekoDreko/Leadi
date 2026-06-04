@@ -36,6 +36,10 @@ export const ENV_VARIABLES = {
     description: "Modelo padrao usado nas rotas de IA.",
     public: false
   },
+  OPENAI_IMAGE_MODEL: {
+    description: "Modelo de geracao de imagem usado na criacao de artes com IA.",
+    public: false
+  },
   OPENAI_API_KEY: {
     description: "Chave global da plataforma para chamadas server-side da OpenAI.",
     public: false

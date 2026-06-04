@@ -17,13 +17,23 @@ export async function getBillingSubscriptionByExternalReference(externalId: stri
 
 export async function updateBillingSubscription(
   subscriptionId: string,
-  patch: { status?: string; canceled_at?: string; ended_at?: string }
+  patch: {
+    status?: string;
+    canceled_at?: string;
+    ended_at?: string;
+    current_period_start?: string;
+    current_period_end?: string;
+    metadata?: Record<string, unknown>;
+  }
 ) {
   const supabase = createBillingAdminClient();
   const payload: Record<string, unknown> = {};
   if (patch.status) payload.status = patch.status;
   if (patch.canceled_at) payload.canceled_at = patch.canceled_at;
   if (patch.ended_at) payload.ended_at = patch.ended_at;
+  if (patch.current_period_start) payload.current_period_start = patch.current_period_start;
+  if (patch.current_period_end) payload.current_period_end = patch.current_period_end;
+  if (patch.metadata) payload.metadata = patch.metadata;
 
   const { data, error } = await supabase
     .from("subscriptions")

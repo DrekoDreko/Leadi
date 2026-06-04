@@ -112,13 +112,18 @@ describe("DashboardHome", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Sem contato: 2 (pedem primeiro retorno)")).toBeInTheDocument();
     expect(screen.getByText("Tarefas em atraso: 0 (follow-up em dia)")).toBeInTheDocument();
-    expect(screen.getByText("Novo lead")).toBeInTheDocument();
+    expect(screen.getAllByText("Novo lead").length).toBeGreaterThan(0);
     expect(screen.getByText("2 leads na etapa atual")).toBeInTheDocument();
     expect(screen.getByText("50%")).toBeInTheDocument();
     expect(screen.getByText("Contexto da conta")).toBeInTheDocument();
     expect(screen.getByText("Anuncios salvos:")).toBeInTheDocument();
-    expect(screen.getByText("Saldo de IA:")).toBeInTheDocument();
     expect(screen.getByText("CPL inicial:")).toBeInTheDocument();
+    expect(screen.getByText("Mensagens WhatsApp: 0 (nenhuma mensagem gerada)")).toBeInTheDocument();
+    expect(screen.getByText("Envios com falha: 0 (nenhuma falha de envio)")).toBeInTheDocument();
+    expect(screen.getByText("Saldo de IA: 0 (seu saldo de IA acabou)")).toBeInTheDocument();
+    expect(
+      screen.getByText("Créditos usados no ciclo: 0 (consumo do período atual)")
+    ).toBeInTheDocument();
     expect(
       screen.queryByText("CPL inicial: ~R$ 24,00 (mock inicial • sem custo Meta real)")
     ).not.toBeInTheDocument();
@@ -179,5 +184,34 @@ describe("DashboardHome", () => {
     expect(screen.getByText("2 atrasos")).toBeInTheDocument();
     expect(screen.getByText("Fernanda")).toBeInTheDocument();
     expect(screen.getByText("0 atrasos")).toBeInTheDocument();
+  });
+
+  it("mostra os cards de WhatsApp e IA com os dados agregados", () => {
+    render(
+      <DashboardHome
+        leads={leads}
+        leadNoContactSummary={{ total: 0, leads: [] }}
+        whatsappMessagesCount={42}
+        whatsappDeliverySummary={{ total: 42, sent: 38, failed: 3 }}
+        aiBalanceDetails={{
+          orgId: "org-1",
+          availableCredits: 120,
+          includedCredits: 80,
+          purchasedCredits: 40,
+          currentPeriodStart: "2026-06-01T12:00:00.000Z",
+          currentPeriodEnd: "2026-06-30T12:00:00.000Z",
+          createdAt: null,
+          updatedAt: null
+        }}
+        aiUsageSummary={{ usedCredits: 65, periodEnd: "2026-06-30T12:00:00.000Z" }}
+      />
+    );
+
+    expect(screen.getByText("Mensagens WhatsApp: 42 (38 enviadas)")).toBeInTheDocument();
+    expect(screen.getByText("Envios com falha: 3 (precisam reenvio)")).toBeInTheDocument();
+    expect(screen.getByText("Saldo de IA: 120 (80 inclusos • 40 comprados)")).toBeInTheDocument();
+    expect(
+      screen.getByText("Créditos usados no ciclo: 65 (renova em 30/06)")
+    ).toBeInTheDocument();
   });
 });

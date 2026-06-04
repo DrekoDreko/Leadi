@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Mail } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { signInAction, signUpAction } from "./actions";
 
@@ -19,6 +19,7 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
   const router = useRouter();
   const [mode, setActiveMode] = useState<AuthMode>(initialMode);
   const isSignUp = mode === "signup";
+  const [showPassword, setShowPassword] = useState(false);
   const panelHeight = isSignUp
     ? "min-h-[620px] lg:min-h-[720px]"
     : "min-h-[560px] lg:min-h-[640px]";
@@ -156,18 +157,37 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
                 <span className="text-muted-soft mb-2 block text-sm font-medium">
                   Senha
                 </span>
-                <input
-                  className="liquid-input"
-                  autoComplete={isSignUp ? "new-password" : "current-password"}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  minLength={6}
-                  name="password"
-                  placeholder="••••••••"
-                  required
-                  type="password"
-                  spellCheck={false}
-                />
+                <div className="relative">
+                  <input
+                    className="liquid-input pr-11"
+                    autoComplete={isSignUp ? "new-password" : "current-password"}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    minLength={6}
+                    name="password"
+                    placeholder="••••••••"
+                    required
+                    type={showPassword ? "text" : "password"}
+                    spellCheck={false}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 transition hover:text-foreground"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    onMouseDown={() => setShowPassword(true)}
+                    onMouseUp={() => setShowPassword(false)}
+                    onMouseLeave={() => setShowPassword(false)}
+                    onTouchStart={() => setShowPassword(true)}
+                    onTouchEnd={() => setShowPassword(false)}
+                    onContextMenu={(event) => event.preventDefault()}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} aria-hidden="true" />
+                    ) : (
+                      <Eye size={18} aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
               </label>
               <button
                 className="w-full rounded-full bg-cobalt px-5 py-4 font-semibold text-white transition hover:bg-cobalt/90"

@@ -8,6 +8,7 @@ export type BillingAuthContext = {
   displayName: string;
   brokerageName: string;
   email: string;
+  role: "owner" | "admin" | "seller";
 };
 
 export async function requireBillingAuthContext(): Promise<BillingAuthContext> {
@@ -36,7 +37,7 @@ export async function getBillingAuthContext(): Promise<BillingAuthContext | null
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id,organization_id,full_name,email")
+    .select("id,organization_id,full_name,email,role")
     .eq("auth_user_id", user.id)
     .single();
 
@@ -56,7 +57,8 @@ export async function getBillingAuthContext(): Promise<BillingAuthContext | null
     profileId: profile.id,
     displayName,
     brokerageName: getBrokerageName(organization?.name, displayName),
-    email: profile.email
+    email: profile.email,
+    role: (profile.role as "owner" | "admin" | "seller") || "owner"
   };
 }
 

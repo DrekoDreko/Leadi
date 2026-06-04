@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { undoCsvImportBatchForCurrentUser } from "@/lib/leads/repository.server";
 import { assertRouteRateLimit, assertSameOrigin, logApiError } from "@/lib/api/route-security";
+import { getCurrentWorkspaceContext } from "@/lib/workspaces/context";
+import { can } from "@/lib/workspaces/permissions";
 
 type RouteContext = {
   params: Promise<{
@@ -21,6 +23,12 @@ export async function DELETE(request: Request, context: RouteContext) {
       limit: 10,
       windowMs: 60 * 1000
     });
+    
+    const contextContext = await getCurrentWorkspaceContext();
+    if (contextContext.mode === "supabase" && !can(contextContext.role, "import_leads")) {
+      return NextResponse.json({ error: "Voce nao tem permissao para desfazer importacoes." }, { status: 403 });
+    }
+
     const deletedCount = await undoCsvImportBatchForCurrentUser(batchId);
 
     return NextResponse.json({ ok: true, mode, deletedCount });

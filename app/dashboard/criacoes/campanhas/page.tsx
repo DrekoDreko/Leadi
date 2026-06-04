@@ -7,11 +7,15 @@ import {
 import { getLeadsCountForCurrentUser } from "@/lib/leads/repository.server";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 import { getSystemTemplates } from "@/lib/templates/repository.server";
+import { redirect } from "next/navigation";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { CampaignGenerator } from "../../campanhas/campaign-generator";
 
 export default async function CriacoesCampanhasPage() {
-  await requireCompletedProfile();
+  const context = await requireCompletedProfile();
+  if (context.isTeamSeller) {
+    redirect("/dashboard/criacoes");
+  }
   const [
     campaignState,
     connectedAccounts,

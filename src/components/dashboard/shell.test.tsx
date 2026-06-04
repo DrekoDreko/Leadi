@@ -265,3 +265,25 @@ describe("DashboardShell", () => {
     expect(payload.snoozeType).toBe("one_hour");
   });
 });
+
+describe("DashboardShell permissions", () => {
+  it("não exibe link de Configurações para supervisor", () => {
+    render(
+      <DashboardShell navVariant="supervisor-team">
+        <div>Conteudo</div>
+      </DashboardShell>
+    );
+
+    expect(screen.queryAllByLabelText("Configurações")).toHaveLength(0);
+  });
+
+  it("exibe todos os links para o gestor", () => {
+    render(
+      <DashboardShell navVariant="owner-team">
+        <div>Conteudo</div>
+      </DashboardShell>
+    );
+
+    expect(screen.getAllByLabelText("Configurações").length).toBeGreaterThan(0);
+  });
+});

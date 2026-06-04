@@ -12,12 +12,16 @@ export default async function TeamSetupPage() {
 
   return (
     <TeamSetupClient
+      initialDeactivationRequests={teamData.deactivationRequests}
       initialInvites={teamData.invites}
+      initialSelectedTeamId={teamData.initialSelectedTeamId}
       initialWorkspaceName={teamData.workspaceName}
       inviteAccess={inviteAccess}
+      isRestrictedToSingleTeam={teamData.isRestrictedToSingleTeam}
       members={teamData.members}
       currentProfileId={context.profile?.id ?? ""}
       currentRole={context.role}
+      teams={teamData.teams}
       workspaceType={context.workspaceType}
     />
   );

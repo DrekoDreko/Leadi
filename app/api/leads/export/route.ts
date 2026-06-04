@@ -9,6 +9,8 @@ import {
   getErrorStatus,
   parseSearchParams
 } from "@/lib/api/route-security";
+import { getCurrentWorkspaceContext } from "@/lib/workspaces/context";
+import { can } from "@/lib/workspaces/permissions";
 
 type ExportLeadSearchParams = URLSearchParams;
 
@@ -24,6 +26,11 @@ export async function GET(request: Request) {
       limit: 15,
       windowMs: 60 * 1000
     });
+    const context = await getCurrentWorkspaceContext();
+    if (context.mode === "supabase" && !can(context.role, "export_leads")) {
+      throw new ApiRouteError(403, "Voce nao tem permissao para exportar leads.");
+    }
+
     const searchParams = new URL(request.url).searchParams as ExportLeadSearchParams;
     const query = parseSearchParams(searchParams, exportQuerySchema);
     const filters = parseLeadUrlFilters(searchParams);
