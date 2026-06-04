@@ -80,8 +80,9 @@ export const ENV_VARIABLES = {
     description: "Versao da Graph API da Meta.",
     public: false
   },
-  META_BUSINESS_LOGIN_CONFIG_ID: {
-    description: "Configuration ID do Facebook Login for Business.",
+  META_OAUTH_SCOPE_GROUPS: {
+    description:
+      "Grupos de scopes habilitados no OAuth da Meta (csv). Default base; adicione lead_forms,ads conforme aprovado no App Review.",
     public: false
   },
   META_WHATSAPP_ACCESS_TOKEN: {

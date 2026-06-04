@@ -4,7 +4,6 @@ import { requireIntegrationEnv } from "@/lib/env/server";
 import {
   getMetaAppId,
   getMetaAppSecret,
-  getMetaBusinessLoginConfigId,
   getMetaGraphApiVersion,
   getMetaOAuthScopes,
   getMetaRedirectUri
@@ -98,12 +97,12 @@ export function buildMetaOAuthAuthorizationUrl(input: {
 
   const clientId = getMetaAppId().trim();
   const appSecret = getMetaAppSecret().trim();
-  const configId = getMetaBusinessLoginConfigId().trim();
 
   if (!clientId || !appSecret) {
     throw new Error("META_APP_ID ou META_APP_SECRET nao configurado.");
   }
 
+  // OAuth classico: o parametro `scope` controla as permissoes solicitadas.
   const authUrl = new URL(`https://www.facebook.com/${getMetaGraphApiVersion()}/dialog/oauth`);
   authUrl.searchParams.set("client_id", clientId);
   authUrl.searchParams.set("redirect_uri", getMetaRedirectUri());
@@ -112,11 +111,6 @@ export function buildMetaOAuthAuthorizationUrl(input: {
   authUrl.searchParams.set("scope", getMetaOAuthScopes().join(","));
   authUrl.searchParams.set("auth_type", "rerequest");
   authUrl.searchParams.set("return_to", input.returnTo);
-
-  if (configId) {
-    authUrl.searchParams.set("config_id", configId);
-    authUrl.searchParams.set("override_default_response_type", "true");
-  }
 
   return authUrl;
 }
