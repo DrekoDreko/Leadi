@@ -29,3 +29,14 @@ supabase/.temp/
 *.backup
 credentials.json
 service-account*.json
+
+# Agent skills / local config
+.agents/
+.claude/
+skills-lock.json
+
+# Scratch / build scratch
+scratch/
+patch.diff
+out.css
+page.html
