@@ -173,6 +173,7 @@ export async function syncMetaOrganizationAssets(input: {
 }) {
   const warnings: MetaAssetSyncWarning[] = [];
   const pages = await fetchMetaPagesSafely(input.accessToken, warnings);
+  await subscribeMetaPagesToLeadgenSafely(pages, warnings);
   const adAccounts = await fetchMetaAdAccountsSafely(input.accessToken, warnings);
   const leadFormsResult = await fetchMetaLeadFormsForPages(input.accessToken, pages, warnings);
   const leadForms = leadFormsResult.leadForms;
@@ -338,6 +339,35 @@ async function fetchMetaLeadFormsForPages(
   return { leadForms: formGroups.flat() };
 }
 
+// Inscreve cada pagina conectada no app para receber eventos leadgen em
+// tempo real. Requer pages_manage_metadata; sem a permissao a chamada falha
+// e o aviso e registrado sem interromper o restante da sincronizacao.
+async function subscribeMetaPagesToLeadgenSafely(
+  pages: MetaPageSnapshot[],
+  warnings: MetaAssetSyncWarning[]
+): Promise<void> {
+  await Promise.all(
+    pages.map(async (page) => {
+      if (!page.metaPageId || !page.pageAccessToken) {
+        return;
+      }
+
+      try {
+        await postMetaJson<{ success?: boolean }>(
+          buildGraphUrl(`/${page.metaPageId}/subscribed_apps`),
+          { subscribed_fields: "leadgen" },
+          page.pageAccessToken
+        );
+      } catch (error) {
+        warnings.push({
+          scope: `assinatura leadgen da pagina ${page.name}`,
+          message: describeMetaGraphWarning(`assinatura leadgen da pagina ${page.name}`, error)
+        });
+      }
+    })
+  );
+}
+
 async function fetchMetaPagesSafely(
   accessToken: string,
   warnings: MetaAssetSyncWarning[]
@@ -382,6 +412,48 @@ async function fetchMetaJson<T>(
   }
 
   const response = await fetch(url, { method: "GET", cache: "no-store" });
+  const payload = (await response.json().catch(() => null)) as {
+    error?: { message?: string; code?: number; error_subcode?: number; type?: string };
+  } | null;
+
+  if (!response.ok) {
+    const err = payload?.error;
+    if (err) {
+      if (err.code === 190 || err.code === 102) {
+        throw new MetaTokenError(err.message ?? "Token de acesso da Meta invalido ou expirado.");
+      }
+      if (err.code === 10 || err.code === 200 || err.code === 2500) {
+        throw new MetaPermissionError(err.message ?? "Permissao insuficiente na Meta.");
+      }
+      throw new MetaGraphError(err.message ?? "Erro desconhecido na Meta API.", {
+        code: err.code,
+        subcode: err.error_subcode,
+        type: err.type
+      });
+    }
+
+    throw new MetaGraphError(`Falha na Meta Graph API: status ${response.status}.`, {
+      code: response.status
+    });
+  }
+
+  return payload as T;
+}
+
+async function postMetaJson<T>(
+  url: URL,
+  params: Record<string, string>,
+  accessToken: string
+): Promise<T> {
+  const body = new URLSearchParams(params);
+  body.set("access_token", accessToken);
+
+  const response = await fetch(url, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body
+  });
   const payload = (await response.json().catch(() => null)) as {
     error?: { message?: string; code?: number; error_subcode?: number; type?: string };
   } | null;

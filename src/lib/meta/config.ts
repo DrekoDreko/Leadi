@@ -30,6 +30,15 @@ const META_OAUTH_SCOPE_GROUP_DETAILS = {
         "Usado em src/lib/integrations/meta-graph.server.ts para consultar /{pageId}/leadgen_forms."
     }
   ],
+  webhook: [
+    {
+      scope: "pages_manage_metadata",
+      useCase:
+        "Inscrever cada pagina conectada no app para receber os eventos leadgen em tempo real.",
+      evidence:
+        "Usado em src/lib/integrations/meta-graph.server.ts para POST /{pageId}/subscribed_apps com subscribed_fields=leadgen."
+    }
+  ],
   ads: [
     {
       scope: "ads_read",
@@ -52,7 +61,10 @@ const META_OAUTH_SCOPE_GROUP_DETAILS = {
   ]
 } as const;
 
-const DEFAULT_META_OAUTH_SCOPE_GROUPS = ["base"] as const;
+// `webhook` entra no default para que cada pagina conectada se inscreva
+// sozinha no app (subscribed_apps). Para usuarios sem a permissao aprovada,
+// a Meta omite o scope no consentimento e a inscricao degrada com aviso.
+const DEFAULT_META_OAUTH_SCOPE_GROUPS = ["base", "webhook"] as const;
 
 export type MetaOAuthScopeGroup = keyof typeof META_OAUTH_SCOPE_GROUP_DETAILS;
 export type MetaOAuthScope =

@@ -140,6 +140,13 @@ describe("Meta Graph sync helpers", () => {
         );
       }
 
+      if (url.pathname.endsWith("/page-1/subscribed_apps")) {
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "content-type": "application/json" }
+        });
+      }
+
       if (url.pathname.endsWith("/page-1/leadgen_forms")) {
         return new Response(
           JSON.stringify({

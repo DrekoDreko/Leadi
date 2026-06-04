@@ -18,8 +18,12 @@ describe("Meta OAuth scope groups", () => {
     }
   });
 
-  it("requests only the approved base scopes by default", () => {
-    expect(getMetaOAuthScopes()).toEqual(["pages_show_list", "leads_retrieval"]);
+  it("requests base scopes plus webhook page subscription by default", () => {
+    expect(getMetaOAuthScopes()).toEqual([
+      "pages_show_list",
+      "leads_retrieval",
+      "pages_manage_metadata"
+    ]);
   });
 
   it("adds advanced scopes when the env enables their group", () => {
@@ -42,14 +46,18 @@ describe("Meta OAuth scope groups", () => {
     expect(scopes).toContain("leads_retrieval");
   });
 
-  it("ignores invalid groups without breaking the approved flow", () => {
+  it("ignores invalid groups without breaking the default flow", () => {
     process.env.META_OAUTH_SCOPE_GROUPS = "base,does_not_exist";
-    expect(getMetaOAuthScopes()).toEqual(["pages_show_list", "leads_retrieval"]);
+    expect(getMetaOAuthScopes()).toEqual([
+      "pages_show_list",
+      "leads_retrieval",
+      "pages_manage_metadata"
+    ]);
   });
 
-  it("does not request the unused pages_manage_metadata scope", () => {
-    process.env.META_OAUTH_SCOPE_GROUPS = "base,lead_forms,ads";
-    expect(getMetaOAuthScopes()).not.toContain("pages_manage_metadata");
+  it("requests pages_manage_metadata for the webhook page subscription", () => {
+    process.env.META_OAUTH_SCOPE_GROUPS = "base";
+    expect(getMetaOAuthScopes()).toContain("pages_manage_metadata");
   });
 
   it("flags which groups are enabled in the scope details", () => {
