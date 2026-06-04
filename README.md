@@ -1,178 +1,104 @@
 # Leadi
 
-CRM e automação para gestão de leads. Plataforma para captar, organizar e acompanhar leads com funil comercial, integrações e automações.
+Leadi é uma plataforma para corretores e equipes de vendas de planos de saúde organizarem seus leads, criarem campanhas e fecharem mais negócios. Reúne num só lugar a captação de contatos, o acompanhamento do funil de vendas, a criação de conteúdo com inteligência artificial e a gestão da equipe.
 
 ## Acesso
 
-O SaaS está publicado e operando na Vercel:
+O sistema já está no ar e funcionando:
 
-[https://leadhealth.vercel.app](https://leadhealth.vercel.app)
+- Site: [https://leadhealth.vercel.app](https://leadhealth.vercel.app)
+- Login: [https://leadhealth.vercel.app/login](https://leadhealth.vercel.app/login)
 
-Login direto:
+Observação: o endereço ainda usa o nome antigo (`leadhealth`) até concluirmos a troca para o domínio oficial do Leadi.
 
-[https://leadhealth.vercel.app/login](https://leadhealth.vercel.app/login)
+## Para quem é
 
-Nota de rebrand: as URLs reais de produção ainda usam o domínio legado até a migração operacional de domínio, OAuth, webhooks e painéis externos.
+Corretores que trabalham sozinhos, corretoras pequenas e equipes comerciais que vendem planos de saúde e precisam de uma forma simples de captar e acompanhar clientes.
 
-## Status do Projeto
+## Como funciona, em resumo
 
-Atualmente, o projeto está com toda a sua fundação técnica estabelecida e operante. A **Fase 1 (Diagnóstico e Base)** do nosso roadmap técnico foi totalmente concluída. Isso significa que consolidamos nossa infraestrutura principal e estamos prontos para tracionar novas funcionalidades. Já estruturamos e estabilizamos:
+1. O lead chega (por formulário da Meta, importação de planilha ou cadastro manual).
+2. Ele entra no funil e a equipe acompanha cada etapa até o fechamento.
+3. A inteligência artificial ajuda a criar campanhas e mensagens de abordagem.
+4. O gestor distribui os leads entre os vendedores e acompanha os resultados.
 
-- **Estrutura de Leads e Funil Comercial**: Alinhamento completo entre banco de dados, API e interface.
-- **Integração com a Meta**: Fluxo ponta a ponta implementado (OAuth, Webhooks, Sincronização de formulários e anúncios).
-- **IA e Automações**: Gerador de campanhas e criação de abordagens via WhatsApp usando OpenAI.
-- **Workspaces e Equipe**: Estrutura multi-tenant com níveis de permissão definidos (owner, admin, seller).
-- **Design System e UI/UX**: Interface premium, com suporte robusto a temas Claro e Escuro (Dark Mode) e alto padrão de acessibilidade.
+## O que já está pronto
 
-O projeto agora avança para expandir as capacidades do CRM, o prontuário de cada lead e a gestão de tarefas operacionais no funil de vendas.
+### Captação e organização de leads
+- Cadastro de leads em quadro (Kanban) ou lista, com filtros e busca.
+- Campo de "próximo contato" com avisos de quem está sem agenda ou atrasado.
+- Histórico de comentários e anotações em cada lead.
+- Importação por planilha (CSV) e entrada automática por integrações.
+- Arquivamento de leads.
 
-### 🚀 Em Breve: Simulador de Preços
-Estamos desenvolvendo um **Simulador de Preços** nativo. Esta será uma ferramenta dedicada para consultores e corretores de plano de saúde poderem realizar cotações e cálculos de maneira ágil, tudo integrado diretamente ao ciclo de vendas do lead dentro do CRM Leadi.
+### Funil de vendas
+- Acompanhamento das etapas da venda, do primeiro contato ao fechamento.
 
-## Arquitetura Atual
+### Inteligência artificial
+- Gerador de campanhas de marketing.
+- Gerador de mensagens de WhatsApp personalizadas para cada lead.
+- Validador de conformidade, que aponta riscos jurídicos em anúncios e mensagens.
+- Biblioteca de modelos prontos (planos PME, adesão, etc.).
 
-O Leadi opera em uma arquitetura moderna e escalável baseada em Vercel + Supabase:
+### Equipe e permissões
+- Criação de organização, equipes e convite de membros.
+- Perfis diferentes: gestor, supervisor e consultor, cada um com sua tela.
+- Distribuição e atribuição de leads entre os vendedores.
+- Fluxos de aprovação para campanhas e peças criativas.
 
-- **Frontend/Backend**: Next.js 15 (App Router) hospedado na Vercel.
-- **Banco de Dados & Auth**: Supabase Cloud (Postgres, Auth, Storage) com suporte multi-tenant.
-- **IA**: OpenAI (GPT-4o-mini) para geração de campanhas, mensagens e análise de compliance.
-- **Marketing**: Meta Graph API para sincronização de leads (Lead Ads), formulários e ativos.
-- **Pagamentos**: Mercado Pago para checkout de planos e pacotes de créditos.
-- **Segurança**: Rate limiting por IP/token e limites de payload em endpoints públicos.
-
-O ambiente local é destinado apenas para desenvolvimento, scripts administrativos e validações técnicas.
-
-## Stack Tecnológica
-
-- **Core**: Next.js 15, React 19, TypeScript.
-- **Styling**: Tailwind CSS com componentes baseados em design premium.
-- **Backend-as-a-Service**: Supabase (Database, Auth, RLS, Storage).
-- **Integrações**: Meta Graph API, OpenAI API, Mercado Pago API.
-- **Infraestrutura**: Vercel, GitHub Actions (CI/CD).
-
-## Funcionalidades Implementadas
-
-### Onboarding e Ativação
-- **Checklist de Onboarding**: Guia interativo no dashboard para novos usuários (Primeiro lead, Primeira campanha, Configuração de integração).
-- **Indicadores de Ativação**: Monitoramento em tempo real de métricas de sucesso (Leads gerados, campanhas criadas, mensagens enviadas).
-- **Setup de Equipe**: Fluxo completo de criação de organização, workspaces e convites para membros.
-
-### CRM e Gestão de Leads
-- **Workspace Inteligente**: Visualização em Kanban e Tabela com filtros avançados e busca.
-- **Agendamento de Leads**: Campo `Próximo Contato` com indicadores visuais de "Sem Agenda" e "Atrasado".
-- **Detalhes do Lead**: Histórico de comentários, alteração de status (read-only no Kanban para integridade) e notas.
-- **Importação e Ingestão**: Importação via CSV e ingestão automática via Webhooks (Meta, Zapier, Make).
-
-### Marketing e IA
-- **Gerador de Campanhas**: Criação de campanhas baseadas em IA com histórico e filtros.
-- **Biblioteca de Templates**: Templates profissionais prontos para uso (Planos de Saúde PME, Adesão, etc.).
-- **Mensagens de WhatsApp**: Gerador de abordagens personalizadas via IA com base nos dados do lead.
-- **Validador de Compliance**: Análise de risco jurídico e técnico para anúncios e abordagens.
-
-### Integrações e Billing
-- **Central de Contas**: Conexão OAuth com Meta (Páginas, Formulários, Instagram) e OpenAI (API Keys).
-- **Webhook de Leads**: Endpoint autenticado com logs detalhados de eventos recebidos em tempo real.
-- **Gestão de Créditos**: Sistema de saldo, extrato e compra de pacotes via Mercado Pago.
-- **Pedidos Criativos**: Fluxo de solicitação de artes e peças com anexos e comentários.
-
-## Principais Rotas
-
-### Públicas
-- `/`: Landing page moderna
-- `/pricing`: Planos e pacotes
-- `/login`: Autenticação centralizada
-- `/privacy`, `/terms`, `/data-deletion`: Documentação legal e conformidade Meta
-
-### Dashboard (Autenticado)
-- `/dashboard`: Home com Checklist de Onboarding e Indicadores
-- `/dashboard/leads`: CRM e Workspace
-- `/dashboard/funil`: Funil de vendas por etapas
-- `/dashboard/campanhas`: Gerador de campanhas e Biblioteca
-- `/dashboard/whatsapp`: Gerador de mensagens
-- `/dashboard/empresa`: Gestão de integrações (Meta, OpenAI)
-- `/dashboard/perfil`: Configurações gerais e card-resumo do Webhook de Leads
-- `/dashboard/integracoes/webhook-leads`: Configuração técnica do webhook, token e logs
-
-## APIs Disponíveis
-
-### Leads e Operação
-- `GET/POST/PATCH/DELETE /api/leads`: CRUD completo de leads
-- `POST /api/leads/[id]/comments`: Interação em leads
-- `POST /api/webhooks/leads`: Ingestão externa (Rate limited)
-- `GET /api/dashboard-reminders`: Lembretes e indicadores de ativação
+### Pedidos de criação (artes)
+- Solicitação de artes e peças com anexos e comentários, e aprovação pelo responsável.
 
 ### Integrações
-- `/api/integrations/meta/*`: Fluxo OAuth e sincronização de ativos
-- `/api/meta/webhook`: Recebimento de leads reais da Meta
-- `/api/integrations/openai/*`: Configuração e teste de chaves OpenAI
+- Conexão com a Meta (Facebook/Instagram) para receber leads de anúncios automaticamente.
+- Conexão com a OpenAI para os recursos de inteligência artificial.
+- Recebimento de leads por webhook (Make, Zapier e outros).
 
-### IA e Conteúdo
-- `POST /api/campaigns/generate`: Geração de campanhas (Consome créditos)
-- `POST /api/whatsapp/generate`: Geração de mensagens personalizadas
-- `POST /api/compliance/validate`: Análise de conformidade
+### Pagamentos e créditos
+- Assinatura de planos pelo Mercado Pago.
+- Sistema de créditos para usar a inteligência artificial, com saldo, extrato e compra de pacotes.
+- Pedidos de crédito para aprovação interna.
 
-## Configuração de Ambiente (Vercel)
+### Relatórios e início
+- Página de relatórios com os números do negócio.
+- Checklist de boas-vindas e indicadores de uso para novos usuários.
+- Tema claro e escuro.
 
-Use `.env.example` como catálogo base. Ele separa variáveis públicas de variáveis estritamente server-side.
+## O que ainda falta
 
-### 1. Core Obrigatório para Produção (Build-Blocker)
-Essas variáveis são validadas em tempo de compilação (`next build`) quando `NODE_ENV=production`. A ausência de qualquer uma delas bloqueará o deploy de produção para resguardar a integridade do SaaS.
+### Em desenvolvimento
+- **Simulador de preços**: ferramenta para o corretor fazer cotações de planos dentro do próprio sistema. Já existe uma versão de protótipo; falta finalizar.
+- **Relatórios mais completos**: retorno por campanha, por origem do lead e por vendedor.
 
-| Variável | Exposição | Descrição |
-| :--- | :--- | :--- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Client/public | URL do projeto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client/public | Chave anônima usada pelo client SDK |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only | Chave administrativa do Supabase para operações administrativas e webhooks |
-| `INTEGRATIONS_SECRET_KEY` | Server-only | Chave de criptografia dedicada para cifrar e decifrar com segurança os tokens conectadas dos clientes (OpenAI e Meta) |
+### Migração de marca
+- Trocar o endereço e os ajustes técnicos do nome antigo (`leadhealth`) para o domínio oficial do Leadi.
 
-### 2. Opcionais por Integração (Runtime-validated)
-Essas variáveis não bloqueiam o build, mas são exigidas em tempo de execução pelas respectivas funcionalidades.
+### Decisões de negócio (fora do código)
+- Definir nome final, domínio e a proposta principal do produto.
+- Definir o público-alvo prioritário.
+- Montar a lista dos primeiros usuários de teste (beta).
+- Definir a oferta e o preço de entrada.
+- Acompanhar um dia real de uso por um vendedor para listar melhorias.
 
-| Variável | Recurso Vinculado | Descrição |
-| :--- | :--- | :--- |
-| `NEXT_PUBLIC_APP_URL` | Geral | URL pública canônica (Domain) |
-| `NEXT_PUBLIC_SITE_NAME` | Geral | Nome do SaaS exibido na interface |
-| `NEXT_PUBLIC_LEGAL_EMAIL` | Geral | E-mail de suporte/jurídico público |
-| `LEGAL_CONTACT_EMAIL` | Geral | E-mail operacional interno |
-| `OPENAI_API_KEY` | IA / Copilot | Chave global da OpenAI (se as orgs não usarem chaves próprias) |
-| `OPENAI_MODEL` | IA / Copilot | Modelo de IA padrão do servidor (ex: `gpt-4o-mini`) |
-| `META_APP_ID` | Meta Ads | App ID do Facebook Developers |
-| `META_APP_SECRET` | Meta Ads / Webhook | Segredo do App Meta para assinar chamadas e validar webhooks |
-| `META_VERIFY_TOKEN` | Meta Webhook | Token de verificação do webhook de Lead Ads |
-| `META_REDIRECT_URI` | Meta OAuth | Callback cadastrado no painel Meta |
-| `META_GRAPH_API_VERSION`| Meta Graph | Versão da Graph API (ex: `v22.0`) |
-| `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | Mercado Pago | Chave pública usada pelo checkout/renderização do Brick no client |
-| `MERCADO_PAGO_ACCESS_TOKEN`| Mercado Pago | Token de acesso para checkout e planos |
-| `MERCADO_PAGO_WEBHOOK_SECRET`| Mercado Pago | Segredo de assinatura do webhook de pagamentos |
-| `META_WHATSAPP_ACCESS_TOKEN`| WhatsApp Oficial | Token oficial para envio de WhatsApp via Meta Graph API |
-| `META_WHATSAPP_PHONE_NUMBER_ID`| WhatsApp Oficial | Identificador de número oficial Meta |
-| `WHATSAPP_EXTERNAL_SEND_URL`| WhatsApp Provedor | Endpoint do provedor de mensageria externo secundário |
-| `WHATSAPP_EXTERNAL_API_KEY` | WhatsApp Provedor | Chave secreta do provedor de mensageria externo |
-| `WHATSAPP_EXTERNAL_SENDER_ID`| WhatsApp Provedor | ID do remetente do provedor externo |
+## Como o sistema é construído
 
-Notas operacionais:
+- **Site e sistema**: Next.js (React), hospedado na Vercel.
+- **Banco de dados e login**: Supabase.
+- **Inteligência artificial**: OpenAI.
+- **Anúncios e leads**: Meta (Facebook/Instagram).
+- **Pagamentos**: Mercado Pago.
 
-- Guarde segredos reais no painel da Vercel ou no ambiente seguro do servidor. Evite manter `.env.production` real no workspace.
-- Nunca use valores reais em `.env.example`, screenshots, seeds, mocks ou documentação versionada.
-- `INTEGRATIONS_SECRET_KEY` e `SUPABASE_SERVICE_ROLE_KEY` são estritamente server-side e nunca devem aparecer em arquivos `"use client"`.
-- Somente variáveis com prefixo `NEXT_PUBLIC_` podem ser consumidas em componentes client.
-- Rode `npm run security:check` antes de publicar mudanças que mexam em autenticação, integrações ou configuração de ambiente.
+## Para desenvolvedores
 
-## Documentação Técnica Complementar
+As variáveis de ambiente necessárias estão descritas em [.env.example](.env.example), separando as públicas das que só podem ficar no servidor. Nunca coloque chaves reais nesse arquivo.
 
-- [Guia de Migrations e Banco de Dados](docs/MIGRATIONS.md)
-- [Estratégia de Backup e Segurança](docs/BACKUP.md)
-- [Configuração de Webhooks (Make/Zapier)](docs/make-zapier-webhook-validation.md)
-- [Matriz de Decisão Meta Ads](meta_ads_decision_matrix.md)
-- [Checklist de App Review Meta](docs/meta-app-review.md)
-
-## Manutenção
+Comandos principais:
 
 ```bash
-npm run build         # Validação de produção
-npm run lint          # Verificação de qualidade
-npm run mcp:supabase  # Ferramenta administrativa local
-npm run webhook:test  # Simulação de envio de leads
+npm run dev    # rodar localmente
+npm run build  # gerar a versão de produção
+npm run lint   # verificar qualidade do código
+npm run test   # rodar os testes
 ```
 
 ---
