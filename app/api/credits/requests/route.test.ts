@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "./route";
 import { createCreditRequest, listCreditRequests } from "@/lib/ai/credit-requests.server";

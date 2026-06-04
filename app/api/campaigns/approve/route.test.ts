@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 import { updateCampaignApprovalStatus } from "@/lib/campaigns/repository.server";
