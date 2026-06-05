@@ -43,7 +43,7 @@ const purchaseFeedbackMessages: Record<string, { tone: "success" | "warning" | "
   }
 };
 
-const mercadoPagoStatusMessages: Record<string, { tone: "success" | "warning" | "error"; text: string }> = {
+const paymentReturnStatusMessages: Record<string, { tone: "success" | "warning" | "error"; text: string }> = {
   success: purchaseFeedbackMessages.confirmed,
   pending: purchaseFeedbackMessages.pending,
   failure: purchaseFeedbackMessages.failed
@@ -142,7 +142,7 @@ export default async function PerfilCreditosPage({
 
   const purchaseFeedback =
     (params?.purchase && purchaseFeedbackMessages[params.purchase]) ||
-    (params?.status && mercadoPagoStatusMessages[params.status]) ||
+    (params?.status && paymentReturnStatusMessages[params.status]) ||
     null;
   const purchaseSuccessMessage =
     "Os créditos serão adicionados ao saldo da organização após a confirmação do pagamento.";

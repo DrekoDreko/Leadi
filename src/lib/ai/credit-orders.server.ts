@@ -198,7 +198,7 @@ export async function createAiCreditOrder(input: {
       organization_id: input.organizationId,
       user_id: input.userId,
       package_id: input.packageRecord.id,
-      payment_provider: "mercadopago",
+      payment_provider: "abacatepay",
       amount_cents: input.packageRecord.priceCents,
       credits: input.packageRecord.credits,
       status: "pending",
@@ -300,6 +300,7 @@ export async function getAiCreditPurchaseEligibilityForOrganization(
     .from("subscriptions")
     .select("status,current_period_end")
     .eq("organization_id", organizationId)
+    .in("status", ["active", "trialing", "pending", "past_due", "paused"])
     .order("current_period_end", { ascending: false })
     .limit(5);
 

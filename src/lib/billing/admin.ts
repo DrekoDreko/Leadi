@@ -282,7 +282,7 @@ export async function createBillingPurchase(input: {
     .insert({
       organization_id: input.organizationId,
       created_by_profile_id: input.profileId,
-      provider: "mercadopago",
+      provider: "abacatepay",
       product_key: input.productKey,
       product_kind: input.productKind,
       credits: input.credits,

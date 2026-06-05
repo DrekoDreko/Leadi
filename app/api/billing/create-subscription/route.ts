@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireIntegrationEnv } from "@/lib/env/server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import { createBillingAdminClient } from "@/lib/billing/admin";
-import { createMercadoPagoPreapproval } from "@/lib/billing/mercadopago";
+import { createAbacatePaySubscription } from "@/lib/billing/abacatepay";
 import { isBillingCycle, type BillingCycle } from "@/lib/billing/checkout-flow";
 import {
   ApiRouteError,
@@ -17,16 +17,6 @@ import {
 const createSubscriptionSchema = z.object({
   planSlug: z.string().min(1),
   cycle: z.string().optional(),
-  token: z.string().min(1),
-  issuer_id: z.string().optional(),
-  payment_method_id: z.string().optional(),
-  payer: z.object({
-    email: z.string().email(),
-    identification: z.object({
-      type: z.string(),
-      number: z.string(),
-    }).optional(),
-  }),
 });
 
 export async function POST(request: Request) {
@@ -50,7 +40,6 @@ export async function POST(request: Request) {
 
     const supabase = createBillingAdminClient();
 
-    // Busca o plano correspondente no banco de dados
     const { data: plan, error: planError } = await supabase
       .from("plans")
       .select("*")
@@ -82,14 +71,13 @@ export async function POST(request: Request) {
     const includedUsers = getMetadataNumber(planMetadata, "included_users");
     const extraUserAmountCents = getMetadataNumber(planMetadata, "extra_user_amount_cents");
 
-    // Cria a assinatura local em status 'pending'
     const { data: subscription, error: subError } = await supabase
       .from("subscriptions")
       .insert({
         organization_id: context.organizationId,
         plan_id: plan.id,
         status: "pending",
-        gateway: "mercado_pago",
+        gateway: "abacatepay",
         current_period_start: new Date().toISOString(),
         current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         metadata: {
@@ -106,26 +94,23 @@ export async function POST(request: Request) {
       throw new Error("Não foi possível registrar a assinatura.");
     }
 
-    // Cria a assinatura (Preapproval) no Mercado Pago usando o token do Brick
-    const preapproval = await createMercadoPagoPreapproval({
-      reason: `Assinatura Plano ${plan.name} - Leadi`,
+    const billing = await createAbacatePaySubscription({
+      reason: `Plano ${plan.name} - Leadi`,
       externalReference: subscription.id,
-      payerEmail: body.payer.email,
-      cardTokenId: body.token,
-      amount: plan.amount_cents / 100,
+      customerEmail: context.email ?? "",
+      amount: plan.amount_cents,
       billingCycle: cycle
     });
 
-    // Atualiza a assinatura local com o ID retornado pelo Mercado Pago
     await supabase
       .from("subscriptions")
-      .update({ external_id: preapproval.id })
+      .update({ external_id: billing.billingId })
       .eq("id", subscription.id);
 
     return NextResponse.json({
       success: true,
       subscriptionId: subscription.id,
-      status: preapproval.status,
+      checkoutUrl: billing.checkoutUrl,
     });
   } catch (error) {
     const status = getErrorStatusOrDefault(error);
@@ -133,7 +118,7 @@ export async function POST(request: Request) {
 
     logApiError({
       route: "/api/billing/create-subscription",
-      operation: "CREATE_MERCADOPAGO_SUBSCRIPTION",
+      operation: "CREATE_ABACATEPAY_SUBSCRIPTION",
       message,
       status,
       error,

@@ -5,14 +5,13 @@ vi.mock("server-only", () => ({}));
 import { POST } from "./route";
 import { requireIntegrationEnv } from "@/lib/env/server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
-import { finalizeAiCreditOrderPayment } from "@/lib/ai/credits";
 import {
   assertAiCreditPurchaseAllowed,
   createAiCreditOrder,
   getAiCreditPackageBySlug,
   updateAiCreditOrder
 } from "@/lib/ai/credit-orders.server";
-import { createMercadoPagoCardPayment } from "@/lib/billing/mercadopago";
+import { createAbacatePayCheckout } from "@/lib/billing/abacatepay";
 
 vi.mock("@/lib/env/server", () => ({
   requireIntegrationEnv: vi.fn(),
@@ -23,10 +22,6 @@ vi.mock("@/lib/billing/auth.server", () => ({
   getBillingAuthContext: vi.fn()
 }));
 
-vi.mock("@/lib/ai/credits", () => ({
-  finalizeAiCreditOrderPayment: vi.fn()
-}));
-
 vi.mock("@/lib/ai/credit-orders.server", () => ({
   assertAiCreditPurchaseAllowed: vi.fn(),
   createAiCreditOrder: vi.fn(),
@@ -34,8 +29,8 @@ vi.mock("@/lib/ai/credit-orders.server", () => ({
   updateAiCreditOrder: vi.fn()
 }));
 
-vi.mock("@/lib/billing/mercadopago", () => ({
-  createMercadoPagoCardPayment: vi.fn()
+vi.mock("@/lib/billing/abacatepay", () => ({
+  createAbacatePayCheckout: vi.fn()
 }));
 
 vi.mock("@/lib/api/route-security", async () => {
@@ -60,7 +55,8 @@ describe("AI Credits Checkout API - /api/billing/ai-credits/checkout", () => {
       profileId: "profile-1",
       displayName: "Ana",
       brokerageName: "Leadi",
-      email: "ana@example.com"
+      email: "ana@example.com",
+      role: "owner"
     });
     vi.mocked(assertAiCreditPurchaseAllowed).mockResolvedValue({
       allowed: true,
@@ -70,7 +66,7 @@ describe("AI Credits Checkout API - /api/billing/ai-credits/checkout", () => {
     });
   });
 
-  it("cria o pedido, cobra no Mercado Pago e credita imediatamente quando o pagamento ja vem aprovado", async () => {
+  it("cria o pedido e retorna URL de checkout do AbacatePay", async () => {
     vi.mocked(getAiCreditPackageBySlug).mockResolvedValue({
       id: "pkg-1",
       slug: "campanhas",
@@ -88,7 +84,7 @@ describe("AI Credits Checkout API - /api/billing/ai-credits/checkout", () => {
       organizationId: "org-1",
       userId: "profile-1",
       packageId: "pkg-1",
-      paymentProvider: "mercadopago",
+      paymentProvider: "abacatepay",
       providerPaymentId: null,
       providerPreferenceId: null,
       status: "pending",
@@ -99,32 +95,17 @@ describe("AI Credits Checkout API - /api/billing/ai-credits/checkout", () => {
       updatedAt: "2026-05-28T10:00:00.000Z",
       paidAt: null
     });
-    vi.mocked(createMercadoPagoCardPayment).mockResolvedValue({
-      id: "pay-1",
-      status: "approved",
-      status_detail: "accredited",
-      transaction_amount: 70,
-      date_approved: "2026-05-28T10:00:10.000Z"
-    } as never);
-    vi.mocked(updateAiCreditOrder).mockResolvedValue({} as never);
-    vi.mocked(finalizeAiCreditOrderPayment).mockResolvedValue({
-      orderStatus: "paid",
-      alreadyProcessed: false,
-      newBalance: 300,
-      ledgerId: "ledger-1"
+    vi.mocked(createAbacatePayCheckout).mockResolvedValue({
+      billingId: "billing-1",
+      checkoutUrl: "https://pay.abacatepay.com/checkout/billing-1"
     });
+    vi.mocked(updateAiCreditOrder).mockResolvedValue({} as never);
 
     const response = await POST(
       new Request("http://localhost:3000/api/billing/ai-credits/checkout", {
         method: "POST",
         body: JSON.stringify({
-          packageSlug: "campanhas",
-          token: "tok_123",
-          payment_method_id: "visa",
-          installments: 1,
-          payer: {
-            email: "ana@example.com"
-          }
+          packageSlug: "campanhas"
         })
       })
     );
@@ -134,20 +115,12 @@ describe("AI Credits Checkout API - /api/billing/ai-credits/checkout", () => {
     expect(data).toMatchObject({
       success: true,
       orderId: "order-1",
-      status: "paid",
-      credited: true,
-      aiBalance: 300
+      checkoutUrl: "https://pay.abacatepay.com/checkout/billing-1"
     });
-    expect(createMercadoPagoCardPayment).toHaveBeenCalledWith(
+    expect(createAbacatePayCheckout).toHaveBeenCalledWith(
       expect.objectContaining({
         externalReference: "order-1",
-        paymentMethodId: "visa"
-      })
-    );
-    expect(finalizeAiCreditOrderPayment).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderId: "order-1",
-        providerPaymentId: "pay-1"
+        amount: 7000
       })
     );
   });
@@ -159,12 +132,7 @@ describe("AI Credits Checkout API - /api/billing/ai-credits/checkout", () => {
       new Request("http://localhost:3000/api/billing/ai-credits/checkout", {
         method: "POST",
         body: JSON.stringify({
-          packageSlug: "essencial",
-          token: "tok_123",
-          payment_method_id: "visa",
-          payer: {
-            email: "ana@example.com"
-          }
+          packageSlug: "essencial"
         })
       })
     );
@@ -185,12 +153,7 @@ describe("AI Credits Checkout API - /api/billing/ai-credits/checkout", () => {
       new Request("http://localhost:3000/api/billing/ai-credits/checkout", {
         method: "POST",
         body: JSON.stringify({
-          packageSlug: "essencial",
-          token: "tok_123",
-          payment_method_id: "visa",
-          payer: {
-            email: "ana@example.com"
-          }
+          packageSlug: "essencial"
         })
       })
     );

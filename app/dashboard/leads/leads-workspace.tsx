@@ -154,7 +154,9 @@ export function LeadsWorkspace({
     for (const key of filterKeys) {
       const value = nextFilters[key];
 
-      if (isDefaultLeadUrlFilterValue(key, value)) {
+      if (key === "view" && isOwner) {
+        nextSearchParams.set(key, String(value));
+      } else if (isDefaultLeadUrlFilterValue(key, value)) {
         nextSearchParams.delete(key);
       } else {
         nextSearchParams.set(key, String(value));
@@ -541,13 +543,6 @@ export function LeadsWorkspace({
             />
           </div>
 
-          {isOwner && (
-            <LeadViewTabs
-              currentView={leadFilters.view}
-              onViewChange={handleViewChange}
-            />
-          )}
-
           <LeadFiltersPopup
             open={isFilterPopupOpen}
             onApply={applyDraftFilters}
@@ -560,12 +555,18 @@ export function LeadsWorkspace({
           {isEmptyWithoutFilters ? (
             <LeadWorkspaceEmptyState
               mode="empty"
+              currentView={leadFilters.view}
+              isOwner={isOwner}
+              onViewChange={handleViewChange}
               onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
               onRetry={handleRefresh}
             />
           ) : isEmptyWithFilters ? (
             <LeadWorkspaceEmptyState
               mode="filtered"
+              currentView={leadFilters.view}
+              isOwner={isOwner}
+              onViewChange={handleViewChange}
               onClearFilters={clearFilters}
               onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
             />
@@ -577,7 +578,9 @@ export function LeadsWorkspace({
                     allVisibleLeadsSelected={allVisibleLeadsSelected}
                     canManageLeadOwners={canManageLeadOwners}
                     canDistributeToSupervisors={canDistributeToSupervisors}
+                    currentView={leadFilters.view}
                     hasSelectedLeads={hasSelectedLeads}
+                    isOwner={isOwner}
                     leads={visibleLeads}
                     hasActiveFilters={hasActiveFilters}
                     leadOwnerOptions={leadOwnerOptions}
@@ -585,6 +588,7 @@ export function LeadsWorkspace({
                     onDistributionError={handleDistributionError}
                     onSearchChange={setSearchTerm}
                     onClearLeadSelection={clearLeadSelection}
+                    onViewChange={handleViewChange}
                     searchTerm={searchTerm}
                     onOpenFilters={openFilterPopup}
                     onCreateOpen={canCreateLeads ? () => setIsCreateOpen(true) : undefined}
@@ -593,10 +597,6 @@ export function LeadsWorkspace({
                     onToggleVisibleLeadSelection={toggleVisibleLeadSelection}
                     selectedLeadIds={selectedLeadIds}
                   />
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <SalesFunnelGateway />
-                    <ArchivedLeadsGateway />
-                  </div>
                 </div>
               </section>
               <LeadPaginationControls
@@ -608,6 +608,11 @@ export function LeadsWorkspace({
               />
             </>
           )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <SalesFunnelGateway />
+            <ArchivedLeadsGateway />
+          </div>
         </>
       )}
 
@@ -1224,11 +1229,17 @@ function LeadWorkspaceErrorState({
 
 function LeadWorkspaceEmptyState({
   mode,
+  currentView,
+  isOwner,
+  onViewChange,
   onClearFilters,
   onCreateOpen,
   onRetry
 }: {
   mode: "empty" | "filtered";
+  currentView: LeadViewFilterValue;
+  isOwner: boolean;
+  onViewChange: (view: LeadViewFilterValue) => void;
   onClearFilters?: () => void;
   onCreateOpen?: () => void;
   onRetry?: () => void;
@@ -1287,6 +1298,15 @@ function LeadWorkspaceEmptyState({
           </button>
         </div>
       </div>
+
+      {isOwner && (
+        <div className="mt-6">
+          <LeadViewTabs
+            currentView={currentView}
+            onViewChange={onViewChange}
+          />
+        </div>
+      )}
     </section>
   );
 }
@@ -1381,7 +1401,9 @@ function LeadTablePanel({
   allVisibleLeadsSelected,
   canManageLeadOwners,
   canDistributeToSupervisors,
+  currentView,
   hasSelectedLeads,
+  isOwner,
   leads,
   hasActiveFilters,
   leadOwnerOptions,
@@ -1389,6 +1411,7 @@ function LeadTablePanel({
   onDistributionError,
   onSearchChange,
   onClearLeadSelection,
+  onViewChange,
   searchTerm,
   onOpenFilters,
   onCreateOpen,
@@ -1400,7 +1423,9 @@ function LeadTablePanel({
   allVisibleLeadsSelected: boolean;
   canManageLeadOwners: boolean;
   canDistributeToSupervisors: boolean;
+  currentView: LeadViewFilterValue;
   hasSelectedLeads: boolean;
+  isOwner: boolean;
   leads: Lead[];
   hasActiveFilters: boolean;
   leadOwnerOptions: LeadOwnerOption[];
@@ -1408,6 +1433,7 @@ function LeadTablePanel({
   onDistributionError: (message: string) => void;
   onSearchChange: (value: string) => void;
   onClearLeadSelection: () => void;
+  onViewChange: (view: LeadViewFilterValue) => void;
   searchTerm: string;
   onOpenFilters: () => void;
   onCreateOpen?: () => void;
@@ -1473,6 +1499,15 @@ function LeadTablePanel({
           </button>
         </div>
       </div>
+
+      {isOwner && (
+        <div className="mb-4">
+          <LeadViewTabs
+            currentView={currentView}
+            onViewChange={onViewChange}
+          />
+        </div>
+      )}
 
       {showBulkActions ? (
         <div className="mb-4 flex flex-col gap-3 rounded-[26px] border border-cobalt/12 bg-cobalt/6 px-4 py-4 md:flex-row md:items-center md:justify-between">
@@ -1693,14 +1728,36 @@ function LeadViewTabs({
   currentView: LeadViewFilterValue;
   onViewChange: (view: LeadViewFilterValue) => void;
 }) {
+  const containerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node) return;
+      const activeButton = node.querySelector<HTMLButtonElement>("[data-active='true']");
+      const pill = node.querySelector<HTMLDivElement>("[data-pill]");
+      if (!activeButton || !pill) return;
+      const containerRect = node.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+      pill.style.width = `${buttonRect.width}px`;
+      pill.style.left = `${buttonRect.left - containerRect.left}px`;
+    },
+    [currentView]
+  );
+
   return (
-    <div className="flex items-center gap-1 rounded-full bg-ink/6 p-1 w-fit">
+    <div
+      ref={containerRef}
+      className="relative flex items-center rounded-full bg-ink/6 p-1 w-fit"
+    >
+      <div
+        data-pill=""
+        className="absolute top-1 bottom-1 rounded-full bg-cobalt shadow-sm transition-all duration-300 ease-in-out"
+      />
       {leadViewTabs.map((tab) => (
         <button
           key={tab.value}
-          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+          data-active={currentView === tab.value}
+          className={`relative z-10 rounded-full px-5 py-2 text-sm font-semibold transition-colors duration-200 ${
             currentView === tab.value
-              ? "bg-white text-ink shadow-sm"
+              ? "text-white"
               : "text-ink/54 hover:text-ink/80"
           }`}
           onClick={() => onViewChange(tab.value)}

@@ -32,7 +32,6 @@ export default async function CheckoutPage({
 }) {
   const params = await searchParams;
   const mode = resolveCheckoutMode(params);
-  const mercadoPagoPublicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY?.trim() ?? "";
 
   if (mode === "ai_credits") {
     const packageSlug = params.package;
@@ -74,7 +73,6 @@ export default async function CheckoutPage({
           amount={creditPackage.priceCents / 100}
           checkoutMode="ai_credits"
           creditPackageSlug={creditPackage.slug}
-          publicKey={mercadoPagoPublicKey}
         />
       </CheckoutLayout>
     );
@@ -133,7 +131,6 @@ export default async function CheckoutPage({
         billingCycle={cycle}
         checkoutMode="plan"
         planSlug={planSlug}
-        publicKey={mercadoPagoPublicKey}
       />
     </CheckoutLayout>
   );

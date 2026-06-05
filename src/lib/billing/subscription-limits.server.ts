@@ -403,11 +403,14 @@ async function getOrganizationBillingState(
       .eq("organization_id", organizationId)
       .order("current_period_end", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(3),
+      .limit(10),
     getUsageSnapshot(supabase, organizationId)
   ]);
 
-  const subscription = subscriptions?.[0] ?? null;
+  const subscription =
+    subscriptions?.find((s) => VALID_SUBSCRIPTION_STATUSES.has(s.status)) ??
+    subscriptions?.[0] ??
+    null;
   const plan = subscription
     ? await getPlanById(supabase, subscription.plan_id)
     : null;

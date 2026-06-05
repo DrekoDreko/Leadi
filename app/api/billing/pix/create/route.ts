@@ -11,7 +11,7 @@ import {
   isAiCreditPackageSlug,
   type AiCreditPackageSlug
 } from "@/lib/ai/credit-packages";
-import { createAbacatePayCheckout } from "@/lib/billing/abacatepay";
+import { createAbacatePayTransparent } from "@/lib/billing/abacatepay";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import {
   ApiRouteError,
@@ -22,7 +22,7 @@ import {
   parseJsonBody
 } from "@/lib/api/route-security";
 
-const aiCreditsCheckoutSchema = z.object({
+const pixCheckoutSchema = z.object({
   packageSlug: z.string().trim().min(1, "Selecione um pacote de créditos valido.")
 });
 
@@ -31,14 +31,14 @@ export async function POST(request: Request) {
     assertSameOrigin(request);
     await assertRouteRateLimit({
       request,
-      keyPrefix: "api-billing-ai-credits-checkout",
+      keyPrefix: "api-billing-pix-create",
       limit: 8,
       windowMs: 60 * 1000
     });
 
     requireIntegrationEnv("billing");
 
-    const body = await parseJsonBody(request, aiCreditsCheckoutSchema);
+    const body = await parseJsonBody(request, pixCheckoutSchema);
     const packageSlug = parsePackageSlug(body.packageSlug);
     const context = await getBillingAuthContext();
 
@@ -63,38 +63,45 @@ export async function POST(request: Request) {
       packageRecord,
       metadata: {
         package_slug: packageRecord.slug,
-        checkout_mode: "ai_credits"
+        checkout_mode: "pix_transparent"
       }
     });
 
-    const checkout = await createAbacatePayCheckout({
-      title: `${packageRecord.name} - ${packageRecord.credits} créditos de IA`,
+    const charge = await createAbacatePayTransparent({
       amount: packageRecord.priceCents,
-      externalReference: order.id,
       description: `${packageRecord.name} - ${packageRecord.credits} créditos de IA`,
-      customerEmail: context.email
+      externalId: order.id,
+      customerEmail: context.email,
+      metadata: {
+        order_id: order.id,
+        package_slug: packageRecord.slug
+      }
     });
 
     await updateAiCreditOrder(order.id, {
-      providerPreferenceId: checkout.billingId,
+      providerPreferenceId: charge.id,
       metadata: {
-        billing_id: checkout.billingId,
-        checkout_url: checkout.checkoutUrl
+        transparent_id: charge.id,
+        checkout_mode: "pix_transparent"
       }
     });
 
     return NextResponse.json({
       success: true,
       orderId: order.id,
-      checkoutUrl: checkout.checkoutUrl
+      transparentId: charge.id,
+      brCode: charge.brCode,
+      brCodeBase64: charge.brCodeBase64,
+      amount: charge.amount,
+      expiresAt: charge.expiresAt
     });
   } catch (error) {
-    const status = getAiCreditsCheckoutStatus(error);
-    const message = getAiCreditsCheckoutMessage(error);
+    const status = getPixErrorStatus(error);
+    const message = getPixErrorMessage(error);
 
     logApiError({
-      route: "/api/billing/ai-credits/checkout",
-      operation: "CREATE_AI_CREDITS_CHECKOUT",
+      route: "/api/billing/pix/create",
+      operation: "CREATE_PIX_TRANSPARENT",
       message,
       status,
       error
@@ -112,32 +119,17 @@ function parsePackageSlug(value: string): AiCreditPackageSlug {
   throw new Error("Selecione um pacote de créditos valido.");
 }
 
-function getAiCreditsCheckoutStatus(error: unknown) {
-  if (error instanceof ApiRouteError) {
-    return getErrorStatus(error);
-  }
-
-  if (error instanceof EnvValidationError) {
-    return 503;
-  }
-
-  if (error instanceof Error && error.name === "AiCreditPurchaseAccessError") {
-    return 402;
-  }
-
+function getPixErrorStatus(error: unknown) {
+  if (error instanceof ApiRouteError) return getErrorStatus(error);
+  if (error instanceof EnvValidationError) return 503;
+  if (error instanceof Error && error.name === "AiCreditPurchaseAccessError") return 402;
   return 400;
 }
 
-function getAiCreditsCheckoutMessage(error: unknown) {
-  if (error instanceof ApiRouteError) {
-    return error.message;
-  }
-
-  if (error instanceof EnvValidationError) {
-    return error.message;
-  }
-
+function getPixErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) return error.message;
+  if (error instanceof EnvValidationError) return error.message;
   return error instanceof Error && error.message
     ? error.message
-    : "Nao foi possivel iniciar a compra de créditos de IA.";
+    : "Nao foi possivel gerar o PIX.";
 }

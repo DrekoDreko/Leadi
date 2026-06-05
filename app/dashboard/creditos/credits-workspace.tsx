@@ -61,7 +61,7 @@ export function CreditsWorkspace({
     setLoadingKey(productKey);
 
     try {
-      const response = await fetch("/api/billing/mercadopago/checkout", {
+      const response = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -5,28 +5,31 @@ export function getBillingAppUrl() {
   return getSiteUrl();
 }
 
-export function getMercadoPagoAccessToken() {
-  return getServerEnv("MERCADO_PAGO_ACCESS_TOKEN");
-}
-
-export function getMercadoPagoWebhookSecret() {
-  return getServerEnv("MERCADO_PAGO_WEBHOOK_SECRET");
+export function getAbacatePayApiKey() {
+  return getServerEnv("ABACATE_PAY_API_KEY");
 }
 
 export function isBillingConfigured() {
   return isIntegrationConfigured("billing");
 }
 
-export function isMercadoPagoConfigured() {
-  return Boolean(getMercadoPagoAccessToken());
+export function isAbacatePayConfigured() {
+  return Boolean(getAbacatePayApiKey());
 }
 
-export function getMercadoPagoNotificationUrl() {
-  return `${getBillingAppUrl()}/api/billing/webhooks/mercadopago`;
+export function getAbacatePayWebhookUrl() {
+  return `${getBillingAppUrl()}/api/billing/webhooks/abacatepay`;
 }
 
-export function getMercadoPagoBackUrl(pathname: string) {
+export function getAbacatePayReturnUrl(pathname: string) {
   const baseUrl = new URL(getBillingAppUrl());
-  baseUrl.pathname = pathname;
+  baseUrl.pathname = pathname.split("?")[0];
+  const queryString = pathname.includes("?") ? pathname.split("?")[1] : "";
+  if (queryString) {
+    for (const param of queryString.split("&")) {
+      const [key, value] = param.split("=");
+      if (key) baseUrl.searchParams.set(key, value ?? "");
+    }
+  }
   return baseUrl.toString();
 }

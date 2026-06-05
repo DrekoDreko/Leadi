@@ -19,17 +19,12 @@ const ENV_INTEGRATIONS = {
   },
   billing: {
     message:
-      "Billing indisponivel. Configure NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY e MERCADO_PAGO_ACCESS_TOKEN no servidor.",
+      "Billing indisponivel. Configure NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY e ABACATE_PAY_API_KEY no servidor.",
     required: [
       "NEXT_PUBLIC_SUPABASE_URL",
       "SUPABASE_SERVICE_ROLE_KEY",
-      "MERCADO_PAGO_ACCESS_TOKEN"
+      "ABACATE_PAY_API_KEY"
     ]
-  },
-  mercadopago_webhook: {
-    message:
-      "Webhook do Mercado Pago sem assinatura configurada. Defina MERCADO_PAGO_WEBHOOK_SECRET para validar notificacoes em producao.",
-    required: ["MERCADO_PAGO_WEBHOOK_SECRET"]
   },
   meta_oauth: {
     message:

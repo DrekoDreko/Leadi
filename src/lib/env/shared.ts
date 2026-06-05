@@ -44,16 +44,8 @@ export const ENV_VARIABLES = {
     description: "Chave global da plataforma para chamadas server-side da OpenAI.",
     public: false
   },
-  NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY: {
-    description: "Chave publica do Mercado Pago usada pelo checkout client-side.",
-    public: true
-  },
-  MERCADO_PAGO_ACCESS_TOKEN: {
-    description: "Token server-side do Mercado Pago.",
-    public: false
-  },
-  MERCADO_PAGO_WEBHOOK_SECRET: {
-    description: "Segredo de assinatura do webhook do Mercado Pago.",
+  ABACATE_PAY_API_KEY: {
+    description: "Chave server-side do AbacatePay para pagamentos e assinaturas.",
     public: false
   },
   INTEGRATIONS_SECRET_KEY: {

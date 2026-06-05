@@ -9,7 +9,7 @@ import {
 } from "@/lib/billing/catalog";
 import { isBillingConfigured } from "@/lib/billing/config";
 import { createBillingPurchase, updateBillingPurchase } from "@/lib/billing/admin";
-import { createMercadoPagoCheckout } from "@/lib/billing/mercadopago";
+import { createAbacatePayCheckout } from "@/lib/billing/abacatepay";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import {
   ApiRouteError,
@@ -56,23 +56,21 @@ export async function POST(request: Request) {
       amountCents: product.amountCents
     });
 
-    const checkout = await createMercadoPagoCheckout({
+    const checkout = await createAbacatePayCheckout({
       title: product.label,
-      unitPrice: product.amountCents / 100,
-      quantity: 1,
+      amount: product.amountCents,
       externalReference: purchase.id,
-      purchaseId: purchase.id,
       description: `${product.description} - ${getProductPriceDisplay(product)}`,
-      payerEmail: context.email
+      customerEmail: context.email
     });
 
     await updateBillingPurchase(purchase.id, {
       externalReference: purchase.id,
-      preferenceId: checkout.preferenceId,
+      preferenceId: checkout.billingId,
       checkoutUrl: checkout.checkoutUrl,
       status: "pending",
       providerPayload: {
-        preference_id: checkout.preferenceId,
+        billing_id: checkout.billingId,
         checkout_url: checkout.checkoutUrl
       }
     });
@@ -80,7 +78,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       checkout: {
         purchaseId: purchase.id,
-        preferenceId: checkout.preferenceId,
+        billingId: checkout.billingId,
         checkoutUrl: checkout.checkoutUrl,
         product
       }
@@ -90,8 +88,8 @@ export async function POST(request: Request) {
     const message = getCheckoutErrorMessage(error);
 
     logApiError({
-      route: "/api/billing/mercadopago/checkout",
-      operation: "CREATE_MERCADOPAGO_CHECKOUT",
+      route: "/api/billing/checkout",
+      operation: "CREATE_ABACATEPAY_CHECKOUT",
       message,
       status,
       error
@@ -124,7 +122,7 @@ function getCheckoutErrorMessage(error: unknown) {
 
   return error instanceof Error && error.message
     ? error.message
-    : "Nao foi possivel iniciar a compra no Mercado Pago.";
+    : "Nao foi possivel iniciar a compra.";
 }
 
 function parseProductKey(value: unknown): BillingProductKey {
