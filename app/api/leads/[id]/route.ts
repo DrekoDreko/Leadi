@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   archiveLeadForCurrentUser,
+  unarchiveLeadForCurrentUser,
   updateLeadForCurrentUser,
   type LeadCreateInput
 } from "@/lib/leads/repository.server";
@@ -134,6 +135,70 @@ export async function DELETE(request: Request, context: RouteContext) {
       { status }
     );
   }
+}
+
+export async function PUT(request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  try {
+    const mode = isSupabaseConfigured() ? "supabase" : "not-configured";
+    assertSameOrigin(request);
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-lead-unarchive",
+      suffix: id,
+      limit: 30,
+      windowMs: 60 * 1000
+    });
+
+    if (mode !== "not-configured") {
+      await assertServerAuth();
+      const workspaceContext = await getCurrentWorkspaceContext();
+      if (!can(workspaceContext.role, "delete_archive_leads")) {
+        throw new ApiRouteError(403, "Voce nao tem permissao para desarquivar leads.");
+      }
+    }
+
+    await unarchiveLeadForCurrentUser(id);
+
+    return NextResponse.json({ ok: true, mode });
+  } catch (error) {
+    const status = getLeadMutationErrorStatus(error);
+    const errorMessage = getUnarchiveLeadErrorMessage(error);
+
+    logger.error({
+      route: `/api/leads/${id}`,
+      operation: "UNARCHIVE_LEAD",
+      status,
+      message: errorMessage
+    }, error);
+
+    return NextResponse.json(
+      { error: errorMessage },
+      { status }
+    );
+  }
+}
+
+function getUnarchiveLeadErrorMessage(error: unknown) {
+  if (error instanceof ApiRouteError) {
+    return error.message;
+  }
+
+  const message = error instanceof Error ? error.message : "";
+
+  if (message.includes("Usuario nao autenticado")) {
+    return "Sua sessao expirou. Entre novamente para desarquivar leads.";
+  }
+
+  if (message.includes("Lead nao encontrado")) {
+    return "Lead nao encontrado.";
+  }
+
+  if (message.includes("Sem permissao")) {
+    return "Voce nao tem permissao para desarquivar este lead.";
+  }
+
+  return "Nao foi possivel desarquivar o lead. Tente novamente em instantes.";
 }
 
 function getUpdateLeadErrorMessage(error: unknown) {

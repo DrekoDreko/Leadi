@@ -1158,6 +1158,43 @@ export async function archiveLeadForCurrentUser(id: string) {
   }
 }
 
+export async function unarchiveLeadForCurrentUser(id: string) {
+  if (!isSupabaseConfigured()) {
+    const lead = mockLeads.find(l => l.id === id);
+    if (lead) {
+      lead.archivedAt = null;
+      lead.archiveReason = null;
+    }
+    return;
+  }
+
+  const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+  const accessScope = await resolveLeadAccessScope(supabase, profile);
+  const hasMetaConnection = Boolean(
+    await getMetaConnectionForOrganization(profile.organization_id)
+  );
+  const existingLead = await getLeadForMutation(id, profile, accessScope, supabase);
+
+  assertCanManageLead(profile, existingLead, "desarquivar", hasMetaConnection);
+
+  const { data, error } = await supabase
+    .from("leads")
+    .update({ archived_at: null, archive_reason: null })
+    .eq("id", id)
+    .eq("organization_id", profile.organization_id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Lead nao encontrado.");
+  }
+}
+
 export const deleteLeadForCurrentUser = archiveLeadForCurrentUser;
 
 export async function listLeadCommentsForCurrentUser(id: string): Promise<LeadComment[]> {
@@ -2286,7 +2323,7 @@ async function assertCanAssignLeadOwner(
 function assertCanManageLead(
   profile: ProfileRow,
   lead: LeadRow,
-  action: "editar" | "excluir" | "arquivar",
+  action: "editar" | "excluir" | "arquivar" | "desarquivar",
   hasMetaConnection: boolean
 ) {
   if (canManageLead(profile, lead, hasMetaConnection)) {

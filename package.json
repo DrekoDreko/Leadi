@@ -10,7 +10,7 @@
     "security:check": "vitest run src/lib/security/client-code-guard.test.ts src/lib/integrations/crypto.server.test.ts",
     "webhook:check": "node scripts/check-lead-webhook-receipt.mjs",
     "webhook:test": "node scripts/test-lead-webhook.mjs",
-    "dev": "next dev -p 3001",
+    "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

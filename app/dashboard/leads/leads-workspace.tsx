@@ -45,6 +45,7 @@ import {
   type LeadDistributionResult,
   type LeadDistributionTargetType
 } from "@/components/dashboard/lead-distribution-controls";
+import { ArchivedLeadsModal } from "./archived-leads-modal";
 import { LeadCreateModal } from "./lead-create-modal";
 import { LeadFiltersPopup } from "@/components/dashboard/lead-filters-popup";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
@@ -129,6 +130,7 @@ export function LeadsWorkspace({
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [selectedLeadPanel, setSelectedLeadPanel] = useState<"details" | "message">(initialLeadPanel);
   const [isMetaImportOpen, setIsMetaImportOpen] = useState(false);
+  const [isArchivedOpen, setIsArchivedOpen] = useState(false);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
 
   const visibleLeads = sortLeadsByFirstContactPriority(leads);
@@ -611,7 +613,7 @@ export function LeadsWorkspace({
 
           <div className="grid gap-4 md:grid-cols-2">
             <SalesFunnelGateway />
-            <ArchivedLeadsGateway />
+            <ArchivedLeadsGateway onOpen={() => setIsArchivedOpen(true)} />
           </div>
         </>
       )}
@@ -622,6 +624,11 @@ export function LeadsWorkspace({
         onClose={() => setIsCreateOpen(false)}
         onCreated={handleLeadCreated}
         open={isCreateOpen}
+      />
+      <ArchivedLeadsModal
+        open={isArchivedOpen}
+        onClose={() => setIsArchivedOpen(false)}
+        onUnarchived={() => router.refresh()}
       />
       <MetaLeadImportModal
         open={isMetaImportOpen}
@@ -1315,85 +1322,46 @@ function SalesFunnelGateway() {
   return (
     <Link
       href="/dashboard/funil"
-      className="surface-card-muted group relative flex flex-col overflow-hidden rounded-[34px] p-1 transition-all hover:border-cobalt/30 hover:shadow-2xl hover:shadow-cobalt/10 sm:flex-row sm:items-center sm:gap-8"
+      className="surface-card group relative flex flex-col justify-between overflow-hidden rounded-[30px] p-5 transition-all hover:border-cobalt/30 hover:shadow-lg hover:shadow-cobalt/10"
     >
-      <div className="relative aspect-[16/10] overflow-hidden rounded-[30px] sm:aspect-square sm:w-[280px] sm:shrink-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/assets/kanban-animation.png"
-          alt="Funil de vendas"
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-        />
-        <div className="absolute inset-0 bg-gradient-to-tr from-cobalt/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-        
-        {/* Animated Hand/Cursor simulation */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:translate-x-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-4 ring-cobalt/10">
-            <div className="h-4 w-4 rounded-sm bg-cobalt animate-pulse" />
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-cobalt/10">
+          <Filter className="text-cobalt/60" size={20} />
         </div>
+        <p className="text-sm text-ink/54">Gestão Visual</p>
       </div>
-
-      <div className="flex flex-1 flex-col justify-center p-6 sm:p-4">
-        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-cobalt/60">
-          <div className="h-1.5 w-1.5 rounded-full bg-cobalt animate-pulse" />
-          Gestão Visual
-        </div>
-        <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-          Acessar funil de vendas
-        </h2>
-        <p className="mt-4 max-w-md text-lg leading-relaxed text-ink/60">
-          Visualize seus leads em um quadro Kanban interativo. Arraste e solte para mover contatos entre as etapas de venda.
-        </p>
-        
-        <div className="mt-8 flex items-center gap-3 text-sm font-bold text-cobalt">
-          Explorar Funil 
-          <ChevronRight className="transition-transform group-hover:translate-x-1" size={18} />
-        </div>
+      <div className="mt-3 flex flex-col gap-3">
+        <strong className="text-lg font-semibold text-ink">Acessar funil de vendas</strong>
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-cobalt/10 px-3 py-1.5 text-xs font-semibold text-cobalt">
+          Explorar Funil
+          <ChevronRight className="transition-transform group-hover:translate-x-1" size={14} />
+        </span>
       </div>
-
-      {/* Decorative element */}
-      <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-cobalt/5 blur-3xl transition-colors group-hover:bg-cobalt/10" />
     </Link>
   );
 }
 
-function ArchivedLeadsGateway() {
+function ArchivedLeadsGateway({ onOpen }: { onOpen: () => void }) {
   return (
-    <Link
-      href="/dashboard/leads/arquivados"
-      className="surface-card-muted group relative flex flex-col overflow-hidden rounded-[34px] p-1 transition-all hover:border-amber-500/30 hover:shadow-2xl hover:shadow-amber-500/10"
+    <button
+      type="button"
+      onClick={onOpen}
+      className="surface-card group relative flex w-full flex-col justify-between overflow-hidden rounded-[30px] p-5 text-left transition-all hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/10"
     >
-      <div className="relative aspect-[16/10] overflow-hidden rounded-[30px] sm:aspect-video sm:w-full">
-        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-50 to-amber-100/50">
-          <Archive
-            className="text-amber-500/40 transition-transform duration-700 group-hover:scale-110 group-hover:rotate-3"
-            size={80}
-          />
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-amber-100/60">
+          <Archive className="text-amber-500/60" size={20} />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+        <p className="text-sm text-ink/54">Histórico</p>
       </div>
-
-      <div className="flex flex-col justify-center p-6">
-        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-600/70">
-          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-          Histórico
-        </div>
-        <h2 className="mt-3 text-2xl font-bold tracking-tight text-ink">
-          Leads arquivados
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-ink/60">
-          Acesse a lista de leads que foram removidos do fluxo principal para manter sua organização limpa.
-        </p>
-        
-        <div className="mt-6 flex items-center gap-3 text-sm font-bold text-amber-600">
-          Ver Arquivados 
-          <ChevronRight className="transition-transform group-hover:translate-x-1" size={18} />
-        </div>
+      <div className="mt-3 flex flex-col gap-3">
+        <strong className="text-lg font-semibold text-ink">Leads arquivados</strong>
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-500/12 px-3 py-1.5 text-xs font-semibold text-amber-600">
+          Ver Arquivados
+          <ChevronRight className="transition-transform group-hover:translate-x-1" size={14} />
+        </span>
       </div>
-
-      <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-amber-500/5 blur-3xl transition-colors group-hover:bg-amber-500/10" />
-    </Link>
+    </button>
   );
 }
 
