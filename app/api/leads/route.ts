@@ -46,7 +46,9 @@ const leadCreateSchema = z.object({
   meta_campaign_id: z.string().trim().max(120).optional(),
   meta_adset_id: z.string().trim().max(120).optional(),
   meta_ad_id: z.string().trim().max(120).optional(),
-  meta_connected_account_id: z.string().trim().max(120).optional()
+  meta_connected_account_id: z.string().trim().max(120).optional(),
+  import_batch_id: z.string().trim().max(120).optional(),
+  raw_payload: z.record(z.string(), z.string()).optional()
 }).strict();
 
 

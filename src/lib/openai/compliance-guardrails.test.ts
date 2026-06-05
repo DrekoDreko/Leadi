@@ -22,6 +22,17 @@ describe("Compliance Guardrails", () => {
       expect(containsSensitiveCompliancePattern("Faça um comparativo de mercado e avalie uma possível redução de custos para a sua empresa.")).toBe(false);
       expect(containsSensitiveCompliancePattern("Estamos à disposição para ajudar sua equipe a encontrar a melhor opção.")).toBe(false);
     });
+
+    it("não deve disparar quando o termo aparece em contexto de negação", () => {
+      expect(containsSensitiveCompliancePattern("Evitar prometer aprovação imediata ou economia garantida.")).toBe(false);
+      expect(containsSensitiveCompliancePattern("Não prometer resultado garantido ao lead.")).toBe(false);
+      expect(containsSensitiveCompliancePattern("Sem prometer cobertura total no primeiro contato.")).toBe(false);
+    });
+
+    it("deve disparar quando o termo é usado afirmativamente mesmo com negação próxima de outro termo", () => {
+      expect(containsSensitiveCompliancePattern("Temos economia garantida para sua empresa.")).toBe(true);
+      expect(containsSensitiveCompliancePattern("Aprovação imediata do seu plano.")).toBe(true);
+    });
   });
 
   describe("reviewTextLocally", () => {
@@ -33,9 +44,13 @@ describe("Compliance Guardrails", () => {
 
     it("deve classificar linguagem agressiva como risco médio", () => {
       const review = reviewTextLocally("Pare de perder dinheiro e fale com nosso corretor.");
-      // It might match other rules, but definitely matches aggressive language.
       expect(["medium", "high"]).toContain(review.riskLevel);
       expect(review.reasons.some(r => r.title === "Linguagem agressiva ou tom imperativo")).toBe(true);
+    });
+
+    it("não deve gerar alerta para instruções internas com negação", () => {
+      const review = reviewTextLocally("Evitar prometer aprovação imediata ou economia garantida. Convidar o lead para uma análise do perfil.");
+      expect(review.riskLevel).toBe("low");
     });
   });
 });

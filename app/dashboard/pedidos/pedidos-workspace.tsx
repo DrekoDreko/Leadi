@@ -595,19 +595,6 @@ export function PedidosWorkspace({
                   ? "Abra o formulario para enviar a primeira solicitacao e acompanhar o andamento por aqui."
                   : "Abra o formulario para enviar o primeiro briefing e acompanhar os prazos por aqui."}
               </p>
-              <button
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={!canCreateRequests}
-                onClick={() => {
-                  if (canCreateRequests) {
-                    setIsFormOpen(true);
-                  }
-                }}
-                type="button"
-              >
-                <FilePlus2 size={18} aria-hidden="true" />
-                {workspaceVariant === "validator" ? "Criar primeira solicitacao" : "Criar primeiro pedido"}
-              </button>
             </div>
           ) : filteredRequests.length === 0 ? (
             <div className="rounded-[28px] border border-dashed border-white/55 bg-white/24 p-6">

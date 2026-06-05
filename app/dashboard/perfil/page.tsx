@@ -5,8 +5,6 @@ import {
   ArrowUpRight,
   BriefcaseBusiness,
   Building2,
-  Calculator,
-  Coins,
   Settings,
   Sparkles
 } from "lucide-react";
@@ -17,6 +15,7 @@ import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { updateBrokerageNameAction } from "./actions";
+import { ProfileAvatarUpload } from "./profile-avatar-upload";
 
 const brokerageFeedbackMessages: Record<string, string> = {
   failed: "Nao foi possivel salvar o nome da corretora agora.",
@@ -25,6 +24,14 @@ const brokerageFeedbackMessages: Record<string, string> = {
   "schema-missing":
     "O banco conectado ainda nao recebeu a migration de nome da corretora. Aplique a migration mais recente e tente novamente.",
   updated: "Nome comercial atualizado para as proximas mensagens e campanhas."
+};
+
+const avatarFeedbackMessages: Record<string, string> = {
+  updated: "Foto de perfil atualizada com sucesso.",
+  "no-file": "Selecione uma imagem para enviar.",
+  "invalid-type": "Formato inválido. Use JPG, PNG ou WebP.",
+  "too-large": "A imagem deve ter no máximo 2 MB.",
+  "upload-failed": "Não foi possível enviar a imagem agora.",
 };
 
 const integrationFeedbackMessages: Record<string, string> = {
@@ -44,6 +51,35 @@ const integrationFeedbackMessages: Record<string, string> = {
 const profileActionClassName =
   "rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white transition hover:bg-cobalt/90";
 
+type CardTone = "cobalt" | "lagoon" | "ink";
+
+const cardToneStyles: Record<
+  CardTone,
+  { title: string; badge: string; icon: string; cta: string; ctaHoverShadow: string }
+> = {
+  cobalt: {
+    title: "text-cobalt",
+    badge: "bg-cobalt/10 text-cobalt",
+    icon: "bg-cobalt/10 text-cobalt",
+    cta: "bg-cobalt text-white hover:bg-cobalt/90",
+    ctaHoverShadow: "group-hover:shadow-[0_12px_24px_rgba(52,98,238,0.24)]"
+  },
+  lagoon: {
+    title: "text-lagoon",
+    badge: "bg-lagoon/12 text-lagoon",
+    icon: "bg-lagoon/12 text-lagoon",
+    cta: "bg-lagoon text-white hover:bg-lagoon/90",
+    ctaHoverShadow: "group-hover:shadow-[0_12px_24px_rgba(0,150,136,0.22)]"
+  },
+  ink: {
+    title: "text-ink/80",
+    badge: "bg-ink/8 text-ink/70",
+    icon: "bg-ink/8 text-ink/60",
+    cta: "bg-ink/10 text-ink/60 cursor-not-allowed",
+    ctaHoverShadow: ""
+  }
+};
+
 export default async function PerfilPage({
   searchParams
 }: {
@@ -54,6 +90,7 @@ export default async function PerfilPage({
     meta?: string;
     openai?: string;
     sync?: string;
+    avatar?: string;
   }>;
 }) {
   const context = await requireCompletedProfile();
@@ -80,6 +117,9 @@ export default async function PerfilPage({
     (params?.sync && integrationFeedbackMessages[params.sync]) ||
     connectedAccounts.message ||
     null;
+  const avatarFeedback = params?.avatar
+    ? avatarFeedbackMessages[params.avatar] ?? null
+    : null;
   const canEditBrokerageName = context.isManager || context.isSoloOwner;
 
   return (
@@ -95,14 +135,28 @@ export default async function PerfilPage({
         </span>
       </PageHeading>
 
+      {avatarFeedback ? (
+        <p className="rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">
+          {avatarFeedback}
+        </p>
+      ) : null}
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <article className="glass-strong rounded-[34px] p-6">
           <p className="text-sm font-medium text-cobalt">Usuario</p>
-          <h2 className="mt-2 text-2xl font-semibold">{context.displayName}</h2>
-          <p className="mt-3 text-sm text-ink/58">{context.profile?.email ?? "Modo demonstracao"}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <ProfileAvatarUpload
+              currentAvatarUrl={context.profile?.avatar_url ?? null}
+              displayName={context.displayName}
+            />
+            <div>
+              <h2 className="text-2xl font-semibold">{context.displayName}</h2>
+              <p className="mt-1 text-sm text-ink/58">{context.profile?.email ?? "Modo demonstracao"}</p>
+            </div>
+          </div>
         </article>
 
-        <article className="glass rounded-[34px] p-6">
+        <article className="glass-strong rounded-[34px] p-6">
           <p className="text-sm font-medium text-cobalt">Empresa</p>
           <h2 className="mt-2 text-2xl font-semibold">{context.workspaceName}</h2>
           <p className="mt-3 text-sm text-ink/58">
@@ -110,7 +164,7 @@ export default async function PerfilPage({
           </p>
         </article>
 
-        <article className="glass rounded-[34px] p-6">
+        <article className="glass-strong rounded-[34px] p-6">
           <p className="text-sm font-medium text-cobalt">Meta</p>
           <h2 className="mt-2 text-2xl font-semibold">
             {connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
@@ -121,7 +175,7 @@ export default async function PerfilPage({
           </p>
         </article>
 
-        <article className="glass rounded-[34px] p-6">
+        <article className="glass-strong rounded-[34px] p-6">
           <p className="text-sm font-medium text-cobalt">Créditos de IA</p>
           <h2 className="mt-2 text-2xl font-semibold">{aiBalance.toLocaleString("pt-BR")}</h2>
           <p className="mt-3 text-sm text-ink/58">
@@ -182,21 +236,13 @@ export default async function PerfilPage({
         )}
       </section>
 
-      <section className="space-y-4">
+      <section className="glass space-y-5 rounded-[34px] p-6">
         <div className="flex items-center gap-3">
           <Building2 size={18} className="text-cobalt" aria-hidden="true" />
-          <h2 className="text-2xl font-semibold">Gerenciar conta</h2>
+          <h2 className="text-xl font-semibold">Gerenciar conta</h2>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <ManageLinkCard
-            cta="Gerenciar créditos"
-            description="Compre créditos para gerar campanhas, mensagens e análises com IA."
-            href="/dashboard/perfil/creditos"
-            icon={<Coins size={20} aria-hidden="true" />}
-            title="Créditos de IA"
-            statusText={aiBalance > 0 ? `${aiBalance.toLocaleString("pt-BR")} créditos` : "Sem saldo"}
-          />
           {connectedAccounts.canManageConnections ? (
             <ManageLinkCard
               cta="Gerenciar Meta"
@@ -205,6 +251,8 @@ export default async function PerfilPage({
               icon={<ArrowUpRight size={20} aria-hidden="true" />}
               title="Meta e contas conectadas"
               statusText={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
+              nested
+              tone="cobalt"
             />
           ) : (
             <ManageDisabledCard
@@ -213,6 +261,8 @@ export default async function PerfilPage({
               icon={<ArrowUpRight size={20} aria-hidden="true" />}
               title="Meta e contas conectadas"
               statusText={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}
+              nested
+              tone="cobalt"
             />
           )}
           <ManageLinkCard
@@ -222,14 +272,8 @@ export default async function PerfilPage({
             icon={<BriefcaseBusiness size={20} aria-hidden="true" />}
             title="Dados da empresa"
             statusText={context.workspaceType === "team" ? "Equipe" : "Individual"}
-          />
-          <ManageLinkCard
-            cta="Simulador de Preços"
-            description="Simule propostas e cotações de operadoras de planos de saúde líderes para seus leads."
-            href="/dashboard/simulador"
-            icon={<Calculator size={20} aria-hidden="true" />}
-            title="Simulador de Preços"
-            statusText="Protótipo"
+            nested
+            tone="lagoon"
           />
           <ManageDisabledCard
             cta="Em breve"
@@ -237,6 +281,8 @@ export default async function PerfilPage({
             icon={<Sparkles size={20} aria-hidden="true" />}
             title="OpenAI"
             statusText="Em breve"
+            nested
+            tone="ink"
           />
         </div>
       </section>
@@ -250,7 +296,9 @@ function ManageLinkCard({
   cta,
   href,
   icon,
-  statusText
+  statusText,
+  nested,
+  tone = "cobalt"
 }: {
   title: string;
   description: string;
@@ -258,32 +306,35 @@ function ManageLinkCard({
   href: string;
   icon: ReactNode;
   statusText?: string;
+  nested?: boolean;
+  tone?: CardTone;
 }) {
+  const t = cardToneStyles[tone];
   return (
     <Link
-      className="group glass flex h-full flex-col justify-between rounded-[34px] p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_80px_rgba(18,23,33,0.14)]"
+      className={`group flex h-full flex-col justify-between p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_80px_rgba(18,23,33,0.14)] ${nested ? "rounded-[24px] glass-strong" : "glass rounded-[34px]"}`}
       href={href}
     >
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-semibold text-cobalt">{title}</p>
+              <p className={`text-sm font-semibold ${t.title}`}>{title}</p>
               {statusText && (
-                <span className="inline-flex items-center rounded-full bg-white/70 px-2.5 py-0.5 text-xs font-semibold text-cobalt shadow-[0_4px_12px_rgba(18,23,33,0.02)] transition-all duration-300 group-hover:bg-white group-hover:scale-105">
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all duration-300 group-hover:scale-105 ${t.badge}`}>
                   {statusText}
                 </span>
               )}
             </div>
             <p className="mt-2 text-sm leading-6 text-ink/62">{description}</p>
           </div>
-          <span className="rounded-full bg-white/70 p-3 text-background transition-all duration-300 group-hover:scale-110 group-hover:bg-white group-hover:text-background">
+          <span className={`rounded-full p-3 transition-all duration-300 group-hover:scale-110 ${t.icon}`}>
             {icon}
           </span>
         </div>
       </div>
       <span
-        className={`${profileActionClassName} mt-6 inline-flex w-fit items-center gap-2 px-4 transition-all duration-300 group-hover:shadow-[0_12px_24px_rgba(52,98,238,0.24)]`}
+        className={`mt-6 inline-flex w-fit items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-300 ${t.cta} ${t.ctaHoverShadow}`}
       >
         {cta}
         <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
@@ -297,34 +348,39 @@ function ManageDisabledCard({
   description,
   cta,
   icon,
-  statusText
+  statusText,
+  nested,
+  tone = "cobalt"
 }: {
   title: string;
   description: string;
   cta: string;
   icon: ReactNode;
   statusText?: string;
+  nested?: boolean;
+  tone?: CardTone;
 }) {
+  const t = cardToneStyles[tone];
   return (
-    <div className="glass flex h-full flex-col justify-between rounded-[34px] p-6 text-left opacity-80 transition-all duration-300">
+    <div className={`flex h-full flex-col justify-between p-6 text-left opacity-80 transition-all duration-300 ${nested ? "rounded-[24px] glass-strong" : "glass rounded-[34px]"}`}>
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-semibold text-cobalt">{title}</p>
+              <p className={`text-sm font-semibold ${t.title}`}>{title}</p>
               {statusText && (
-                <span className="inline-flex items-center rounded-full bg-lagoon/12 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-lagoon">
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${t.badge}`}>
                   {statusText}
                 </span>
               )}
             </div>
             <p className="mt-2 text-sm leading-6 text-ink/62">{description}</p>
           </div>
-          <span className="rounded-full bg-white/70 p-3 text-background/70">{icon}</span>
+          <span className={`rounded-full p-3 ${t.icon}`}>{icon}</span>
         </div>
       </div>
       <button
-        className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-ink/10 px-4 py-3 text-sm font-semibold text-ink/60 cursor-not-allowed"
+        className={`mt-6 inline-flex w-fit items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold ${t.cta}`}
         disabled
         type="button"
       >

@@ -26,7 +26,8 @@ export type Permission =
   | "view_org_reports"
   | "view_team_reports"
   | "use_ai_messages"
-  | "use_ai_images";
+  | "use_ai_images"
+  | "edit_company_profile";
 
 export type WorkspaceRole = "owner" | "admin" | "seller";
 
@@ -59,4 +60,5 @@ export const PERMISSION_MAP: Record<Permission, WorkspaceRole[]> = {
   view_team_reports: ["owner", "admin"],
   use_ai_messages: ["owner", "admin", "seller"],
   use_ai_images: ["owner", "admin", "seller"],
+  edit_company_profile: ["owner"],
 };

@@ -57,6 +57,12 @@ const META_OAUTH_SCOPE_GROUP_DETAILS = {
       useCase: "Selecionar a conta de negocio conectada e operar ativos de anuncio.",
       evidence:
         "Necessario junto com ads_management para resolver a Business Manager da conta conectada."
+    },
+    {
+      scope: "pages_manage_ads",
+      useCase: "Criar ad creatives vinculados a uma Page para publicacao de anuncios.",
+      evidence:
+        "Necessario em src/lib/meta/campaign-publication.server.ts para criar anuncios com object_story_spec referenciando a Page."
     }
   ]
 } as const;

@@ -558,7 +558,7 @@ export function TeamSetupClient({
             </form>
           </section>
 
-          <section className="glass rounded-[34px] p-5">
+          <section className="glass-strong rounded-[34px] p-5">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-cobalt">Membros</p>
@@ -591,25 +591,46 @@ export function TeamSetupClient({
                   const canDemote = currentRole === "owner" && member.role === "admin";
                   const isBusy = busyMemberId === member.profileId;
 
+                  const roleBadge = getRoleBadgeClass(member.role);
+                  const status = getMemberStatusMeta(member.status);
+
                   return (
-                    <article className="rounded-[24px] bg-white/42 p-4" key={member.id}>
+                    <article
+                      className="flex flex-col rounded-[26px] border border-white/45 bg-white/38 p-4 shadow-soft transition hover:border-cobalt/28 hover:bg-white/52"
+                      key={member.id}
+                    >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-semibold">{member.name}</h3>
-                          <p className="mt-1 text-sm text-ink/56">{member.email}</p>
+                        <div className="flex items-center gap-3">
+                          <span
+                            aria-hidden="true"
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cobalt/12 text-sm font-semibold uppercase text-cobalt"
+                          >
+                            {getMemberInitials(member.name)}
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="truncate font-semibold">{member.name}</h3>
+                            <p className="mt-0.5 truncate text-sm text-ink/56">{member.email}</p>
+                          </div>
                         </div>
-                        <span className="rounded-full bg-white/64 px-3 py-1 text-xs font-semibold">
+                        <span
+                          className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] ${roleBadge}`}
+                        >
                           {getRoleLabel(member.role)}
                         </span>
                       </div>
-                      <p className="mt-4 text-sm font-medium text-ink/58">
-                        Status: {getMemberStatusLabel(member.status)}
-                      </p>
-                      {isSelf ? (
-                        <p className="mt-3 text-xs text-ink/54">Seu acesso atual</p>
-                      ) : null}
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-white/64 px-3 py-1 text-xs font-semibold text-ink/72">
+                          <span className={`h-2 w-2 rounded-full ${status.dotClass}`} aria-hidden="true" />
+                          {status.label}
+                        </span>
+                        {isSelf ? (
+                          <span className="rounded-full bg-cobalt/12 px-3 py-1 text-xs font-semibold text-cobalt">
+                            Você
+                          </span>
+                        ) : null}
+                      </div>
                       {canRemoveMember || canPromote || canDemote ? (
-                        <div className="mt-4 flex flex-wrap gap-2">
+                        <div className="mt-4 flex flex-wrap gap-2 border-t border-white/45 pt-4">
                           {canPromote ? (
                             <button
                               className="inline-flex items-center gap-2 rounded-full bg-cobalt px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
@@ -623,13 +644,13 @@ export function TeamSetupClient({
                           ) : null}
                           {canDemote ? (
                             <button
-                              className="inline-flex items-center gap-2 rounded-full bg-white/72 px-4 py-2 text-xs font-semibold text-ink disabled:opacity-60"
+                              className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:opacity-60"
                               disabled={isBusy}
                               onClick={() => promoteMember(member.profileId, "seller")}
                               type="button"
                             >
                               {isBusy ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : null}
-                              Rebaixar a consultor
+                              Tornar consultor
                             </button>
                           ) : null}
                           {canRemoveMember ? (
@@ -851,6 +872,46 @@ export function TeamSetupClient({
 
 function getRoleLabel(role: "owner" | "admin" | "seller" | InviteRole) {
   return role === "owner" ? "Owner" : role === "admin" ? "Admin" : "Consultor";
+}
+
+function getMemberInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return "?";
+  }
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+function getRoleBadgeClass(role: "owner" | "admin" | "seller" | InviteRole) {
+  if (role === "owner") {
+    return "bg-ink/85 text-cloud";
+  }
+
+  if (role === "admin") {
+    return "bg-cobalt/14 text-cobalt";
+  }
+
+  return "bg-white/64 text-ink/72";
+}
+
+function getMemberStatusMeta(status: TeamMember["status"]) {
+  const label = getMemberStatusLabel(status);
+
+  if (status === "active") {
+    return { label, dotClass: "bg-lagoon" };
+  }
+
+  if (status === "pending_approval" || status === "invited") {
+    return { label, dotClass: "bg-signal" };
+  }
+
+  return { label, dotClass: "bg-ink/30" };
 }
 
 function getMemberStatusLabel(status: TeamMember["status"]) {

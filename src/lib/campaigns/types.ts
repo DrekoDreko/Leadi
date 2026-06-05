@@ -40,6 +40,7 @@ export type CampaignGenerationForm = {
   metaCampaignId: string | null;
   metaAdSetId: string | null;
   metaAdId: string | null;
+  dailyBudget: number | null;
 };
 
 export type CampaignStatus = "generated" | "archived";
@@ -92,6 +93,7 @@ export type CampaignStoredInputPayload = {
     metaCampaignId: string | null;
     metaAdSetId: string | null;
     metaAdId: string | null;
+    dailyBudget: number | null;
   };
 };
 

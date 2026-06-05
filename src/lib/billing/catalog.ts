@@ -80,7 +80,7 @@ export const BILLING_PRODUCTS: Record<BillingProductKey, BillingProduct> = {
 };
 
 export const BILLING_FEATURE_COSTS: Record<BillingFeatureKey, number> = {
-  campaign: 4,
+  campaign: 25,
   campaign_questions: 4,
   whatsapp_message: 1
 };

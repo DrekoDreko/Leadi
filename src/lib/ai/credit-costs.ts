@@ -3,7 +3,7 @@ export const AI_CREDIT_COSTS = {
   generate_ad_copy: 2,
   generate_campaign_questions: 4,
   generate_creative_brief: 4,
-  generate_campaign_plan: 4,
+  generate_campaign_plan: 25,
   generate_compliance_review: 1,
   generate_ad_image: 5
 } as const;

@@ -30,7 +30,10 @@ describe("lead filters", () => {
         city: "",
         period: "all",
         search: "",
-        archived: false
+        archived: false,
+        owner: "",
+        campaign: "",
+        view: "all"
       })
     ).toBe(true);
   });

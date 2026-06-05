@@ -456,7 +456,8 @@ function buildMockCampaigns(limit: number): CampaignHistoryItem[] {
             approvalStatus: "not_required",
             metaCampaignId: null,
             metaAdSetId: null,
-            metaAdId: null
+            metaAdId: null,
+            dailyBudget: null
           },
     {
       campaignName: campaignDraft.title,
@@ -504,7 +505,8 @@ function buildMockCampaigns(limit: number): CampaignHistoryItem[] {
             approvalStatus: "not_required",
             metaCampaignId: null,
             metaAdSetId: null,
-            metaAdId: null
+            metaAdId: null,
+            dailyBudget: null
           },
           {
             campaignName: `Campanha demonstrativa ${index + 1}`,

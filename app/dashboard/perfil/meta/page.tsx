@@ -66,7 +66,7 @@ export default async function PerfilMetaPage({
         title="Meta e contas conectadas"
         description="Gerencie o perfil Meta, páginas, formulários, contas de anúncio e permissões da operação."
       >
-        <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
+        <span className="surface-pill-strong inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-ink">
           {context.workspaceName}
         </span>
         <MetaHeaderActions

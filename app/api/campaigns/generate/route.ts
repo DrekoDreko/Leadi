@@ -47,6 +47,7 @@ type CampaignRequestInput = CampaignTextInput & {
   metaCampaignId: string | null;
   metaAdSetId: string | null;
   metaAdId: string | null;
+  dailyBudget: number | null;
 };
 
 const MAX_FIELD_LENGTH = 280;
@@ -71,7 +72,8 @@ const campaignRequestSchema = z.object({
   creativeAssetType: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
   creativeRequestMode: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
   creativeBrief: z.string().trim().max(MAX_FIELD_LENGTH).optional(),
-  creativeFileNames: z.array(z.string().trim().min(1).max(MAX_FIELD_LENGTH)).max(10).optional()
+  creativeFileNames: z.array(z.string().trim().min(1).max(MAX_FIELD_LENGTH)).max(10).optional(),
+  dailyBudget: z.number().min(1).max(100000).optional()
 }).strict();
 
 export async function POST(request: Request) {
@@ -158,7 +160,8 @@ export async function POST(request: Request) {
           approvalStatus: billingContext.role === "seller" ? "pending" : "not_required",
           metaCampaignId: input.metaCampaignId,
           metaAdSetId: input.metaAdSetId,
-          metaAdId: input.metaAdId
+          metaAdId: input.metaAdId,
+          dailyBudget: input.dailyBudget ?? null
         },
         campaign: persistedCampaign
       };
@@ -250,6 +253,7 @@ function parseCampaignRequest(
     metaCampaignId,
     metaAdSetId,
     metaAdId,
+    dailyBudget: typeof body.dailyBudget === "number" ? body.dailyBudget : null,
     constraints: [
       `Diferencial informado: ${differentiator}`,
       objections ? `Principais objecoes a quebrar: ${objections}` : "",

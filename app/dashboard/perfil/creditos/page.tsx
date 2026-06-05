@@ -81,7 +81,7 @@ const AI_CONSUMPTION_CARDS: ConsumptionCardItem[] = [
   },
   {
     title: "Campanha completa",
-    consumption: "4 créditos por geração",
+    consumption: "25 créditos por geração",
     description:
       "Receba uma estrutura completa com público, oferta, chamada principal, textos e sugestões de campanha.",
     supportText: "Ideal para quem quer sair do zero com uma campanha pronta para revisão.",

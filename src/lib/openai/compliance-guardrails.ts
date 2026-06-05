@@ -55,7 +55,7 @@ export const LOCAL_COMPLIANCE_RULES: LocalComplianceRule[] = [
     suggestion:
       "Use linguagem de analise, comparacao e simulacao, sem prometer aprovacao na Meta, compliance absoluto ou resultado garantido.",
     pattern:
-      /garantid[ao]s?|aprova[cç][aã]o garantida|aprova[cç][aã]o imediata|100%\s*aprovad[ao]s?|aprovad[ao] pela meta|n[aã]o ser[aá] reprovad[ao]|sem risco de reprova[cç][aã]o|risco zero de reprova[cç][aã]o|reprova[cç][aã]o zero|compliance garantid[ao]|garantia (absoluta|total) de compliance|blindad[ao] contra reprova[cç][aã]o|cobertura total|sem car[eê]ncia|resultado garantido|cobertura imediata/i
+      /aprova[cç][aã]o garantida|aprova[cç][aã]o imediata|100%\s*aprovad[ao]s?|aprovad[ao] pela meta|n[aã]o ser[aá] reprovad[ao]|sem risco de reprova[cç][aã]o|risco zero de reprova[cç][aã]o|reprova[cç][aã]o zero|compliance garantid[ao]|garantia (absoluta|total) de compliance|blindad[ao] contra reprova[cç][aã]o|cobertura total|sem car[eê]ncia|resultado garantido|cobertura imediata/i
   },
   {
     title: "Promessa financeira agressiva",
@@ -122,11 +122,25 @@ const RISK_ORDER = {
 } as const;
 
 export function containsSensitiveCompliancePattern(text: string) {
-  return LOCAL_COMPLIANCE_RULES.some((rule) => rule.pattern.test(text));
+  return LOCAL_COMPLIANCE_RULES.some(
+    (rule) => rule.pattern.test(text) && !isNegatedMatch(text, rule.pattern)
+  );
+}
+
+const NEGATION_PREFIX =
+  /(?:evitar?|n[aã]o|sem)\s+(?:prometer|usar|mencionar|incluir|fazer|falar|citar|utilizar)\s+/i;
+
+function isNegatedMatch(text: string, pattern: RegExp): boolean {
+  const match = pattern.exec(text);
+  if (!match) return false;
+  const before = text.slice(Math.max(0, match.index - 60), match.index);
+  return NEGATION_PREFIX.test(before);
 }
 
 export function reviewTextLocally(text: string): LocalComplianceReview {
-  const matchedRules = LOCAL_COMPLIANCE_RULES.filter((rule) => rule.pattern.test(text));
+  const matchedRules = LOCAL_COMPLIANCE_RULES.filter(
+    (rule) => rule.pattern.test(text) && !isNegatedMatch(text, rule.pattern)
+  );
   const reasons = matchedRules.map((rule) => ({
     title: rule.title,
     detail: rule.detail,

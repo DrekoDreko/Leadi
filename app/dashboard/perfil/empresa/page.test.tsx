@@ -10,19 +10,43 @@ vi.mock("@/lib/workspaces/context", () => ({
 }));
 
 describe("Perfil Empresa Page (/dashboard/perfil/empresa)", () => {
-  it("renderiza um resumo simples da empresa", async () => {
+  it("renderiza as seções do perfil da empresa", async () => {
     vi.mocked(requireCompletedProfile).mockResolvedValue({
       workspaceName: "Gabriel Seguros",
       workspaceType: "team",
       brokerageName: "Gabriel Seguros",
-      isSoloOwner: false
+      role: "owner",
+      isSoloOwner: false,
+      workspace: {
+        id: "org-1",
+        name: "Gabriel Seguros",
+        type: "team",
+        logo_url: null,
+        email: null,
+        phone: null,
+        website: null,
+        cnpj: null,
+        description: null,
+        instagram: null,
+        linkedin: null,
+        address_cep: null,
+        address_street: null,
+        address_number: null,
+        address_complement: null,
+        address_neighborhood: null,
+        address_city: null,
+        address_state: null,
+        plan_type: null,
+        plan_status: null,
+      }
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    const Page = await PerfilEmpresaPage();
+    const Page = await PerfilEmpresaPage({ searchParams: Promise.resolve({}) });
     render(Page);
 
     expect(screen.getByText("Dados da empresa")).toBeInTheDocument();
-    expect(screen.getAllByText("Gabriel Seguros").length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /Gerenciar Meta/i })).toBeInTheDocument();
+    expect(screen.getByText("Identidade da empresa")).toBeInTheDocument();
+    expect(screen.getByText("Contato")).toBeInTheDocument();
+    expect(screen.getByText("Endereço")).toBeInTheDocument();
   });
 });

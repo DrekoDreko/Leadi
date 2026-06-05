@@ -22,6 +22,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const workspaceContext = await requireCompletedProfile();
   const resolvedSearchParams = await searchParams;
   const leadFilters = parseLeadUrlFilters(resolvedSearchParams);
+
+  if (workspaceContext.isOwner && !resolvedSearchParams?.view) {
+    leadFilters.view = "unassigned";
+  }
   const initialLeadId = Array.isArray(resolvedSearchParams?.lead)
     ? resolvedSearchParams?.lead[0]
     : resolvedSearchParams?.lead;
@@ -46,6 +50,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       initialLeadId={initialLeadId ?? null}
       initialLeadPanel={initialLeadPanel === "message" ? "message" : "details"}
       canManageLeadOwners={workspaceContext.isManager}
+      isOwner={workspaceContext.isOwner}
+      canDistributeToSupervisors={workspaceContext.isOwner}
       canExportLeads={canExportLeads}
       canImportLeads={canImportLeads}
       leadFilters={leadFilters}

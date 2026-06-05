@@ -64,6 +64,7 @@ export default async function DistribuirLeadsPage({ searchParams }: DistribuirLe
       initialLeadId={initialLeadId ?? null}
       initialLeadPanel={initialLeadPanel === "message" ? "message" : "details"}
       canManageLeadOwners={workspaceContext.isManager}
+      canDistributeToSupervisors={workspaceContext.isOwner}
       leadFilters={leadFilters}
       leadOwnerOptions={leadOwnerOptions}
       leadState={leadState}

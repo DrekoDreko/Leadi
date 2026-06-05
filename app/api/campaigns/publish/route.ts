@@ -19,7 +19,8 @@ import {
 
 const publishCampaignSchema = z.object({
   campaignId: requiredTrimmedString("Informe o id da campanha.").max(120),
-  publishMode: z.enum(["draft", "manual_review", "scheduled", "paused"]).optional()
+  publishMode: z.enum(["draft", "manual_review", "scheduled", "paused"]).optional(),
+  dailyBudget: z.number().min(1).max(100000).optional()
 });
 
 export async function POST(request: Request) {
@@ -59,7 +60,8 @@ export async function POST(request: Request) {
       organizationId: identity.organization.id,
       campaignId,
       createdByProfileId: identity.profile.id,
-      publishMode
+      publishMode,
+      dailyBudget: body.dailyBudget
     });
 
     return NextResponse.json({

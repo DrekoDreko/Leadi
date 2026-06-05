@@ -18,6 +18,12 @@ import {
 import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import { normalizeEmail, normalizePhone, stringOrNull } from "@/lib/leads/normalization";
 import { type LeadDataMode } from "@/lib/leads/repository";
+import type { LeadOwnerOption } from "@/lib/leads/repository.server";
+import {
+  LeadDistributionControls,
+  type LeadDistributionResult,
+  type LeadDistributionTargetType
+} from "@/components/dashboard/lead-distribution-controls";
 import {
   buildSuggestedLeadImportMapping,
   FIXED_CSV_SOURCE_VALUE,
@@ -56,6 +62,7 @@ type ImportRunSummary = {
   mode: LeadDataMode;
   batchId: string | null;
   undone: boolean;
+  createdLeadIds: string[];
 };
 
 const previewFields: LeadImportFieldKey[] = ["name", "email", "phone", "city", "source", "interest", "notes"];
@@ -63,11 +70,17 @@ const previewFields: LeadImportFieldKey[] = ["name", "email", "phone", "city", "
 export function CsvImportWorkspace({
   canCreateMetaAdsLeads,
   createLeadAccess,
-  metaConnectedAccountId
+  metaConnectedAccountId,
+  canDistribute = false,
+  canDistributeToSupervisors = false,
+  leadOwnerOptions = []
 }: {
   canCreateMetaAdsLeads: boolean;
   createLeadAccess: ResourceAccessSummary;
   metaConnectedAccountId: string | null;
+  canDistribute?: boolean;
+  canDistributeToSupervisors?: boolean;
+  leadOwnerOptions?: LeadOwnerOption[];
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +99,11 @@ export function CsvImportWorkspace({
   const [importSummary, setImportSummary] = useState<ImportRunSummary | null>(null);
   const [reportStatus, setReportStatus] = useState<string | null>(null);
   const [undoStatus, setUndoStatus] = useState<string | null>(null);
+  const [distributionFeedback, setDistributionFeedback] = useState<{
+    tone: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [distributionDone, setDistributionDone] = useState(false);
   const isMetaLeadAdsImport = useMemo(
     () => (parsedFile ? isLikelyMetaLeadAdsExport(parsedFile.headers) : false),
     [parsedFile]
@@ -111,10 +129,6 @@ export function CsvImportWorkspace({
     parsedFile !== null &&
     validRows.length > 0 &&
     mapping.name.trim().length > 0;
-
-  function openFilePicker() {
-    fileInputRef.current?.click();
-  }
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -196,10 +210,13 @@ export function CsvImportWorkspace({
     setImportSummary(null);
     setReportStatus(null);
     setUndoStatus(null);
+    setDistributionFeedback(null);
+    setDistributionDone(false);
     setImportProgress({ current: 0, total: validRows.length });
 
     const duplicates: Array<{ index: number; reason: string }> = [];
     const errors: Array<{ index: number; reason: string }> = [];
+    const createdLeadIds: string[] = [];
     const ignored = invalidRows.map((row) => ({
       index: row.index,
       reason: row.issues.join(" • ")
@@ -227,7 +244,7 @@ export function CsvImportWorkspace({
             })
           });
           const data = (await response.json()) as {
-            lead?: unknown;
+            lead?: { id?: string } | null;
             mode?: LeadDataMode;
             status?: "created" | "duplicate";
             error?: string;
@@ -244,6 +261,10 @@ export function CsvImportWorkspace({
             });
           } else {
             created += 1;
+          }
+
+          if (typeof data.lead.id === "string" && data.lead.id.length > 0) {
+            createdLeadIds.push(data.lead.id);
           }
 
           detectedMode = data.mode ?? detectedMode;
@@ -265,10 +286,21 @@ export function CsvImportWorkspace({
         errors,
         mode: detectedMode,
         batchId: importBatchId,
-        undone: false
+        undone: false,
+        createdLeadIds
       });
 
-      if (created > 0 && errors.length === 0 && detectedMode === "supabase") {
+      // Quando o gestor pode distribuir, mantemos a tela de sucesso aberta para que
+      // ele reparta os leads importados (aos supervisores ou consultores) antes de sair.
+      const shouldOfferDistribution =
+        canDistribute && createdLeadIds.length > 0 && detectedMode === "supabase";
+
+      if (
+        !shouldOfferDistribution &&
+        created > 0 &&
+        errors.length === 0 &&
+        detectedMode === "supabase"
+      ) {
         router.push("/dashboard/leads");
         router.refresh();
       }
@@ -346,11 +378,30 @@ export function CsvImportWorkspace({
     setImportSummary(null);
     setReportStatus(null);
     setUndoStatus(null);
+    setDistributionFeedback(null);
+    setDistributionDone(false);
     setImportProgress(null);
     setMapping(buildSuggestedLeadImportMapping([]));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  }
+
+  function handleImportDistributed(
+    result: LeadDistributionResult,
+    targetType: LeadDistributionTargetType
+  ) {
+    const count = result.updatedCount ?? result.leads?.length ?? 0;
+    const targetLabel = targetType === "supervisor" ? "supervisores" : "consultores";
+    setDistributionDone(true);
+    setDistributionFeedback({
+      tone: "success",
+      text: `${count} lead(s) distribuído(s) entre os ${targetLabel}.`
+    });
+  }
+
+  function handleImportDistributionError(message: string) {
+    setDistributionFeedback({ tone: "error", text: message });
   }
 
   async function copyImportReport() {
@@ -401,15 +452,15 @@ export function CsvImportWorkspace({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 bg-cloud px-5 py-3 text-sm font-semibold text-slate-950 shadow-soft transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/12"
-              disabled={isParsing || isImporting}
-              onClick={openFilePicker}
-              type="button"
+            <label
+              className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-white/60 bg-cloud px-5 py-3 text-sm font-semibold text-slate-950 shadow-soft transition hover:bg-white dark:border-white/12 ${
+                isParsing || isImporting ? "pointer-events-none cursor-not-allowed opacity-70" : ""
+              }`}
+              htmlFor="csv-file-input"
             >
               {isParsing ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <Upload size={18} aria-hidden="true" />}
               {parsedFile ? "Trocar arquivo" : "Selecionar CSV"}
-            </button>
+            </label>
 
             {parsedFile ? (
               <button
@@ -430,6 +481,7 @@ export function CsvImportWorkspace({
         accept=".csv,text/csv"
         aria-label="Selecionar arquivo CSV"
         className="sr-only"
+        id="csv-file-input"
         onChange={handleFileChange}
         ref={fileInputRef}
         type="file"
@@ -778,6 +830,40 @@ export function CsvImportWorkspace({
                     atualizados no processo permanecem como estavam.
                   </p>
                 ) : null}
+
+                {canDistribute &&
+                importSummary.mode === "supabase" &&
+                importSummary.createdLeadIds.length > 0 &&
+                !importSummary.undone ? (
+                  <div className="mt-5 rounded-[22px] border border-cobalt/14 bg-cobalt/6 px-4 py-4">
+                    <p className="text-sm font-semibold text-ink">Distribuir leads importados</p>
+                    <p className="mt-1 text-sm text-ink/60">
+                      {canDistributeToSupervisors
+                        ? "Escolha entre supervisores ou consultores. Use 'Dividir igualmente' para repartir os leads automaticamente."
+                        : "Distribua para os consultores da sua equipe. Use 'Dividir igualmente' para repartir os leads automaticamente."}
+                    </p>
+                    {distributionDone ? (
+                      <p className="mt-3 text-sm font-medium text-emerald-600">
+                        {distributionFeedback?.text}
+                      </p>
+                    ) : (
+                      <div className="mt-3">
+                        <LeadDistributionControls
+                          leadIds={importSummary.createdLeadIds}
+                          leadOwnerOptions={leadOwnerOptions}
+                          canChooseSupervisors={canDistributeToSupervisors}
+                          onDistributed={handleImportDistributed}
+                          onError={handleImportDistributionError}
+                        />
+                        {distributionFeedback?.tone === "error" ? (
+                          <p className="mt-3 text-sm font-medium text-rose-600">
+                            {distributionFeedback.text}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -834,23 +920,19 @@ export function CsvImportWorkspace({
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-dashed border-cobalt/24 bg-white/46 p-6">
+            <label
+              className="block w-full cursor-pointer rounded-[28px] border border-dashed border-cobalt/24 bg-white/46 p-6 text-left transition hover:border-cobalt/40 hover:bg-white/60"
+              htmlFor="csv-file-input"
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
                 <Upload size={20} aria-hidden="true" />
               </div>
               <p className="mt-4 text-lg font-semibold">Enviar arquivo CSV</p>
               <p className="mt-2 text-sm leading-6 text-ink/60">
-                Clique para escolher um arquivo e abrir a tela de mapeamento.
+                Clique aqui ou no botão “Selecionar CSV” acima para escolher um arquivo e abrir a
+                tela de mapeamento.
               </p>
-              <button
-                className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900 dark:border dark:border-white/12 dark:bg-cloud dark:text-slate-950 dark:hover:bg-white"
-                onClick={openFilePicker}
-                type="button"
-              >
-                <Upload size={18} aria-hidden="true" />
-                Selecionar CSV
-              </button>
-            </div>
+            </label>
           </div>
         </section>
       )}

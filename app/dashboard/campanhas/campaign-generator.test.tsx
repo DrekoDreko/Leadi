@@ -122,7 +122,7 @@ describe("CampaignGenerator", () => {
     renderGenerator(0);
 
     expect(screen.getByText("Créditos de IA insuficientes")).toBeInTheDocument();
-    expect(screen.getByText("Anúncios publicados")).toBeInTheDocument();
+    expect(screen.getAllByText("Anúncios publicados").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Leads captados")).toBeInTheDocument();
     expect(screen.getByText("Valor gasto por lead")).toBeInTheDocument();
     expect(screen.getByText("Créditos de geração de anúncio")).toBeInTheDocument();
@@ -146,10 +146,10 @@ describe("CampaignGenerator", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Público, oferta e região/i }));
 
-    expect(screen.getByLabelText("Público")).toHaveValue(
+    expect(screen.getByLabelText("Perfil do público-alvo")).toHaveValue(
       "MEIs e pequenos CNPJs com 2 a 4 vidas que querem entender se já podem contratar um plano empresarial."
     );
-    expect(screen.getByLabelText("Oferta")).toHaveValue(
+    expect(screen.getByLabelText("Oferta e benefícios")).toHaveValue(
       "Análise consultiva para validar elegibilidade, documentação e caminhos de contratação conforme o perfil da empresa."
     );
     expect(screen.getByText("São Paulo")).toBeInTheDocument();
@@ -201,17 +201,14 @@ describe("CampaignGenerator", () => {
     fireEvent.click(screen.getByRole("button", { name: /Modo de publicação/i }));
     fireEvent.click(screen.getByRole("button", { name: /Publicar pausada na Meta/i }));
 
-    expect(screen.getByText("Modo pausado selecionado")).toBeInTheDocument();
+    expect(screen.getByText("Categoria Especial de Anuncio")).toBeInTheDocument();
     expect(screen.getByText("Pronta para publicar pausada")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Resumo da campanha/i }));
 
-    expect(
-      screen.getByText("Publicacao pausada: a campanha sera preparada, nao ativada.")
-    ).toBeInTheDocument();
-    expect(screen.getByText("Leadi Saúde")).toBeInTheDocument();
-    expect(screen.getByText("Conta de anúncio")).toBeInTheDocument();
-    expect(screen.getByText("Formulário consultivo")).toBeInTheDocument();
+    expect(screen.getAllByText("Leadi Saúde").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Conta de anúncio").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Formulário consultivo").length).toBeGreaterThanOrEqual(1);
   });
 });
 

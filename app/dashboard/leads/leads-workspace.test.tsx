@@ -164,7 +164,7 @@ describe("LeadsWorkspace bulk assignment", () => {
       />
     );
 
-    expect(screen.queryByText("Distribuir em lote")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dividir igualmente")).not.toBeInTheDocument();
   });
 
   it("mantem o badge Novo apenas para leads sem primeiro contato e joga os contatados para baixo", () => {
@@ -214,7 +214,7 @@ describe("LeadsWorkspace bulk assignment", () => {
     );
   });
 
-  it("permite selecionar leads e distribuir em lote para um consultor", async () => {
+  it("permite selecionar leads e distribuir para um consultor", async () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -251,10 +251,10 @@ describe("LeadsWorkspace bulk assignment", () => {
 
     fireEvent.click(screen.getByLabelText(`Selecionar lead ${mockLeads[0].name}`));
     fireEvent.click(screen.getByLabelText(`Selecionar lead ${mockLeads[1].name}`));
-    fireEvent.change(screen.getByLabelText("Distribuir leads selecionados para"), {
+    fireEvent.change(screen.getByLabelText("Distribuir leads para consultor"), {
       target: { value: "demo-profile-fernanda" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "Distribuir em lote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Distribuir" }));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith("/api/leads/assign", {
@@ -270,7 +270,9 @@ describe("LeadsWorkspace bulk assignment", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("2 leads foram distribuidos para Fernanda.")).toBeInTheDocument();
+      expect(
+        screen.getByText("2 leads foram distribuidos para os consultores.")
+      ).toBeInTheDocument();
     });
 
     expect(routerRefresh).toHaveBeenCalled();

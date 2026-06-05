@@ -46,6 +46,7 @@ export default async function ArchivedLeadsPage({ searchParams }: ArchivedLeadsP
   return (
     <LeadsWorkspace
       canManageLeadOwners={workspaceContext.isManager}
+      canDistributeToSupervisors={workspaceContext.isOwner}
       canExportLeads={canExportLeads}
       canImportLeads={canImportLeads}
       createLeadAccess={createLeadAccess}

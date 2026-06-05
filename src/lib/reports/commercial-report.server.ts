@@ -393,7 +393,7 @@ export async function getCommercialReportForCurrentUser(
       message:
         leads.length === 0
           ? "Nenhum lead encontrado para os filtros selecionados."
-          : `Dados consolidados a partir de ${leads.length} leads, ${campaigns.length} campanhas registradas e ${accessibleProfiles.length} consultores visíveis.`
+          : `${leads.length} leads · ${campaigns.length} campanhas · ${accessibleProfiles.length} consultores`
     };
   } catch (error) {
     return buildErrorReport(filters, error instanceof Error ? error.message : "Nao foi possivel carregar os relatórios.");

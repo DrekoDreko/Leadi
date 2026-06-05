@@ -38,6 +38,7 @@ export const leadPeriodFilterOptions = [
 
 export type LeadSourceFilterValue = (typeof leadSourceFilterOptions)[number]["value"];
 export type LeadPeriodFilterValue = (typeof leadPeriodFilterOptions)[number]["value"];
+export type LeadViewFilterValue = "all" | "unassigned" | "distributed";
 
 export type LeadUrlFilters = {
   stage: LeadStageFilterValue;
@@ -48,6 +49,7 @@ export type LeadUrlFilters = {
   archived: boolean;
   owner: string;
   campaign: string;
+  view: LeadViewFilterValue;
 };
 
 export const filterKeys: Array<keyof LeadUrlFilters> = [
@@ -58,7 +60,8 @@ export const filterKeys: Array<keyof LeadUrlFilters> = [
   "search",
   "archived",
   "owner",
-  "campaign"
+  "campaign",
+  "view"
 ];
 
 export const defaultLeadUrlFilters: LeadUrlFilters = {
@@ -69,12 +72,14 @@ export const defaultLeadUrlFilters: LeadUrlFilters = {
   search: "",
   archived: false,
   owner: "",
-  campaign: ""
+  campaign: "",
+  view: "all"
 };
 
 const stageValues = new Set<string>(leadStageFilterOptions.map((option) => option.value));
 const sourceValues = new Set<string>(leadSourceFilterOptions.map((option) => option.value));
 const periodValues = new Set<string>(leadPeriodFilterOptions.map((option) => option.value));
+const viewValues = new Set<string>(["all", "unassigned", "distributed"]);
 
 export function parseLeadUrlFilters(input: LeadSearchParamsInput): LeadUrlFilters {
   return {
@@ -86,6 +91,7 @@ export function parseLeadUrlFilters(input: LeadSearchParamsInput): LeadUrlFilter
     archived: readSearchParam(input, "archived") === "true",
     owner: normalizeFilterText(readSearchParam(input, "owner")),
     campaign: normalizeFilterText(readSearchParam(input, "campaign")),
+    view: parseFilterValue(input, "view", viewValues, defaultLeadUrlFilters.view),
   };
 }
 
@@ -111,6 +117,14 @@ export function applyLeadUrlFilters(lead: Lead, filters: LeadUrlFilters) {
   }
 
   if (filters.city && !lead.city?.toLowerCase().includes(filters.city.toLowerCase())) {
+    return false;
+  }
+
+  if (filters.view === "unassigned" && lead.ownerProfileId) {
+    return false;
+  }
+
+  if (filters.view === "distributed" && !lead.ownerProfileId) {
     return false;
   }
 

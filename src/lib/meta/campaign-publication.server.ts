@@ -88,6 +88,7 @@ type MetaMarketingPublicationInput = {
   campaignId: string;
   createdByProfileId: string;
   publishMode?: CampaignPublishMode;
+  dailyBudget?: number;
 };
 
 type MetaMarketingPublicationResult = {
@@ -180,19 +181,76 @@ export async function publishPausedMetaCampaign(
       campaignName: campaign.campaign_name
     });
 
+    if (!metaCampaign.id) {
+      throw new Error("A Meta nao retornou o ID da campanha criada.");
+    }
+
+    let metaAdSetId: string | null = null;
+    let metaAdCreativeId: string | null = null;
+    let metaAdId: string | null = null;
+
+    const dailyBudgetCents = input.dailyBudget
+      ? Math.round(input.dailyBudget * 100)
+      : 2000;
+
+    if (campaign.meta_page_id && campaign.meta_lead_form_id) {
+      const adSet = await createPausedAdSet({
+        accessToken,
+        adAccountId: campaign.meta_ad_account_id,
+        campaignId: metaCampaign.id,
+        name: `${campaign.campaign_name} - Conjunto`,
+        dailyBudgetCents,
+        pageId: campaign.meta_page_id,
+        leadFormId: campaign.meta_lead_form_id
+      });
+      metaAdSetId = adSet.id ?? null;
+
+      if (metaAdSetId) {
+        const adCreative = await createAdCreative({
+          accessToken,
+          adAccountId: campaign.meta_ad_account_id,
+          name: `${campaign.campaign_name} - Criativo`,
+          pageId: campaign.meta_page_id,
+          primaryText: campaign.primary_text,
+          headline: campaign.headline,
+          description: campaign.description,
+          callToAction: campaign.call_to_action
+        });
+        metaAdCreativeId = adCreative.id ?? null;
+
+        if (metaAdCreativeId) {
+          const ad = await createPausedAd({
+            accessToken,
+            adAccountId: campaign.meta_ad_account_id,
+            adSetId: metaAdSetId,
+            creativeId: metaAdCreativeId,
+            name: `${campaign.campaign_name} - Anuncio`
+          });
+          metaAdId = ad.id ?? null;
+        }
+      }
+    }
+
     const updatedCampaign = await updateCampaignAfterPublication(supabase, campaign.id, {
-      metaCampaignId: metaCampaign.id ?? null,
+      metaCampaignId: metaCampaign.id,
+      metaAdSetId,
+      metaAdId,
     });
 
     const updatedAttempt = await updateAttempt(supabase, attempt.id, {
       status: "success",
       response_payload: buildSanitizedResponsePayload({
-        metaCampaignId: metaCampaign.id ?? null,
-        success: metaCampaign.success ?? Boolean(metaCampaign.id),
+        metaCampaignId: metaCampaign.id,
+        metaAdSetId,
+        metaAdCreativeId,
+        metaAdId,
+        success: true,
         status: "PAUSED"
       }),
       error_message: null,
-      meta_campaign_id: metaCampaign.id ?? null
+      meta_campaign_id: metaCampaign.id,
+      meta_adset_id: metaAdSetId,
+      meta_ad_id: metaAdId
     });
 
     return {
@@ -319,15 +377,21 @@ async function updateCampaignAfterPublication(
   campaignId: string,
   input: {
     metaCampaignId: string | null;
+    metaAdSetId?: string | null;
+    metaAdId?: string | null;
   }
 ) {
+  const hasFullStack = Boolean(input.metaCampaignId && input.metaAdSetId && input.metaAdId);
   const { data, error } = await supabase
     .from("campaigns")
     .update({
       publication_status: "paused",
-      publication_message:
-        "Campanha enviada para a Meta em modo pausado. A ativacao continua manual ate a equipe liberar a veiculacao.",
+      publication_message: hasFullStack
+        ? "Campanha completa (campanha + conjunto + anuncio) enviada para a Meta em modo pausado."
+        : "Campanha enviada para a Meta em modo pausado. A ativacao continua manual ate a equipe liberar a veiculacao.",
       meta_campaign_id: input.metaCampaignId,
+      meta_adset_id: input.metaAdSetId ?? null,
+      meta_ad_id: input.metaAdId ?? null,
       published_at: new Date().toISOString(),
       last_publication_attempt_at: new Date().toISOString(),
       last_publication_error: null,
@@ -416,7 +480,7 @@ async function createPausedMetaCampaign(input: {
   body.set("name", input.campaignName);
   body.set("objective", "OUTCOME_LEADS");
   body.set("status", "PAUSED");
-  body.set("special_ad_categories", "[]");
+  body.set("special_ad_categories", JSON.stringify(["CREDIT"]));
 
   const response = await fetch(url, {
     method: "POST",
@@ -442,6 +506,179 @@ async function createPausedMetaCampaign(input: {
   }
 
   return payload as MetaCampaignCreateResponse;
+}
+
+async function createPausedAdSet(input: {
+  accessToken: string;
+  adAccountId: string;
+  campaignId: string;
+  name: string;
+  dailyBudgetCents: number;
+  pageId: string;
+  leadFormId: string;
+}) {
+  const url = new URL(
+    `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${sanitizeAdAccountId(input.adAccountId)}/adsets`
+  );
+
+  const body = new URLSearchParams();
+  body.set("campaign_id", input.campaignId);
+  body.set("name", input.name);
+  body.set("billing_event", "IMPRESSIONS");
+  body.set("optimization_goal", "LEAD_GENERATION");
+  body.set("daily_budget", String(input.dailyBudgetCents));
+  body.set("status", "PAUSED");
+  body.set("promoted_object", JSON.stringify({
+    page_id: input.pageId,
+    leadgen_form_id: input.leadFormId
+  }));
+  body.set("targeting", JSON.stringify({
+    geo_locations: { countries: ["BR"] },
+    age_min: 18
+  }));
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body,
+    cache: "no-store"
+  });
+
+  const payload = (await response.json().catch(() => null)) as MetaCampaignCreateResponse | {
+    error?: { message?: string };
+  } | null;
+
+  if (!response.ok) {
+    const errorMessage = (payload as { error?: { message?: string } } | null)?.error?.message;
+    throw new Error(
+      errorMessage
+        ? `Falha ao criar conjunto de anuncios na Meta: ${errorMessage}`
+        : `Falha ao criar conjunto de anuncios na Meta: status ${response.status}.`
+    );
+  }
+
+  return payload as MetaCampaignCreateResponse;
+}
+
+async function createAdCreative(input: {
+  accessToken: string;
+  adAccountId: string;
+  name: string;
+  pageId: string;
+  primaryText: string;
+  headline: string;
+  description: string;
+  callToAction: string;
+}) {
+  const url = new URL(
+    `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${sanitizeAdAccountId(input.adAccountId)}/adcreatives`
+  );
+
+  const ctaType = mapCallToActionType(input.callToAction);
+
+  const body = new URLSearchParams();
+  body.set("name", input.name);
+  body.set("object_story_spec", JSON.stringify({
+    page_id: input.pageId,
+    link_data: {
+      message: input.primaryText,
+      name: input.headline,
+      description: input.description,
+      call_to_action: { type: ctaType }
+    }
+  }));
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body,
+    cache: "no-store"
+  });
+
+  const payload = (await response.json().catch(() => null)) as MetaCampaignCreateResponse | {
+    error?: { message?: string };
+  } | null;
+
+  if (!response.ok) {
+    const errorMessage = (payload as { error?: { message?: string } } | null)?.error?.message;
+    throw new Error(
+      errorMessage
+        ? `Falha ao criar criativo do anuncio na Meta: ${errorMessage}`
+        : `Falha ao criar criativo do anuncio na Meta: status ${response.status}.`
+    );
+  }
+
+  return payload as MetaCampaignCreateResponse;
+}
+
+async function createPausedAd(input: {
+  accessToken: string;
+  adAccountId: string;
+  adSetId: string;
+  creativeId: string;
+  name: string;
+}) {
+  const url = new URL(
+    `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${sanitizeAdAccountId(input.adAccountId)}/ads`
+  );
+
+  const body = new URLSearchParams();
+  body.set("name", input.name);
+  body.set("adset_id", input.adSetId);
+  body.set("creative", JSON.stringify({ creative_id: input.creativeId }));
+  body.set("status", "PAUSED");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body,
+    cache: "no-store"
+  });
+
+  const payload = (await response.json().catch(() => null)) as MetaCampaignCreateResponse | {
+    error?: { message?: string };
+  } | null;
+
+  if (!response.ok) {
+    const errorMessage = (payload as { error?: { message?: string } } | null)?.error?.message;
+    throw new Error(
+      errorMessage
+        ? `Falha ao criar anuncio na Meta: ${errorMessage}`
+        : `Falha ao criar anuncio na Meta: status ${response.status}.`
+    );
+  }
+
+  return payload as MetaCampaignCreateResponse;
+}
+
+function mapCallToActionType(callToAction: string): string {
+  const normalized = callToAction.toLowerCase().replace(/\s+/g, "_");
+  const ctaMap: Record<string, string> = {
+    saiba_mais: "LEARN_MORE",
+    learn_more: "LEARN_MORE",
+    solicitar_cotacao: "GET_QUOTE",
+    get_quote: "GET_QUOTE",
+    cadastre_se: "SIGN_UP",
+    sign_up: "SIGN_UP",
+    enviar_mensagem: "MESSAGE_PAGE",
+    message_page: "MESSAGE_PAGE",
+    fale_conosco: "CONTACT_US",
+    contact_us: "CONTACT_US",
+    solicitar: "APPLY_NOW",
+    apply_now: "APPLY_NOW",
+    enviar_whatsapp: "WHATSAPP_MESSAGE",
+    whatsapp_message: "WHATSAPP_MESSAGE"
+  };
+  return ctaMap[normalized] ?? "LEARN_MORE";
 }
 
 function buildSanitizedRequestPayload(campaign: CampaignRow, publishMode: CampaignPublishMode): Json {

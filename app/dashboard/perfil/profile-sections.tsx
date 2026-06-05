@@ -78,7 +78,7 @@ export function MetaHeaderActions({
 }) {
   if (!canManage) {
     return (
-      <span className="inline-flex items-center rounded-full bg-white/62 px-4 py-3 text-sm font-semibold text-ink/62">
+      <span className="surface-pill inline-flex items-center rounded-full px-4 py-3 text-sm font-semibold text-ink/62">
         Apenas owner e admins podem gerenciar.
       </span>
     );
@@ -90,7 +90,7 @@ export function MetaHeaderActions({
         <form action="/api/integrations/meta/sync" method="post">
           <input name="returnTo" type="hidden" value={PROFILE_META_SECTION_HREF} />
           <button
-            className="inline-flex items-center gap-2 rounded-full bg-white/68 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white"
+            className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-ink transition hover:brightness-105"
             type="submit"
           >
             <RefreshCw size={18} aria-hidden="true" />
@@ -179,7 +179,7 @@ export function MetaOnboardingCard({
 
       <div className="mt-8 grid gap-3 md:grid-cols-3">
         {steps.map((step, index) => (
-          <div className="rounded-[24px] border border-white/44 bg-white/36 p-5" key={step.title}>
+          <div className="surface-card-muted rounded-[24px] p-5" key={step.title}>
             <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-ink text-sm font-semibold text-cloud">
               {index + 1}
             </span>
@@ -222,7 +222,7 @@ export function MetaConnectedAccountsSection({
 
       <div className="mt-6 flex flex-col gap-5">
           {!hasAssets ? (
-            <p className="rounded-[24px] border border-white/50 bg-white/30 px-4 py-5 text-sm leading-6 text-ink/62">
+            <p className="surface-card-muted rounded-[24px] px-4 py-5 text-sm leading-6 text-ink/62">
               Nenhum ativo Meta sincronizado ainda. Use “Sincronizar” no topo da página depois de conectar sua conta.
             </p>
           ) : (
@@ -230,7 +230,7 @@ export function MetaConnectedAccountsSection({
               {connectedAccounts.metaPages.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="text-sm font-semibold text-ink">Páginas e Formulários</h4>
-                  <div className="overflow-hidden rounded-[24px] border border-white/50 bg-white/30">
+                  <div className="surface-card-muted overflow-hidden rounded-[24px]">
                     <div className="hidden grid-cols-[1.1fr_180px_150px] gap-3 border-b border-ink/8 px-4 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
                       <span>Ativo</span>
                       <span>ID externo</span>
@@ -242,7 +242,7 @@ export function MetaConnectedAccountsSection({
                       );
                       return (
                         <div className="border-b border-ink/8 last:border-0" key={`page-${page.id}`}>
-                          <div className="grid gap-2 bg-white/50 px-4 py-3 text-sm md:grid-cols-[1.1fr_180px_150px] md:items-center">
+                          <div className="grid gap-2 px-4 py-3 text-sm md:grid-cols-[1.1fr_180px_150px] md:items-center">
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="rounded-full bg-cobalt/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-cobalt">
@@ -255,13 +255,13 @@ export function MetaConnectedAccountsSection({
                               </p>
                             </div>
                             <span className="font-mono text-xs text-ink/58">{page.metaPageId}</span>
-                            <span className="w-fit rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
+                            <span className="w-fit surface-pill rounded-full px-3 py-1.5 text-xs font-semibold text-ink">
                               {formatMetaAssetStatus(page.status)}
                             </span>
                           </div>
 
                           {forms.length > 0 ? (
-                            <div className="bg-white/20">
+                            <div className="bg-foreground/[0.02]">
                               {forms.map((form) => (
                                 <div
                                   className="grid gap-2 border-t border-ink/4 px-4 py-3 pl-5 text-sm md:grid-cols-[1.1fr_180px_150px] md:items-center md:pl-8"
@@ -282,14 +282,14 @@ export function MetaConnectedAccountsSection({
                                   <span className="font-mono text-xs text-ink/58">
                                     {form.metaFormId}
                                   </span>
-                                  <span className="w-fit rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
+                                  <span className="w-fit surface-pill rounded-full px-3 py-1.5 text-xs font-semibold text-ink">
                                     {formatMetaAssetStatus(form.status)}
                                   </span>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <div className="border-t border-ink/4 bg-white/20 px-5 py-3 text-xs text-ink/50 md:pl-8">
+                            <div className="border-t border-ink/4 px-5 py-3 text-xs text-ink/50 md:pl-8">
                               Nenhum formulário sincronizado para esta página.
                             </div>
                           )}
@@ -305,12 +305,12 @@ export function MetaConnectedAccountsSection({
               ).length > 0 && (
                 <div className="mt-2 space-y-3">
                   <h4 className="text-sm font-semibold text-ink">Outros Formulários</h4>
-                  <div className="overflow-hidden rounded-[24px] border border-white/50 bg-white/30">
+                  <div className="surface-card-muted overflow-hidden rounded-[24px]">
                     {connectedAccounts.metaLeadForms
                       .filter((f) => !connectedAccounts.metaPages.some((p) => p.metaPageId === f.pageId))
                       .map((form) => (
                         <div
-                          className="grid gap-2 border-b border-ink/8 bg-white/20 px-4 py-3 text-sm last:border-0 md:grid-cols-[1.1fr_180px_150px] md:items-center"
+                          className="grid gap-2 border-b border-ink/8 px-4 py-3 text-sm last:border-0 md:grid-cols-[1.1fr_180px_150px] md:items-center"
                           key={`form-${form.id}`}
                         >
                           <div>
@@ -326,7 +326,7 @@ export function MetaConnectedAccountsSection({
                             </p>
                           </div>
                           <span className="font-mono text-xs text-ink/58">{form.metaFormId}</span>
-                          <span className="w-fit rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
+                          <span className="w-fit surface-pill rounded-full px-3 py-1.5 text-xs font-semibold text-ink">
                             {formatMetaAssetStatus(form.status)}
                           </span>
                         </div>
@@ -338,7 +338,7 @@ export function MetaConnectedAccountsSection({
               {connectedAccounts.metaAdAccounts.length > 0 && (
                 <div className="mt-2 space-y-3">
                   <h4 className="text-sm font-semibold text-ink">Contas de Anúncio</h4>
-                  <div className="overflow-hidden rounded-[24px] border border-white/50 bg-white/30">
+                  <div className="surface-card-muted overflow-hidden rounded-[24px]">
                     <div className="hidden grid-cols-[1.1fr_180px_150px] gap-3 border-b border-ink/8 px-4 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid">
                       <span>Ativo</span>
                       <span>ID externo</span>
@@ -346,7 +346,7 @@ export function MetaConnectedAccountsSection({
                     </div>
                     {connectedAccounts.metaAdAccounts.map((account) => (
                       <div
-                        className="grid gap-2 border-b border-ink/8 bg-white/30 px-4 py-3 text-sm last:border-0 md:grid-cols-[1.1fr_180px_150px] md:items-center"
+                        className="grid gap-2 border-b border-ink/8 px-4 py-3 text-sm last:border-0 md:grid-cols-[1.1fr_180px_150px] md:items-center"
                         key={`ad-${account.id}`}
                       >
                         <div>
@@ -363,7 +363,7 @@ export function MetaConnectedAccountsSection({
                         <span className="font-mono text-xs text-ink/58">
                           {account.metaAdAccountId}
                         </span>
-                        <span className="w-fit rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink">
+                        <span className="w-fit surface-pill rounded-full px-3 py-1.5 text-xs font-semibold text-ink">
                           {formatMetaAssetStatus(account.status)}
                         </span>
                       </div>
@@ -417,7 +417,7 @@ export function MetaOverviewCard({
       </div>
 
       {/* Próximo passo em destaque */}
-      <div className="mt-5 rounded-[24px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/64">
+      <div className="surface-card-muted mt-5 rounded-[24px] px-4 py-3 text-sm leading-6 text-ink/64">
         <span className="font-semibold text-ink">Próximo passo:</span> {diagnostics.nextStep}
       </div>
 
@@ -434,7 +434,7 @@ export function MetaOverviewCard({
       </p>
 
       {/* Últimas sincronizações */}
-      <article className="mt-5 rounded-[28px] border border-white/44 bg-white/36 p-5">
+      <article className="surface-card-muted mt-5 rounded-[28px] p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-cobalt">Últimas sincronizações</p>
@@ -451,7 +451,7 @@ export function MetaOverviewCard({
               const syncTone = getMetaSyncToneStyles(item.status);
 
               return (
-                <div className="rounded-[22px] bg-white/48 px-4 py-3" key={item.id}>
+                <div className="surface-card-muted rounded-[22px] px-4 py-3" key={item.id}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span
@@ -472,7 +472,7 @@ export function MetaOverviewCard({
               );
             })
           ) : (
-            <div className="rounded-[22px] bg-white/48 px-4 py-3 text-sm leading-6 text-ink/62">
+            <div className="surface-card-muted rounded-[22px] px-4 py-3 text-sm leading-6 text-ink/62">
               Ainda não existem eventos recentes de sincronização Meta neste workspace.
             </div>
           )}
@@ -481,7 +481,7 @@ export function MetaOverviewCard({
 
       {/* Diagnóstico técnico e permissões (recolhível) */}
       <details
-        className="mt-5 rounded-[28px] border border-white/44 bg-white/36 p-5"
+        className="surface-card-muted mt-5 rounded-[28px] p-5"
         open={diagnosticsOpenByDefault}
       >
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
@@ -499,7 +499,7 @@ export function MetaOverviewCard({
             const checkTone = getMetaConnectionToneStyles(check.tone);
 
             return (
-              <div className="rounded-[22px] bg-white/48 px-4 py-3" key={check.id}>
+              <div className="surface-card-muted rounded-[22px] px-4 py-3" key={check.id}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">
                     {check.label}
@@ -521,12 +521,12 @@ export function MetaOverviewCard({
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">
             Permissões concedidas
           </p>
-          <div className="mt-2 rounded-[22px] bg-white/48 p-4">
+          <div className="mt-2 surface-card-muted rounded-[22px] p-4">
             {connection?.permissions.length ? (
               <div className="flex flex-wrap gap-2">
                 {connection.permissions.map((permission) => (
                   <span
-                    className="rounded-full bg-white/76 px-3 py-1.5 text-xs font-semibold text-ink/70"
+                    className="surface-pill rounded-full px-3 py-1.5 text-xs font-semibold text-ink/70"
                     key={permission}
                   >
                     {permission}
@@ -545,7 +545,7 @@ export function MetaOverviewCard({
 
 export function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[22px] bg-white/58 px-4 py-3">
+    <div className="surface-card-muted rounded-[22px] px-4 py-3">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">{label}</p>
       <p className="mt-2 text-sm font-semibold text-ink">{value}</p>
     </div>

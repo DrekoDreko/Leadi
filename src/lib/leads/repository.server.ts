@@ -157,6 +157,11 @@ export type LeadBulkAssignInput = {
   ownerProfileId: string;
 };
 
+export type LeadDistributeEquallyInput = {
+  leadIds: string[];
+  targetProfileIds: string[];
+};
+
 export type LeadBulkAssignResult = {
   leads: Lead[];
   updatedCount: number;
@@ -960,6 +965,163 @@ export async function assignLeadOwnersInBulkForCurrentUser(
   };
 }
 
+export async function distributeLeadsEquallyForCurrentUser(
+  input: LeadDistributeEquallyInput
+): Promise<LeadBulkAssignResult> {
+  const leadIds = [...new Set(input.leadIds.map((value) => value.trim()).filter(Boolean))];
+  const targetProfileIds = [
+    ...new Set(input.targetProfileIds.map((value) => value.trim()).filter(Boolean))
+  ];
+
+  if (leadIds.length === 0) {
+    throw new Error("Selecione ao menos um lead valido para distribuir.");
+  }
+
+  if (targetProfileIds.length === 0) {
+    throw new Error("Selecione ao menos um destinatario para dividir os leads.");
+  }
+
+  if (!isSupabaseConfigured()) {
+    return distributeMockLeadsEqually(leadIds, targetProfileIds);
+  }
+
+  const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+  const accessScope = await resolveLeadAccessScope(supabase, profile);
+
+  if (!isWorkspaceManagerRole(profile.role)) {
+    throw new Error("Somente owner ou admin podem distribuir leads em lote.");
+  }
+
+  // Resolve e valida cada destinatario com as mesmas regras do assign manual.
+  const targets = await Promise.all(
+    targetProfileIds.map((targetProfileId) =>
+      resolveBulkLeadOwnerProfile(supabase, profile.organization_id, targetProfileId, accessScope)
+    )
+  );
+
+  const hasMetaConnection = Boolean(
+    await getMetaConnectionForOrganization(profile.organization_id)
+  );
+  const { data: existingLeads, error: existingLeadsError } = await applyArchivedLeadFilter(
+    applyLeadAccessScopeToQuery(
+      supabase
+        .from("leads")
+        .select("*")
+        .eq("organization_id", profile.organization_id)
+        .in("id", leadIds),
+      accessScope
+    ),
+    false
+  );
+
+  if (existingLeadsError) {
+    throw new Error(existingLeadsError.message);
+  }
+
+  const scopedLeads = (existingLeads ?? []) as LeadRow[];
+
+  if (scopedLeads.length !== leadIds.length) {
+    throw new Error("Um ou mais leads nao foram encontrados para distribuicao.");
+  }
+
+  for (const lead of scopedLeads) {
+    assertCanManageLead(profile, lead, "editar", hasMetaConnection);
+  }
+
+  // Round-robin: distribui os leads de forma igualitaria entre os destinatarios.
+  const leadById = new Map(scopedLeads.map((lead) => [lead.id, lead]));
+  const assignmentsToInsert: Database["public"]["Tables"]["lead_assignments"]["Insert"][] = [];
+
+  for (let index = 0; index < leadIds.length; index += 1) {
+    const target = targets[index % targets.length];
+    const leadId = leadIds[index];
+    const lead = leadById.get(leadId);
+
+    if (!lead) {
+      continue;
+    }
+
+    const { error: updateError } = await supabase
+      .from("leads")
+      .update({
+        owner_profile_id: target.profile.id,
+        team_id: target.primaryTeamId
+      })
+      .eq("organization_id", profile.organization_id)
+      .is("archived_at", null)
+      .eq("id", leadId);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    assignmentsToInsert.push({
+      organization_id: profile.organization_id,
+      team_id: target.primaryTeamId!,
+      lead_id: leadId,
+      assigned_to_profile_id: target.profile.id,
+      assigned_by_profile_id: profile.id,
+      previous_owner_profile_id: lead.owner_profile_id,
+      reason: "Distribuicao igualitaria"
+    });
+  }
+
+  if (assignmentsToInsert.length > 0) {
+    const { error: assignmentError } = await supabase
+      .from("lead_assignments")
+      .insert(assignmentsToInsert);
+
+    if (assignmentError) {
+      console.error(
+        "[distributeLeadsEquallyForCurrentUser] Falha ao registrar atribuicoes:",
+        assignmentError
+      );
+    }
+  }
+
+  await recordAuditLogForCurrentUser({
+    action: "Distribuicao igualitaria de leads",
+    targetType: "leads",
+    metadata: {
+      count: scopedLeads.length,
+      targetProfileIds: targets.map((target) => target.profile.id)
+    }
+  });
+
+  const { data: updatedRows, error: refetchError } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("organization_id", profile.organization_id)
+    .in("id", leadIds);
+
+  if (refetchError) {
+    throw new Error(refetchError.message);
+  }
+
+  const ownerProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
+  const updatedLeadRows = (updatedRows ?? []) as LeadRow[];
+  const recordedContactLeadIdSet = await listRecordedContactLeadIdSetForOrganization(
+    supabase,
+    profile.organization_id,
+    updatedLeadRows.map((lead) => lead.id)
+  );
+  const leads = updatedLeadRows.map((lead) =>
+    mapLeadRowToLead(
+      lead,
+      profile,
+      hasMetaConnection,
+      ownerProfiles,
+      recordedContactLeadIdSet.has(lead.id)
+    )
+  );
+
+  return {
+    leads,
+    updatedCount: leads.length
+  };
+}
+
 export async function archiveLeadForCurrentUser(id: string) {
   if (!isSupabaseConfigured()) {
     const lead = mockLeads.find(l => l.id === id);
@@ -1614,12 +1776,25 @@ async function resolveBulkLeadOwnerProfile(
     profileId
   );
 
-  if (resolution.profile.role !== "seller" || !resolution.primaryTeamId) {
-    throw new Error("Selecione um consultor valido para receber os leads.");
+  if (!resolution.primaryTeamId) {
+    throw new Error("Selecione um destinatario valido para receber os leads.");
   }
 
-  if (accessScope.role === "admin" && !accessScope.teamIds.includes(resolution.primaryTeamId)) {
-    throw new Error("Selecione um consultor valido para receber os leads.");
+  // Owner (gestor) pode distribuir para supervisores (admin) ou consultores (seller).
+  // Supervisor (admin) so pode distribuir para consultores (seller) da propria equipe.
+  if (accessScope.role === "owner") {
+    if (resolution.profile.role !== "admin" && resolution.profile.role !== "seller") {
+      throw new Error("Selecione um supervisor ou consultor valido para receber os leads.");
+    }
+  } else if (accessScope.role === "admin") {
+    if (resolution.profile.role !== "seller") {
+      throw new Error("Selecione um consultor valido para receber os leads.");
+    }
+    if (!accessScope.teamIds.includes(resolution.primaryTeamId)) {
+      throw new Error("Selecione um consultor valido da sua equipe para receber os leads.");
+    }
+  } else {
+    throw new Error("Somente owner ou admin podem distribuir leads.");
   }
 
   return resolution;
@@ -1697,7 +1872,11 @@ function buildLeadQuery(
 ) {
   query = applyLeadAccessScopeToQuery(query, accessScope, sellerProfileId);
 
-  if (ownerProfileIdsFilter) {
+  if (filters.view === "unassigned") {
+    query = query.is("owner_profile_id", null);
+  } else if (filters.view === "distributed") {
+    query = query.not("owner_profile_id", "is", null);
+  } else if (ownerProfileIdsFilter) {
     if (ownerProfileIdsFilter.includes("UNASSIGNED_FILTER_ID")) {
       query = query.is("owner_profile_id", null);
     } else {
@@ -2446,6 +2625,39 @@ function updateMockLeadOwnersInBulk(
   if (leads.length !== leadIds.length) {
     throw new Error("Um ou mais leads nao foram encontrados para distribuicao.");
   }
+
+  return {
+    leads,
+    updatedCount: leads.length
+  };
+}
+
+function distributeMockLeadsEqually(
+  leadIds: string[],
+  targetProfileIds: string[]
+): LeadBulkAssignResult {
+  const targets = targetProfileIds
+    .map((id) =>
+      mockLeadOwnerOptions.find(
+        (option) => option.id === id && (option.role === "admin" || option.role === "seller")
+      )
+    )
+    .filter((option): option is NonNullable<typeof option> => Boolean(option));
+
+  if (targets.length === 0) {
+    throw new Error("Selecione destinatarios validos para dividir os leads.");
+  }
+
+  const selectedLeadIds = new Set(leadIds);
+  const orderedLeads = mockLeads.filter((lead) => selectedLeadIds.has(lead.id));
+
+  if (orderedLeads.length !== leadIds.length) {
+    throw new Error("Um ou mais leads nao foram encontrados para distribuicao.");
+  }
+
+  const leads = orderedLeads.map((lead, index) =>
+    updateMockLead(lead.id, { owner_profile_id: targets[index % targets.length].id })
+  );
 
   return {
     leads,

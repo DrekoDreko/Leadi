@@ -8,13 +8,11 @@ import {
   ImagePlus,
   LayoutTemplate,
   Loader2,
-  Palette,
   RefreshCcw,
   Sparkles,
   Wand2,
   X
 } from "lucide-react";
-import { PageHeading } from "@/components/dashboard/widgets";
 import { InfiniteGridHero } from "@/components/ui/the-infinite-grid";
 import { AI_CREDIT_COSTS } from "@/lib/ai/credit-costs";
 import { validateCreativeRequestAttachment } from "@/lib/creative-requests/attachments";
@@ -232,17 +230,6 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
 
   return (
     <div className="space-y-4">
-      <PageHeading
-        eyebrow="Criar"
-        title="Solicitação de criativo"
-        description="Descreva a arte do seu plano de saúde, anexe referências e deixe a IA gerar o criativo."
-      >
-        <span className="inline-flex items-center gap-2 rounded-full bg-signal px-5 py-3 text-sm font-semibold text-accent-foreground shadow-soft">
-          <Palette size={18} aria-hidden="true" />
-          Novo pedido
-        </span>
-      </PageHeading>
-
       <InfiniteGridHero
         eyebrow={
           <>

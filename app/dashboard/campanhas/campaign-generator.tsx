@@ -9,13 +9,18 @@ import {
   CheckCircle2,
   ChevronDown,
   ClipboardList,
+  DollarSign,
   FileImage,
   FileText,
   ImagePlus,
+  Info,
   Paperclip,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Upload,
+  Wifi,
+  WifiOff,
   X
 } from "lucide-react";
 import { systemTemplatesFallback } from "@/data/system-templates";
@@ -75,6 +80,7 @@ type CampaignFormState = {
   adNotes: string;
   tone: ToneValue;
   publishMode: PublishMode;
+  dailyBudget: string;
   creativeMode: CreativeMode;
   creativeType: CreativeType;
   creativeObjective: string;
@@ -92,27 +98,23 @@ const toneOptions: ToneValue[] = [
   "Educativo e simples"
 ];
 
-const publishModeOptions: Array<{ value: PublishMode; title: string; description: string }> = [
+const publishModeOptions: Array<{ value: PublishMode; title: string; description: string; disabled?: boolean }> = [
   {
     value: "manual_review",
-    title: "Revisão manual na Leadi (Não publicar na Meta)",
-    description: "A IA prepara a estrutura e salva na Leadi. A publicação na Meta dependerá de ação manual."
-  },
-  {
-    value: "draft",
-    title: "Criar anúncio",
-    description: "Gera a estrutura da campanha/anúncio conforme as conexões selecionadas."
-  },
-  {
-    value: "scheduled",
-    title: "Preparar para agendar depois",
-    description: "Deixa a campanha preparada para agendamento posterior."
+    title: "Gerar textos (sem publicar na Meta)",
+    description: "A IA gera os textos e salva na Leadi. Você revisa com a equipe e decide depois se publica na Meta."
   },
   {
     value: "paused",
     title: "Publicar pausada na Meta",
     description:
-      "Prepara a campanha com os ativos escolhidos e deixa o envio pronto para subir em estado pausado, sem ativar a veiculação."
+      "Cria a campanha completa (campanha + conjunto + anúncio) na sua conta Meta em estado pausado. Você ativa quando quiser."
+  },
+  {
+    value: "scheduled",
+    title: "Agendar publicação",
+    description: "Prepara a campanha e agenda para ativar em uma data futura.",
+    disabled: true
   }
 ];
 
@@ -468,7 +470,6 @@ export function CampaignGenerator({
     form.differential,
     form.objections,
     form.contractType,
-    form.notes,
     form.adNotes,
     form.creativeNotes,
     form.creativeBriefing
@@ -606,7 +607,11 @@ export function CampaignGenerator({
 
   return (
     <div className="space-y-5 pb-4">
-      <CampaignHero />
+      <CampaignHero
+        aiCredits={currentAiBalance}
+        hasMetaConnection={Boolean(metaConnection)}
+        publishedAdsCount={publishedAdsCount}
+      />
 
       {currentAiBalance <= 0 ? (
         <div className="space-y-4">
@@ -654,10 +659,6 @@ export function CampaignGenerator({
           {historyMessage}
         </div>
       ) : null}
-
-      <div className="surface-card rounded-[26px] border border-border/70 px-4 py-3 text-sm font-medium text-foreground/78">
-        Esta ação consumirá {campaignCost} créditos de IA.
-      </div>
 
       <section className="space-y-4">
         <form className="space-y-4" id="campaign-generator-form" onSubmit={handleSubmit}>
@@ -767,6 +768,7 @@ export function CampaignGenerator({
             title="Resumo da campanha"
           >
             <CampaignSummaryStep
+              campaignCost={campaignCost}
               connectedAccounts={connectedAccounts}
               complianceReview={complianceReview}
               form={form}
@@ -788,7 +790,15 @@ export function CampaignGenerator({
   );
 }
 
-function CampaignHero() {
+function CampaignHero({
+  aiCredits,
+  hasMetaConnection,
+  publishedAdsCount
+}: {
+  aiCredits: number;
+  hasMetaConnection: boolean;
+  publishedAdsCount: number;
+}) {
   return (
     <section className="campaign-liquid-hero relative overflow-hidden rounded-[38px] border border-border/60 p-5 text-white shadow-[0_36px_120px_rgba(10,18,39,0.34)] md:p-6 xl:p-7">
       <div
@@ -811,6 +821,35 @@ function CampaignHero() {
           </p>
         </div>
 
+        <div className="hidden xl:flex xl:flex-col xl:gap-3 xl:justify-center">
+          <div className="rounded-[20px] border border-white/14 bg-white/8 px-4 py-3 backdrop-blur-sm">
+            <div className="flex items-center gap-2.5">
+              <Sparkles size={16} className="text-white/70" aria-hidden="true" />
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">Créditos IA</span>
+            </div>
+            <p className="mt-2 text-2xl font-semibold leading-none">{aiCredits.toLocaleString("pt-BR")}</p>
+          </div>
+          <div className="rounded-[20px] border border-white/14 bg-white/8 px-4 py-3 backdrop-blur-sm">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 size={16} className="text-white/70" aria-hidden="true" />
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">Anúncios publicados</span>
+            </div>
+            <p className="mt-2 text-2xl font-semibold leading-none">{publishedAdsCount}</p>
+          </div>
+          <div className="rounded-[20px] border border-white/14 bg-white/8 px-4 py-3 backdrop-blur-sm">
+            <div className="flex items-center gap-2.5">
+              {hasMetaConnection ? (
+                <Wifi size={16} className="text-emerald-400/80" aria-hidden="true" />
+              ) : (
+                <WifiOff size={16} className="text-amber-400/80" aria-hidden="true" />
+              )}
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">Conexão Meta</span>
+            </div>
+            <p className="mt-2 text-sm font-semibold leading-none">
+              {hasMetaConnection ? "Conectada" : "Desconectada"}
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -1336,23 +1375,35 @@ function CampaignPublishModeStep({
   ) => void;
 }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="space-y-4">
+    <div className="grid gap-3 md:grid-cols-3">
       {publishModeOptions.map((option) => {
         const selected = form.publishMode === option.value;
+        const isDisabled = option.disabled;
 
         return (
           <button
+            disabled={isDisabled}
             className={`rounded-[26px] border p-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50 ${
-              selected
-                ? "border-cobalt/70 bg-primary/10 shadow-[0_24px_60px_rgba(52,98,238,0.16)]"
-                : "border-border/65 bg-surface-elevated/88 hover:bg-surface-elevated"
+              isDisabled
+                ? "cursor-not-allowed border-border/40 bg-surface-elevated/50 opacity-55"
+                : selected
+                  ? "border-cobalt/70 bg-primary/10 shadow-[0_24px_60px_rgba(52,98,238,0.16)]"
+                  : "border-border/65 bg-surface-elevated/88 hover:bg-surface-elevated"
             }`}
             key={option.value}
             onClick={() => onChange("publishMode", option.value)}
             type="button"
           >
             <span className="flex items-start justify-between gap-3">
-              <span className="font-semibold text-foreground">{option.title}</span>
+              <span className="font-semibold text-foreground">
+                {option.title}
+                {isDisabled ? (
+                  <span className="ml-2 rounded-full bg-muted-foreground/12 px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                    Em breve
+                  </span>
+                ) : null}
+              </span>
               <span
                 className={`flex h-8 w-8 items-center justify-center rounded-full ${
                   selected ? "bg-primary text-primary-foreground" : "bg-surface-elevated/94 text-muted-soft"
@@ -1365,6 +1416,44 @@ function CampaignPublishModeStep({
           </button>
         );
       })}
+    </div>
+
+      {form.publishMode === "paused" ? (
+        <div className="space-y-4">
+          <div className="rounded-[26px] border border-cobalt/22 bg-cobalt/6 p-4">
+            <label className="space-y-2">
+              <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <DollarSign size={16} className="text-cobalt" aria-hidden="true" />
+                Orçamento diário (R$)
+              </span>
+              <input
+                className="liquid-input border-border/70 bg-surface-elevated/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                inputMode="decimal"
+                min="1"
+                onChange={(event) => onChange("dailyBudget", event.target.value)}
+                placeholder="Ex.: 30.00"
+                type="number"
+                step="0.01"
+                value={form.dailyBudget}
+              />
+              <span className="text-muted-soft block text-xs leading-5">
+                Este valor sera o investimento diario real na sua conta de anuncios Meta. O valor minimo recomendado e R$ 20,00/dia.
+              </span>
+            </label>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-[26px] border border-amber-400/30 bg-amber-50/60 p-4 text-sm leading-6 text-foreground/85 dark:bg-amber-950/20">
+            <ShieldAlert className="mt-0.5 shrink-0 text-amber-600" size={20} aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-foreground">Categoria Especial de Anuncio</p>
+              <p className="mt-1">
+                Anuncios de planos de saude sao classificados como <strong>Categoria Especial (Credito/Seguros)</strong> pela Meta.
+                Restricoes de targeting serao aplicadas automaticamente: sem filtro por idade, genero ou CEP; raio minimo de 25 km.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1500,6 +1589,7 @@ function CampaignCreativeStep({
 }
 
 function CampaignSummaryStep({
+  campaignCost,
   connectedAccounts,
   complianceReview,
   form,
@@ -1507,6 +1597,7 @@ function CampaignSummaryStep({
   selectedTemplate,
   validationMessages
 }: {
+  campaignCost: number;
   connectedAccounts: ConnectedAccountsState;
   complianceReview: LocalComplianceReview | null;
   form: CampaignFormState;
@@ -1531,32 +1622,74 @@ function CampaignSummaryStep({
             ))}
           </ul>
         </div>
-      ) : complianceReview && (complianceReview.riskLevel === "high" || complianceReview.riskLevel === "medium") ? (
-        <div className="surface-alert-warning rounded-[28px] p-5 text-sm leading-6 text-foreground shadow-soft">
+      ) : null}
+
+      {complianceReview && complianceReview.reasons.length > 0 ? (
+        <div className={`rounded-[28px] border p-5 text-sm leading-6 shadow-soft ${
+          complianceReview.riskLevel === "high"
+            ? "border-red-300/50 bg-red-50/70 text-red-900 dark:border-red-500/30 dark:bg-red-950/30 dark:text-red-200"
+            : complianceReview.riskLevel === "medium"
+              ? "border-amber-300/50 bg-amber-50/70 text-foreground dark:bg-amber-950/20"
+              : "border-blue-200/50 bg-blue-50/50 text-foreground dark:bg-blue-950/20"
+        }`}>
           <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 shrink-0 text-amber-600" size={20} aria-hidden="true" />
-            <div>
-              <p className="font-semibold text-foreground">Atenção ao conteúdo da campanha</p>
-              <p className="mt-1 opacity-90">Alguns termos identificados podem gerar restrições ou reprovações na Meta:</p>
-              <ul className="mt-3 space-y-3">
-                {complianceReview.reasons.map((reason, index) => (
-                  <li key={index} className="rounded-2xl bg-signal/18 p-3">
-                    <strong className="block text-foreground">{reason.title}</strong>
-                    <span className="mt-1 block opacity-80">{reason.detail}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="surface-card mt-4 rounded-2xl p-3">
-                <p className="font-medium text-foreground">Sugestões de ajuste:</p>
-                <ul className="mt-2 list-inside list-disc opacity-90">
-                  {complianceReview.suggestions.map((suggestion, index) => (
-                    <li key={index}>{suggestion}</li>
-                  ))}
-                </ul>
+            <ShieldAlert className={`mt-0.5 shrink-0 ${
+              complianceReview.riskLevel === "high" ? "text-red-600" : "text-amber-600"
+            }`} size={22} aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-3">
+                <p className="font-semibold text-foreground">Verificação de compliance</p>
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${
+                  complianceReview.riskLevel === "high"
+                    ? "bg-red-600 text-white"
+                    : complianceReview.riskLevel === "medium"
+                      ? "bg-amber-500 text-white"
+                      : "bg-blue-500 text-white"
+                }`}>
+                  {complianceReview.riskLevel === "high" ? "Risco alto" : complianceReview.riskLevel === "medium" ? "Atencao" : "Baixo risco"}
+                </span>
               </div>
-              <p className="mt-4 text-[13px] font-medium opacity-70">
-                Você ainda pode enviar a campanha, mas recomendamos ajustar os campos (Oferta, Observações, etc.) para evitar bloqueios reais.
+              <p className="mt-1 opacity-80">
+                {complianceReview.riskLevel === "high"
+                  ? "Termos identificados podem causar reprovacao do anuncio na Meta. Recomendamos corrigir antes de enviar."
+                  : "Alguns termos podem gerar restricoes. Revise as sugestoes abaixo."}
               </p>
+              <div className="mt-4 space-y-2">
+                {complianceReview.reasons.map((reason, index) => (
+                  <div key={index} className={`flex items-start gap-2.5 rounded-2xl p-3 ${
+                    reason.severity === "high"
+                      ? "bg-red-100/60 dark:bg-red-900/20"
+                      : reason.severity === "medium"
+                        ? "bg-amber-100/60 dark:bg-amber-900/20"
+                        : "bg-blue-100/40 dark:bg-blue-900/15"
+                  }`}>
+                    <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${
+                      reason.severity === "high" ? "bg-red-500" : reason.severity === "medium" ? "bg-amber-500" : "bg-blue-500"
+                    }`}>
+                      {reason.severity === "high" ? "!" : reason.severity === "medium" ? "?" : "i"}
+                    </span>
+                    <div>
+                      <strong className="block text-foreground">{reason.title}</strong>
+                      <span className="mt-0.5 block text-[13px] opacity-80">{reason.detail}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {complianceReview.suggestions.length > 0 ? (
+                <div className="surface-card mt-4 rounded-2xl p-3">
+                  <p className="font-medium text-foreground">Sugestoes de ajuste:</p>
+                  <ul className="mt-2 list-inside list-disc text-[13px] opacity-90">
+                    {complianceReview.suggestions.map((suggestion, index) => (
+                      <li key={index}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {complianceReview.riskLevel === "high" ? (
+                <p className="mt-3 text-[13px] font-semibold text-red-700 dark:text-red-400">
+                  Voce ainda pode enviar, mas a chance de reprovacao pela Meta e alta.
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -1615,6 +1748,9 @@ function CampaignSummaryStep({
         <SummaryItem label="Observações" value={[form.notes, form.adNotes].filter(Boolean).join(" ")} />
         <SummaryItem label="Tom da mensagem" value={form.tone} />
         <SummaryItem label="Modo de publicação" value={publishLabel ?? form.publishMode} />
+        {form.publishMode === "paused" && form.dailyBudget ? (
+          <SummaryItem label="Orçamento diário" value={`R$ ${Number(form.dailyBudget).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
+        ) : null}
         <SummaryItem
           label="Tipo de criativo"
           value={
@@ -1631,6 +1767,14 @@ function CampaignSummaryStep({
               : form.uploadedFiles.join(", ") || "Nenhum arquivo adicionado"
           }
         />
+      </div>
+      <div className="rounded-[24px] border border-primary/20 bg-primary/6 px-5 py-4 text-sm">
+        <p className="font-semibold text-foreground">
+          Esta ação consumirá <span className="text-primary">{campaignCost} créditos de IA</span>.
+        </p>
+        <p className="mt-1 text-foreground/68">
+          O valor será debitado do seu saldo ao enviar a campanha.
+        </p>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <button
@@ -1852,6 +1996,7 @@ function createInitialForm(
     adNotes: "",
     tone: "Consultivo e direto",
     publishMode: "manual_review",
+    dailyBudget: "",
     creativeMode: "enviar_arquivo",
     creativeType: "imagem_anuncio",
     creativeObjective: "",
@@ -1878,7 +2023,8 @@ function buildCampaignRequestPayload(form: CampaignFormState) {
     metaPageId: form.pageId,
     metaAdAccountId: form.adAccountId,
     metaLeadFormId: form.leadFormId,
-    publishMode: form.publishMode
+    publishMode: form.publishMode,
+    dailyBudget: form.dailyBudget ? Number(form.dailyBudget) : undefined
   };
 }
 
@@ -1897,6 +2043,9 @@ function validateForm(form: CampaignFormState) {
   if (!form.regions.length) messages.push("Adicione pelo menos uma região.");
   if (!form.differential.trim()) messages.push("Preencha o diferencial.");
   if (!form.publishMode) messages.push("Selecione um modo de publicação.");
+  if (form.publishMode === "paused" && (!form.dailyBudget || Number(form.dailyBudget) < 1)) {
+    messages.push("Informe o orçamento diário (mínimo R$ 1,00) para publicar na Meta.");
+  }
   if (form.creativeMode === "solicitar_criativo" && !form.creativeBriefing.trim()) {
     messages.push("Preencha o briefing ao solicitar criativo.");
   }

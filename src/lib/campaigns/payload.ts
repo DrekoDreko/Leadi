@@ -75,7 +75,8 @@ export function buildCampaignInputPayload(form: CampaignGenerationForm): Campaig
       approvalStatus: form.approvalStatus,
       metaCampaignId: form.metaCampaignId,
       metaAdSetId: form.metaAdSetId,
-      metaAdId: form.metaAdId
+      metaAdId: form.metaAdId,
+      dailyBudget: form.dailyBudget
     }
   };
 }
@@ -185,7 +186,8 @@ export function parseCampaignInputPayload(row: CampaignPayloadRow): CampaignGene
       stringFromPayload(publication?.metaAdId) ??
       stringFromPayload(payload?.metaAdId) ??
       row.meta_ad_id ??
-      null
+      null,
+    dailyBudget: numberFromPayload(publication?.dailyBudget) ?? numberFromPayload(payload?.dailyBudget) ?? null
   };
 }
 
@@ -288,6 +290,10 @@ function arrayFromPayload(
 
 function stringFromPayload(value: Json | null | undefined) {
   return typeof value === "string" ? value : null;
+}
+
+function numberFromPayload(value: Json | null | undefined) {
+  return typeof value === "number" ? value : null;
 }
 
 function getNestedRecord(
