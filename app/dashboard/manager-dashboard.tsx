@@ -64,7 +64,7 @@ export function ManagerDashboard({
   const totalPendingMembers = pendingInvitesCount + pendingDeactivationsCount;
   
   const relatoriosHref = preview ? "/login" : "/dashboard/relatorios";
-  const equipeHref = preview ? "/login" : "/team/setup";
+  const equipeHref = preview ? "/login" : "/dashboard/equipes";
   const aprovacoesAnunciosHref = preview ? "/login" : "/dashboard/campanhas/aprovacoes";
   const solicitacoesCreditoHref = preview ? "/login" : "/dashboard/creditos"; // TODO: Tela de solicitacoes especificas ou a geral de creditos onde aprova
 
@@ -220,7 +220,7 @@ export function ManagerDashboard({
              Acesse a área de equipes para verificar as carteiras detalhadas por unidade de venda e identificar gargalos na operação.
            </p>
            <div className="mt-5">
-             <Link href="/team/setup" className="inline-flex items-center gap-2 text-sm font-semibold text-cobalt hover:underline">
+             <Link href="/dashboard/equipes" className="inline-flex items-center gap-2 text-sm font-semibold text-cobalt hover:underline">
                Ver Todas as Equipes <ArrowUpRight size={16} />
              </Link>
            </div>

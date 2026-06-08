@@ -79,7 +79,7 @@ export function MetaHeaderActions({
   if (!canManage) {
     return (
       <span className="surface-pill inline-flex items-center rounded-full px-4 py-3 text-sm font-semibold text-ink/62">
-        Apenas owner e admins podem gerenciar.
+        Apenas o owner pode gerenciar.
       </span>
     );
   }
@@ -171,7 +171,7 @@ export function MetaOnboardingCard({
             <span>
               {blockedByEnv
                 ? diagnostics.summary
-                : "Apenas owner e admins podem conectar a Meta. Entre com um perfil autorizado para continuar."}
+                : "Apenas o owner pode conectar a Meta. Entre com o perfil de owner para continuar."}
             </span>
           </div>
         )}
@@ -722,9 +722,9 @@ export function buildMetaConnectionDiagnostics(
       categoryLabel: "Acesso",
       title: "A conexao Meta depende de permissao de gerenciamento",
       summary:
-        "Este workspace exige um owner ou admin valido para iniciar OAuth, reconectar a conta e rodar novas sincronizacoes.",
+        "Este workspace exige o owner para iniciar OAuth, reconectar a conta e rodar novas sincronizacoes.",
       nextStep:
-        "Entre com um owner/admin ou peca para alguem com essa permissao revisar a conexao Meta.",
+        "Entre com o owner ou peca para ele revisar a conexao Meta.",
       tone: "pending",
       checks
     };
@@ -868,7 +868,7 @@ function buildConnectionDiagnosisCheck(
       id: "connection",
       label: "Conta e permissao",
       stateLabel: "Acesso restrito",
-      description: "Somente owner e admin podem conectar, reconectar ou sincronizar a integracao Meta.",
+      description: "Somente o owner pode conectar, reconectar ou sincronizar a integracao Meta.",
       tone: "warning"
     };
   }

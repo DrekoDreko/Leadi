@@ -1,6 +1,7 @@
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import {
   getLeadsForCurrentUser,
+  countUndistributedLeadsForCurrentUser,
   listLeadIdsWithRecordedContactForCurrentUser,
   listLeadOwnerOptionsForCurrentUser,
   listOverdueLeadTasksForCurrentUser
@@ -124,6 +125,7 @@ export default async function DashboardPage() {
 
   if (isSupervisorDashboard) {
     const pendingCreditRequestsCount = creditRequests?.filter(r => r.status === "pending").length ?? 0;
+    const unassignedLeadCount = await countUndistributedLeadsForCurrentUser();
 
     return (
       <SupervisorDashboard
@@ -132,9 +134,11 @@ export default async function DashboardPage() {
         campaignsCount={campaignState.campaigns.length}
         campaignActivitySummary={campaignActivitySummary}
         consultantPortfolioSummary={consultantPortfolioSummary}
+        stageConversionSummary={stageConversionSummary}
         overdueTasks={overdueTasks}
         pendingCampaignsCount={pendingCampaignsResult?.campaigns?.length ?? 0}
         pendingCreditRequestsCount={pendingCreditRequestsCount}
+        unassignedLeadCount={unassignedLeadCount}
         dashboardReminders={reminderState.reminders}
         onboardingState={onboardingState}
         whatsappTemplates={whatsappTemplates}

@@ -6,13 +6,15 @@ import {
   BriefcaseBusiness,
   Building2,
   Settings,
-  Sparkles
+  Sparkles,
+  UserPlus
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { IntegrationNotice } from "@/components/dashboard/integration-notice";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { getCurrentAiBalance } from "@/lib/ai/credits";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
+import { countPendingFirstContactLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { updateBrokerageNameAction } from "./actions";
 import { ProfileAvatarUpload } from "./profile-avatar-upload";
@@ -20,7 +22,7 @@ import { ProfileAvatarUpload } from "./profile-avatar-upload";
 const brokerageFeedbackMessages: Record<string, string> = {
   failed: "Nao foi possivel salvar o nome da corretora agora.",
   missing: "Informe o nome da corretora ou o seu proprio nome comercial.",
-  permission: "Apenas o owner ou os admins da equipe podem alterar o nome da corretora.",
+  permission: "Apenas o owner ou os supervisores da equipe podem alterar o nome da corretora.",
   "schema-missing":
     "O banco conectado ainda nao recebeu a migration de nome da corretora. Aplique a migration mais recente e tente novamente.",
   updated: "Nome comercial atualizado para as proximas mensagens e campanhas."
@@ -109,8 +111,11 @@ export default async function PerfilPage({
   const brokerageFeedback = params?.brokerage
     ? brokerageFeedbackMessages[params.brokerage] ?? null
     : null;
-  const connectedAccounts = await getConnectedAccountsForCurrentUser();
-  const aiBalance = await getCurrentAiBalance();
+  const [connectedAccounts, aiBalance, pendingFirstContactCount] = await Promise.all([
+    getConnectedAccountsForCurrentUser(),
+    getCurrentAiBalance(),
+    countPendingFirstContactLeadsForCurrentUser()
+  ]);
   const integrationFeedback =
     (params?.meta && integrationFeedbackMessages[params.meta]) ||
     (params?.openai && integrationFeedbackMessages[params.openai]) ||
@@ -131,7 +136,7 @@ export default async function PerfilPage({
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
           <Settings size={18} aria-hidden="true" />
-          {context.role === "owner" ? "Owner" : context.role === "admin" ? "Admin" : "Consultor"}
+          {context.role === "owner" ? "Owner" : context.role === "admin" ? "Supervisor" : "Consultor"}
         </span>
       </PageHeading>
 
@@ -186,6 +191,27 @@ export default async function PerfilPage({
         </article>
       </section>
 
+      <Link
+        className="group flex items-center justify-between gap-4 glass-strong rounded-[34px] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_80px_rgba(18,23,33,0.14)]"
+        href="/dashboard/leads"
+      >
+        <div className="flex items-center gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
+            <UserPlus size={20} aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-sm font-medium text-cobalt">Leads novos</p>
+            <h2 className="mt-1 text-2xl font-semibold">{pendingFirstContactCount}</h2>
+            <p className="mt-1 text-sm text-ink/58">
+              {pendingFirstContactCount > 0
+                ? `${pendingFirstContactCount} lead${pendingFirstContactCount === 1 ? "" : "s"} aguardando primeiro contato.`
+                : "Todos os leads já receberam o primeiro contato."}
+            </p>
+          </div>
+        </div>
+        <ArrowRight size={18} className="text-cobalt transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
+      </Link>
+
       {brokerageFeedback ? (
         <p className="rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">
           {brokerageFeedback}
@@ -230,7 +256,7 @@ export default async function PerfilPage({
           </form>
         ) : (
           <div className="rounded-[24px] border border-white/44 bg-white/36 p-4 text-sm leading-6 text-ink/64">
-            Voce esta em uma equipe. O owner ou os admins configuram o nome comercial usado no
+            Voce esta em uma equipe. O owner ou os supervisores configuram o nome comercial usado no
             contato com clientes.
           </div>
         )}
@@ -257,7 +283,7 @@ export default async function PerfilPage({
           ) : (
             <ManageDisabledCard
               cta="Acesso restrito"
-              description="Owner e admins gerenciam a conexão Meta e os ativos sincronizados do workspace."
+              description="Somente o owner gerencia a conexão Meta e os ativos sincronizados do workspace."
               icon={<ArrowUpRight size={20} aria-hidden="true" />}
               title="Meta e contas conectadas"
               statusText={connectedAccounts.metaConnection?.connectionStatusLabel ?? "Pendente"}

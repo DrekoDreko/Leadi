@@ -50,6 +50,7 @@ export type LeadUrlFilters = {
   owner: string;
   campaign: string;
   view: LeadViewFilterValue;
+  team: string;
 };
 
 export const filterKeys: Array<keyof LeadUrlFilters> = [
@@ -61,7 +62,8 @@ export const filterKeys: Array<keyof LeadUrlFilters> = [
   "archived",
   "owner",
   "campaign",
-  "view"
+  "view",
+  "team"
 ];
 
 export const defaultLeadUrlFilters: LeadUrlFilters = {
@@ -73,7 +75,8 @@ export const defaultLeadUrlFilters: LeadUrlFilters = {
   archived: false,
   owner: "",
   campaign: "",
-  view: "all"
+  view: "all",
+  team: "all"
 };
 
 const stageValues = new Set<string>(leadStageFilterOptions.map((option) => option.value));
@@ -92,6 +95,7 @@ export function parseLeadUrlFilters(input: LeadSearchParamsInput): LeadUrlFilter
     owner: normalizeFilterText(readSearchParam(input, "owner")),
     campaign: normalizeFilterText(readSearchParam(input, "campaign")),
     view: parseFilterValue(input, "view", viewValues, defaultLeadUrlFilters.view),
+    team: normalizeFilterText(readSearchParam(input, "team")) || "all",
   };
 }
 
@@ -103,11 +107,17 @@ export function hasActiveLeadUrlFilters(filters: LeadUrlFilters) {
     filters.period !== defaultLeadUrlFilters.period ||
     filters.search.trim().length > 0 ||
     filters.owner.trim().length > 0 ||
-    filters.campaign.trim().length > 0
+    filters.campaign.trim().length > 0 ||
+    filters.view !== defaultLeadUrlFilters.view ||
+    filters.team !== defaultLeadUrlFilters.team
   );
 }
 
-export function applyLeadUrlFilters(lead: Lead, filters: LeadUrlFilters) {
+export function applyLeadUrlFilters(
+  lead: Lead,
+  filters: LeadUrlFilters,
+  sellerProfileIds: string[] = []
+) {
   if (filters.stage !== "all" && getLeadStageLabel(lead.stage) !== filters.stage) {
     return false;
   }
@@ -120,12 +130,24 @@ export function applyLeadUrlFilters(lead: Lead, filters: LeadUrlFilters) {
     return false;
   }
 
-  if (filters.view === "unassigned" && lead.ownerProfileId) {
-    return false;
+  if (filters.view === "unassigned") {
+    if (sellerProfileIds.length > 0) {
+      if (lead.ownerProfileId && sellerProfileIds.includes(lead.ownerProfileId)) {
+        return false;
+      }
+    } else if (lead.ownerProfileId) {
+      return false;
+    }
   }
 
-  if (filters.view === "distributed" && !lead.ownerProfileId) {
-    return false;
+  if (filters.view === "distributed") {
+    if (sellerProfileIds.length > 0) {
+      if (!lead.ownerProfileId || !sellerProfileIds.includes(lead.ownerProfileId)) {
+        return false;
+      }
+    } else if (!lead.ownerProfileId) {
+      return false;
+    }
   }
 
   if (filters.owner && !lead.owner?.toLowerCase().includes(filters.owner.toLowerCase())) {
@@ -133,6 +155,10 @@ export function applyLeadUrlFilters(lead: Lead, filters: LeadUrlFilters) {
   }
 
   if (filters.campaign && !lead.sourceCampaign?.toLowerCase().includes(filters.campaign.toLowerCase())) {
+    return false;
+  }
+
+  if (filters.team !== "all" && lead.teamId !== filters.team) {
     return false;
   }
 

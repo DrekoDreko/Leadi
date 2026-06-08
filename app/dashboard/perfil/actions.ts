@@ -149,7 +149,7 @@ export async function createLeadWebhookTokenAction(
 
   if (!canManageToken) {
     return {
-      error: "Somente o owner ou os admins podem gerar um novo token para a equipe.",
+      error: "Somente o owner ou os supervisores podem gerar um novo token para a equipe.",
       successMessage: null,
       token: null,
       label: null

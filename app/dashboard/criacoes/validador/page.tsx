@@ -18,7 +18,7 @@ export default async function CriacoesValidadorPage({ searchParams }: CriacoesVa
     getCurrentResourceAccess("creative_requests")
   ]);
 
-  if (context.isTeamSeller) {
+  if (!context.isOwner) {
     redirect("/dashboard/criacoes");
   }
 

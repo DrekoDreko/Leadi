@@ -42,6 +42,16 @@ export default async function InvitePage({ params }: InvitePageProps) {
     );
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, role")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (!profile?.full_name) {
+    redirect(`/invite/${encodeURIComponent(token)}/setup`);
+  }
+
   redirect("/dashboard");
 }
 
@@ -68,6 +78,13 @@ function InviteMessage({ title, message }: { title: string; message: string }) {
 }
 
 function getInviteErrorCopy(message: string) {
+  if (message.includes("enviado para outro email")) {
+    return {
+      title: "Email nao autorizado",
+      message: "Este convite foi enviado para outro email. Faca login com o email correto ou peca um novo convite ao gestor."
+    };
+  }
+
   if (message.includes("pendente de aprovacao")) {
     return {
       title: "Convite pendente de aprovacao",

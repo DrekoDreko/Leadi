@@ -900,21 +900,24 @@ function getPreviewConsultantPortfolioSummary(): DashboardConsultantPortfolioSum
         ownerName: "Gabriel",
         role: "owner",
         leadCount: 9,
-        overdueCount: 2
+        overdueCount: 2,
+        stageBreakdown: { new: 2, qualification: 2, proposal: 2, negotiation: 1, won: 1, lost: 1 }
       },
       {
         ownerProfileId: "preview-beatriz",
         ownerName: "Beatriz",
         role: "admin",
         leadCount: 8,
-        overdueCount: 2
+        overdueCount: 2,
+        stageBreakdown: { new: 1, qualification: 2, proposal: 2, negotiation: 2, won: 1, lost: 0 }
       },
       {
         ownerProfileId: "preview-fernanda",
         ownerName: "Fernanda",
         role: "seller",
         leadCount: 7,
-        overdueCount: 1
+        overdueCount: 1,
+        stageBreakdown: { new: 3, qualification: 1, proposal: 1, negotiation: 1, won: 0, lost: 1 }
       }
     ],
     status: "available"
@@ -1066,7 +1069,7 @@ function getConsultantRoleLabel(role: DashboardConsultantPortfolioSummary["rows"
     case "owner":
       return "Owner";
     case "admin":
-      return "Admin";
+      return "Supervisor";
     case "seller":
       return "Consultor";
     default:

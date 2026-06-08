@@ -1,4 +1,8 @@
--- Create credit_wallets table
+-- Recreate credit_wallets with team/user wallet support
+-- Drop old tables (schema changed significantly from the billing migration)
+DROP TABLE IF EXISTS credit_transactions;
+DROP TABLE IF EXISTS credit_wallets;
+
 CREATE TABLE credit_wallets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id),
@@ -11,7 +15,6 @@ CREATE TABLE credit_wallets (
   CONSTRAINT unique_wallet UNIQUE (organization_id, team_id, profile_id, wallet_type)
 );
 
--- Create credit_transactions table
 CREATE TABLE credit_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id),
@@ -31,7 +34,6 @@ CREATE TABLE credit_transactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Enable RLS
 ALTER TABLE credit_wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
 

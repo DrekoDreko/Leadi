@@ -1957,6 +1957,7 @@ export type Database = {
           requires_approval: boolean;
           approval_status: InviteApprovalStatus;
           approved_by_user_id: string | null;
+          invited_email: string | null;
           used_by_user_id: string | null;
           used_at: string | null;
           created_at: string;
@@ -1973,6 +1974,7 @@ export type Database = {
           requires_approval?: boolean;
           approval_status?: InviteApprovalStatus;
           approved_by_user_id?: string | null;
+          invited_email?: string | null;
           used_by_user_id?: string | null;
           used_at?: string | null;
           created_at?: string;
@@ -1989,6 +1991,7 @@ export type Database = {
           requires_approval?: boolean;
           approval_status?: InviteApprovalStatus;
           approved_by_user_id?: string | null;
+          invited_email?: string | null;
           used_by_user_id?: string | null;
           used_at?: string | null;
           created_at?: string;
@@ -2503,12 +2506,19 @@ export type Database = {
         }[];
       };
       create_workspace_invite: {
-        Args: { requested_role_to_assign?: "admin" | "seller" };
+        Args: {
+          requested_role_to_assign?: "admin" | "seller";
+          target_email?: string | null;
+        };
         Returns: {
+          id: string;
           token: string;
           invite_url_path: string;
           expires_at: string;
           role_to_assign: "admin" | "seller";
+          requires_approval: boolean;
+          approval_status: InviteApprovalStatus;
+          status: InviteStatus;
         }[];
       };
       update_workspace_member_role: {

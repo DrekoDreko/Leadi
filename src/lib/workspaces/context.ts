@@ -139,6 +139,16 @@ export async function requireWorkspaceManager() {
   return context;
 }
 
+export async function requireWorkspaceOwner() {
+  const context = await requireCompletedProfile();
+
+  if (context.mode === "supabase" && !context.isOwner && !context.isSoloOwner) {
+    redirect("/dashboard");
+  }
+
+  return context;
+}
+
 export async function requireImportPermission() {
   const context = await requireCompletedProfile();
 

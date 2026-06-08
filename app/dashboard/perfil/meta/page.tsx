@@ -3,7 +3,7 @@ import { PageHeading } from "@/components/dashboard/widgets";
 import { getCurrentSubscriptionNotice } from "@/lib/billing/subscription-limits.server";
 import { getMissingEnvForIntegration } from "@/lib/env/server";
 import { getManagedConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
-import { requireWorkspaceManager } from "@/lib/workspaces/context";
+import { requireWorkspaceOwner } from "@/lib/workspaces/context";
 import {
   MetaConnectedAccountsSection,
   MetaHeaderActions,
@@ -42,7 +42,7 @@ export default async function PerfilMetaPage({
   }>;
 }) {
   const [context, params, connectedAccounts, billingNotice] = await Promise.all([
-    requireWorkspaceManager(),
+    requireWorkspaceOwner(),
     searchParams,
     getManagedConnectedAccountsForCurrentUser(),
     getCurrentSubscriptionNotice()

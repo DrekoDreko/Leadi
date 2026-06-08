@@ -57,7 +57,7 @@ export async function uploadMetaAdImageForCurrentUser(input: {
   }
 
   if (!identity.canManageConnections) {
-    throw new MetaAdImageUploadError("Apenas owners e admins podem enviar imagens para a Meta.", 403);
+    throw new MetaAdImageUploadError("Apenas owners e supervisores podem enviar imagens para a Meta.", 403);
   }
 
   if (!input.metaAdAccountId.trim()) {

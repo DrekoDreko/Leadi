@@ -50,6 +50,7 @@ type LeadTaskUpdate = Database["public"]["Tables"]["lead_tasks"]["Update"];
 type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type TeamMemberRow = Database["public"]["Tables"]["team_members"]["Row"];
+type TeamRow = Database["public"]["Tables"]["teams"]["Row"];
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 type LeadDataClient = ServerClient | AdminClient;
@@ -81,6 +82,11 @@ export type LeadOwnerOption = {
   name: string;
   email: string;
   role: "owner" | "admin" | "seller";
+};
+
+export type LeadTeamOption = {
+  id: string;
+  name: string;
 };
 
 type LeadCreationResult = {
@@ -226,8 +232,11 @@ export async function getLeadsForCurrentUser(
 
   try {
     if (!isSupabaseConfigured()) {
+      const mockSellerIds = mockLeadOwnerOptions
+        .filter((option) => option.role === "seller")
+        .map((option) => option.id);
       const filteredLeads = mockLeads.filter((lead) => {
-        const matchesFilters = applyLeadUrlFilters(lead, filters);
+        const matchesFilters = applyLeadUrlFilters(lead, filters, mockSellerIds);
         const matchesArchived = filters.archived ? lead.archivedAt !== null : lead.archivedAt === null;
         return matchesFilters && matchesArchived;
       });
@@ -293,7 +302,10 @@ export async function getLeadsForCurrentUser(
     const hasMetaConnection = Boolean(
       await getMetaConnectionForOrganization(profile.organization_id)
     );
-    const ownerProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
+    const [ownerProfiles, teamsMap] = await Promise.all([
+      loadLeadOwnerProfiles(supabase, profile.organization_id),
+      loadTeamsMap(supabase, profile.organization_id)
+    ]);
     const accessScope = await resolveLeadAccessScope(supabase, profile);
 
     let { data, error, count } = await runLeadListQuery({
@@ -344,7 +356,8 @@ export async function getLeadsForCurrentUser(
         profile,
         hasMetaConnection,
         ownerProfiles,
-        recordedContactLeadIdSet.has(lead.id)
+        recordedContactLeadIdSet.has(lead.id),
+        teamsMap
       )
     );
     const total = pagination.limit === null ? leads.length : count ?? pagination.offset + leads.length;
@@ -375,12 +388,38 @@ export async function listLeadOwnerOptionsForCurrentUser(): Promise<LeadOwnerOpt
   }
 
   const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+
+  if (profile.role === "admin") {
+    const teamProfiles = await loadTeamMemberProfiles(
+      supabase,
+      profile.organization_id,
+      profile.id
+    );
+    return mapLeadOwnerOptions(teamProfiles);
+  }
+
   const ownerProfiles = await loadLeadOwnerProfiles(
-    await createSupabaseServerClient(),
+    supabase,
     profile.organization_id
   );
 
   return mapLeadOwnerOptions(ownerProfiles);
+}
+
+export async function listLeadTeamOptionsForCurrentUser(): Promise<LeadTeamOption[]> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
+  const profile = await getCurrentProfile();
+  const supabase = await createSupabaseServerClient();
+  const teamsMap = await loadTeamsMap(supabase, profile.organization_id);
+
+  return Array.from(teamsMap.values())
+    .filter((team) => team.is_active)
+    .map((team) => ({ id: team.id, name: team.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getLeadExportRowsForCurrentUser(
@@ -388,7 +427,10 @@ export async function getLeadExportRowsForCurrentUser(
   sellerProfileId: string | null = null
 ): Promise<Lead[]> {
   if (!isSupabaseConfigured()) {
-    return mockLeads.filter((lead) => applyLeadUrlFilters(lead, filters));
+    const mockSellerIds = mockLeadOwnerOptions
+      .filter((option) => option.role === "seller")
+      .map((option) => option.id);
+    return mockLeads.filter((lead) => applyLeadUrlFilters(lead, filters, mockSellerIds));
   }
 
   const profile = await getCurrentProfile();
@@ -398,18 +440,24 @@ export async function getLeadExportRowsForCurrentUser(
   const supabase = await createSupabaseServerClient();
   const accessScope = await resolveLeadAccessScope(supabase, profile);
   const exportProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
-  const ownerProfileIdsFilter = await resolveOwnerProfileIdsFilter(
-    supabase,
-    profile.organization_id,
-    filters.owner
-  );
-  
+  const [ownerProfileIdsFilter, sellerProfileIdsForView] = await Promise.all([
+    resolveOwnerProfileIdsFilter(
+      supabase,
+      profile.organization_id,
+      filters.owner
+    ),
+    filters.view !== "all"
+      ? loadSellerProfileIds(supabase, profile.organization_id)
+      : Promise.resolve([])
+  ]);
+
   const query = buildLeadQuery(
     supabase.from("leads").select("*").eq("organization_id", profile.organization_id),
     accessScope,
     filters,
     sellerProfileId,
-    ownerProfileIdsFilter
+    ownerProfileIdsFilter,
+    sellerProfileIdsForView
   ).order("received_at", { ascending: false });
 
   const { data, error } = await query;
@@ -456,6 +504,121 @@ export async function getLeadsCountForCurrentUser(): Promise<number> {
 
   if (error) {
     console.error("Erro ao contar leads:", error);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+export async function countPendingFirstContactLeadsForCurrentUser(): Promise<number> {
+  if (!isSupabaseConfigured()) {
+    const recordedContactIds = getRecordedContactLeadIdsFromComments(
+      mockLeadComments,
+      mockLeads.filter((l) => getLeadStageValue(l.stage) === "new").map((l) => l.id)
+    );
+    const contactedSet = new Set(recordedContactIds);
+    return mockLeads.filter(
+      (l) => getLeadStageValue(l.stage) === "new" && !contactedSet.has(l.id)
+    ).length;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) return 0;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, organization_id, role")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile) return 0;
+
+  const accessScope = await resolveLeadAccessScope(supabase, profile);
+  const query = applyLeadAccessScopeToQuery(
+    supabase
+      .from("leads")
+      .select("id")
+      .eq("organization_id", profile.organization_id)
+      .eq("stage", "new")
+      .is("archived_at", null),
+    accessScope
+  );
+
+  const { data: newLeads, error } = await query;
+
+  if (error) {
+    console.error("Erro ao contar leads pendentes de contato:", error);
+    return 0;
+  }
+
+  if (!newLeads || newLeads.length === 0) return 0;
+
+  const contactedSet = await listRecordedContactLeadIdSetForOrganization(
+    supabase,
+    profile.organization_id,
+    newLeads.map((l: { id: string }) => l.id)
+  );
+
+  return newLeads.filter((l: { id: string }) => !contactedSet.has(l.id)).length;
+}
+
+export async function countUndistributedLeadsForCurrentUser(): Promise<number> {
+  if (!isSupabaseConfigured()) {
+    return mockLeads.filter((l) => !l.ownerProfileId).length;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) return 0;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, organization_id, role")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile) return 0;
+
+  if (!hasSupabaseServiceRole()) return 0;
+
+  const adminClient = createSupabaseAdminClient();
+  const teamIds = await listActiveTeamIdsForProfile(adminClient, profile.organization_id, profile.id);
+
+  const { data: sellers } = await adminClient
+    .from("profiles")
+    .select("id")
+    .eq("organization_id", profile.organization_id)
+    .eq("role", "seller");
+
+  const sellerIds = (sellers ?? []).map((s) => s.id);
+
+  let query = adminClient
+    .from("leads")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", profile.organization_id)
+    .is("archived_at", null);
+
+  if (profile.role === "admin" && teamIds.length > 0) {
+    query = query.in("team_id", teamIds);
+  }
+
+  if (sellerIds.length > 0) {
+    query = query.or(
+      `owner_profile_id.is.null,owner_profile_id.not.in.(${sellerIds.join(",")})`
+    );
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    console.error("[countUndistributedLeadsForCurrentUser] error:", error);
     return 0;
   }
 
@@ -1905,14 +2068,23 @@ function buildLeadQuery(
   accessScope: LeadAccessScope,
   filters: LeadUrlFilters,
   sellerProfileId: string | null = null,
-  ownerProfileIdsFilter: string[] | null = null
+  ownerProfileIdsFilter: string[] | null = null,
+  sellerProfileIds: string[] = []
 ) {
   query = applyLeadAccessScopeToQuery(query, accessScope, sellerProfileId);
 
-  if (filters.view === "unassigned") {
-    query = query.is("owner_profile_id", null);
-  } else if (filters.view === "distributed") {
-    query = query.not("owner_profile_id", "is", null);
+  if (filters.view === "unassigned" && accessScope.role !== "seller") {
+    if (sellerProfileIds.length > 0) {
+      query = query.or(
+        `owner_profile_id.is.null,owner_profile_id.not.in.(${sellerProfileIds.join(",")})`
+      );
+    }
+  } else if (filters.view === "distributed" && accessScope.role !== "seller") {
+    if (sellerProfileIds.length > 0) {
+      query = query.in("owner_profile_id", sellerProfileIds);
+    } else {
+      query = query.eq("owner_profile_id", NO_RESULTS_FILTER_ID);
+    }
   } else if (ownerProfileIdsFilter) {
     if (ownerProfileIdsFilter.includes("UNASSIGNED_FILTER_ID")) {
       query = query.is("owner_profile_id", null);
@@ -1923,6 +2095,10 @@ function buildLeadQuery(
 
   if (filters.campaign) {
     query = query.ilike("source_campaign", `%${filters.campaign}%`);
+  }
+
+  if (filters.team && filters.team !== "all") {
+    query = query.eq("team_id", filters.team);
   }
 
   const stageValue = getSupabaseStageValue(filters.stage);
@@ -1969,11 +2145,16 @@ async function runLeadListQuery(input: {
   pagination: ReturnType<typeof normalizeLeadPaginationOptions>;
   includeArchivedFilter: boolean;
 }) {
-  const ownerProfileIdsFilter = await resolveOwnerProfileIdsFilter(
-    input.supabase,
-    input.profile.organization_id,
-    input.filters.owner
-  );
+  const [ownerProfileIdsFilter, sellerProfileIds] = await Promise.all([
+    resolveOwnerProfileIdsFilter(
+      input.supabase,
+      input.profile.organization_id,
+      input.filters.owner
+    ),
+    input.filters.view !== "all"
+      ? loadSellerProfileIds(input.supabase, input.profile.organization_id)
+      : Promise.resolve([])
+  ]);
 
   let query = buildLeadQuery(
     input.supabase
@@ -1983,7 +2164,8 @@ async function runLeadListQuery(input: {
     input.accessScope,
     input.filters,
     null,
-    ownerProfileIdsFilter
+    ownerProfileIdsFilter,
+    sellerProfileIds
   );
 
   if (input.includeArchivedFilter) {
@@ -1998,7 +2180,8 @@ async function runLeadListQuery(input: {
       input.accessScope,
       input.filters,
       null,
-      ownerProfileIdsFilter
+      ownerProfileIdsFilter,
+      sellerProfileIds
     );
 
     if (input.includeArchivedFilter) {
@@ -2040,6 +2223,76 @@ function resolveLeadOwnerProfileId(accessScope: LeadAccessScope, sellerProfileId
   return sellerProfileId;
 }
 
+async function loadSellerProfileIds(
+  supabase: LeadDataClient,
+  organizationId: string
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("role", "seller");
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map((profile) => profile.id);
+}
+
+async function loadTeamMemberProfiles(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  organizationId: string,
+  supervisorProfileId: string
+) {
+  const teamIds = await listActiveTeamIdsForProfile(
+    supabase,
+    organizationId,
+    supervisorProfileId
+  );
+
+  if (teamIds.length === 0) {
+    return new Map<string, ProfileRow>();
+  }
+
+  const { data, error } = await supabase
+    .from("team_members")
+    .select("profile_id")
+    .eq("organization_id", organizationId)
+    .in("team_id", teamIds)
+    .eq("status", "active")
+    .eq("role", "consultant");
+
+  if (error || !data) {
+    return new Map<string, ProfileRow>();
+  }
+
+  const profileIds = [
+    ...new Set(
+      (data as Pick<TeamMemberRow, "profile_id">[])
+        .map((row) => row.profile_id)
+        .filter(Boolean)
+    )
+  ];
+
+  if (profileIds.length === 0) {
+    return new Map<string, ProfileRow>();
+  }
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, role, organization_id")
+    .in("id", profileIds);
+
+  if (profilesError || !profiles) {
+    return new Map<string, ProfileRow>();
+  }
+
+  return new Map<string, ProfileRow>(
+    (profiles as ProfileRow[]).map((profile) => [profile.id, profile])
+  );
+}
+
 async function loadLeadOwnerProfiles(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   organizationId: string
@@ -2056,6 +2309,24 @@ async function loadLeadOwnerProfiles(
 
   return new Map<string, ProfileRow>(
     (data as ProfileRow[]).map((profile) => [profile.id, profile])
+  );
+}
+
+async function loadTeamsMap(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  organizationId: string
+) {
+  const { data, error } = await supabase
+    .from("teams")
+    .select("*")
+    .eq("organization_id", organizationId);
+
+  if (error || !data) {
+    return new Map<string, TeamRow>();
+  }
+
+  return new Map<string, TeamRow>(
+    (data as TeamRow[]).map((team) => [team.id, team])
   );
 }
 
@@ -2779,7 +3050,8 @@ function mapLeadRowToLead(
   profile?: ProfileRow,
   hasMetaConnection = false,
   ownerProfiles?: Map<string, ProfileRow>,
-  hasRecordedContact = false
+  hasRecordedContact = false,
+  teamsMap?: Map<string, TeamRow>
 ): Lead {
   const canManage = profile ? canManageLead(profile, row, hasMetaConnection) : false;
 
@@ -2815,6 +3087,8 @@ function mapLeadRowToLead(
     metaAdsetId: row.meta_adset_id,
     metaAdId: row.meta_ad_id,
     metaConnectedAccountId: row.meta_connected_account_id,
+    teamId: row.team_id,
+    teamName: row.team_id && teamsMap ? (teamsMap.get(row.team_id)?.name ?? null) : null,
     receivedAt: row.received_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,

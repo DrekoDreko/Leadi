@@ -6,6 +6,7 @@ import {
   leadStageFilterOptions,
   type LeadUrlFilters
 } from "@/lib/leads/filters";
+import type { LeadTeamOption } from "@/lib/leads/repository.server";
 
 export function LeadFiltersPopup({
   open,
@@ -13,7 +14,8 @@ export function LeadFiltersPopup({
   onChange,
   onApply,
   onClear,
-  onClose
+  onClose,
+  teamOptions = []
 }: {
   open: boolean;
   value: LeadUrlFilters;
@@ -21,6 +23,7 @@ export function LeadFiltersPopup({
   onApply: () => void;
   onClear: () => void;
   onClose: () => void;
+  teamOptions?: LeadTeamOption[];
 }) {
   useEffect(() => {
     if (!open) {
@@ -173,6 +176,28 @@ export function LeadFiltersPopup({
                 value={value.campaign}
               />
             </LeadFilterField>
+
+            {teamOptions.length > 0 && (
+              <LeadFilterField label="Equipe">
+                <select
+                  className="liquid-input text-sm"
+                  onChange={(event) =>
+                    onChange({
+                      ...value,
+                      team: event.target.value
+                    })
+                  }
+                  value={value.team}
+                >
+                  <option value="all">Todas as equipes</option>
+                  {teamOptions.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+              </LeadFilterField>
+            )}
           </div>
 
           <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-ink/10 pt-5">

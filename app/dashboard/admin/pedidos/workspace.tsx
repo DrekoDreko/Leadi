@@ -197,7 +197,7 @@ export function AdminPedidosWorkspace({
   return (
     <div className="space-y-4">
       <PageHeading
-        eyebrow="Admin"
+        eyebrow="Supervisor"
         title="Fila operacional de pedidos"
         description="Visualize briefings de todas as organizacoes em uma area protegida para suporte e revisão, sem publicar campanhas pelas contas dos clientes."
       >

@@ -117,12 +117,22 @@ export type DashboardStageConversionSummary = {
   status: "available" | "empty";
 };
 
+export type ConsultantStageBreakdown = {
+  new: number;
+  qualification: number;
+  proposal: number;
+  negotiation: number;
+  won: number;
+  lost: number;
+};
+
 export type DashboardConsultantPortfolioRow = {
   ownerProfileId: string | null;
   ownerName: string;
   role: "owner" | "admin" | "seller" | "unassigned";
   leadCount: number;
   overdueCount: number;
+  stageBreakdown: ConsultantStageBreakdown;
 };
 
 export type DashboardConsultantPortfolioSummary = {
@@ -240,7 +250,7 @@ export function buildDashboardStageConversionSummary<T extends { stage: string }
 }
 
 export function buildDashboardConsultantPortfolioSummary<
-  TLead extends { id: string; owner: string; ownerProfileId?: string | null },
+  TLead extends { id: string; owner: string; ownerProfileId?: string | null; stage: string },
   TTask extends { leadId: string },
   TOwner extends { id: string; name: string; role: "owner" | "admin" | "seller" }
 >(
@@ -268,6 +278,10 @@ export function buildDashboardConsultantPortfolioSummary<
     const descriptor = resolveConsultantDescriptor(lead, ownerMap);
     const row = getOrCreateConsultantPortfolioRow(rowMap, descriptor.key, descriptor);
     row.leadCount += 1;
+    const stageValue = getLeadStageValue(lead.stage);
+    if (stageValue && stageValue in row.stageBreakdown) {
+      row.stageBreakdown[stageValue] += 1;
+    }
     leadOwnerKeys.set(lead.id, descriptor.key);
   }
 
@@ -673,7 +687,8 @@ function getOrCreateConsultantPortfolioRow(
     ownerName: descriptor.ownerName,
     role: descriptor.role,
     leadCount: 0,
-    overdueCount: 0
+    overdueCount: 0,
+    stageBreakdown: { new: 0, qualification: 0, proposal: 0, negotiation: 0, won: 0, lost: 0 }
   };
 
   rowMap.set(key, row);

@@ -39,7 +39,7 @@ import {
   type LeadDataState,
   type LeadPaginationMeta
 } from "@/lib/leads/repository";
-import type { LeadOwnerOption } from "@/lib/leads/repository.server";
+import type { LeadOwnerOption, LeadTeamOption } from "@/lib/leads/repository.server";
 import {
   LeadDistributionControls,
   type LeadDistributionResult,
@@ -74,7 +74,8 @@ const filterKeys: Array<keyof LeadUrlFilters> = [
   "archived",
   "owner",
   "campaign",
-  "view"
+  "view",
+  "team"
 ];
 const paginationQueryKeys = ["limit", "offset"];
 type LeadWorkspaceFeedbackTone = "success" | "warning" | "error";
@@ -93,6 +94,7 @@ export function LeadsWorkspace({
   leadOwnerOptions,
   leadState,
   whatsappTemplates = [],
+  leadTeamOptions = [],
   title = "Leads"
 }: {
   isOwner?: boolean;
@@ -108,6 +110,7 @@ export function LeadsWorkspace({
   leadOwnerOptions: LeadOwnerOption[];
   leadState: LeadDataState;
   whatsappTemplates?: SystemTemplate[];
+  leadTeamOptions?: LeadTeamOption[];
   title?: string;
 }) {
   const router = useRouter();
@@ -237,7 +240,7 @@ export function LeadsWorkspace({
     setSearchTerm("");
     replaceLeadUrlFilters({
       ...defaultLeadUrlFilters,
-      view: isOwner ? "unassigned" : "all"
+      view: "all"
     });
   }
 
@@ -307,7 +310,7 @@ export function LeadsWorkspace({
   function clearDraftFilters() {
     const nextFilters = {
       ...defaultLeadUrlFilters,
-      view: isOwner ? "unassigned" as const : "all" as const
+      view: "all" as const
     };
     setDraftLeadFilters(nextFilters);
     replaceLeadUrlFilters(nextFilters);
@@ -552,6 +555,7 @@ export function LeadsWorkspace({
             onClear={clearDraftFilters}
             onChange={setDraftLeadFilters}
             value={draftLeadFilters}
+            teamOptions={leadTeamOptions}
           />
 
           {isEmptyWithoutFilters ? (

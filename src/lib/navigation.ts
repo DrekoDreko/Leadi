@@ -6,8 +6,7 @@ import {
   Import,
   LayoutDashboard,
   Megaphone,
-  Settings,
-  Share2,
+  Network,
   UserPlus,
   UsersRound
 } from "lucide-react";
@@ -18,7 +17,7 @@ export function getDashboardNavItems(variant: DashboardNavVariant) {
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Leads", href: "/dashboard/leads", icon: UsersRound },
-      { label: "Equipes", href: "/team/setup", icon: UserPlus },
+      { label: "Equipes", href: "/dashboard/equipes", icon: Network },
       { label: "Campanhas", href: "/dashboard/campanhas/aprovacoes", icon: Megaphone },
       { label: "Créditos", href: "/dashboard/perfil/creditos", icon: Coins },
       { label: "Relatórios", href: "/dashboard/relatorios", icon: BarChart },
@@ -30,8 +29,6 @@ export function getDashboardNavItems(variant: DashboardNavVariant) {
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Leads da Equipe", href: "/dashboard/leads", icon: UsersRound },
-      { label: "Distribuir Leads", href: "/dashboard/leads/distribuir", icon: Share2 },
-      { label: "Campanhas", href: "/dashboard/campanhas/aprovacoes", icon: Megaphone },
       { label: "Créditos da Equipe", href: "/dashboard/perfil/creditos", icon: Coins },
       { label: "Simulador", href: "/dashboard/simulador", icon: Calculator }
     ];

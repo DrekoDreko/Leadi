@@ -44,6 +44,7 @@ export type TeamInvite = {
   requiresApproval: boolean;
   approvalStatus: InviteApprovalStatus;
   approvedByUserId: string | null;
+  invitedEmail: string | null;
   createdAt: string;
   expiresAt: string;
 };
@@ -56,6 +57,7 @@ export type TeamSetupTeam = WorkspaceTeam & {
 export type TeamSetupData = {
   workspaceName: string;
   members: TeamMember[];
+  deactivatedMembers: TeamMember[];
   invites: TeamInvite[];
   deactivationRequests: TeamMemberDeactivationRequest[];
   teams: TeamSetupTeam[];
@@ -314,6 +316,7 @@ export async function getTeamSetupData(context: WorkspaceContext): Promise<TeamS
           teamName: demoTeams[0]?.name ?? null
         }
       ],
+      deactivatedMembers: [],
       invites: [],
       deactivationRequests: [],
       teams: demoTeams,
@@ -331,11 +334,20 @@ export async function getTeamSetupData(context: WorkspaceContext): Promise<TeamS
     scopedTeamIds
   );
   const teams = buildTeamSetupTeams(scopedTeamRows, scopedMembershipRows);
+  const activeRows = scopedMembershipRows.filter((member) => member.status !== "inactive");
+  const inactiveRows = scopedMembershipRows.filter((member) => member.status === "inactive");
   const members = await mapTeamMembers(
     supabase,
     context.workspace.id,
-    scopedMembershipRows.filter((member) => member.status !== "inactive"),
+    activeRows,
     scopedTeamRows
+  );
+  const deactivatedMembers = await mapTeamMembers(
+    supabase,
+    context.workspace.id,
+    inactiveRows,
+    scopedTeamRows,
+    { includeRemovedWorkspaceMembers: true }
   );
   const invites = await listTeamInvitesForCurrentUser(
     supabase,
@@ -352,6 +364,7 @@ export async function getTeamSetupData(context: WorkspaceContext): Promise<TeamS
   return {
     workspaceName: context.workspace.name,
     members,
+    deactivatedMembers,
     invites,
     deactivationRequests,
     teams,
@@ -718,7 +731,8 @@ async function mapTeamMembers(
   supabase: ServerClient,
   organizationId: string,
   memberRows: TeamMemberRow[],
-  teamRows: TeamRow[]
+  teamRows: TeamRow[],
+  options?: { includeRemovedWorkspaceMembers?: boolean }
 ): Promise<TeamMember[]> {
   if (memberRows.length === 0) {
     return [];
@@ -729,12 +743,15 @@ async function mapTeamMembers(
     .from("profiles")
     .select("id, full_name, email")
     .in("id", profileIds);
-  const { data: workspaceMemberRows } = await supabase
+  let workspaceMembersQuery = supabase
     .from("workspace_members")
     .select("*")
     .eq("workspace_id", organizationId)
-    .in("user_id", profileIds)
-    .neq("status", "removed");
+    .in("user_id", profileIds);
+  if (!options?.includeRemovedWorkspaceMembers) {
+    workspaceMembersQuery = workspaceMembersQuery.neq("status", "removed");
+  }
+  const { data: workspaceMemberRows } = await workspaceMembersQuery;
 
   const profilesById = new Map((profileRows ?? []).map((profile) => [profile.id, profile]));
   const workspaceMembersByProfileId = new Map(
@@ -816,6 +833,7 @@ function mapInvite(invite: InviteRow, teamName: string | null = null): TeamInvit
     requiresApproval: invite.requires_approval,
     approvalStatus: invite.approval_status,
     approvedByUserId: invite.approved_by_user_id,
+    invitedEmail: invite.invited_email ?? null,
     createdAt: invite.created_at,
     expiresAt: invite.expires_at
   };
@@ -1615,6 +1633,369 @@ function getUnavailableInviteMessage(status: InviteStatus) {
   }
 
   return "Este convite nao esta disponivel.";
+}
+
+export async function reassignTeamMember(input: {
+  profileId: string;
+  fromTeamId: string | null;
+  toTeamId: string | null;
+  organizationId: string;
+  actorProfileId: string;
+}): Promise<void> {
+  const actor = await getCurrentTeamActor();
+  assertOwnerTeamAccess(actor.role);
+
+  if (actor.mode === "not-configured") {
+    return;
+  }
+
+  const { profileId, fromTeamId, toTeamId, organizationId, actorProfileId } = input;
+
+  if (fromTeamId === toTeamId) {
+    return;
+  }
+
+  if (fromTeamId) {
+    await actor.supabase
+      .from("team_members")
+      .update({ status: "inactive", updated_at: new Date().toISOString() })
+      .eq("team_id", fromTeamId)
+      .eq("profile_id", profileId)
+      .eq("organization_id", organizationId)
+      .eq("status", "active");
+  }
+
+  if (toTeamId) {
+    const { error } = await actor.supabase
+      .from("team_members")
+      .upsert(
+        {
+          team_id: toTeamId,
+          profile_id: profileId,
+          organization_id: organizationId,
+          role: "consultant",
+          status: "active",
+          added_by_profile_id: actorProfileId
+        },
+        { onConflict: "team_id,profile_id" }
+      );
+
+    if (error) {
+      throw new TeamAccessError(500, "Nao foi possivel reatribuir o membro.");
+    }
+  }
+
+  await recordAuditLog({
+    organizationId,
+    actorProfileId,
+    actorRole: "owner",
+    teamId: toTeamId,
+    action: "member.reassign",
+    targetType: "profile",
+    targetId: profileId,
+    status: "success",
+    metadata: {
+      fromTeamId,
+      toTeamId
+    }
+  });
+}
+
+export async function promoteToSupervisorForCurrentUser(
+  targetProfileId: string
+): Promise<void> {
+  const actor = await getCurrentTeamActor();
+  assertOwnerTeamAccess(actor.role);
+  const normalizedId = normalizeTargetProfileId(targetProfileId);
+
+  if (actor.mode === "not-configured") {
+    return;
+  }
+
+  const membership = await getActiveTeamMembershipForProfile(
+    actor.supabase,
+    actor.profile.organization_id,
+    normalizedId
+  );
+
+  if (!membership) {
+    throw new TeamAccessError(400, "Membro nao possui equipe ativa.");
+  }
+
+  if (membership.role === "supervisor") {
+    throw new TeamAccessError(400, "Este membro ja e supervisor.");
+  }
+
+  const { data: existingSupervisors } = await actor.supabase
+    .from("team_members")
+    .select("id")
+    .eq("team_id", membership.team_id)
+    .eq("organization_id", actor.profile.organization_id)
+    .eq("role", "supervisor")
+    .eq("status", "active")
+    .limit(1);
+
+  if (existingSupervisors && existingSupervisors.length > 0) {
+    throw new TeamAccessError(400, "A equipe ja possui um supervisor. Rebaixe o atual primeiro.");
+  }
+
+  await actor.supabase
+    .from("team_members")
+    .update({ role: "supervisor", updated_at: new Date().toISOString() })
+    .eq("id", membership.id);
+
+  await actor.supabase.rpc("update_workspace_member_role", {
+    target_profile_id: normalizedId,
+    next_role: "admin"
+  });
+
+  await recordAuditLog({
+    organizationId: actor.profile.organization_id,
+    actorProfileId: actor.profile.id,
+    actorRole: actor.profile.role,
+    teamId: membership.team_id,
+    action: "member.promote",
+    targetType: "profile",
+    targetId: normalizedId,
+    status: "success",
+    metadata: { previousRole: "consultant", newRole: "supervisor" }
+  });
+}
+
+export async function demoteSupervisorForCurrentUser(
+  targetProfileId: string
+): Promise<void> {
+  const actor = await getCurrentTeamActor();
+  assertOwnerTeamAccess(actor.role);
+  const normalizedId = normalizeTargetProfileId(targetProfileId);
+
+  if (actor.mode === "not-configured") {
+    return;
+  }
+
+  const membership = await getActiveTeamMembershipForProfile(
+    actor.supabase,
+    actor.profile.organization_id,
+    normalizedId
+  );
+
+  if (!membership || membership.role !== "supervisor") {
+    throw new TeamAccessError(400, "Este membro nao e supervisor.");
+  }
+
+  await actor.supabase
+    .from("team_members")
+    .update({ role: "consultant", updated_at: new Date().toISOString() })
+    .eq("id", membership.id);
+
+  await actor.supabase.rpc("update_workspace_member_role", {
+    target_profile_id: normalizedId,
+    next_role: "seller"
+  });
+
+  await recordAuditLog({
+    organizationId: actor.profile.organization_id,
+    actorProfileId: actor.profile.id,
+    actorRole: actor.profile.role,
+    teamId: membership.team_id,
+    action: "member.demote",
+    targetType: "profile",
+    targetId: normalizedId,
+    status: "success",
+    metadata: { previousRole: "supervisor", newRole: "consultant" }
+  });
+}
+
+export async function changeTeamSupervisorForCurrentUser(
+  teamId: string,
+  newSupervisorProfileId: string
+): Promise<void> {
+  const actor = await getCurrentTeamActor();
+  assertOwnerTeamAccess(actor.role);
+  const normalizedTeamId = normalizeTeamId(teamId);
+  const normalizedNewId = normalizeTargetProfileId(newSupervisorProfileId);
+
+  if (actor.mode === "not-configured") {
+    return;
+  }
+
+  await getTeamRowForOrganization(
+    actor.supabase,
+    actor.profile.organization_id,
+    normalizedTeamId
+  );
+
+  const { data: currentSupervisor } = await actor.supabase
+    .from("team_members")
+    .select("*")
+    .eq("team_id", normalizedTeamId)
+    .eq("organization_id", actor.profile.organization_id)
+    .eq("role", "supervisor")
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (currentSupervisor) {
+    await actor.supabase
+      .from("team_members")
+      .update({ role: "consultant", updated_at: new Date().toISOString() })
+      .eq("id", currentSupervisor.id);
+
+    await actor.supabase.rpc("update_workspace_member_role", {
+      target_profile_id: currentSupervisor.profile_id,
+      next_role: "seller"
+    });
+  }
+
+  const newSupervisorMembership = await actor.supabase
+    .from("team_members")
+    .select("*")
+    .eq("team_id", normalizedTeamId)
+    .eq("profile_id", normalizedNewId)
+    .eq("organization_id", actor.profile.organization_id)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (!newSupervisorMembership.data) {
+    throw new TeamAccessError(400, "O membro selecionado nao pertence a esta equipe.");
+  }
+
+  await actor.supabase
+    .from("team_members")
+    .update({ role: "supervisor", updated_at: new Date().toISOString() })
+    .eq("id", newSupervisorMembership.data.id);
+
+  await actor.supabase.rpc("update_workspace_member_role", {
+    target_profile_id: normalizedNewId,
+    next_role: "admin"
+  });
+
+  await recordAuditLog({
+    organizationId: actor.profile.organization_id,
+    actorProfileId: actor.profile.id,
+    actorRole: actor.profile.role,
+    teamId: normalizedTeamId,
+    action: "team.supervisor.change",
+    targetType: "team",
+    targetId: normalizedTeamId,
+    status: "success",
+    metadata: {
+      previousSupervisorId: currentSupervisor?.profile_id ?? null,
+      newSupervisorId: normalizedNewId
+    }
+  });
+}
+
+export async function reactivateMemberForCurrentUser(
+  targetProfileId: string
+): Promise<void> {
+  const actor = await getCurrentTeamActor();
+  assertOwnerTeamAccess(actor.role);
+  const normalizedId = normalizeTargetProfileId(targetProfileId);
+
+  if (actor.mode === "not-configured") {
+    return;
+  }
+
+  const { data: inactiveMembership } = await actor.supabase
+    .from("team_members")
+    .select("*")
+    .eq("organization_id", actor.profile.organization_id)
+    .eq("profile_id", normalizedId)
+    .eq("status", "inactive")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!inactiveMembership) {
+    throw new TeamAccessError(400, "Nenhum membro desativado encontrado com este perfil.");
+  }
+
+  const teamRole = inactiveMembership.role === "supervisor" ? "admin" : "seller";
+
+  await actor.supabase.rpc("update_workspace_member_role", {
+    target_profile_id: normalizedId,
+    next_role: teamRole
+  });
+
+  await actor.supabase
+    .from("team_members")
+    .update({ status: "active", updated_at: new Date().toISOString() })
+    .eq("id", inactiveMembership.id);
+
+  await recordAuditLog({
+    organizationId: actor.profile.organization_id,
+    actorProfileId: actor.profile.id,
+    actorRole: actor.profile.role,
+    teamId: inactiveMembership.team_id,
+    action: "member.reactivate",
+    targetType: "profile",
+    targetId: normalizedId,
+    status: "success",
+    metadata: { reactivatedRole: inactiveMembership.role }
+  });
+}
+
+export async function deactivateTeamWithMembersForCurrentUser(
+  teamId: string
+): Promise<WorkspaceTeam> {
+  const actor = await getCurrentTeamActor();
+  assertOwnerTeamAccess(actor.role);
+  const normalizedTeamId = normalizeTeamId(teamId);
+
+  if (actor.mode === "not-configured") {
+    const team = getMockTeamStore().find((item) => item.id === normalizedTeamId);
+    if (!team || team.organization_id !== actor.profile.organization_id) {
+      throw new TeamAccessError(404, "Equipe nao encontrada.");
+    }
+    team.is_active = false;
+    team.updated_at = new Date().toISOString();
+    return mapWorkspaceTeam(team);
+  }
+
+  const existingTeam = await getTeamRowForOrganization(
+    actor.supabase,
+    actor.profile.organization_id,
+    normalizedTeamId
+  );
+
+  if (!existingTeam.is_active) {
+    return mapWorkspaceTeam(existingTeam);
+  }
+
+  await actor.supabase
+    .from("team_members")
+    .update({ status: "inactive", updated_at: new Date().toISOString() })
+    .eq("team_id", normalizedTeamId)
+    .eq("organization_id", actor.profile.organization_id)
+    .eq("status", "active");
+
+  const { data, error } = await actor.supabase
+    .from("teams")
+    .update({ is_active: false })
+    .eq("id", existingTeam.id)
+    .eq("organization_id", actor.profile.organization_id)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw error ?? new Error("Nao foi possivel desativar a equipe.");
+  }
+
+  await recordAuditLog({
+    organizationId: actor.profile.organization_id,
+    actorProfileId: actor.profile.id,
+    actorRole: actor.profile.role,
+    teamId: normalizedTeamId,
+    action: "team.deactivate",
+    targetType: "team",
+    targetId: normalizedTeamId,
+    status: "success",
+    metadata: { teamName: existingTeam.name }
+  });
+
+  return mapWorkspaceTeam(data);
 }
 
 function mapWorkspaceTeam(team: TeamRow): WorkspaceTeam {

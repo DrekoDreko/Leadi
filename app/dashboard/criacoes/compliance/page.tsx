@@ -5,7 +5,7 @@ import { ComplianceValidator } from "../../compliance/compliance-validator";
 
 export default async function CriacoesCompliancePage() {
   const context = await requireCompletedProfile();
-  if (context.isTeamSeller) {
+  if (!context.isOwner) {
     redirect("/dashboard/criacoes");
   }
   const aiBalance = await getCurrentAiBalance();

@@ -17,6 +17,7 @@ logs/
 *.tsbuildinfo
 .vercel
 supabase/.temp/
+supabase/.branches/
 *.pem
 *.key
 *.p12

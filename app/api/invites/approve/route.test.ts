@@ -44,12 +44,15 @@ describe("Invites approval API - /api/invites/approve", () => {
     const invite = {
       id: "invite-1",
       token: "token-1",
+      teamId: null,
+      teamName: null,
       invitePath: "/invite/token-1",
       roleToAssign: "seller" as const,
       status: "active" as const,
       requiresApproval: true,
       approvalStatus: "approved" as const,
       approvedByUserId: "owner-1",
+      invitedEmail: null,
       createdAt: "2026-05-29T22:00:00.000Z",
       expiresAt: "2026-06-28T22:00:00.000Z"
     };

@@ -2,14 +2,13 @@ import Link from "next/link";
 import {
   ArrowRight,
   ClipboardCheck,
-  FilePlus2,
   Megaphone,
   Palette,
-  Plus,
   Sparkles
 } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
+import { SupportCard } from "./support-card";
 
 const primaryCreations = [
   {
@@ -47,12 +46,6 @@ const secondaryCreations = [
     description: "Veja o historico dos anuncios e retome campanhas ja preparadas.",
     href: "/dashboard/anuncios",
     icon: Megaphone
-  },
-  {
-    title: "Outras criacoes",
-    description: "Este hub continua pronto para crescer com novas automacoes e materiais.",
-    href: "/dashboard/criacoes",
-    icon: FilePlus2
   }
 ];
 
@@ -63,7 +56,9 @@ export default async function CriacoesPage() {
   // Consultor só acessa a solicitação de criativo (sem IA Gerador nem validadores).
   const visiblePrimary = isConsultant
     ? primaryCreations.filter((item) => item.title === "Solicitacao de criativo")
-    : primaryCreations;
+    : context.isOwner
+      ? primaryCreations
+      : primaryCreations.filter((item) => item.title !== "Validador de campanha");
 
   return (
     <div className="space-y-4">
@@ -73,14 +68,11 @@ export default async function CriacoesPage() {
         description={
           isConsultant
             ? "Abra aqui a sua solicitacao de criativo para a equipe de operacao."
-            : "Este e o hub de criacao do Leadi: campanhas, validador, solicitacao de criativo e futuras rotinas da operacao."
+            : context.isOwner
+              ? "Este e o hub de criacao do Leadi: campanhas, validador, solicitacao de criativo e futuras rotinas da operacao."
+              : "Crie campanhas e solicite criativos para a operacao."
         }
-      >
-        <span className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft">
-          <Plus size={18} aria-hidden="true" />
-          Escolha o que criar
-        </span>
-      </PageHeading>
+      />
 
       <section className="grid gap-4 lg:grid-cols-3">
         {visiblePrimary.map((item) => (
@@ -108,18 +100,16 @@ export default async function CriacoesPage() {
             </span>
           </Link>
         ))}
+        {!context.isOwner && <SupportCard variant="primary" />}
       </section>
 
-      {!isConsultant && (
+      {context.isOwner && (
       <section className="surface-card space-y-6 rounded-[34px] p-6 md:p-7">
         <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-medium text-cobalt">Complementos</p>
             <h2 className="mt-2 text-2xl font-semibold">Tudo o que apoia a criacao</h2>
           </div>
-          <p className="text-muted-soft max-w-xl text-sm leading-6">
-            O objetivo agora e concentrar o que antes ficava espalhado pelo menu em uma area unica e mais facil de navegar.
-          </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -147,6 +137,7 @@ export default async function CriacoesPage() {
               </div>
             </Link>
           ))}
+          <SupportCard />
         </div>
       </section>
       )}

@@ -52,6 +52,8 @@ export type Lead = {
   metaAdsetId?: string | null;
   metaAdId?: string | null;
   metaConnectedAccountId?: string | null;
+  teamId?: string | null;
+  teamName?: string | null;
   receivedAt?: string | null;
   updatedAt?: string | null;
   archivedAt?: string | null;

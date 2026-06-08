@@ -1202,8 +1202,7 @@ function canManageConnections(profile: ProfileRow, organization: OrganizationRow
 
   return (
     organization.type === "solo" ||
-    normalizedRole === "owner" ||
-    normalizedRole === "admin"
+    normalizedRole === "owner"
   );
 }
 

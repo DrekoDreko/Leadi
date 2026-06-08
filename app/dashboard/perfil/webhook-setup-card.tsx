@@ -126,7 +126,7 @@ export function WebhookSetupCard({
               </form>
             ) : (
               <p className="mt-3 text-sm leading-6 text-ink/62">
-                O owner ou os admins da equipe precisam gerar o token. Depois disso, compartilhe-o
+                O owner ou os supervisores da equipe precisam gerar o token. Depois disso, compartilhe-o
                 com cuidado fora do app.
               </p>
             )}

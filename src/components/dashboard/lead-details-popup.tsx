@@ -1461,7 +1461,7 @@ function getLeadOwnerRoleLabel(role: LeadOwnerOption["role"]) {
   }
 
   if (role === "admin") {
-    return "Admin";
+    return "Supervisor";
   }
 
   return "Consultor";

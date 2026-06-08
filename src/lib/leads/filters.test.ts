@@ -33,7 +33,8 @@ describe("lead filters", () => {
         archived: false,
         owner: "",
         campaign: "",
-        view: "all"
+        view: "all",
+        team: "all"
       })
     ).toBe(true);
   });

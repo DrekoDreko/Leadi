@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowUpRight, Megaphone, ShieldCheck, Pause, CheckCircle2, Copy } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
+import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
 
 function getStatusDisplay(publicationStatus: string, publishMode: string) {
@@ -20,6 +22,10 @@ function getStatusDisplay(publicationStatus: string, publishMode: string) {
 }
 
 export default async function AnunciosPage() {
+  const context = await requireCompletedProfile();
+  if (!context.isOwner) {
+    redirect("/dashboard/criacoes");
+  }
   const campaignState = await getCampaignsForCurrentUser(12);
 
   return (
