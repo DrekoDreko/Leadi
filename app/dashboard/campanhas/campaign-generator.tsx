@@ -521,7 +521,8 @@ export function CampaignGenerator({
       } | null;
 
       if (!response.ok || !payload?.campaign) {
-        throw new Error(payload?.error ?? "Nao foi possivel gerar a campanha.");
+        setError(payload?.error || "Não foi possível gerar a campanha. Revise os dados e tente novamente.");
+        return;
       }
       if (typeof payload.aiBalance === "number") {
         setCurrentAiBalance(payload.aiBalance);
