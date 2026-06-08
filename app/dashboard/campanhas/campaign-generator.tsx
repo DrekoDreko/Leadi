@@ -14,6 +14,7 @@ import {
   FileText,
   ImagePlus,
   Info,
+  Loader2,
   Paperclip,
   ShieldAlert,
   ShieldCheck,
@@ -449,6 +450,7 @@ export function CampaignGenerator({
   const [openStep, setOpenStep] = useState(1);
   const [currentAiBalance, setCurrentAiBalance] = useState(aiBalance);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
   const [templateNotice, setTemplateNotice] = useState("");
   const [draftNotice, setDraftNotice] = useState("");
@@ -483,6 +485,7 @@ export function CampaignGenerator({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
     setError("");
     setSubmissionNotice("");
     setDraftNotice("");
@@ -499,6 +502,8 @@ export function CampaignGenerator({
       setError("Você não possui créditos de IA suficientes para executar esta ação.");
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       const response = await fetch("/api/campaigns/generate", {
@@ -526,6 +531,8 @@ export function CampaignGenerator({
       setSubmissionNotice(buildCampaignSubmissionNotice(form, connectedAccounts));
     } catch (requestError) {
       setError(getFriendlyErrorMessage(requestError).message);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -771,19 +778,14 @@ export function CampaignGenerator({
               campaignCost={campaignCost}
               connectedAccounts={connectedAccounts}
               complianceReview={complianceReview}
+              error={error}
               form={form}
+              isSubmitting={isSubmitting}
               onSaveDraft={handleSaveDraft}
               selectedTemplate={selectedTemplate}
               validationMessages={validationMessages}
             />
           </CampaignStepCard>
-
-          {error ? (
-            <div className="flex items-start gap-3 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
-              <AlertTriangle className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
-              <p>{error}</p>
-            </div>
-          ) : null}
         </form>
       </section>
     </div>
@@ -1592,7 +1594,9 @@ function CampaignSummaryStep({
   campaignCost,
   connectedAccounts,
   complianceReview,
+  error,
   form,
+  isSubmitting,
   onSaveDraft,
   selectedTemplate,
   validationMessages
@@ -1600,7 +1604,9 @@ function CampaignSummaryStep({
   campaignCost: number;
   connectedAccounts: ConnectedAccountsState;
   complianceReview: LocalComplianceReview | null;
+  error: string;
   form: CampaignFormState;
+  isSubmitting: boolean;
   onSaveDraft: () => void;
   selectedTemplate?: CampaignTemplate;
   validationMessages: string[];
@@ -1776,6 +1782,12 @@ function CampaignSummaryStep({
           O valor será debitado do seu saldo ao enviar a campanha.
         </p>
       </div>
+      {error ? (
+        <div className="flex items-start gap-3 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
+          <AlertTriangle className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
+          <p>{error}</p>
+        </div>
+      ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <button
           className="surface-action-secondary inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
@@ -1785,11 +1797,21 @@ function CampaignSummaryStep({
           Salvar rascunho para publicar depois
         </button>
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92 disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled={isSubmitting}
           type="submit"
         >
-          Enviar campanha
-          <ArrowRight size={16} aria-hidden="true" />
+          {isSubmitting ? (
+            <>
+              Enviando...
+              <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+            </>
+          ) : (
+            <>
+              Enviar campanha
+              <ArrowRight size={16} aria-hidden="true" />
+            </>
+          )}
         </button>
       </div>
     </div>
