@@ -40,7 +40,7 @@ const integrationFeedbackMessages: Record<string, string> = {
   connected: "Conta Meta conectada com sucesso.",
   disconnected: "Conta Meta desconectada com sucesso.",
   forbidden:
-    "Sua permissao para gerenciar a conexao Meta mudou antes da conclusao do fluxo. Peca para um owner ou admin reconectar a conta.",
+    "Sua permissao para gerenciar a conexao Meta mudou antes da conclusao do fluxo. Peca para o owner reconectar a conta.",
   coming_soon:
     "A conta OpenAI própria está em breve. Hoje as gerações usam os Créditos de IA da plataforma.",
   success: "Sincronizacao concluida com sucesso.",

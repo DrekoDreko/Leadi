@@ -6,7 +6,7 @@ import { WhatsAppProviderError } from "./types";
 
 export function createOfficialMetaWhatsAppProvider(
   phoneNumberId: string,
-  apiVersion = getServerEnv("META_WHATSAPP_API_VERSION") || "v20.0"
+  apiVersion = getServerEnv("META_WHATSAPP_API_VERSION") || "v25.0"
 ): WhatsAppProvider {
   const isReady = Boolean(getServerEnv("META_WHATSAPP_ACCESS_TOKEN")) && Boolean(phoneNumberId.trim());
 

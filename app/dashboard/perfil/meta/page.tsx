@@ -15,7 +15,7 @@ const integrationFeedbackMessages: Record<string, string> = {
   connected: "Conta Meta conectada com sucesso.",
   disconnected: "Conta Meta desconectada com sucesso.",
   forbidden:
-    "Sua permissao para gerenciar a conexao Meta mudou antes da conclusao do fluxo. Reconecte com um owner ou admin valido.",
+    "Sua permissao para gerenciar a conexao Meta mudou antes da conclusao do fluxo. Reconecte com o owner.",
   invalid_request:
     "O retorno do OAuth da Meta chegou incompleto. Tente conectar novamente para reiniciar a autorizacao.",
   coming_soon:

@@ -51,7 +51,8 @@ function getLeadWebhookToken(request: Request) {
     .get("authorization")
     ?.replace(/^bearer\s+/i, "")
     .trim();
-  const headerToken = request.headers.get("x-leadhealth-token")?.trim();
+  const headerToken = request.headers.get("x-leadi-token")?.trim()
+    || request.headers.get("x-leadhealth-token")?.trim();
 
   return headerToken || bearerToken || "";
 }

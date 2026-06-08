@@ -1,7 +1,7 @@
 import { getServerEnv } from "@/lib/env/server";
 import { getSiteUrl } from "@/lib/site/config";
 
-const DEFAULT_META_GRAPH_API_VERSION = "v22.0";
+const DEFAULT_META_GRAPH_API_VERSION = "v25.0";
 
 // Scopes organizados em grupos mapeados a features e a fases de App Review.
 // O grupo `base` cobre as permissoes ja aprovadas e e sempre solicitado.

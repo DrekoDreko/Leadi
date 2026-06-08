@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://leadhealth.vercel.app";
+const DEFAULT_SITE_URL = process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://leadi.vercel.app";
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
 
 type HeaderStore = {

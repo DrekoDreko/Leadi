@@ -142,7 +142,7 @@ export async function requireWorkspaceManager() {
 export async function requireWorkspaceOwner() {
   const context = await requireCompletedProfile();
 
-  if (context.mode === "supabase" && !context.isOwner && !context.isSoloOwner) {
+  if (context.mode === "supabase" && !context.isOwner) {
     redirect("/dashboard");
   }
 

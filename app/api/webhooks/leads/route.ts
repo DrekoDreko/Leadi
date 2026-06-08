@@ -261,7 +261,7 @@ function getWebhookLeadErrorMessage(error: unknown) {
   }
 
   if (message.includes("Webhook token ausente")) {
-    return "Informe um token em Authorization Bearer ou x-leadhealth-token.";
+    return "Informe um token em Authorization Bearer ou x-leadi-token.";
   }
 
   if (message.includes("Content-Type invalido")) {

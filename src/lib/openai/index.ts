@@ -262,7 +262,7 @@ export async function generateCampaignText(
   options?: OpenAIRequestOptions
 ): Promise<CampaignTextOutput> {
   return generateStructuredOutput<CampaignTextOutput>({
-    schemaName: "leadhealth_campaign_text",
+    schemaName: "leadi_campaign_text",
     schema: campaignTextSchema,
     maxOutputTokens: 900,
     userPrompt: buildCampaignTextPrompt(input),
@@ -277,7 +277,7 @@ export async function generateComplianceQuestions(
   const maxQuestions = clampInteger(input.maxQuestions ?? 6, 3, 10);
 
   return generateStructuredOutput<ComplianceQuestionsOutput>({
-    schemaName: "leadhealth_compliance_questions",
+    schemaName: "leadi_compliance_questions",
     schema: complianceQuestionsSchema,
     maxOutputTokens: 900,
     userPrompt: buildComplianceQuestionsPrompt({
@@ -295,7 +295,7 @@ export async function generateWhatsAppMessage(
   const stage = input.stage ?? "new";
 
   return generateStructuredOutput<WhatsAppMessageOutput>({
-    schemaName: "leadhealth_whatsapp_message",
+    schemaName: "leadi_whatsapp_message",
     schema: whatsAppMessageSchema,
     maxOutputTokens: 700,
     userPrompt: buildWhatsAppMessagePrompt({
@@ -311,7 +311,7 @@ export async function reviewComplianceText(
   options?: OpenAIRequestOptions
 ): Promise<ComplianceReviewOutput> {
   return generateStructuredOutput<ComplianceReviewOutput>({
-    schemaName: "leadhealth_compliance_review",
+    schemaName: "leadi_compliance_review",
     schema: complianceReviewSchema,
     maxOutputTokens: 900,
     userPrompt: buildComplianceReviewPrompt(input),

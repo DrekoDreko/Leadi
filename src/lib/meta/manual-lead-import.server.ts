@@ -1,11 +1,9 @@
 import "server-only";
 
-import { leads as mockLeads, type Lead } from "@/data/mock";
 import {
   createLeadFromManualMetaImport,
   type LeadCreateInput
 } from "@/lib/leads/repository.server";
-import { normalizeEmail, normalizePhone } from "@/lib/leads/normalization";
 import {
   getConnectedAccountsForCurrentUser,
   resolveCurrentIdentity,
@@ -79,10 +77,10 @@ export async function listMetaLeadImportSourcesForCurrentUser(): Promise<MetaLea
   if (!isSupabaseConfigured()) {
     return {
       mode: "not-configured",
-      hasConnection: true,
-      canImport: true,
-      sources: getMockMetaLeadImportSources(),
-      message: "Supabase ainda nao configurado. Exibindo fontes Meta mockadas."
+      hasConnection: false,
+      canImport: false,
+      sources: [],
+      message: "Configure o Supabase para listar fontes de importacao Meta."
     };
   }
 
@@ -151,7 +149,7 @@ export async function importMetaLeadsForCurrentUser(input: {
   }
 
   if (!isSupabaseConfigured()) {
-    return importMockMetaLeads(input);
+    throw new MetaLeadImportError("Configure o Supabase para importar leads da Meta.", 503);
   }
 
   if (!hasSupabaseServiceRole()) {
@@ -563,164 +561,6 @@ function mergeImportSources(
     ...graphSources,
     ...localSources.filter((source) => !graphSourceKeys.has(`${source.type}:${source.id}`))
   ];
-}
-
-function getMockMetaLeadImportSources(): MetaLeadImportSource[] {
-  return [
-    {
-      id: "demo-campaign-health-pme",
-      type: "campaign",
-      name: "PME plano empresarial - Maio",
-      status: "active",
-      adAccountName: "Conta Demo Principal",
-      availableLeadCount: 2,
-      hasAvailableLeads: true,
-      lastCollectedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString()
-    },
-    {
-      id: "demo-ad-health-pme-01",
-      type: "ad",
-      name: "Criativo cotacao consultiva",
-      status: "active",
-      parentName: "PME plano empresarial - Maio",
-      campaignId: "demo-campaign-health-pme",
-      campaignName: "PME plano empresarial - Maio",
-      availableLeadCount: 1,
-      hasAvailableLeads: true,
-      lastCollectedAt: new Date(Date.now() - 1000 * 60 * 90).toISOString()
-    },
-    {
-      id: "form_445566",
-      type: "form",
-      name: "Cotacao empresarial - principal",
-      status: "active",
-      pageId: "page_123456",
-      pageName: "Corretora Demo Empresarial",
-      availableLeadCount: 2,
-      hasAvailableLeads: true,
-      lastCollectedAt: new Date(Date.now() - 1000 * 60 * 12).toISOString()
-    }
-  ];
-}
-
-function importMockMetaLeads(input: {
-  sourceType: MetaLeadImportSourceType;
-  sourceId: string;
-}): MetaLeadImportResponse {
-  const now = new Date().toISOString();
-  const candidates: Lead[] = [
-    {
-      id: `mock-meta-import-${Date.now()}`,
-      name: "Carolina Prado",
-      owner: "Demo",
-      canEdit: true,
-      canDelete: true,
-      stage: "Novo lead",
-      source: "Meta Lead Form",
-      phone: "(11) 98888-4545",
-      email: "carolina.prado@demoimport.com.br",
-      city: "Sao Paulo",
-      companyName: "Prado Administracao",
-      livesCount: 24,
-      createdAt: "15 mai 2026",
-      budget: "A qualificar",
-      interest: "Cotacao de plano empresarial",
-      lastInteraction: "Lead importado manualmente da Meta.",
-      notes: "Mock de importacao Meta. TODO: substituir pela Meta Graph API em producao.",
-      sourceCampaign: input.sourceType === "campaign" ? input.sourceId : "Campanha Meta Demo",
-      sourceAd: input.sourceType === "ad" ? input.sourceId : null,
-      metaLeadId: `demo-import-${Date.now()}`,
-      metaFormId: input.sourceType === "form" ? input.sourceId : "form_445566",
-      metaPageId: "page_123456",
-      metaConnectedAccountId: "demo-meta-connection",
-      receivedAt: now,
-      archivedAt: null
-    },
-    {
-      id: `mock-meta-import-duplicate-${Date.now()}`,
-      name: "Marina Azevedo",
-      owner: "Demo",
-      canEdit: true,
-      canDelete: true,
-      stage: "Novo lead",
-      source: "Meta Lead Form",
-      phone: "(19) 98842-1042",
-      email: "marina@azevedoclinica.com.br",
-      city: "Campinas",
-      companyName: "Azevedo Clinica",
-      livesCount: 48,
-      createdAt: "15 mai 2026",
-      budget: "A qualificar",
-      interest: "Cotacao de plano empresarial",
-      lastInteraction: "Lead duplicado encontrado na importacao Meta.",
-      notes: "Mock de lead duplicado arquivado automaticamente.",
-      sourceCampaign: "Campanha Meta Demo",
-      metaLeadId: `demo-import-duplicate-${Date.now()}`,
-      metaFormId: "form_445566",
-      metaPageId: "page_123456",
-      metaConnectedAccountId: "demo-meta-connection",
-      receivedAt: now,
-      archivedAt: now,
-      archiveReason: "Lead duplicado",
-      duplicateOfLeadId: "LE-1042"
-    }
-  ];
-
-  const existingEmails = new Set(mockLeads.map((lead) => normalizeEmail(lead.email)).filter(Boolean));
-  const existingPhones = new Set(
-    mockLeads.map((lead) => normalizePhone(lead.phone).e164).filter(Boolean)
-  );
-  const items: MetaLeadImportItem[] = [];
-  let imported = 0;
-  let duplicates = 0;
-  let archived = 0;
-
-  for (const candidate of candidates) {
-    const isDuplicate =
-      existingEmails.has(normalizeEmail(candidate.email)) ||
-      existingPhones.has(normalizePhone(candidate.phone).e164);
-
-    if (isDuplicate) {
-      duplicates += 1;
-      archived += 1;
-      mockLeads.push({ ...candidate, archivedAt: now, archiveReason: "Lead duplicado" });
-      items.push({
-        externalLeadId: candidate.metaLeadId,
-        leadId: candidate.id,
-        duplicateOfLeadId: candidate.duplicateOfLeadId ?? null,
-        status: "archived",
-        duplicateReason: "email",
-        message: "Lead duplicado arquivado automaticamente no modo demonstracao."
-      });
-    } else {
-      imported += 1;
-      mockLeads.unshift(candidate);
-      items.push({
-        externalLeadId: candidate.metaLeadId,
-        leadId: candidate.id,
-        status: "imported"
-      });
-    }
-  }
-
-  const summary: MetaLeadImportSummary = {
-    totalFound: candidates.length,
-    imported,
-    duplicates,
-    archived,
-    errors: 0
-  };
-  const resultState = buildMetaLeadImportResultState(summary);
-
-  return {
-    success: resultState.success,
-    status: resultState.status,
-    mode: "not-configured",
-    summary,
-    items,
-    message: resultState.message,
-    detail: `${resultState.detail ?? ""} Modo demonstracao ativo com dados mockados.`.trim()
-  };
 }
 
 function buildMetaLeadImportResultState(summary: MetaLeadImportSummary): {

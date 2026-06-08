@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import PerfilMetaPage from "./page";
-import { requireWorkspaceManager } from "@/lib/workspaces/context";
+import { requireWorkspaceOwner } from "@/lib/workspaces/context";
 import { getManagedConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/workspaces/context", () => ({
-  requireWorkspaceManager: vi.fn()
+  requireWorkspaceOwner: vi.fn()
 }));
 
 vi.mock("@/lib/integrations/repository.server", () => ({
@@ -16,7 +16,7 @@ vi.mock("@/lib/integrations/repository.server", () => ({
 
 describe("Perfil Meta Page (/dashboard/perfil/meta)", () => {
   it("renderiza a area detalhada de Meta e os ativos conectados", async () => {
-    vi.mocked(requireWorkspaceManager).mockResolvedValue({
+    vi.mocked(requireWorkspaceOwner).mockResolvedValue({
       workspaceName: "Aliança Corretora"
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 

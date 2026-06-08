@@ -45,7 +45,7 @@ export function WebhookSetupCard({
       [
         `curl -X POST '${webhookUrl}' \\`,
         "  -H 'Content-Type: application/json' \\",
-        "  -H 'x-leadhealth-token: SEU_TOKEN_AQUI' \\",
+        "  -H 'x-leadi-token: SEU_TOKEN_AQUI' \\",
         `  --data-raw '${JSON.stringify(samplePayload)}'`
       ].join("\n"),
     [webhookUrl]
@@ -180,7 +180,7 @@ export function WebhookSetupCard({
               <li>
                 4. Envie o token no header{" "}
                 <code className="rounded bg-white/68 px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
-                  x-leadhealth-token: SEU_TOKEN_AQUI
+                  x-leadi-token: SEU_TOKEN_AQUI
                 </code>{" "}
                 ou{" "}
                 <code className="rounded bg-white/68 px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
