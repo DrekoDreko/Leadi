@@ -600,7 +600,7 @@ export function CampaignGenerator({
     advanceFromStep(1, 2);
   }
 
-  function handleSaveDraft() {
+  async function handleSaveDraft() {
     const nextValidationMessages = validateForm(form);
     setValidationMessages(nextValidationMessages);
 
@@ -609,8 +609,46 @@ export function CampaignGenerator({
       return;
     }
 
-    // TODO: Persistir rascunho sem gerar campanha quando existir endpoint dedicado.
-    setDraftNotice("Rascunho simulado salvo nesta sessão. A persistência real depende de backend dedicado.");
+    if (currentAiBalance < campaignCost) {
+      setDraftNotice("Você não possui créditos de IA suficientes para salvar o rascunho.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setDraftNotice("");
+    setError("");
+
+    try {
+      const payload = buildCampaignRequestPayload({ ...form, publishMode: "draft" as PublishMode });
+      const response = await fetch("/api/campaigns/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": crypto.randomUUID()
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = (await response.json().catch(() => null)) as {
+        campaign?: CampaignTextOutput;
+        aiBalance?: number;
+        error?: string;
+      } | null;
+
+      if (!response.ok || !result?.campaign) {
+        setError(result?.error || "Não foi possível salvar o rascunho. Tente novamente.");
+        return;
+      }
+      if (typeof result.aiBalance === "number") {
+        setCurrentAiBalance(result.aiBalance);
+        setForm((currentForm) => ({ ...currentForm, aiCredits: result.aiBalance ?? currentForm.aiCredits }));
+      }
+      setDraftNotice("Rascunho salvo com sucesso! Acesse seus rascunhos na página de anúncios.");
+      setCompletedSteps(campaignFlowSteps.map((step) => step.number));
+    } catch (requestError) {
+      setError(getFriendlyErrorMessage(requestError).message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (

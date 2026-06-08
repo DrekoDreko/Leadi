@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, Megaphone, ShieldCheck, Pause, CheckCircle2, Copy } from "lucide-react";
+import { ArrowUpRight, FileText, Megaphone, ShieldCheck, Pause, CheckCircle2, Copy } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
 
 function getStatusDisplay(publicationStatus: string, publishMode: string) {
+  if (publishMode === "draft" || publicationStatus === "draft_created") {
+    return { label: "Rascunho", color: "bg-slate-100/80 text-slate-900 border border-slate-200/50", Icon: FileText };
+  }
   if (publishMode === "paused" || publicationStatus === "paused") {
     return { label: "Pausada", color: "bg-amber-100/80 text-amber-900 border border-amber-200/50", Icon: Pause };
   }
@@ -15,33 +18,74 @@ function getStatusDisplay(publicationStatus: string, publishMode: string) {
   if (publicationStatus === "not_connected") {
     return { label: "Pronta", color: "bg-blue-100/80 text-blue-900 border border-blue-200/50", Icon: ShieldCheck };
   }
-  if (publicationStatus === "ready_to_prepare" || publicationStatus === "draft_created" || publicationStatus === "pending_review") {
+  if (publicationStatus === "ready_to_prepare" || publicationStatus === "pending_review") {
     return { label: "Revisão Manual", color: "bg-purple-100/80 text-purple-900 border border-purple-200/50", Icon: ShieldCheck };
   }
   return { label: publicationStatus.replaceAll("_", " "), color: "bg-white/62 text-ink/62 border border-white/20", Icon: ShieldCheck };
 }
 
-export default async function AnunciosPage() {
+export default async function AnunciosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filtro?: string }>;
+}) {
   const context = await requireCompletedProfile();
   if (!context.isOwner) {
     redirect("/dashboard/criacoes");
   }
-  const campaignState = await getCampaignsForCurrentUser(12);
+  const params = await searchParams;
+  const filterDrafts = params.filtro === "rascunhos";
+  const campaignState = await getCampaignsForCurrentUser(50);
+
+  const displayedCampaigns = filterDrafts
+    ? campaignState.campaigns.filter(
+        (c) => c.publishMode === "draft" || c.publicationStatus === "draft_created"
+      )
+    : campaignState.campaigns;
+
+  const draftCount = campaignState.campaigns.filter(
+    (c) => c.publishMode === "draft" || c.publicationStatus === "draft_created"
+  ).length;
 
   return (
     <div className="space-y-4">
       <PageHeading
         eyebrow="Anúncios"
-        title="Meus anúncios"
-        description="Veja campanhas já geradas, acompanhe o estado atual e retome uma criação quando precisar revisar ou duplicar a ideia."
+        title={filterDrafts ? "Meus rascunhos" : "Meus anúncios"}
+        description={
+          filterDrafts
+            ? "Campanhas salvas como rascunho. Retome a edição ou publique quando estiver pronto."
+            : "Veja campanhas já geradas, acompanhe o estado atual e retome uma criação quando precisar revisar ou duplicar a ideia."
+        }
       >
-        <Link
-          className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white"
-          href="/dashboard/criacoes/campanhas"
-        >
-          Criar anúncio
-          <ArrowUpRight size={18} aria-hidden="true" />
-        </Link>
+        <div className="flex items-center gap-3">
+          {filterDrafts ? (
+            <Link
+              className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+              href="/dashboard/anuncios"
+            >
+              Ver todos
+            </Link>
+          ) : draftCount > 0 ? (
+            <Link
+              className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+              href="/dashboard/anuncios?filtro=rascunhos"
+            >
+              <FileText size={16} aria-hidden="true" />
+              Rascunhos
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-cobalt/10 px-1.5 text-xs font-bold text-cobalt">
+                {draftCount}
+              </span>
+            </Link>
+          ) : null}
+          <Link
+            className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white"
+            href="/dashboard/criacoes/campanhas"
+          >
+            Criar anúncio
+            <ArrowUpRight size={18} aria-hidden="true" />
+          </Link>
+        </div>
       </PageHeading>
 
       {campaignState.message ? (
@@ -57,8 +101,8 @@ export default async function AnunciosPage() {
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {campaignState.campaigns.length ? (
-          campaignState.campaigns.map((campaign) => (
+        {displayedCampaigns.length ? (
+          displayedCampaigns.map((campaign) => (
             <article
               className="glass-strong flex min-h-[220px] flex-col justify-between rounded-[30px] p-5"
               key={campaign.id}
@@ -120,10 +164,13 @@ export default async function AnunciosPage() {
           ))
         ) : (
           <article className="glass-strong rounded-[30px] p-6 md:col-span-2 xl:col-span-3">
-            <h2 className="text-2xl font-semibold">Nenhum anúncio salvo ainda</h2>
+            <h2 className="text-2xl font-semibold">
+              {filterDrafts ? "Nenhum rascunho salvo ainda" : "Nenhum anúncio salvo ainda"}
+            </h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-ink/62">
-              Assim que você criar campanhas na área de Criações, elas aparecem aqui com o
-              histórico principal da conta.
+              {filterDrafts
+                ? "Ao criar uma campanha, clique em \"Salvar rascunho para publicar depois\" para salvá-la aqui."
+                : "Assim que você criar campanhas na área de Criações, elas aparecem aqui com o histórico principal da conta."}
             </p>
           </article>
         )}
