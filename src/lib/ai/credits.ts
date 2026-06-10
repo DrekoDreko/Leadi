@@ -248,6 +248,64 @@ export async function getAiUsageThisPeriod(): Promise<AiUsageThisPeriodSummary> 
   };
 }
 
+export type AiUsageHistoryItem = {
+  id: string;
+  feature: string;
+  featureLabel: string;
+  creditsCharged: number;
+  status: AiUsageEventStatus;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
+export async function getAiUsageHistory(limit = 50): Promise<AiUsageHistoryItem[]> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return [];
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile?.organization_id || !hasSupabaseServiceRole()) {
+    return [];
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("ai_usage_events")
+    .select("id,feature,credits_charged,status,error_message,created_at")
+    .eq("org_id", profile.organization_id)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map((row) => ({
+    id: row.id as string,
+    feature: row.feature as string,
+    featureLabel:
+      AI_FEATURE_LABELS[row.feature as AiFeatureKey] ?? row.feature,
+    creditsCharged: Number(row.credits_charged ?? 0),
+    status: row.status as AiUsageEventStatus,
+    errorMessage: (row.error_message as string) ?? null,
+    createdAt: row.created_at as string
+  }));
+}
+
 export async function ensureSufficientCredits(orgId: string, requiredCredits: number) {
   validateCreditAmount(requiredCredits);
 
@@ -451,6 +509,7 @@ export async function runAiActionWithCredits<T>({
   generate: (apiKey: string) => Promise<T>;
 }) {
   const credits = getAiCreditCost(feature);
+  const apiKey = requirePlatformOpenAIKey();
   const availableCredits = await ensureSufficientCredits(orgId, credits);
   const operationId = crypto.randomUUID();
   const reservation = await consumeAiCredits({
@@ -469,7 +528,6 @@ export async function runAiActionWithCredits<T>({
     referenceType: "ai_usage_operation",
     referenceId: operationId
   });
-  const apiKey = requirePlatformOpenAIKey();
 
   try {
     const result = await generate(apiKey);
