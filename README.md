@@ -6,8 +6,10 @@ Leadi é uma plataforma para corretores e equipes de vendas de planos de saúde 
 
 O sistema já está no ar e funcionando:
 
-- Site: [https://leadi.vercel.app](https://leadi.vercel.app)
-- Login: [https://leadi.vercel.app/login](https://leadi.vercel.app/login)
+- Site: [https://leadhealth.vercel.app](https://leadhealth.vercel.app)
+- Login: [https://leadhealth.vercel.app/login](https://leadhealth.vercel.app/login)
+
+> **Nota:** o endereço acima é o link do período de testes.
 
 ## Para quem é
 
