@@ -1059,7 +1059,7 @@ export async function assignLeadOwnersInBulkForCurrentUser(
     assertCanManageLead(profile, lead, "editar", hasMetaConnection);
   }
 
-  const { data: updatedRows, error: updateError } = await supabase
+  let { data: updatedRows, error: updateError } = await supabase
     .from("leads")
     .update({
       owner_profile_id: nextOwnerProfile.profile.id,
@@ -1070,21 +1070,36 @@ export async function assignLeadOwnersInBulkForCurrentUser(
     .in("id", leadIds)
     .select("*");
 
+  if (updateError && isLeadTeamIdColumnMissing(updateError)) {
+    console.warn("[assignLeadOwnersInBulkForCurrentUser] team_id column missing, retrying without it.");
+    ({ data: updatedRows, error: updateError } = await supabase
+      .from("leads")
+      .update({ owner_profile_id: nextOwnerProfile.profile.id })
+      .eq("organization_id", profile.organization_id)
+      .is("archived_at", null)
+      .in("id", leadIds)
+      .select("*"));
+  }
+
   if (updateError) {
     throw new Error(updateError.message);
   }
 
-  const assignmentsToInsert = scopedLeads.map(lead => ({
-    organization_id: profile.organization_id,
-    team_id: nextOwnerProfile.primaryTeamId!,
-    lead_id: lead.id,
-    assigned_to_profile_id: nextOwnerProfile.profile.id,
-    assigned_by_profile_id: profile.id,
-    previous_owner_profile_id: lead.owner_profile_id,
-    reason: "Atribuicao em lote"
-  }));
+  if (!updatedRows || updatedRows.length === 0) {
+    throw new Error("Nenhum lead foi atualizado. Verifique suas permissoes e tente novamente.");
+  }
 
-  if (assignmentsToInsert.length > 0) {
+  if (nextOwnerProfile.primaryTeamId) {
+    const assignmentsToInsert = scopedLeads.map(lead => ({
+      organization_id: profile.organization_id,
+      team_id: nextOwnerProfile.primaryTeamId!,
+      lead_id: lead.id,
+      assigned_to_profile_id: nextOwnerProfile.profile.id,
+      assigned_by_profile_id: profile.id,
+      previous_owner_profile_id: lead.owner_profile_id,
+      reason: "Atribuicao em lote"
+    }));
+
     const { error: assignmentError } = await supabase
       .from("lead_assignments")
       .insert(assignmentsToInsert);
@@ -1205,7 +1220,7 @@ export async function distributeLeadsEquallyForCurrentUser(
       continue;
     }
 
-    const { error: updateError } = await supabase
+    let { error: updateError } = await supabase
       .from("leads")
       .update({
         owner_profile_id: target.profile.id,
@@ -1215,19 +1230,31 @@ export async function distributeLeadsEquallyForCurrentUser(
       .is("archived_at", null)
       .eq("id", leadId);
 
+    if (updateError && isLeadTeamIdColumnMissing(updateError)) {
+      console.warn("[distributeLeadsEquallyForCurrentUser] team_id column missing, retrying without it.");
+      ({ error: updateError } = await supabase
+        .from("leads")
+        .update({ owner_profile_id: target.profile.id })
+        .eq("organization_id", profile.organization_id)
+        .is("archived_at", null)
+        .eq("id", leadId));
+    }
+
     if (updateError) {
       throw new Error(updateError.message);
     }
 
-    assignmentsToInsert.push({
-      organization_id: profile.organization_id,
-      team_id: target.primaryTeamId!,
-      lead_id: leadId,
-      assigned_to_profile_id: target.profile.id,
-      assigned_by_profile_id: profile.id,
-      previous_owner_profile_id: lead.owner_profile_id,
-      reason: "Distribuicao igualitaria"
-    });
+    if (target.primaryTeamId) {
+      assignmentsToInsert.push({
+        organization_id: profile.organization_id,
+        team_id: target.primaryTeamId,
+        lead_id: leadId,
+        assigned_to_profile_id: target.profile.id,
+        assigned_by_profile_id: profile.id,
+        previous_owner_profile_id: lead.owner_profile_id,
+        reason: "Distribuicao igualitaria"
+      });
+    }
   }
 
   if (assignmentsToInsert.length > 0) {
@@ -1264,6 +1291,14 @@ export async function distributeLeadsEquallyForCurrentUser(
 
   const ownerProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
   const updatedLeadRows = (updatedRows ?? []) as LeadRow[];
+  const actuallyUpdatedCount = updatedLeadRows.filter(
+    (lead) => lead.owner_profile_id !== null
+  ).length;
+
+  if (actuallyUpdatedCount === 0 && leadIds.length > 0) {
+    throw new Error("Nenhum lead foi atualizado. Verifique suas permissoes e tente novamente.");
+  }
+
   const recordedContactLeadIdSet = await listRecordedContactLeadIdSetForOrganization(
     supabase,
     profile.organization_id,
@@ -1281,7 +1316,7 @@ export async function distributeLeadsEquallyForCurrentUser(
 
   return {
     leads,
-    updatedCount: leads.length
+    updatedCount: actuallyUpdatedCount
   };
 }
 
@@ -1976,12 +2011,6 @@ async function resolveBulkLeadOwnerProfile(
     profileId
   );
 
-  if (!resolution.primaryTeamId) {
-    throw new Error("Selecione um destinatario valido para receber os leads.");
-  }
-
-  // Owner (gestor) pode distribuir para supervisores (admin) ou consultores (seller).
-  // Supervisor (admin) so pode distribuir para consultores (seller) da propria equipe.
   if (accessScope.role === "owner") {
     if (resolution.profile.role !== "admin" && resolution.profile.role !== "seller") {
       throw new Error("Selecione um supervisor ou consultor valido para receber os leads.");
@@ -1990,7 +2019,7 @@ async function resolveBulkLeadOwnerProfile(
     if (resolution.profile.role !== "seller") {
       throw new Error("Selecione um consultor valido para receber os leads.");
     }
-    if (!accessScope.teamIds.includes(resolution.primaryTeamId)) {
+    if (!resolution.primaryTeamId || !accessScope.teamIds.includes(resolution.primaryTeamId)) {
       throw new Error("Selecione um consultor valido da sua equipe para receber os leads.");
     }
   } else {
@@ -2495,6 +2524,11 @@ function getMissingLeadColumnName(message: string) {
   return fallbackColumns.find((column) =>
     message.includes(`Could not find the '${column}' column of 'leads'`)
   );
+}
+
+function isLeadTeamIdColumnMissing(error: { message?: string }) {
+  const message = error.message ?? "";
+  return message.includes("team_id") && message.includes("column");
 }
 
 function isMetaLeadUniqueViolation(error: { code?: string; message?: string }) {

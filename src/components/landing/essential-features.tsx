@@ -1,13 +1,18 @@
 import React from "react";
+import Link from "next/link";
 import {
+  ArrowRight,
   Sparkles,
   ShieldCheck,
   Share2,
   UsersRound,
   MessageSquare,
+  Play,
   TrendingUp,
   type LucideIcon
 } from "lucide-react";
+
+import { WHATSAPP_DEMO_URL } from "@/data/site-links";
 
 interface FeatureCard {
   icon: LucideIcon;
@@ -96,6 +101,30 @@ export function EssentialFeatures() {
             </div>
           );
         })}
+      </div>
+
+      <div className="mt-14 flex flex-col items-center gap-4 text-center">
+        <p className="text-base font-medium text-ink/64 dark:text-cloud/70">
+          Pronto para centralizar sua operação em um só lugar?
+        </p>
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <Link
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-signal px-8 py-4 font-semibold text-accent-foreground shadow-soft transition hover:-translate-y-0.5 hover:bg-signal/92"
+            href="/pricing"
+          >
+            Começar agora
+            <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+          <a
+            className="surface-action-secondary inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 font-semibold shadow-soft backdrop-blur-2xl"
+            href={WHATSAPP_DEMO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Play size={16} aria-hidden="true" />
+            Agendar demonstração
+          </a>
+        </div>
       </div>
     </section>
   );

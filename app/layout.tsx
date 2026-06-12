@@ -19,9 +19,9 @@ export const metadata: Metadata = {
     canonical: getCanonicalUrl("/")
   },
   openGraph: {
-    title: getSiteName(),
+    title: `${getSiteName()} — Anúncios com IA e CRM para corretores de planos de saúde`,
     description:
-      "Plataforma para captar, organizar e acompanhar leads com funil comercial, integrações e automações.",
+      "Crie campanhas com IA, receba leads do Facebook e Instagram direto no CRM e acompanhe cada oportunidade até a proposta.",
     url: getCanonicalUrl("/"),
     siteName: getSiteName(),
     type: "website",
@@ -29,9 +29,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: getSiteName(),
+    title: `${getSiteName()} — Anúncios com IA e CRM para corretores de planos de saúde`,
     description:
-      "Plataforma para captar, organizar e acompanhar leads com funil comercial, integrações e automações."
+      "Crie campanhas com IA, receba leads do Facebook e Instagram direto no CRM e acompanhe cada oportunidade até a proposta."
   }
 };
 

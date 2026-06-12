@@ -51,6 +51,9 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
   const pricingRef = useRef<HTMLDivElement>(null);
   const [cycle, setCycle] = useState<PricingCycle>("monthly");
 
+  // Toggle anual fica oculto até a cobrança anual existir no checkout
+  const annualAvailable = marketingPricingPlans.some((plan) => plan.prices.annual.available);
+
   return (
     <section className="relative overflow-visible px-4 py-14 md:py-20" id="planos" ref={pricingRef}>
       <div className="section-shell relative z-10">
@@ -91,45 +94,58 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
           </TimelineContent>
 
           <TimelineContent
-            as="div"
+            as="p"
             animationNum={3}
             timelineRef={pricingRef}
             customVariants={revealVariants}
-            className="relative z-10 mt-8 flex justify-center"
+            className="relative z-10 mx-auto mt-6 inline-flex max-w-2xl items-center gap-2 rounded-full border border-cobalt/14 bg-cobalt/8 px-5 py-2.5 text-sm font-semibold text-ink/78 dark:border-cobalt/24 dark:bg-cobalt/14 dark:text-cloud/84"
           >
-            <div
-              className="relative inline-flex rounded-full border border-white/60 bg-white/76 p-1.5 shadow-soft backdrop-blur dark:border-white/10 dark:bg-white/8"
-              aria-label="Alternar ciclo de cobrança"
-            >
-              {pricingCycles.map((item) => {
-                const active = item.value === cycle;
-
-                return (
-                  <button
-                    key={item.value}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => setCycle(item.value)}
-                    className={cn(
-                      "relative rounded-full px-5 py-3 text-sm font-semibold transition",
-                      active
-                        ? "text-cloud dark:text-[#121721]"
-                        : "text-ink/58 hover:text-ink dark:text-cloud/62 dark:hover:text-cloud"
-                    )}
-                  >
-                    {active && (
-                      <motion.div
-                        layoutId="pricing-cycle-active-bg"
-                        className="absolute inset-0 z-0 rounded-full bg-ink shadow-soft dark:bg-cloud"
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                      />
-                    )}
-                    <span className="relative z-10">{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <Sparkles size={15} className="shrink-0 text-cobalt" aria-hidden="true" />
+            Um único plano substitui CRM, ferramenta de copy e a planilha de leads.
           </TimelineContent>
+
+          {annualAvailable ? (
+            <TimelineContent
+              as="div"
+              animationNum={4}
+              timelineRef={pricingRef}
+              customVariants={revealVariants}
+              className="relative z-10 mt-8 flex justify-center"
+            >
+              <div
+                className="relative inline-flex rounded-full border border-white/60 bg-white/76 p-1.5 shadow-soft backdrop-blur dark:border-white/10 dark:bg-white/8"
+                aria-label="Alternar ciclo de cobrança"
+              >
+                {pricingCycles.map((item) => {
+                  const active = item.value === cycle;
+
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setCycle(item.value)}
+                      className={cn(
+                        "relative rounded-full px-5 py-3 text-sm font-semibold transition",
+                        active
+                          ? "text-cloud dark:text-[#121721]"
+                          : "text-ink/58 hover:text-ink dark:text-cloud/62 dark:hover:text-cloud"
+                      )}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="pricing-cycle-active-bg"
+                          className="absolute inset-0 z-0 rounded-full bg-ink shadow-soft dark:bg-cloud"
+                          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                        />
+                      )}
+                      <span className="relative z-10">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </TimelineContent>
+          ) : null}
         </div>
 
         <div className="grid gap-5 pb-6 lg:grid-cols-3">
@@ -141,7 +157,7 @@ export function PricingSection({ showComparisonDetails = true }: PricingSectionP
               <TimelineContent
                 key={plan.slug}
                 as="article"
-                animationNum={4 + index}
+                animationNum={5 + index}
                 timelineRef={pricingRef}
                 customVariants={revealVariants}
                 className="h-full"

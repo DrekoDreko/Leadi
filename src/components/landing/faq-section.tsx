@@ -4,24 +4,36 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
+    q: "Quanto tempo leva para começar a usar?",
+    a: "Minutos. Você assina, acessa a plataforma e já pode importar seus leads ou criar a primeira campanha com IA — sem instalação e sem treinamento longo."
+  },
+  {
+    q: "Preciso entender de tráfego pago para usar?",
+    a: "Não precisa ser especialista. A IA guia a criação da campanha a partir do seu público, região e oferta, e o checklist de compliance revisa a linguagem antes de publicar."
+  },
+  {
     q: "O Leadi cria anúncios automaticamente?",
-    a: "O Leadi ajuda a criar textos, estruturas e ideias de campanha com IA. A publicação pode depender da configuração da conta e do modo escolhido pela operação."
+    a: "A IA gera textos, estruturas e ideias de campanha prontos para usar em poucos cliques. A publicação pode depender da configuração da conta e do modo escolhido pela operação."
   },
   {
     q: "O Leadi substitui meu CRM?",
-    a: "Ele pode funcionar como CRM principal para leads do Meta ou como apoio para organizar campanhas e atendimento."
+    a: "Sim. O Leadi foi feito para ser o CRM principal de quem capta leads do Meta — com funil, histórico e distribuição para a equipe — e também funciona como apoio para organizar campanhas e atendimento."
   },
   {
     q: "A IA responde meus clientes sozinha?",
-    a: "Não. A IA apoia a criação de mensagens e campanhas, mas a equipe mantém o controle do atendimento."
+    a: "Você mantém o controle do atendimento: a IA prepara mensagens e follow-ups personalizados em segundos, e a equipe decide o que enviar em cada etapa."
   },
   {
     q: "Funciona com Facebook e Instagram?",
-    a: "O Leadi foi pensado para operações que captam leads por Facebook e Instagram Lead Ads."
+    a: "Sim. O Leadi integra com o Meta Lead Ads para receber automaticamente os leads dos formulários oficiais do Facebook e do Instagram, sem planilhas."
+  },
+  {
+    q: "Como funciona o suporte?",
+    a: "Você fala com nosso time diretamente pelo WhatsApp — do primeiro contato à configuração da sua operação."
   },
   {
     q: "O sistema garante vendas ou aprovação de anúncios?",
-    a: "Não. O Leadi ajuda a organizar a operação e reduzir riscos de linguagem, mas não garante vendas, economia ou aprovação de campanhas."
+    a: "Nenhuma ferramenta séria pode garantir vendas ou aprovação de campanhas. O que o Leadi faz é organizar sua operação para atender mais rápido, reduzir riscos de linguagem e perder menos oportunidades."
   }
 ];
 

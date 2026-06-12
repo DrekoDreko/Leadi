@@ -86,7 +86,7 @@ export function LeadDistributionControls({
       });
       const data = (await response.json()) as LeadDistributionResponse;
 
-      if (!response.ok || !data.leads) {
+      if (!response.ok || !data.leads || data.leads.length === 0) {
         throw new Error(data.error ?? "Nao foi possivel distribuir os leads.");
       }
 

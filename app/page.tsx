@@ -3,7 +3,9 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { HeroSection } from "@/components/landing/hero-section";
+import { PainSection } from "@/components/landing/pain-section";
 import { HighlightCarousel } from "@/components/landing/highlight-carousel";
+import { TrustStrip } from "@/components/landing/trust-strip";
 import { EssentialFeatures } from "@/components/landing/essential-features";
 import { MetaAdsSection } from "@/components/landing/meta-ads-section";
 import { PlansSection } from "@/components/landing/plans-section";
@@ -45,10 +47,16 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <Link
-              className="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:-translate-y-0.5 hover:bg-primary/92"
+              className="hidden rounded-full px-4 py-3 text-sm font-semibold text-ink/70 transition hover:text-ink sm:inline-flex"
               href="/login"
             >
               Entrar
+            </Link>
+            <Link
+              className="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:-translate-y-0.5 hover:bg-primary/92"
+              href="/pricing"
+            >
+              Começar agora
             </Link>
           </div>
         </nav>
@@ -58,7 +66,8 @@ export default function Home() {
         {/* ── Hero ── */}
         <HeroSection />
 
-
+      {/* ── Dor: Sem/Com o Leadi ── */}
+      <PainSection />
 
       {/* ── Fluxo Principal ── */}
       <HighlightCarousel />
@@ -68,6 +77,9 @@ export default function Home() {
 
       {/* ── Meta Ads + CRM ── */}
       <MetaAdsSection />
+
+      {/* ── Confiança ── */}
+      <TrustStrip />
 
       {/* ── Planos ── */}
       <PlansSection />
@@ -85,12 +97,12 @@ export default function Home() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-col gap-1 max-w-xl">
                 <p className="text-xs text-ink/60">
-                  O Leadi é uma solução em evolução para operações comerciais de planos de saúde.
+                  Leadi — plataforma de campanhas com IA e CRM para corretores de planos de saúde.
                 </p>
                 <p className="text-[10px] text-ink/40 leading-relaxed mt-0.5">
                   Meta, Facebook e Instagram são marcas da Meta Platforms, Inc. O Leadi não é afiliado, patrocinado ou endossado pela Meta.
                 </p>
-                <p className="text-xs text-ink/50 mt-1">© 2025 Codeellow. Todos os direitos reservados.</p>
+                <p className="text-xs text-ink/50 mt-1">© 2026 Codeellow. Todos os direitos reservados.</p>
               </div>
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 <Link className="font-medium text-ink/60 transition hover:text-cobalt" href="/privacy">
