@@ -18,7 +18,7 @@ async function loadApiKey(): Promise<string> {
     return process.env.OPENAI_API_KEY;
   }
 
-  const projectRoot = path.join(__dirname, "..");
+  const projectRoot = process.cwd();
   for (const envFile of [".env.local", ".env"]) {
     try {
       const content = await readFile(path.join(projectRoot, envFile), "utf8");
@@ -72,7 +72,7 @@ async function generatePreview(apiKey: string, presetId: string, prompt: string)
 
 async function main() {
   const apiKey = await loadApiKey();
-  const outputDir = path.join(__dirname, "..", "public", "creatives", "presets");
+  const outputDir = path.join(process.cwd(), "public", "creatives", "presets");
   await mkdir(outputDir, { recursive: true });
 
   for (const preset of AD_IMAGE_STYLE_PRESETS) {
