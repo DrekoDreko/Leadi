@@ -232,11 +232,8 @@ export async function getLeadsForCurrentUser(
 
   try {
     if (!isSupabaseConfigured()) {
-      const mockSellerIds = mockLeadOwnerOptions
-        .filter((option) => option.role === "seller")
-        .map((option) => option.id);
       const filteredLeads = mockLeads.filter((lead) => {
-        const matchesFilters = applyLeadUrlFilters(lead, filters, mockSellerIds);
+        const matchesFilters = applyLeadUrlFilters(lead, filters);
         const matchesArchived = filters.archived ? lead.archivedAt !== null : lead.archivedAt === null;
         return matchesFilters && matchesArchived;
       });
@@ -427,10 +424,7 @@ export async function getLeadExportRowsForCurrentUser(
   sellerProfileId: string | null = null
 ): Promise<Lead[]> {
   if (!isSupabaseConfigured()) {
-    const mockSellerIds = mockLeadOwnerOptions
-      .filter((option) => option.role === "seller")
-      .map((option) => option.id);
-    return mockLeads.filter((lead) => applyLeadUrlFilters(lead, filters, mockSellerIds));
+    return mockLeads.filter((lead) => applyLeadUrlFilters(lead, filters));
   }
 
   const profile = await getCurrentProfile();
@@ -440,24 +434,18 @@ export async function getLeadExportRowsForCurrentUser(
   const supabase = await createSupabaseServerClient();
   const accessScope = await resolveLeadAccessScope(supabase, profile);
   const exportProfiles = await loadLeadOwnerProfiles(supabase, profile.organization_id);
-  const [ownerProfileIdsFilter, sellerProfileIdsForView] = await Promise.all([
-    resolveOwnerProfileIdsFilter(
-      supabase,
-      profile.organization_id,
-      filters.owner
-    ),
-    filters.view !== "all"
-      ? loadSellerProfileIds(supabase, profile.organization_id)
-      : Promise.resolve([])
-  ]);
+  const ownerProfileIdsFilter = await resolveOwnerProfileIdsFilter(
+    supabase,
+    profile.organization_id,
+    filters.owner
+  );
 
   const query = buildLeadQuery(
     supabase.from("leads").select("*").eq("organization_id", profile.organization_id),
     accessScope,
     filters,
     sellerProfileId,
-    ownerProfileIdsFilter,
-    sellerProfileIdsForView
+    ownerProfileIdsFilter
   ).order("received_at", { ascending: false });
 
   const { data, error } = await query;
@@ -591,28 +579,15 @@ export async function countUndistributedLeadsForCurrentUser(): Promise<number> {
   const adminClient = createSupabaseAdminClient();
   const teamIds = await listActiveTeamIdsForProfile(adminClient, profile.organization_id, profile.id);
 
-  const { data: sellers } = await adminClient
-    .from("profiles")
-    .select("id")
-    .eq("organization_id", profile.organization_id)
-    .eq("role", "seller");
-
-  const sellerIds = (sellers ?? []).map((s) => s.id);
-
   let query = adminClient
     .from("leads")
     .select("*", { count: "exact", head: true })
     .eq("organization_id", profile.organization_id)
-    .is("archived_at", null);
+    .is("archived_at", null)
+    .is("owner_profile_id", null);
 
   if (profile.role === "admin" && teamIds.length > 0) {
     query = query.in("team_id", teamIds);
-  }
-
-  if (sellerIds.length > 0) {
-    query = query.or(
-      `owner_profile_id.is.null,owner_profile_id.not.in.(${sellerIds.join(",")})`
-    );
   }
 
   const { count, error } = await query;
@@ -2097,23 +2072,15 @@ function buildLeadQuery(
   accessScope: LeadAccessScope,
   filters: LeadUrlFilters,
   sellerProfileId: string | null = null,
-  ownerProfileIdsFilter: string[] | null = null,
-  sellerProfileIds: string[] = []
+  ownerProfileIdsFilter: string[] | null = null
 ) {
   query = applyLeadAccessScopeToQuery(query, accessScope, sellerProfileId);
 
   if (filters.view === "unassigned" && accessScope.role !== "seller") {
-    if (sellerProfileIds.length > 0) {
-      query = query.or(
-        `owner_profile_id.is.null,owner_profile_id.not.in.(${sellerProfileIds.join(",")})`
-      );
-    }
+    // Sem responsavel = lead sem dono. Distribuir a um supervisor ja define responsavel.
+    query = query.is("owner_profile_id", null);
   } else if (filters.view === "distributed" && accessScope.role !== "seller") {
-    if (sellerProfileIds.length > 0) {
-      query = query.in("owner_profile_id", sellerProfileIds);
-    } else {
-      query = query.eq("owner_profile_id", NO_RESULTS_FILTER_ID);
-    }
+    query = query.not("owner_profile_id", "is", null);
   } else if (ownerProfileIdsFilter) {
     if (ownerProfileIdsFilter.includes("UNASSIGNED_FILTER_ID")) {
       query = query.is("owner_profile_id", null);
@@ -2174,16 +2141,11 @@ async function runLeadListQuery(input: {
   pagination: ReturnType<typeof normalizeLeadPaginationOptions>;
   includeArchivedFilter: boolean;
 }) {
-  const [ownerProfileIdsFilter, sellerProfileIds] = await Promise.all([
-    resolveOwnerProfileIdsFilter(
-      input.supabase,
-      input.profile.organization_id,
-      input.filters.owner
-    ),
-    input.filters.view !== "all"
-      ? loadSellerProfileIds(input.supabase, input.profile.organization_id)
-      : Promise.resolve([])
-  ]);
+  const ownerProfileIdsFilter = await resolveOwnerProfileIdsFilter(
+    input.supabase,
+    input.profile.organization_id,
+    input.filters.owner
+  );
 
   let query = buildLeadQuery(
     input.supabase
@@ -2193,8 +2155,7 @@ async function runLeadListQuery(input: {
     input.accessScope,
     input.filters,
     null,
-    ownerProfileIdsFilter,
-    sellerProfileIds
+    ownerProfileIdsFilter
   );
 
   if (input.includeArchivedFilter) {
@@ -2209,8 +2170,7 @@ async function runLeadListQuery(input: {
       input.accessScope,
       input.filters,
       null,
-      ownerProfileIdsFilter,
-      sellerProfileIds
+      ownerProfileIdsFilter
     );
 
     if (input.includeArchivedFilter) {
@@ -2250,23 +2210,6 @@ function resolveLeadOwnerProfileId(accessScope: LeadAccessScope, sellerProfileId
   }
 
   return sellerProfileId;
-}
-
-async function loadSellerProfileIds(
-  supabase: LeadDataClient,
-  organizationId: string
-): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("role", "seller");
-
-  if (error || !data) {
-    return [];
-  }
-
-  return data.map((profile) => profile.id);
 }
 
 async function loadTeamMemberProfiles(

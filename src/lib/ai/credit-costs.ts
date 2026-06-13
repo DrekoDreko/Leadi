@@ -1,11 +1,11 @@
 export const AI_CREDIT_COSTS = {
   generate_whatsapp_message: 1,
-  generate_ad_copy: 2,
+  generate_ad_copy: 5,
   generate_campaign_questions: 4,
   generate_creative_brief: 4,
   generate_campaign_plan: 25,
-  generate_compliance_review: 1,
-  generate_ad_image: 5
+  generate_compliance_review: 10,
+  generate_ad_image: 30
 } as const;
 
 export type AiFeatureKey = keyof typeof AI_CREDIT_COSTS;
@@ -25,11 +25,6 @@ export const AI_PUBLIC_CONSUMPTION_ITEMS = [
     feature: "generate_whatsapp_message",
     label: "Mensagem com IA",
     credits: AI_CREDIT_COSTS.generate_whatsapp_message
-  },
-  {
-    feature: "generate_ad_copy",
-    label: "Texto de anúncio",
-    credits: AI_CREDIT_COSTS.generate_ad_copy
   },
   {
     feature: "generate_ad_image",

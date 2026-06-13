@@ -115,8 +115,7 @@ export function hasActiveLeadUrlFilters(filters: LeadUrlFilters) {
 
 export function applyLeadUrlFilters(
   lead: Lead,
-  filters: LeadUrlFilters,
-  sellerProfileIds: string[] = []
+  filters: LeadUrlFilters
 ) {
   if (filters.stage !== "all" && getLeadStageLabel(lead.stage) !== filters.stage) {
     return false;
@@ -130,24 +129,14 @@ export function applyLeadUrlFilters(
     return false;
   }
 
-  if (filters.view === "unassigned") {
-    if (sellerProfileIds.length > 0) {
-      if (lead.ownerProfileId && sellerProfileIds.includes(lead.ownerProfileId)) {
-        return false;
-      }
-    } else if (lead.ownerProfileId) {
-      return false;
-    }
+  // Um lead esta "sem responsavel" quando nao tem dono nenhum (owner_profile_id null),
+  // independente do papel. Distribuir para supervisor ou consultor ja define um responsavel.
+  if (filters.view === "unassigned" && lead.ownerProfileId) {
+    return false;
   }
 
-  if (filters.view === "distributed") {
-    if (sellerProfileIds.length > 0) {
-      if (!lead.ownerProfileId || !sellerProfileIds.includes(lead.ownerProfileId)) {
-        return false;
-      }
-    } else if (!lead.ownerProfileId) {
-      return false;
-    }
+  if (filters.view === "distributed" && !lead.ownerProfileId) {
+    return false;
   }
 
   if (filters.owner && !lead.owner?.toLowerCase().includes(filters.owner.toLowerCase())) {

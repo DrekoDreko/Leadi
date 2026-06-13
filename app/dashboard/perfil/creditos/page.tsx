@@ -77,14 +77,6 @@ const AI_CONSUMPTION_CARDS: ConsumptionCardItem[] = [
     icon: MessageSquareText
   },
   {
-    title: "Texto de anúncio",
-    consumption: "2 créditos por geração",
-    description:
-      "Gere chamadas, títulos, descrições e variações de copy para campanhas de plano de saúde.",
-    supportText: "Bom para criar anúncios com mais rapidez e testar diferentes abordagens.",
-    icon: Sparkles
-  },
-  {
     title: "Campanha completa",
     consumption: "25 créditos por geração",
     description:
@@ -94,7 +86,7 @@ const AI_CONSUMPTION_CARDS: ConsumptionCardItem[] = [
   },
   {
     title: "Revisão de anúncio",
-    consumption: "1 crédito por análise",
+    consumption: "10 créditos por análise",
     description:
       "Analise o texto antes de publicar e receba alertas sobre clareza, promessa exagerada e possíveis ajustes.",
     supportText: "Ajuda a revisar o anúncio antes de levar para publicação.",
@@ -102,14 +94,10 @@ const AI_CONSUMPTION_CARDS: ConsumptionCardItem[] = [
   },
   {
     title: "Imagem de anúncio",
-    consumption: "A partir de 5 créditos",
+    consumption: "30 créditos por geração",
     description: "Gere imagens para usar em campanhas, criativos e peças de divulgação.",
-    supportText: "A imagem premium consome mais créditos por usar maior qualidade de geração.",
-    icon: ImagePlus,
-    breakdown: [
-      { label: "Imagem padrão", value: "5 créditos" },
-      { label: "Imagem premium", value: "15 créditos" }
-    ]
+    supportText: "Imagens em alta qualidade, prontas para usar em criativos e peças de divulgação.",
+    icon: ImagePlus
   }
 ] as const;
 
