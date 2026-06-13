@@ -1,10 +1,6 @@
-// Modulo client-safe (sem "server-only"): usado pelo client da pagina, pela rota
-// de geracao e pelo script de previews. Define os "padroes de arte" reutilizaveis,
-// com o DNA visual derivado de anuncios reais de plano de saude, porem sempre com
-// marcas/logos GENERICOS (nunca reproduzindo operadoras concorrentes reais).
-
 export type AdImageStylePresetSample = {
   title: string;
+  subtitle?: string;
   objective?: string;
   briefing: string;
   carrier?: string;
@@ -27,57 +23,90 @@ export type AdImageStylePreset = {
 
 export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
   {
-    id: "familia-bloco",
-    label: "Família + bloco colorido",
+    id: "medico-hospital",
+    label: "Estilo Médico / Hospital",
     description:
-      "Foto de família feliz, bloco de cor sólida com a chamada em destaque, faixa de selos genéricos e selo de WhatsApp no rodapé.",
-    previewImage: "/creatives/presets/familia-bloco.png",
+      "Médico atendendo paciente ou ambiente hospitalar. Transmite profissionalismo, confiança e excelência médica.",
+    previewImage: "/creatives/presets/medico-hospital.png",
     promptSpec: [
-      "Composicao em camadas: foto realista e calorosa de uma familia brasileira (pais e filhos) se abracando e sorrindo, ocupando boa parte da arte.",
-      "Painel/bloco de cor solida (vinho escuro, azul-marinho ou verde) ancorado em um lado ou no topo, com a chamada principal em tipografia sans-serif pesada, peso misto (parte da frase em destaque), bem legivel e com bom respiro.",
-      "Pequena pilula/etiqueta de apoio acima ou abaixo do titulo (ex.: 'para toda a familia' ou 'peca seu orcamento') em cor de contraste suave.",
-      "Opcional: um cartao branco arredondado com uma GRADE de selos GENERICOS de operadoras (logotipos ficticios, formas neutras — nunca marcas reais), organizados em 2-3 colunas.",
-      "Rodape com assinatura elegante do consultor/marca e um selo branco arredondado com icone de WhatsApp (verde) e o telefone em destaque.",
-      "Paleta acolhedora e confiavel; cantos arredondados; sombras suaves; alto contraste texto/fundo.",
-      "Clima: protecao, familia, cuidado, confianca. Visual de anuncio profissional, limpo, pronto para feed."
+      "Composicao profissional de saude: foto realista de medico(a) brasileiro(a) de jaleco branco atendendo ou interagindo com paciente/casal sorridente, em ambiente hospitalar moderno e acolhedor.",
+      "Bloco de informacao lateral ou inferior com icones de check/shield listando beneficios (ex: rede credenciada de qualidade, cobertura completa, opcao enfermaria ou apartamento, programas de prevencao).",
+      "Chamada principal em tipografia sans-serif pesada e bem legivel, posicionada no topo ou sobre bloco de cor solida derivado da cor primaria da operadora.",
+      "Subtitulo ou frase de apoio abaixo do titulo em tamanho menor, complementando a mensagem.",
+      "Logo oficial da operadora posicionado com destaque no topo ou canto superior da arte.",
+      "Rodape com assinatura do corretor/marca e selo de WhatsApp (verde) com telefone em destaque.",
+      "Paleta profissional e confiavel derivada da cor primaria da operadora; cantos arredondados; sombras suaves; alto contraste texto/fundo.",
+      "Clima: confianca, excelencia medica, cuidado profissional, rede hospitalar de qualidade. Visual de anuncio profissional pronto para feed/story."
     ],
     sample: {
-      title: "Plano de saúde para sua família",
+      title: "Amil Ouro — Enfermaria e Apartamento",
+      subtitle: "Qualidade, economia e conforto para sua empresa",
       briefing:
-        "Arte para atrair famílias interessadas em plano de saúde, transmitindo proteção e cuidado.",
+        "Arte destacando plano empresarial com rede credenciada de qualidade, cobertura completa e opções de enfermaria ou apartamento.",
+      contractType: "PME",
+      offer: "Invista no bem-estar da sua equipe",
+      phone: "(00) 00000-0000",
+      brandName: "Sua Corretora",
+      style: "profissional, hospitalar, confiável"
+    }
+  },
+  {
+    id: "familia",
+    label: "Estilo Família",
+    description:
+      "Família feliz e unida. Acolhedor, transmitindo proteção, segurança e tranquilidade.",
+    previewImage: "/creatives/presets/familia.png",
+    promptSpec: [
+      "Composicao acolhedora: foto realista e calorosa de uma familia brasileira (pais e filhos, ou casal com crianca) se abracando e sorrindo, ocupando boa parte da arte.",
+      "Painel/bloco de cor solida ou gradiente suave derivado da cor primaria da operadora, ancorado em um lado ou no topo, com a chamada principal em tipografia sans-serif pesada e peso misto (parte da frase em destaque).",
+      "Subtitulo ou frase de apoio posicionada abaixo do titulo principal.",
+      "Secao de beneficios dividida em dois blocos (ex: 'Para sua familia' e 'Para empresas') com icones e listas de vantagens (seguranca, rede hospitalar, atendimento de qualidade, planos a partir de X vidas).",
+      "Logo oficial da operadora posicionado com destaque no topo da arte.",
+      "Rodape elegante com assinatura do corretor/marca, selo de WhatsApp (verde) com telefone em destaque, e selo ANS discreto.",
+      "Paleta acolhedora e confiavel derivada da cor primaria da operadora; cantos arredondados; sombras suaves; alto contraste texto/fundo.",
+      "Clima: protecao, familia, cuidado, confianca, tranquilidade. Visual de anuncio profissional limpo, pronto para feed/story."
+    ],
+    sample: {
+      title: "Cuidado de verdade para sua família e sua empresa",
+      subtitle: "Cobertura completa — Regional e Nacional",
+      briefing:
+        "Arte para atrair famílias e empresas interessadas em plano de saúde, transmitindo proteção, segurança e rede de atendimento ampla.",
       contractType: "Familiar",
-      offer: "Atendimento humanizado e rede credenciada ampla",
-      phone: "(81) 98704-7809",
-      brandName: "Consultoria Saúde+",
+      offer: "Mais saúde, mais proteção e mais tranquilidade",
+      phone: "(00) 00000-0000",
+      brandName: "Sua Corretora",
       style: "acolhedor, familiar, confiável"
     }
   },
   {
     id: "oferta-desconto",
-    label: "Oferta / Desconto",
+    label: "Estilo Oferta / Desconto",
     description:
-      "Fundo gradiente vibrante com a porcentagem de desconto gigante como herói, logo genérico, condição comercial e selo de contato.",
+      "Foco em promoção e preço. Desconto ou valor em destaque com visual impactante e comercial.",
     previewImage: "/creatives/presets/oferta-desconto.png",
     promptSpec: [
-      "Composicao promocional: fundo com gradiente azul vibrante e molduras/cantos arredondados decorativos (linhas finas formando quadros nos cantos).",
-      "Elemento heroi: a PORCENTAGEM de desconto em tamanho gigante e peso forte (numero + '%'), dominando o centro/inferior da arte; pode usar cor de destaque (amarelo ou branco).",
-      "Acima do desconto, a chamada principal curta e impactante (peso misto); logo abaixo, a condicao comercial em fonte menor (ex.: 'nas primeiras parcelas' ou 'utilize seu CNPJ e reduza ate X%').",
-      "Cartao/badge escuro arredondado contendo a condicao detalhada, e um pequeno texto de validade quando houver.",
-      "Logotipo GENERICO de operadora no topo ou rodape (marca ficticia — nunca operadoras reais).",
-      "Botao/pilula de CTA com contorno (ex.: 'Solicite um estudo comparativo' ou 'Faca uma cotacao') e selo arredondado de contato com icone de WhatsApp (verde) e telefone visivel.",
-      "Opcional: foto de familia ou pessoa sorrindo integrada ao fundo, sem competir com o desconto.",
-      "Paleta energetica e confiavel; alto contraste; visual de anuncio promocional pronto para feed/story."
+      "Composicao promocional impactante: fundo com gradiente vibrante ou foto de fundo sutil derivado da cor primaria da operadora.",
+      "Elemento heroi: o VALOR ou PORCENTAGEM de desconto em tamanho gigante e peso forte (numero grande + 'R$' ou '%'), dominando a area central da arte; pode usar cor de destaque contrastante.",
+      "Badge ou etiqueta com condicao especifica (ex: faixa etaria '44 a 48 anos', 'A partir de X vidas', tipo de contratacao).",
+      "Acima ou abaixo do desconto, a chamada principal curta e impactante em tipografia forte; logo abaixo, a condicao comercial em fonte menor.",
+      "Subtitulo ou slogan de apoio posicionado de forma complementar.",
+      "Secao de diferenciais com icones (ex: atendimento especializado, prevencao e acompanhamento, rede propria).",
+      "Logo oficial da operadora posicionado com destaque no topo ou canto superior da arte.",
+      "CTA forte em botao/pilula com contorno (ex: 'Solicite sua cotacao', 'Fale comigo agora', 'Simule sem compromisso').",
+      "Rodape com assinatura do corretor/marca e selo de WhatsApp (verde) com telefone em destaque.",
+      "Paleta energetica e confiavel derivada da cor primaria da operadora; alto contraste; visual de anuncio promocional pronto para feed/story."
     ],
     sample: {
-      title: "Saúde em primeiro lugar",
+      title: "Saúde para quem faz a diferença",
+      subtitle: "PME a partir de 2 vidas",
       briefing:
-        "Arte promocional destacando desconto em plano de saúde, com forte apelo à oferta.",
-      discount: "20%",
-      offer: "20% de desconto nas 3 primeiras parcelas",
-      contractType: "Familiar",
-      phone: "(81) 98704-7809",
-      brandName: "Consultoria Saúde+",
-      style: "promocional, vibrante, azul"
+        "Arte promocional destacando valor acessível de plano de saúde para faixa etária 44-48 anos, com forte apelo ao preço.",
+      contractType: "PME",
+      discount: "R$ 810,73",
+      offer: "A partir de R$ 810,73 por pessoa — 44 a 48 anos",
+      phone: "(00) 00000-0000",
+      brandName: "Sua Corretora",
+      style: "promocional, vibrante, impactante"
     }
   }
 ];

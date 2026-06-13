@@ -60,9 +60,11 @@ type ComplianceReviewPromptInput = {
 
 export type AdImagePromptInput = {
   title: string;
+  subtitle?: string;
   objective?: string;
   briefing: string;
   carrier?: string;
+  carrierColor?: string;
   contractType?: string;
   discount?: string;
   offer?: string;
@@ -72,6 +74,8 @@ export type AdImagePromptInput = {
   style?: string;
   stylePreset?: string;
   hasReferences?: boolean;
+  hasOperatorLogo?: boolean;
+  hasBrokerLogo?: boolean;
 };
 
 const sharedRoleContext = [
@@ -300,6 +304,25 @@ export function buildComplianceReviewPrompt(input: ComplianceReviewPromptInput) 
 export function buildAdImagePrompt(input: AdImagePromptInput) {
   const preset = getAdImageStylePreset(input.stylePreset);
 
+  const colorDirectives: string[] = [];
+  if (input.carrierColor && input.carrier) {
+    colorDirectives.push(
+      `A cor primaria/dominante da arte deve ser ${input.carrierColor} (identidade visual da ${input.carrier}). Use esta cor como base da paleta, em blocos de destaque, fundos, gradientes e elementos graficos principais.`
+    );
+  }
+
+  const logoDirectives: string[] = [];
+  if (input.hasOperatorLogo && input.carrier) {
+    logoDirectives.push(
+      `Uma das imagens de referencia e o logo oficial da operadora ${input.carrier}. Posicione-o com destaque no topo ou canto superior da arte, respeitando proporcoes e legibilidade. Reproduza o logo fielmente.`
+    );
+  }
+  if (input.hasBrokerLogo) {
+    logoDirectives.push(
+      "Uma das imagens de referencia e o logo da corretora/consultor. Posicione-o no rodape da arte, junto ao contato, de forma elegante e integrada ao layout."
+    );
+  }
+
   return joinSections([
     "Crie uma arte publicitaria profissional para divulgacao de plano de saude no Brasil, pronta para publicar em redes sociais.",
     preset
@@ -307,29 +330,36 @@ export function buildAdImagePrompt(input: AdImagePromptInput) {
       : "",
     buildContextSection([
       `Titulo/chamada principal da arte: ${input.title}`,
-      `Objetivo da peca: ${formatOptional(input.objective, "atrair contato de interessados em plano de saude")}`,
-      `Briefing detalhado: ${input.briefing}`,
-      `Operadora/plano em destaque: ${formatOptional(input.carrier)}`,
+      `Subtitulo / texto de apoio: ${formatOptional(input.subtitle)}`,
+      `Objetivo ou briefing: ${input.briefing}`,
+      `Operadora em destaque: ${formatOptional(input.carrier)}`,
       `Tipo de contratacao: ${formatOptional(input.contractType)}`,
-      `Desconto/condicao em destaque: ${formatOptional(input.discount)}`,
+      `Desconto/valor em destaque: ${formatOptional(input.discount)}`,
       `Oferta/condicao comercial: ${formatOptional(input.offer)}`,
       `Telefone/WhatsApp para exibir na arte: ${formatOptional(input.phone)}`,
       `Marca/consultor (assinatura da arte): ${formatOptional(input.brandName)}`,
       `Formato desejado: ${formatOptional(input.format, "feed quadrado 1:1")}`,
-      `Estilo visual desejado: ${formatOptional(input.style, "moderno, confiavel e acolhedor")}`
+      `Observacoes de estilo visual: ${formatOptional(input.style, "moderno, confiavel e acolhedor")}`
     ]),
+    colorDirectives.length > 0
+      ? buildSection("Cor primaria da operadora", colorDirectives)
+      : "",
+    logoDirectives.length > 0
+      ? buildSection("Logos e selos nas referencias", logoDirectives)
+      : "",
     buildSection("Diretrizes visuais", [
       "Layout limpo e profissional, hierarquia clara entre chamada principal, oferta e contato.",
       "Use tipografia legivel e bem contrastada; o texto exibido deve estar correto em portugues do Brasil, sem erros de ortografia.",
       "Transmita confianca e cuidado (saude/familia), com paleta harmonica e identidade de plano de saude.",
-      "Se houver telefone/WhatsApp, exiba-o com destaque em um selo ou rodape claro.",
-      "Se houver marca/consultor, posicione a assinatura de forma discreta e elegante.",
-      "Quando o desconto for informado, destaque-o como elemento visual forte (ex: selo de porcentagem)."
+      "Se houver telefone/WhatsApp, exiba-o com destaque em um selo ou rodape claro com icone de WhatsApp verde.",
+      "Se houver marca/consultor, posicione a assinatura de forma discreta e elegante no rodape.",
+      "Quando o desconto ou valor for informado, destaque-o como elemento visual forte (ex: selo de porcentagem, numero gigante).",
+      "Se nenhum telefone, marca ou contato for informado, nao inclua area de contato na arte."
     ]),
     input.hasReferences
-      ? buildSection("Referencias enviadas", [
-          "Use as imagens de referencia anexadas como guia de estilo, composicao e tom visual.",
-          "Mantenha a identidade e o clima das referencias, sem copiar marcas registradas ou logos de terceiros literalmente."
+      ? buildSection("Referencias visuais adicionais", [
+          "Alem dos logos e selos, o usuario enviou imagens de referencia para guiar o estilo.",
+          "Use como guia de composicao e tom visual, mantendo a identidade da operadora selecionada."
         ])
       : "",
     buildSection("Limites de compliance", [

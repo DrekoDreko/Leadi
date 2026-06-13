@@ -10,6 +10,7 @@ import {
   Loader2,
   RefreshCcw,
   Sparkles,
+  Upload,
   Wand2,
   X
 } from "lucide-react";
@@ -17,24 +18,14 @@ import { InfiniteGridHero } from "@/components/ui/the-infinite-grid";
 import { AI_CREDIT_COSTS } from "@/lib/ai/credit-costs";
 import { validateCreativeRequestAttachment } from "@/lib/creative-requests/attachments";
 import { AD_IMAGE_STYLE_PRESETS } from "@/lib/creatives/ad-image-presets";
+import { OPERATORS, getOperator } from "@/lib/creatives/operator-config";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 
 const IMAGE_COST = AI_CREDIT_COSTS.generate_ad_image;
 const MAX_REFERENCES = 4;
 const REFERENCE_ACCEPT = "image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp";
 
-const carrierOptions = [
-  "Amil",
-  "Hapvida",
-  "SulAmérica",
-  "Unimed",
-  "Bradesco Saúde",
-  "NotreDame Intermédica",
-  "Porto Seguro",
-  "Outra"
-];
-
-const contractTypeOptions = ["Empresarial (CNPJ)", "Familiar", "Individual", "Adesão"];
+const contractTypeOptions = ["PME", "Familiar", "Individual", "Adesão"];
 
 const formatOptions = [
   { value: "story", label: "Story / Reels (9:16)" },
@@ -45,7 +36,7 @@ const formatOptions = [
 
 type FormState = {
   title: string;
-  objective: string;
+  subtitle: string;
   briefing: string;
   carrier: string;
   contractType: string;
@@ -60,7 +51,7 @@ type FormState = {
 
 const initialForm: FormState = {
   title: "",
-  objective: "",
+  subtitle: "",
   briefing: "",
   carrier: "",
   contractType: "",
@@ -86,14 +77,18 @@ type GeneratedImage = {
 export function SolicitarCriativoClient({ availableCredits }: { availableCredits: number }) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [references, setReferences] = useState<ReferenceFile[]>([]);
+  const [brokerLogo, setBrokerLogo] = useState<ReferenceFile | null>(null);
   const [useStyleReference, setUseStyleReference] = useState(false);
   const [credits, setCredits] = useState(availableCredits);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GeneratedImage | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const brokerLogoInputRef = useRef<HTMLInputElement>(null);
 
   const hasEnoughCredits = credits >= IMAGE_COST;
+  const isOfertaPreset = form.stylePreset === "oferta-desconto";
+  const selectedOperator = form.carrier ? getOperator(form.carrier) : undefined;
 
   function updateField(field: keyof FormState, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -106,14 +101,42 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
     }));
   }
 
+  function handleBrokerLogoChange(event: ChangeEvent<HTMLInputElement>) {
+    setError(null);
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("O logo deve ser uma imagem (PNG, JPG ou WebP).");
+      return;
+    }
+
+    if (brokerLogo) {
+      URL.revokeObjectURL(brokerLogo.previewUrl);
+    }
+
+    setBrokerLogo({
+      id: `broker-${crypto.randomUUID()}`,
+      file,
+      previewUrl: URL.createObjectURL(file)
+    });
+  }
+
+  function removeBrokerLogo() {
+    if (brokerLogo) {
+      URL.revokeObjectURL(brokerLogo.previewUrl);
+      setBrokerLogo(null);
+    }
+  }
+
   function handleReferenceChange(event: ChangeEvent<HTMLInputElement>) {
     setError(null);
     const incoming = Array.from(event.target.files ?? []);
     event.target.value = "";
 
-    if (incoming.length === 0) {
-      return;
-    }
+    if (incoming.length === 0) return;
 
     setReferences((current) => {
       const next = [...current];
@@ -165,8 +188,28 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
     event.preventDefault();
     setError(null);
 
+    if (!form.stylePreset) {
+      setError("Selecione um padrão de arte antes de gerar.");
+      return;
+    }
+
     if (!form.title.trim() || !form.briefing.trim()) {
       setError("Informe pelo menos o título e o briefing da arte.");
+      return;
+    }
+
+    if (!form.carrier) {
+      setError("Selecione uma operadora.");
+      return;
+    }
+
+    if (isOfertaPreset && !form.discount.trim()) {
+      setError("O desconto em destaque é obrigatório para o estilo Oferta / Desconto.");
+      return;
+    }
+
+    if (isOfertaPreset && !form.offer.trim()) {
+      setError("A oferta / condição é obrigatória para o estilo Oferta / Desconto.");
       return;
     }
 
@@ -180,7 +223,7 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
     try {
       const formData = new FormData();
       formData.append("title", form.title);
-      formData.append("objective", form.objective);
+      formData.append("subtitle", form.subtitle);
       formData.append("briefing", form.briefing);
       formData.append("carrier", form.carrier);
       formData.append("contractType", form.contractType);
@@ -192,6 +235,11 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
       formData.append("style", form.style);
       formData.append("stylePreset", form.stylePreset);
       formData.append("useStyleReference", String(useStyleReference && Boolean(form.stylePreset)));
+
+      if (brokerLogo) {
+        formData.append("brokerLogo", brokerLogo.file, brokerLogo.file.name);
+      }
+
       for (const reference of references) {
         formData.append("references", reference.file, reference.file.name);
       }
@@ -238,7 +286,7 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
           </>
         }
         title="Gere sua arte de plano de saúde com IA"
-        subtitle="Preencha o briefing, envie exemplos de referência e receba uma arte pronta para publicar em segundos."
+        subtitle="Preencha o briefing, escolha a operadora e receba uma arte profissional pronta para publicar."
       >
         <span className="text-muted-soft inline-flex items-center gap-2 rounded-full bg-surface-elevated px-4 py-2 text-sm font-medium ring-1 ring-border/70">
           <Wand2 size={16} aria-hidden="true" />
@@ -246,6 +294,7 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
         </span>
       </InfiniteGridHero>
 
+      {/* Seção 1 — Padrão de arte */}
       <section className="surface-card space-y-4 rounded-[34px] p-6">
         <div className="flex items-center gap-3">
           <span className="text-cobalt flex h-10 w-10 items-center justify-center rounded-[16px] bg-surface-elevated ring-1 ring-border/70">
@@ -254,18 +303,12 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
           <div>
             <h2 className="text-lg font-semibold">Padrão de arte</h2>
             <p className="text-muted-soft text-sm leading-6">
-              Escolha um modelo para a IA seguir, ou gere a partir do briefing livre.
+              Escolha o estilo visual da arte. A IA seguirá este modelo como base.
             </p>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <PresetCard
-            label="Sem padrão"
-            description="Briefing livre — a IA cria do zero a partir dos campos preenchidos."
-            selected={form.stylePreset === ""}
-            onSelect={() => selectPreset("")}
-          />
           {AD_IMAGE_STYLE_PRESETS.map((preset) => (
             <PresetCard
               key={preset.id}
@@ -301,85 +344,176 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
 
       <form className="grid gap-4 lg:grid-cols-[1.4fr_1fr]" onSubmit={handleSubmit}>
         <div className="space-y-4">
+          {/* Seção 2 — Sobre a arte */}
           <FieldGroup title="Sobre a arte" description="O que a peça precisa comunicar.">
             <TextField
-              label="Título / chamada principal"
-              placeholder="Ex: Plano de saúde para sua família"
+              label="Título / Chamada principal"
+              placeholder="Ex: Plano de saúde para sua empresa"
               value={form.title}
               onChange={(value) => updateField("title", value)}
+              required
             />
             <TextField
-              label="Objetivo"
-              placeholder="Ex: gerar contatos no WhatsApp"
-              value={form.objective}
-              onChange={(value) => updateField("objective", value)}
+              label="Subtítulo"
+              placeholder="Ex: Cuidado completo para sua equipe"
+              value={form.subtitle}
+              onChange={(value) => updateField("subtitle", value)}
             />
             <TextAreaField
-              label="Briefing detalhado"
-              placeholder="Descreva o que deve aparecer na arte: mensagem, clima, elementos, público..."
+              label="Objetivo ou Briefing"
+              placeholder={
+                "Descreva o que a arte precisa comunicar.\n\nExemplos:\n• Rede de atendimento em São Paulo\n• Promoção para empresas da região\n• Plano com coparticipação para PME\n• Destaque para hospitais credenciados\n• Campanha Copa do Mundo 2026"
+              }
               value={form.briefing}
               onChange={(value) => updateField("briefing", value)}
+              required
             />
           </FieldGroup>
 
+          {/* Seção 3 — Plano e oferta */}
           <FieldGroup title="Plano e oferta" description="Detalhes comerciais em destaque.">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <SelectField
-                label="Operadora / plano"
-                value={form.carrier}
-                onChange={(value) => updateField("carrier", value)}
-              >
-                <option value="">Selecione (opcional)</option>
-                {carrierOptions.map((carrier) => (
-                  <option key={carrier} value={carrier}>
-                    {carrier}
-                  </option>
-                ))}
-              </SelectField>
-              <SelectField
-                label="Tipo de contratação"
-                value={form.contractType}
-                onChange={(value) => updateField("contractType", value)}
-              >
-                <option value="">Selecione (opcional)</option>
-                {contractTypeOptions.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </SelectField>
-              <TextField
-                label="Desconto em destaque"
-                placeholder="Ex: 40%"
-                value={form.discount}
-                onChange={(value) => updateField("discount", value)}
-              />
-              <TextField
-                label="Oferta / condição"
-                placeholder="Ex: 20% de desconto nas 3 primeiras parcelas"
-                value={form.offer}
-                onChange={(value) => updateField("offer", value)}
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <SelectField
+                  label="Operadora"
+                  value={form.carrier}
+                  onChange={(value) => updateField("carrier", value)}
+                  required
+                >
+                  <option value="">Selecione a operadora</option>
+                  {OPERATORS.map((op) => (
+                    <option key={op.slug} value={op.slug}>
+                      {op.name}
+                    </option>
+                  ))}
+                  <option value="outra">Outra</option>
+                </SelectField>
+
+                {selectedOperator ? (
+                  <div className="flex items-center gap-2 rounded-[16px] bg-surface-elevated/60 px-3 py-2 ring-1 ring-border/70">
+                    <span
+                      className="h-4 w-4 shrink-0 rounded-full"
+                      style={{ backgroundColor: selectedOperator.primaryColor }}
+                    />
+                    <span className="text-xs font-medium text-foreground">
+                      {selectedOperator.name}
+                    </span>
+                    <span className="text-muted-soft text-xs">
+                      — cor primária {selectedOperator.primaryColor}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SelectField
+                  label="Tipo de contratação"
+                  value={form.contractType}
+                  onChange={(value) => updateField("contractType", value)}
+                >
+                  <option value="">Selecione (opcional)</option>
+                  {contractTypeOptions.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label={`Desconto em destaque${isOfertaPreset ? "" : " (opcional)"}`}
+                  placeholder="Ex: 40% ou R$ 810,73"
+                  value={form.discount}
+                  onChange={(value) => updateField("discount", value)}
+                  required={isOfertaPreset}
+                />
+                <TextField
+                  label={`Oferta / condição${isOfertaPreset ? "" : " (opcional)"}`}
+                  placeholder="Ex: A partir de R$ 810,73 por pessoa"
+                  value={form.offer}
+                  onChange={(value) => updateField("offer", value)}
+                  required={isOfertaPreset}
+                />
+              </div>
+
+              {isOfertaPreset ? (
+                <p className="text-muted-soft text-xs leading-5">
+                  No estilo Oferta / Desconto, o desconto e a condição são obrigatórios para
+                  gerar a arte.
+                </p>
+              ) : null}
             </div>
           </FieldGroup>
 
-          <FieldGroup title="Contato e marca" description="O que assina e como falar com você.">
+          {/* Seção 4 — Contato */}
+          <FieldGroup
+            title="Contato"
+            description="Campos opcionais. Se não preenchidos, não aparecerão na arte."
+          >
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField
-                label="Telefone / WhatsApp"
-                placeholder="Ex: (81) 98704-7809"
+                label="WhatsApp"
+                placeholder="Ex: (11) 95424-1062"
                 value={form.phone}
                 onChange={(value) => updateField("phone", value)}
               />
               <TextField
-                label="Marca / consultor"
-                placeholder="Ex: Fernando Cunha — Planos de Saúde"
+                label="Nome / Corretora"
+                placeholder="Ex: MGA Vieira Planos de Saúde"
                 value={form.brandName}
                 onChange={(value) => updateField("brandName", value)}
               />
             </div>
+
+            <div className="space-y-2">
+              <span className="text-muted-soft text-sm font-semibold">
+                Logo da corretora (opcional)
+              </span>
+              <input
+                ref={brokerLogoInputRef}
+                type="file"
+                accept={REFERENCE_ACCEPT}
+                className="hidden"
+                onChange={handleBrokerLogoChange}
+              />
+
+              {brokerLogo ? (
+                <div className="flex items-center gap-3 rounded-[20px] bg-surface-elevated/60 px-4 py-3 ring-1 ring-border/70">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={brokerLogo.previewUrl}
+                    alt="Logo da corretora"
+                    className="h-12 w-12 rounded-[12px] object-contain ring-1 ring-border/70"
+                  />
+                  <span className="flex-1 truncate text-sm text-foreground">
+                    {brokerLogo.file.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removeBrokerLogo}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-elevated text-muted-foreground ring-1 ring-border/70 transition hover:bg-ink/10"
+                    aria-label="Remover logo"
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => brokerLogoInputRef.current?.click()}
+                  className="flex w-full items-center justify-center gap-2 rounded-[20px] border border-dashed border-border/70 bg-surface-elevated/60 px-4 py-4 text-center transition hover:border-cobalt/40 hover:bg-surface-elevated"
+                >
+                  <Upload size={16} aria-hidden="true" className="text-cobalt" />
+                  <span className="text-sm font-medium text-foreground">
+                    Enviar logo da corretora
+                  </span>
+                </button>
+              )}
+            </div>
           </FieldGroup>
 
+          {/* Seção 5 — Formato e estilo */}
           <FieldGroup title="Formato e estilo" description="Como a arte deve sair.">
             <div className="grid gap-4 sm:grid-cols-2">
               <SelectField
@@ -393,17 +527,24 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
                   </option>
                 ))}
               </SelectField>
-              <TextField
-                label="Estilo visual"
-                placeholder="Ex: moderno, azul, com família sorrindo"
-                value={form.style}
-                onChange={(value) => updateField("style", value)}
-              />
+              <div className="space-y-2">
+                <TextField
+                  label="Estilo visual (observações)"
+                  placeholder="Ex: moderno, com elementos médicos, fundo azul"
+                  value={form.style}
+                  onChange={(value) => updateField("style", value)}
+                />
+                <p className="text-muted-soft text-xs leading-5">
+                  A cor principal é definida automaticamente pela operadora selecionada. Use
+                  este campo para observações adicionais sobre o visual.
+                </p>
+              </div>
             </div>
           </FieldGroup>
         </div>
 
         <div className="space-y-4">
+          {/* Seção 6 — Referências */}
           <FieldGroup
             title="Referências"
             description="Envie até 4 imagens de exemplo para a IA seguir o estilo."
@@ -460,6 +601,7 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
             ) : null}
           </FieldGroup>
 
+          {/* Botão de gerar + resultado */}
           <div className="surface-card space-y-4 rounded-[34px] p-6">
             {error ? (
               <p className="surface-alert-danger flex items-start gap-2 rounded-[20px] px-4 py-3 text-sm">
@@ -607,12 +749,14 @@ function TextField({
   label,
   placeholder,
   value,
-  onChange
+  onChange,
+  required
 }: {
   label: string;
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
+  required?: boolean;
 }) {
   return (
     <label className="space-y-2">
@@ -622,6 +766,7 @@ function TextField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         value={value}
+        required={required}
       />
     </label>
   );
@@ -631,12 +776,14 @@ function TextAreaField({
   label,
   placeholder,
   value,
-  onChange
+  onChange,
+  required
 }: {
   label: string;
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
+  required?: boolean;
 }) {
   return (
     <label className="space-y-2">
@@ -646,6 +793,7 @@ function TextAreaField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         value={value}
+        required={required}
       />
     </label>
   );
@@ -655,12 +803,14 @@ function SelectField({
   label,
   value,
   onChange,
-  children
+  children,
+  required
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   children: ReactNode;
+  required?: boolean;
 }) {
   return (
     <label className="space-y-2">
@@ -669,6 +819,7 @@ function SelectField({
         className="liquid-input border-border/70 bg-surface-elevated/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
         onChange={(event) => onChange(event.target.value)}
         value={value}
+        required={required}
       >
         {children}
       </select>

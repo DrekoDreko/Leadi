@@ -19,6 +19,7 @@ import {
   logApiError,
   requiredTrimmedString
 } from "@/lib/api/route-security";
+import { getOperator } from "@/lib/creatives/operator-config";
 
 const MAX_REFERENCE_IMAGES = 4;
 const FORMAT_TO_SIZE: Record<string, AdImageSize> = {
@@ -31,7 +32,7 @@ const FORMAT_TO_SIZE: Record<string, AdImageSize> = {
 
 const generateImageSchema = z.object({
   title: requiredTrimmedString("Informe o titulo da arte.").max(160),
-  objective: z.string().trim().max(500).optional(),
+  subtitle: z.string().trim().max(200).optional(),
   briefing: requiredTrimmedString("Descreva o briefing da arte.").max(4000),
   carrier: z.string().trim().max(120).optional(),
   contractType: z.string().trim().max(120).optional(),
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const fields = generateImageSchema.parse({
       title: formData.get("title"),
-      objective: optionalString(formData.get("objective")),
+      subtitle: optionalString(formData.get("subtitle")),
       briefing: formData.get("briefing"),
       carrier: optionalString(formData.get("carrier")),
       contractType: optionalString(formData.get("contractType")),
@@ -89,6 +90,26 @@ export async function POST(request: Request) {
       }
     }
 
+    const operator = fields.carrier ? getOperator(fields.carrier) : undefined;
+    let hasOperatorLogo = false;
+    let hasBrokerLogo = false;
+
+    if (operator) {
+      const operatorLogo = await loadPresetReferenceImage(operator.logoPath);
+      if (operatorLogo) {
+        referenceImages.push(operatorLogo);
+        hasOperatorLogo = true;
+      }
+    }
+
+    const brokerLogoFile = formData.get("brokerLogo");
+    if (brokerLogoFile instanceof File && brokerLogoFile.size > 0) {
+      if (brokerLogoFile.type.startsWith("image/")) {
+        referenceImages.push(brokerLogoFile);
+        hasBrokerLogo = true;
+      }
+    }
+
     const size = resolveSize(fields.format);
 
     const { result, remainingCredits } = await runAiActionWithCredits({
@@ -102,15 +123,22 @@ export async function POST(request: Request) {
         stylePreset: preset?.id ?? null,
         useStyleReference,
         hasReferences: referenceImages.length > 0,
-        referenceCount: referenceImages.length
+        referenceCount: referenceImages.length,
+        operator: operator?.slug ?? null,
+        hasOperatorLogo,
+        hasBrokerLogo
       },
       generate: (apiKey) =>
         generateAdImage(
           {
             ...fields,
+            carrier: operator?.name ?? fields.carrier,
+            carrierColor: operator?.primaryColor,
             brandName: fields.brandName ?? billingContext.brokerageName,
             size,
-            referenceImages
+            referenceImages,
+            hasOperatorLogo,
+            hasBrokerLogo
           },
           { apiKey }
         )
