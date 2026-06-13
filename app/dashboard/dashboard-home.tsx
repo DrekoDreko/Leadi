@@ -188,14 +188,14 @@ export function DashboardHome({
       id: "copy-message",
       title: "Mensagem copiada",
       description: "Gere e copie uma mensagem personalizada para abordar seus novos leads.",
-      href: "/dashboard/criacoes/whatsapp",
+      href: "/dashboard/whatsapp",
       isCompleted: whatsappMessagesCount > 0 || onboardingState?.completedSteps.includes("copy-message") || false
     },
     {
       id: "send-order",
       title: "Pedido enviado",
       description: "Solicite um criativo profissional (imagem ou vídeo) para suas campanhas.",
-      href: "/dashboard/criacoes/pedidos",
+      href: "/dashboard/criacoes/solicitar",
       isCompleted: creativeRequestsCount > 0 || onboardingState?.completedSteps.includes("send-order") || false
     }
   ];

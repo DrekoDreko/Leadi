@@ -330,7 +330,7 @@ function buildCampaignSubmissionNotice(
     return "Campanha gerada na Leadi com modo de publicacao pausada. Antes de enviar para a Meta, revise os ativos que ainda faltam vincular.";
   }
 
-  return "Recebemos a solicitacao. Retornaremos com o valor e o andamento da campanha na area Validador de campanha.";
+  return "Recebemos a solicitacao. Retornaremos com o valor e o andamento da campanha na area Acompanhar criativos.";
 }
 
 function formatMetricNumber(value: number, fractionDigits = 0) {

@@ -68,7 +68,7 @@ const severityClasses: Record<RiskLevel, string> = {
 export function ComplianceValidator({
   aiBalance = 0,
   eyebrow = "Compliance",
-  title = "Validador de campanha",
+  title = "Validador de texto",
   description = "Cole textos de anuncio, formulario ou mensagem para detectar linguagem sensivel antes de publicar."
 }: {
   aiBalance?: number;

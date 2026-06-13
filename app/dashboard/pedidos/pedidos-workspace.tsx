@@ -431,10 +431,10 @@ export function PedidosWorkspace({
     <div className="space-y-4">
       <PageHeading
         eyebrow={workspaceVariant === "validator" ? "Criações" : "Pedidos"}
-        title={workspaceVariant === "validator" ? "Validador de campanha" : "Pedidos criativos"}
+        title={workspaceVariant === "validator" ? "Acompanhar criativos" : "Pedidos criativos"}
         description={
           workspaceVariant === "validator"
-            ? `Acompanhe o andamento das solicitações da conta ${workspaceName}, revise materiais e concentre o status comercial de cada campanha em um só lugar.`
+            ? `Acompanhe o andamento dos pedidos de criativo da conta ${workspaceName}: veja o status de cada material, da análise até a entrega, em um só lugar.`
             : `Acompanhe briefings e materiais de apoio do workspace ${workspaceName}, sempre preparados para revisão antes de qualquer publicação.`
         }
       >

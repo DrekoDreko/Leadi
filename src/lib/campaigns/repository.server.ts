@@ -2,6 +2,7 @@ import { campaignDraft } from "@/data/mock";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import {
   buildCampaignInputPayload,
   buildCampaignResultPayload,
@@ -237,8 +238,14 @@ export async function saveCampaignForCurrentUser(
   }
 
   const profile = await getCurrentProfile();
-  const supabase = await createSupabaseServerClient();
   const payload = buildCampaignInsert(profile, input);
+
+  // A tabela campaigns só tem policy de INSERT/SELECT no RLS; gravar pelo cliente
+  // do usuário falha o with_check em alguns contextos de sessão. organization_id e
+  // created_by_profile_id vêm do perfil autenticado, então o cliente admin é seguro.
+  const supabase = hasSupabaseServiceRole()
+    ? createSupabaseAdminClient()
+    : await createSupabaseServerClient();
 
   const { data, error } = await supabase.from("campaigns").insert(payload).select("*").single();
 

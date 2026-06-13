@@ -19,8 +19,8 @@ const primaryCreations = [
     tone: "bg-primary text-primary-foreground"
   },
   {
-    title: "Validador de campanha",
-    description: "Acompanhe o progresso da solicitacao, revise status e veja quando a campanha estiver pronta.",
+    title: "Acompanhar criativos",
+    description: "Acompanhe o status dos pedidos de criativo, da analise ate a entrega do material.",
     href: "/dashboard/criacoes/validador",
     icon: ClipboardCheck,
     tone: "bg-surface-elevated text-foreground ring-1 ring-border/70"
@@ -58,7 +58,7 @@ export default async function CriacoesPage() {
     ? primaryCreations.filter((item) => item.title === "Solicitacao de criativo")
     : context.isOwner
       ? primaryCreations
-      : primaryCreations.filter((item) => item.title !== "Validador de campanha");
+      : primaryCreations.filter((item) => item.title !== "Acompanhar criativos");
 
   return (
     <div className="space-y-4">
