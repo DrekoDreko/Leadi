@@ -569,14 +569,16 @@ async function createPausedAdSet(input: {
   });
 
   const payload = (await response.json().catch(() => null)) as MetaCampaignCreateResponse | {
-    error?: { message?: string };
+    error?: { message?: string; error_user_msg?: string; error_subcode?: number };
   } | null;
 
   if (!response.ok) {
-    const errorMessage = (payload as { error?: { message?: string } } | null)?.error?.message;
+    const metaError = (payload as { error?: { message?: string; error_user_msg?: string; error_subcode?: number } } | null)?.error;
+    const detail = metaError?.error_user_msg || metaError?.message;
+    const suffix = metaError?.error_subcode ? ` (subcode: ${metaError.error_subcode})` : "";
     throw new Error(
-      errorMessage
-        ? `Falha ao criar conjunto de anuncios na Meta: ${errorMessage}`
+      detail
+        ? `Falha ao criar conjunto de anuncios na Meta: ${detail}${suffix}`
         : `Falha ao criar conjunto de anuncios na Meta: status ${response.status}.`
     );
   }
@@ -627,14 +629,16 @@ async function createAdCreative(input: {
   });
 
   const payload = (await response.json().catch(() => null)) as MetaCampaignCreateResponse | {
-    error?: { message?: string };
+    error?: { message?: string; error_user_msg?: string; error_subcode?: number };
   } | null;
 
   if (!response.ok) {
-    const errorMessage = (payload as { error?: { message?: string } } | null)?.error?.message;
+    const metaError = (payload as { error?: { message?: string; error_user_msg?: string; error_subcode?: number } } | null)?.error;
+    const detail = metaError?.error_user_msg || metaError?.message;
+    const suffix = metaError?.error_subcode ? ` (subcode: ${metaError.error_subcode})` : "";
     throw new Error(
-      errorMessage
-        ? `Falha ao criar criativo do anuncio na Meta: ${errorMessage}`
+      detail
+        ? `Falha ao criar criativo do anuncio na Meta: ${detail}${suffix}`
         : `Falha ao criar criativo do anuncio na Meta: status ${response.status}.`
     );
   }
@@ -670,14 +674,16 @@ async function createPausedAd(input: {
   });
 
   const payload = (await response.json().catch(() => null)) as MetaCampaignCreateResponse | {
-    error?: { message?: string };
+    error?: { message?: string; error_user_msg?: string; error_subcode?: number };
   } | null;
 
   if (!response.ok) {
-    const errorMessage = (payload as { error?: { message?: string } } | null)?.error?.message;
+    const metaError = (payload as { error?: { message?: string; error_user_msg?: string; error_subcode?: number } } | null)?.error;
+    const detail = metaError?.error_user_msg || metaError?.message;
+    const suffix = metaError?.error_subcode ? ` (subcode: ${metaError.error_subcode})` : "";
     throw new Error(
-      errorMessage
-        ? `Falha ao criar anuncio na Meta: ${errorMessage}`
+      detail
+        ? `Falha ao criar anuncio na Meta: ${detail}${suffix}`
         : `Falha ao criar anuncio na Meta: status ${response.status}.`
     );
   }
