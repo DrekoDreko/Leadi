@@ -212,6 +212,7 @@ export async function publishPausedMetaCampaign(
       : 2000;
 
     const orgWebsite = await loadOrganizationWebsite(supabase, input.organizationId);
+    const imageHash = await loadCampaignImageHash(supabase, campaign.id);
 
     if (campaign.meta_page_id && campaign.meta_lead_form_id) {
       const adSet = await createPausedAdSet({
@@ -233,6 +234,7 @@ export async function publishPausedMetaCampaign(
           pageId: campaign.meta_page_id,
           leadFormId: campaign.meta_lead_form_id!,
           link: orgWebsite,
+          imageHash,
           primaryText: campaign.primary_text,
           headline: campaign.headline,
           description: campaign.description,
@@ -317,6 +319,23 @@ async function loadOrganizationWebsite(
   const website = data?.website?.trim();
   if (!website) return FALLBACK_WEBSITE;
   return website.startsWith("http") ? website : `https://${website}`;
+}
+
+async function loadCampaignImageHash(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  campaignId: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("meta_ad_image_uploads")
+    .select("meta_image_hash")
+    .eq("campaign_id", campaignId)
+    .eq("local_status", "uploaded")
+    .not("meta_image_hash", "is", null)
+    .order("uploaded_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data?.meta_image_hash ?? null;
 }
 
 async function loadCampaign(
@@ -615,6 +634,7 @@ async function createAdCreative(input: {
   pageId: string;
   leadFormId: string;
   link: string;
+  imageHash: string | null;
   primaryText: string;
   headline: string;
   description: string;
@@ -626,20 +646,26 @@ async function createAdCreative(input: {
 
   const ctaType = mapCallToActionType(input.callToAction);
 
+  const linkData: Record<string, unknown> = {
+    link: input.link,
+    message: input.primaryText,
+    name: input.headline,
+    description: input.description,
+    call_to_action: {
+      type: ctaType,
+      value: { lead_gen_form_id: input.leadFormId }
+    }
+  };
+
+  if (input.imageHash) {
+    linkData.image_hash = input.imageHash;
+  }
+
   const body = new URLSearchParams();
   body.set("name", input.name);
   body.set("object_story_spec", JSON.stringify({
     page_id: input.pageId,
-    link_data: {
-      link: input.link,
-      message: input.primaryText,
-      name: input.headline,
-      description: input.description,
-      call_to_action: {
-        type: ctaType,
-        value: { lead_gen_form_id: input.leadFormId }
-      }
-    }
+    link_data: linkData
   }));
 
   const response = await fetch(url, {

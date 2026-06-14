@@ -2,110 +2,109 @@ import type { SystemTemplate } from "@/lib/templates/types";
 import { getWhatsAppSystemTemplatesFallback } from "@/lib/whatsapp/templates";
 
 const campaignTemplatesFallback: SystemTemplate[] = [
-  // Campaigns
   {
-    id: "tpl-campaign-migration-business-plan",
+    id: "tpl-campaign-revisao-preco",
     templateType: "campaign",
-    category: "MEI consultivo",
-    title: "Plano PME para MEI com até 4 vidas",
-    description: "Abordagem consultiva para MEIs e pequenos CNPJs que precisam validar elegibilidade antes de cotar.",
+    category: "Revisão de preço",
+    title: "Pagando caro no plano? Migre para PME e economize",
+    description: "Para quem já tem plano individual ou familiar e quer reduzir o custo migrando para um plano empresarial PME.",
     content: {
-      audience: "MEIs e pequenos CNPJs com 2 a 4 vidas que querem entender se já podem contratar um plano empresarial.",
-      offer: "Análise consultiva para validar elegibilidade, documentação e caminhos de contratação conforme o perfil da empresa.",
-      region: "São Paulo, ABC Paulista",
-      differentiator: "Explica com clareza o que muda entre opções empresariais, documentos exigidos e próximos passos da cotação.",
-      tone: "Humano e claro",
-      notes: "Evitar prometer aprovação imediata ou economia garantida. Convidar o lead para uma análise do perfil."
-    },
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: "tpl-campaign-mei-safe",
-    templateType: "campaign",
-    category: "Reajuste",
-    title: "Revisão de reajuste do plano atual",
-    description: "Para empresas que já possuem plano e querem revisar reajuste, rede e formato do contrato.",
-    content: {
-      audience: "Empresas que já têm plano de saúde e querem reavaliar custo, rede credenciada e regras de contratação.",
-      offer: "Revisão consultiva do cenário atual com comparação entre alternativas empresariais aderentes ao perfil da empresa.",
-      region: "São Paulo, Santos, Interior de SP",
-      differentiator: "Organiza a análise por rede, coparticipação, carências e uso esperado antes de sugerir qualquer troca.",
+      audience: "Profissionais autônomos, sócios e famílias que pagam plano individual caro e têm CNPJ ativo (MEI, ME, LTDA) para migrar para PME.",
+      offer: "Comparativo entre o plano atual (individual/familiar) e opções empresariais PME com economia real, mantendo rede e cobertura equivalente.",
+      region: "São Paulo, ABC Paulista, Campinas",
+      differentiator: "Mostra quanto o lead pode economizar saindo do plano pessoa física para o empresarial, sem perder rede nem cobertura.",
       tone: "Consultivo e direto",
-      notes: "Não usar promessa de redução garantida. Preferir linguagem de revisão, comparação e tomada de decisão orientada."
+      notes: "Não prometer percentual exato de economia. Focar no comparativo real entre o valor atual e as opções PME. Usar linguagem de revisão e oportunidade."
     },
     isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
   {
-    id: "tpl-campaign-small-business",
+    id: "tpl-campaign-mei",
     templateType: "campaign",
-    category: "Rede hospitalar",
-    title: "Comparativo por rede e hospital de preferência",
-    description: "Campanha para leads que começam a conversa pela rede credenciada e hospitais prioritários.",
+    category: "MEI",
+    title: "Plano empresarial para MEI a partir de 2 vidas",
+    description: "MEI pode contratar plano empresarial com preços menores que o individual. Abra sua cotação.",
     content: {
-      audience: "Empresas e famílias empresariais que priorizam hospitais, laboratórios e região de atendimento antes do preço.",
-      offer: "Comparativo consultivo partindo da rede desejada, da abrangência e do perfil de uso da empresa.",
+      audience: "Microempreendedores individuais (MEI) com CNPJ ativo que querem plano de saúde para si e familiares a preço empresarial.",
+      offer: "Cotação de plano empresarial PME para MEI com 2 a 4 vidas, comparando operadoras e rede credenciada da região.",
       region: "São Paulo, Guarulhos, Osasco",
-      differentiator: "Ajuda o lead a enxergar diferenças reais entre rede, cobertura e aderência ao perfil sem excesso de tecnicismo.",
-      tone: "Profissional e objetivo",
-      notes: "Não depreciar operadoras nem afirmar melhor opção universal. Focar em aderência ao cenário do cliente."
-    },
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: "tpl-campaign-operator-comparison",
-    templateType: "campaign",
-    category: "Pequena equipe",
-    title: "Benefício de saúde para equipes pequenas",
-    description: "Para negócios de 2 a 29 vidas que querem estruturar benefício de forma viável e organizada.",
-    content: {
-      audience: "Donos e gestores de pequenas empresas que querem oferecer plano para sócios, equipe e dependentes elegíveis.",
-      offer: "Estruturação consultiva de benefício empresarial conforme número de vidas, região de uso e orçamento disponível.",
-      region: "Campinas, Jundiaí, Sorocaba",
-      differentiator: "Ajuda a equilibrar composição de vidas, tipo de cobertura e expectativa financeira sem perder clareza comercial.",
-      tone: "Consultivo e direto",
-      notes: "Evitar urgência artificial ou promessa de menor preço. Falar em planejamento, cenário e viabilidade."
-    },
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: "tpl-campaign-partners-team",
-    templateType: "campaign",
-    category: "Elegibilidade",
-    title: "Inclusão de sócios, dependentes e pró-labore",
-    description: "Esclarece quem pode entrar no contrato e quais vínculos precisam ser revisados antes da cotação.",
-    content: {
-      audience: "Empresas LTDA, ME e CNPJs familiares que precisam entender quem pode entrar como titular, dependente ou colaborador.",
-      offer: "Análise de elegibilidade para sócios, dependentes, funcionários e pró-labore quando aplicável.",
-      region: "Grande São Paulo",
-      differentiator: "Explica documentação, vínculo e composição mínima antes de avançar para a cotação com a operadora.",
+      differentiator: "Explica que MEI já pode contratar PME, quais documentos são necessários e como incluir dependentes no contrato.",
       tone: "Humano e claro",
-      notes: "Não prometer aceitação automática. Indicar análise conforme regras da operadora e perfil cadastral."
+      notes: "Não prometer aprovação automática. Explicar que a elegibilidade depende da operadora e do tempo de CNPJ. Linguagem acessível."
     },
     isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
   {
-    id: "tpl-campaign-contract-review",
+    id: "tpl-campaign-rede-credenciada",
+    templateType: "campaign",
+    category: "Rede credenciada",
+    title: "Escolha o plano pelo hospital e rede que você precisa",
+    description: "Compare planos pela rede credenciada: hospitais, laboratórios e clínicas da sua região.",
+    content: {
+      audience: "Empresas e profissionais que priorizam atendimento em hospitais e laboratórios específicos antes de definir o plano.",
+      offer: "Comparativo de planos por rede credenciada, mostrando quais operadoras atendem nos hospitais e laboratórios desejados.",
+      region: "São Paulo, ABC Paulista, Santos",
+      differentiator: "Parte da rede que o lead precisa e filtra as operadoras por cobertura real na região, ao invés de começar pelo preço.",
+      tone: "Profissional e objetivo",
+      notes: "Não afirmar que todas as operadoras cobrem determinado hospital. Focar em comparação por rede e aderência regional."
+    },
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: "tpl-campaign-primeira-contratacao",
     templateType: "campaign",
     category: "Primeira contratação",
-    title: "Primeiro plano empresarial para CNPJ em crescimento",
-    description: "Para empresas que nunca contrataram plano e precisam entender por onde começar.",
+    title: "Empresa nova? Veja como contratar o primeiro plano",
+    description: "Orientação para empresas que nunca contrataram plano e precisam entender por onde começar.",
     content: {
-      audience: "Empresas em crescimento que vão contratar plano empresarial pela primeira vez e ainda precisam organizar os critérios da decisão.",
-      offer: "Orientação inicial para definir número de vidas, região de uso e critérios de escolha da operadora antes da proposta.",
+      audience: "Empresas recém-abertas ou em crescimento que vão contratar plano de saúde empresarial pela primeira vez.",
+      offer: "Orientação completa: documentação necessária, número mínimo de vidas, operadoras disponíveis e prazo de implantação.",
       region: "São Paulo, Barueri, Alphaville",
-      differentiator: "Traduz o processo comercial em próximos passos simples, sem linguagem técnica excessiva.",
+      differentiator: "Traduz o processo de contratação em passos simples para quem nunca fez isso antes, sem jargão técnico.",
       tone: "Educativo e simples",
-      notes: "Evitar prometer implantação sem análise documental. Focar em orientação e preparo para a cotação."
+      notes: "Evitar prometer implantação sem análise documental. Focar em orientação, preparo e próximos passos claros."
+    },
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: "tpl-campaign-reajuste",
+    templateType: "campaign",
+    category: "Reajuste",
+    title: "Reajuste veio alto? Compare e troque de operadora",
+    description: "Para empresas que receberam reajuste acima do esperado e querem avaliar alternativas.",
+    content: {
+      audience: "Empresas que já têm plano de saúde e receberam reajuste anual alto, buscando alternativas com melhor custo-benefício.",
+      offer: "Análise do reajuste atual com comparativo entre operadoras, considerando rede, carência, portabilidade e coparticipação.",
+      region: "São Paulo, Santos, Interior de SP",
+      differentiator: "Organiza a decisão de troca por rede, carência aproveitada e economia projetada, para o lead decidir com segurança.",
+      tone: "Consultivo e direto",
+      notes: "Não prometer redução garantida de valor. Preferir linguagem de comparação e troca orientada. Explicar portabilidade de carências."
+    },
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: "tpl-campaign-equipe-pequena",
+    templateType: "campaign",
+    category: "Equipe pequena",
+    title: "Plano de saúde para equipes de 2 a 29 pessoas",
+    description: "Estruture o benefício de saúde da sua equipe com planos empresariais PME acessíveis.",
+    content: {
+      audience: "Donos e gestores de pequenas empresas que querem oferecer plano de saúde como benefício para reter e atrair talentos.",
+      offer: "Cotação empresarial PME personalizada por número de vidas, região de uso e orçamento disponível da empresa.",
+      region: "Campinas, Jundiaí, Sorocaba",
+      differentiator: "Ajuda a montar o benefício ideal conforme o tamanho da equipe, incluindo sócios, funcionários e dependentes elegíveis.",
+      tone: "Humano e claro",
+      notes: "Evitar urgência artificial ou promessa de menor preço do mercado. Falar em planejamento, composição de vidas e viabilidade."
     },
     isActive: true,
     createdAt: new Date().toISOString(),

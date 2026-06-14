@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   ArrowRight,
@@ -10,12 +11,14 @@ import {
   ChevronDown,
   ClipboardList,
   DollarSign,
+  ExternalLink,
   FileImage,
   FileText,
   ImagePlus,
   Info,
   Loader2,
   Paperclip,
+  Rocket,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -177,18 +180,18 @@ function normalizeTone(value: string): ToneValue {
 
 function getCampaignTemplateTags(template: SystemTemplate, content: CampaignTemplateContent) {
   switch (template.category) {
-    case "MEI consultivo":
-      return ["MEI", "CNPJ", "Elegibilidade"];
-    case "Reajuste":
-      return ["Reajuste", "Comparativo", "Rede"];
-    case "Rede hospitalar":
+    case "Revisão de preço":
+      return ["Revisão de preço", "PME", "Economia"];
+    case "MEI":
+      return ["MEI", "PME", "CNPJ"];
+    case "Rede credenciada":
       return ["Rede", "Hospitais", "Comparativo"];
-    case "Pequena equipe":
-      return ["Equipe", "Benefício", "Empresarial"];
-    case "Elegibilidade":
-      return ["Elegibilidade", "Dependentes", "Documentação"];
     case "Primeira contratação":
       return ["Primeira contratação", "CNPJ", "Planejamento"];
+    case "Reajuste":
+      return ["Reajuste", "Troca", "Comparativo"];
+    case "Equipe pequena":
+      return ["Equipe", "PME", "Benefício"];
     default:
       return [template.category, normalizeTone(content.tone)];
   }
@@ -196,35 +199,35 @@ function getCampaignTemplateTags(template: SystemTemplate, content: CampaignTemp
 
 function getCampaignTemplateCommercialContext(template: SystemTemplate) {
   switch (template.category) {
-    case "MEI consultivo":
+    case "Revisão de preço":
       return {
-        objections: "Receio de não ter tempo de CNPJ suficiente ou de a contratação não se encaixar nas regras.",
+        objections: "Medo de perder a rede atual ou enfrentar novas carências ao migrar de individual para PME.",
+        contractType: "Empresarial (PME)"
+      };
+    case "MEI":
+      return {
+        objections: "Receio de não ter tempo de CNPJ suficiente ou de a contratação não se encaixar nas regras da operadora.",
         contractType: "Empresarial (MEI)"
       };
-    case "Reajuste":
+    case "Rede credenciada":
       return {
-        objections: "Medo de trocar e enfrentar novas carências ou perder uma rede importante.",
-        contractType: "Empresarial (PME)"
-      };
-    case "Rede hospitalar":
-      return {
-        objections: "Dúvida sobre qual operadora atende melhor a rede e os hospitais desejados.",
+        objections: "Dúvida sobre qual operadora cobre os hospitais e laboratórios desejados na região.",
         contractType: "Empresarial e Adesão"
-      };
-    case "Pequena equipe":
-      return {
-        objections: "Percepção de custo alto por vida e receio de burocracia para implantar o benefício.",
-        contractType: "Empresarial (PME)"
-      };
-    case "Elegibilidade":
-      return {
-        objections: "Insegurança sobre quem pode entrar no contrato e quais documentos serão exigidos.",
-        contractType: "Empresarial"
       };
     case "Primeira contratação":
       return {
         objections: "Falta de clareza sobre número mínimo de vidas, documentação e próximos passos da contratação.",
         contractType: "Empresarial (PME e MEI)"
+      };
+    case "Reajuste":
+      return {
+        objections: "Medo de trocar de operadora e enfrentar novas carências ou perder rede credenciada importante.",
+        contractType: "Empresarial (PME)"
+      };
+    case "Equipe pequena":
+      return {
+        objections: "Percepção de custo alto por vida e receio de burocracia para implantar o benefício.",
+        contractType: "Empresarial (PME)"
       };
     default:
       return {
@@ -455,6 +458,11 @@ export function CampaignGenerator({
   const [templateNotice, setTemplateNotice] = useState("");
   const [draftNotice, setDraftNotice] = useState("");
   const [submissionNotice, setSubmissionNotice] = useState("");
+  const [publicationDialog, setPublicationDialog] = useState<{
+    open: boolean;
+    phase: "loading" | "success" | "error";
+    message: string;
+  }>({ open: false, phase: "loading", message: "" });
   const metaConnection = connectedAccounts.metaConnection;
   const campaignCost = getAiCreditCost("generate_campaign_plan");
   const campaignTemplates = resolveCampaignTemplates(systemTemplates);
@@ -504,6 +512,7 @@ export function CampaignGenerator({
     }
 
     setIsSubmitting(true);
+    setPublicationDialog({ open: true, phase: "loading", message: "" });
 
     try {
       const response = await fetch("/api/campaigns/generate", {
@@ -521,7 +530,9 @@ export function CampaignGenerator({
       } | null;
 
       if (!response.ok || !payload?.campaign) {
-        setError(payload?.error || "Não foi possível gerar a campanha. Revise os dados e tente novamente.");
+        const errorMessage = payload?.error || "Não foi possível gerar a campanha. Revise os dados e tente novamente.";
+        setPublicationDialog({ open: true, phase: "error", message: errorMessage });
+        setError(errorMessage);
         return;
       }
       if (typeof payload.aiBalance === "number") {
@@ -529,9 +540,13 @@ export function CampaignGenerator({
         setForm((currentForm) => ({ ...currentForm, aiCredits: payload.aiBalance ?? currentForm.aiCredits }));
       }
       setCompletedSteps(campaignFlowSteps.map((step) => step.number));
-      setSubmissionNotice(buildCampaignSubmissionNotice(form, connectedAccounts));
+      const notice = buildCampaignSubmissionNotice(form, connectedAccounts);
+      setSubmissionNotice(notice);
+      setPublicationDialog({ open: true, phase: "success", message: notice });
     } catch (requestError) {
-      setError(getFriendlyErrorMessage(requestError).message);
+      const errorMessage = getFriendlyErrorMessage(requestError).message;
+      setPublicationDialog({ open: true, phase: "error", message: errorMessage });
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -653,6 +668,19 @@ export function CampaignGenerator({
 
   return (
     <div className="space-y-5 pb-4">
+      <CampaignPublicationDialog
+        open={publicationDialog.open}
+        phase={publicationDialog.phase}
+        message={publicationDialog.message}
+        metaItems={getMetaPreparationItems(form, connectedAccounts)}
+        publishMode={form.publishMode}
+        onClose={() => setPublicationDialog((d) => ({ ...d, open: false }))}
+        onRetry={() => {
+          setPublicationDialog({ open: false, phase: "loading", message: "" });
+          setError("");
+        }}
+      />
+
       <CampaignHero
         aiCredits={currentAiBalance}
         hasMetaConnection={Boolean(metaConnection)}
@@ -2023,6 +2051,209 @@ function SmallStatusChip({
       <span className="uppercase tracking-[0.14em] text-[10px] opacity-70">{label}</span>
       <span>{value}</span>
     </span>
+  );
+}
+
+function CampaignPublicationDialog({
+  open,
+  phase,
+  message,
+  metaItems,
+  publishMode,
+  onClose,
+  onRetry
+}: {
+  open: boolean;
+  phase: "loading" | "success" | "error";
+  message: string;
+  metaItems: Array<{ label: string; value: string; ready: boolean }>;
+  publishMode: PublishMode;
+  onClose: () => void;
+  onRetry: () => void;
+}) {
+  const readyItems = metaItems.filter((item) => item.ready);
+  const isPaused = publishMode === "paused";
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={phase !== "loading" ? onClose : undefined}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 24 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="relative z-10 w-full max-w-lg overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-xl"
+          >
+            <div className="relative p-8">
+              {phase !== "loading" && (
+                <button
+                  className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted/40"
+                  onClick={onClose}
+                  type="button"
+                  aria-label="Fechar"
+                >
+                  <X size={16} />
+                </button>
+              )}
+
+              <AnimatePresence mode="wait">
+                {phase === "loading" && (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    className="flex flex-col items-center gap-5 py-8 text-center"
+                  >
+                    <div className="relative flex h-20 w-20 items-center justify-center">
+                      <motion.div
+                        className="absolute inset-0 rounded-full border-[3px] border-primary/20"
+                        style={{ borderTopColor: "var(--primary)" }}
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+                      />
+                      <Rocket className="text-primary" size={28} />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-foreground">Publicando campanha...</h2>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {isPaused
+                          ? "Criando campanha, conjunto de anúncios e criativo na Meta em modo pausado."
+                          : "Gerando textos e preparando a campanha na Leadi."}
+                      </p>
+                    </div>
+                    <button
+                      className="mt-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-5 py-2.5 text-sm font-semibold text-primary"
+                      disabled
+                      type="button"
+                    >
+                      <Loader2 className="animate-spin" size={16} />
+                      Aguarde...
+                    </button>
+                  </motion.div>
+                )}
+
+                {phase === "success" && (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="flex flex-col items-center gap-5 text-center"
+                  >
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.15 }}
+                      className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/12"
+                    >
+                      <CheckCircle2 className="text-emerald-600" size={40} />
+                    </motion.div>
+
+                    <div>
+                      <h2 className="text-xl font-bold text-foreground">Campanha enviada!</h2>
+                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                        {isPaused
+                          ? "Sua campanha foi publicada na Meta em modo pausado. Ative quando estiver pronto."
+                          : "Seus textos foram gerados e salvos na Leadi."}
+                      </p>
+                    </div>
+
+                    {readyItems.length > 0 && (
+                      <div className="w-full rounded-[20px] border border-emerald-500/20 bg-emerald-500/6 p-4 text-left">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-emerald-700/70">
+                          Itens vinculados
+                        </p>
+                        <div className="space-y-2">
+                          {readyItems.map((item) => (
+                            <div key={item.label} className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">{item.label}</span>
+                              <span className="font-semibold text-foreground">{item.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {message && (
+                      <p className="w-full rounded-[16px] bg-muted/40 px-4 py-3 text-left text-xs leading-relaxed text-muted-foreground">
+                        {message}
+                      </p>
+                    )}
+
+                    <div className="flex w-full flex-col gap-3 pt-2">
+                      {isPaused && (
+                        <a
+                          href="https://adsmanager.facebook.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
+                        >
+                          Abrir Gerenciador de Anúncios
+                          <ExternalLink size={15} />
+                        </a>
+                      )}
+                      <button
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border/70 bg-card px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted/40"
+                        onClick={onClose}
+                        type="button"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {phase === "error" && (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="flex flex-col items-center gap-5 text-center"
+                  >
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/12">
+                      <AlertTriangle className="text-red-600" size={36} />
+                    </div>
+
+                    <div>
+                      <h2 className="text-xl font-bold text-foreground">Erro ao publicar</h2>
+                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{message}</p>
+                    </div>
+
+                    <div className="flex w-full flex-col gap-3 pt-2">
+                      <button
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
+                        onClick={onRetry}
+                        type="button"
+                      >
+                        Tentar novamente
+                      </button>
+                      <button
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border/70 bg-card px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted/40"
+                        onClick={onClose}
+                        type="button"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }
 
