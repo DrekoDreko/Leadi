@@ -551,6 +551,7 @@ async function createPausedAdSet(input: {
   body.set("bid_strategy", "LOWEST_COST_WITHOUT_CAP");
   body.set("daily_budget", String(input.dailyBudgetCents));
   body.set("status", "PAUSED");
+  body.set("destination_type", "ON_AD");
   body.set("promoted_object", JSON.stringify({
     page_id: input.pageId
   }));
