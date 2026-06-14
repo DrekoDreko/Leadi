@@ -499,6 +499,7 @@ async function createPausedMetaCampaign(input: {
   body.set("objective", "OUTCOME_LEADS");
   body.set("status", "PAUSED");
   body.set("special_ad_categories", JSON.stringify([]));
+  body.set("is_adset_budget_sharing_enabled", "false");
 
   const response = await fetch(url, {
     method: "POST",
