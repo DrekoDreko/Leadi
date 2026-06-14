@@ -609,6 +609,7 @@ async function createAdCreative(input: {
   body.set("object_story_spec", JSON.stringify({
     page_id: input.pageId,
     link_data: {
+      link: `https://www.facebook.com/${input.pageId}`,
       message: input.primaryText,
       name: input.headline,
       description: input.description,
