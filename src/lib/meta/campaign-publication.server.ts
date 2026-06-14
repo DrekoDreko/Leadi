@@ -211,6 +211,8 @@ export async function publishPausedMetaCampaign(
       ? Math.round(input.dailyBudget * 100)
       : 2000;
 
+    const orgWebsite = await loadOrganizationWebsite(supabase, input.organizationId);
+
     if (campaign.meta_page_id && campaign.meta_lead_form_id) {
       const adSet = await createPausedAdSet({
         accessToken,
@@ -230,6 +232,7 @@ export async function publishPausedMetaCampaign(
           name: `${campaign.campaign_name} - Criativo`,
           pageId: campaign.meta_page_id,
           leadFormId: campaign.meta_lead_form_id!,
+          link: orgWebsite,
           primaryText: campaign.primary_text,
           headline: campaign.headline,
           description: campaign.description,
@@ -297,6 +300,23 @@ export async function publishPausedMetaCampaign(
 
     throw new Error(failureMessage, { cause: error });
   }
+}
+
+const FALLBACK_WEBSITE = "https://www.example.com";
+
+async function loadOrganizationWebsite(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  organizationId: string
+): Promise<string> {
+  const { data } = await supabase
+    .from("organizations")
+    .select("website")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  const website = data?.website?.trim();
+  if (!website) return FALLBACK_WEBSITE;
+  return website.startsWith("http") ? website : `https://${website}`;
 }
 
 async function loadCampaign(
@@ -594,6 +614,7 @@ async function createAdCreative(input: {
   name: string;
   pageId: string;
   leadFormId: string;
+  link: string;
   primaryText: string;
   headline: string;
   description: string;
@@ -610,7 +631,7 @@ async function createAdCreative(input: {
   body.set("object_story_spec", JSON.stringify({
     page_id: input.pageId,
     link_data: {
-      link: `https://www.facebook.com/${input.pageId}`,
+      link: input.link,
       message: input.primaryText,
       name: input.headline,
       description: input.description,
