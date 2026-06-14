@@ -152,13 +152,22 @@ export default async function AnunciosPage({
                     {new Date(campaign.createdAt).toLocaleDateString("pt-BR")}
                   </span>
                 </div>
-                <Link
-                  href={`/dashboard/criacoes/campanhas?copyFrom=${campaign.id}`}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/60 px-4 py-2 text-xs font-semibold text-cobalt transition-colors hover:bg-white"
-                >
-                  <Copy size={14} aria-hidden="true" />
-                  Reaproveitar ideia
-                </Link>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/anuncios/${campaign.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-cobalt px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-cobalt/90"
+                  >
+                    <ArrowUpRight size={14} aria-hidden="true" />
+                    Revisar e publicar
+                  </Link>
+                  <Link
+                    href={`/dashboard/criacoes/campanhas?copyFrom=${campaign.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/60 px-4 py-2 text-xs font-semibold text-cobalt transition-colors hover:bg-white"
+                  >
+                    <Copy size={14} aria-hidden="true" />
+                    Reaproveitar ideia
+                  </Link>
+                </div>
               </div>
             </article>
           ))

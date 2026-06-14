@@ -13,6 +13,7 @@ import {
   parseCampaignInputPayload,
   parseCampaignResultPayload
 } from "@/lib/campaigns/payload";
+import { isCampaignCopyBlocked, reviewCampaignCopyLocally } from "@/lib/campaigns/compliance";
 import type { CampaignHistoryItem, CampaignPublicationStatus, CampaignPublishMode, CampaignApprovalStatus } from "@/lib/campaigns/types";
 
 type CampaignRow = {
@@ -126,6 +127,23 @@ export async function publishPausedMetaCampaign(
   }
 
   const publishMode = input.publishMode ?? campaign.publish_mode ?? "paused";
+
+  // Gate de compliance: risco alto bloqueia a publicacao real na Meta (defense in depth,
+  // alem do gate na UI). Drafts nao tocam a Meta, entao nao precisam do bloqueio.
+  if (publishMode !== "draft") {
+    const complianceReview = reviewCampaignCopyLocally({
+      primaryText: campaign.primary_text,
+      headline: campaign.headline,
+      description: campaign.description,
+      callToAction: campaign.call_to_action
+    });
+
+    if (isCampaignCopyBlocked(complianceReview)) {
+      throw new Error(
+        "A campanha tem risco de compliance alto e nao pode ser publicada na Meta. Ajuste o texto do anuncio antes de publicar."
+      );
+    }
+  }
   const requestPayload = buildSanitizedRequestPayload(campaign, publishMode);
 
   const attempt = await insertAttempt(supabase, {

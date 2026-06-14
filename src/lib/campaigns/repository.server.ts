@@ -93,6 +93,46 @@ export async function getCampaignsForCurrentUser(limit = 4): Promise<CampaignLis
   };
 }
 
+export async function getCampaignByIdForCurrentUser(
+  campaignId: string
+): Promise<CampaignHistoryItem | null> {
+  if (!isSupabaseConfigured()) {
+    return buildMockCampaigns(20).find((campaign) => campaign.id === campaignId) ?? null;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .select("*")
+    .eq("id", campaignId)
+    .eq("organization_id", profile.organization_id)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return mapCampaignRowToHistoryItem(data as CampaignRow);
+}
+
 export async function getCampaignsCountForCurrentUser(): Promise<number> {
   if (!isSupabaseConfigured()) {
     return 1;
@@ -319,8 +359,14 @@ export async function updateCampaignApprovalStatus(
   approvalStatus: CampaignSaveInput["form"]["approvalStatus"]
 ): Promise<CampaignHistoryItem> {
   const profile = await getCurrentProfile();
-  const supabase = await createSupabaseServerClient();
-  
+
+  // A tabela campaigns só tem policy de INSERT/SELECT no RLS; UPDATE pelo cliente do
+  // usuário falha silenciosamente. O escopo é garantido pelo organization_id do perfil
+  // autenticado, então o cliente admin é seguro (mesmo padrão do save).
+  const supabase = hasSupabaseServiceRole()
+    ? createSupabaseAdminClient()
+    : await createSupabaseServerClient();
+
   const { data, error } = await supabase
     .from("campaigns")
     .update({ approval_status: approvalStatus })
@@ -328,12 +374,60 @@ export async function updateCampaignApprovalStatus(
     .eq("organization_id", profile.organization_id)
     .select("*")
     .single();
-    
+
   if (error || !data) {
     throw new Error(error?.message ?? "Falha ao atualizar o status de aprovacao da campanha.");
   }
-  
+
   return mapCampaignRowToHistoryItem(data);
+}
+
+export type CampaignCopyUpdateInput = {
+  primaryText?: string;
+  headline?: string;
+  description?: string;
+  callToAction?: string;
+};
+
+export async function updateCampaignCopyForCurrentUser(
+  campaignId: string,
+  copy: CampaignCopyUpdateInput
+): Promise<CampaignHistoryItem> {
+  const profile = await getCurrentProfile();
+
+  const updates: {
+    primary_text?: string;
+    headline?: string;
+    description?: string;
+    call_to_action?: string;
+  } = {};
+  if (typeof copy.primaryText === "string") updates.primary_text = copy.primaryText.trim();
+  if (typeof copy.headline === "string") updates.headline = copy.headline.trim();
+  if (typeof copy.description === "string") updates.description = copy.description.trim();
+  if (typeof copy.callToAction === "string") updates.call_to_action = copy.callToAction.trim();
+
+  if (Object.keys(updates).length === 0) {
+    throw new Error("Nenhum campo de texto para atualizar.");
+  }
+
+  // RLS sem policy de UPDATE em campaigns; escopo garantido pelo organization_id.
+  const supabase = hasSupabaseServiceRole()
+    ? createSupabaseAdminClient()
+    : await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .update(updates)
+    .eq("id", campaignId)
+    .eq("organization_id", profile.organization_id)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Falha ao atualizar os textos da campanha.");
+  }
+
+  return mapCampaignRowToHistoryItem(data as CampaignRow);
 }
 
 async function getCurrentProfile() {
