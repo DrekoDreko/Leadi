@@ -44,19 +44,20 @@ export default async function RevisarPublicarPage({ params }: RevisarPublicarPag
     callToAction: campaign.result.callToAction
   });
 
-  let creativeImageUrl: string | null = null;
+  let creativeImages: Array<{ url: string; filename: string }> = [];
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: imageRow } = await supabase
+    const { data: imageRows } = await supabase
       .from("meta_ad_image_uploads")
-      .select("meta_image_url")
+      .select("meta_image_url, source_filename")
       .eq("campaign_id", id)
       .eq("local_status", "uploaded")
       .not("meta_image_url", "is", null)
-      .order("uploaded_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    creativeImageUrl = imageRow?.meta_image_url ?? null;
+      .order("uploaded_at", { ascending: false });
+    creativeImages = (imageRows ?? []).map((row) => ({
+      url: row.meta_image_url!,
+      filename: row.source_filename
+    }));
   } catch {
     // Image fetch is non-critical
   }
@@ -70,7 +71,7 @@ export default async function RevisarPublicarPage({ params }: RevisarPublicarPag
         adAccountName,
         leadFormName
       }}
-      creativeImageUrl={creativeImageUrl}
+      creativeImages={creativeImages}
     />
   );
 }

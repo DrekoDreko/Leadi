@@ -19,10 +19,10 @@ const primaryCreations = [
     tone: "bg-primary text-primary-foreground"
   },
   {
-    title: "Acompanhar criativos",
-    description: "Acompanhe o status dos pedidos de criativo, da analise ate a entrega do material.",
-    href: "/dashboard/criacoes/validador",
-    icon: ClipboardCheck,
+    title: "Anuncios criados",
+    description: "Veja o historico dos anuncios e retome campanhas ja preparadas.",
+    href: "/dashboard/anuncios",
+    icon: Megaphone,
     tone: "bg-surface-elevated text-foreground ring-1 ring-border/70"
   },
   {
@@ -42,10 +42,10 @@ const secondaryCreations = [
     icon: ClipboardCheck
   },
   {
-    title: "Anuncios criados",
-    description: "Veja o historico dos anuncios e retome campanhas ja preparadas.",
-    href: "/dashboard/anuncios",
-    icon: Megaphone
+    title: "Acompanhar criativos",
+    description: "Acompanhe o status dos pedidos de criativo, da analise ate a entrega do material.",
+    href: "/dashboard/criacoes/validador",
+    icon: ClipboardCheck
   }
 ];
 
@@ -58,7 +58,7 @@ export default async function CriacoesPage() {
     ? primaryCreations.filter((item) => item.title === "Solicitacao de criativo")
     : context.isOwner
       ? primaryCreations
-      : primaryCreations.filter((item) => item.title !== "Acompanhar criativos");
+      : primaryCreations.filter((item) => item.title !== "Anuncios criados");
 
   return (
     <div className="space-y-4">
