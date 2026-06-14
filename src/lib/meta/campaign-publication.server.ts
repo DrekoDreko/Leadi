@@ -229,6 +229,7 @@ export async function publishPausedMetaCampaign(
           adAccountId: campaign.meta_ad_account_id,
           name: `${campaign.campaign_name} - Criativo`,
           pageId: campaign.meta_page_id,
+          leadFormId: campaign.meta_lead_form_id!,
           primaryText: campaign.primary_text,
           headline: campaign.headline,
           description: campaign.description,
@@ -550,8 +551,7 @@ async function createPausedAdSet(input: {
   body.set("daily_budget", String(input.dailyBudgetCents));
   body.set("status", "PAUSED");
   body.set("promoted_object", JSON.stringify({
-    page_id: input.pageId,
-    leadgen_form_id: input.leadFormId
+    page_id: input.pageId
   }));
   body.set("targeting", JSON.stringify({
     geo_locations: { countries: ["BR"] },
@@ -589,6 +589,7 @@ async function createAdCreative(input: {
   adAccountId: string;
   name: string;
   pageId: string;
+  leadFormId: string;
   primaryText: string;
   headline: string;
   description: string;
@@ -608,7 +609,10 @@ async function createAdCreative(input: {
       message: input.primaryText,
       name: input.headline,
       description: input.description,
-      call_to_action: { type: ctaType }
+      call_to_action: {
+        type: ctaType,
+        value: { lead_gen_form_id: input.leadFormId }
+      }
     }
   }));
 
