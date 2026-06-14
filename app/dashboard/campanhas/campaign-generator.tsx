@@ -83,7 +83,7 @@ type CampaignFormState = {
   notes: string;
   adNotes: string;
   tone: ToneValue;
-  publishMode: PublishMode;
+  publishMode: PublishMode | "";
   dailyBudget: string;
   creativeMode: CreativeMode;
   creativeType: CreativeType;
@@ -1338,6 +1338,7 @@ function CampaignAudienceStep({
         minHeightClass="min-h-[100px]"
         onChange={(value) => onChange("audience", value)}
         placeholder="Ex.: empresas com CNPJ que desejam avaliar alternativas de plano empresarial."
+        required
         value={form.audience}
       />
       <TextAreaField
@@ -1345,6 +1346,7 @@ function CampaignAudienceStep({
         minHeightClass="min-h-[100px]"
         onChange={(value) => onChange("offer", value)}
         placeholder="Ex.: análise consultiva para comparar opções conforme perfil da empresa."
+        required
         value={form.offer}
       />
       <TextAreaField
@@ -1359,6 +1361,7 @@ function CampaignAudienceStep({
         minHeightClass="min-h-[100px]"
         onChange={(value) => onChange("differential", value)}
         placeholder="Ex.: explicação clara das regras, comparação de rede e apoio consultivo."
+        required
         value={form.differential}
       />
       <div className="md:col-span-2">
@@ -1924,7 +1927,7 @@ export function RegionTagsInput({
   return (
     <div>
       <label className="text-muted-soft text-sm font-semibold" htmlFor="campaign-region-tags">
-        Região
+        Região<span className="ml-1 text-red-500">*</span>
       </label>
       <div className="mt-2 rounded-[24px] border border-border/70 bg-surface-elevated/88 p-3 transition focus-within:border-cobalt/45 focus-within:bg-surface-elevated focus-within:shadow-[0_0_0_4px_rgba(52,98,238,0.12)]">
         <div className="flex flex-wrap gap-2">
@@ -1965,17 +1968,22 @@ function TextAreaField({
   minHeightClass,
   onChange,
   placeholder,
+  required,
   value
 }: {
   label: string;
   minHeightClass: string;
   onChange: (value: string) => void;
   placeholder: string;
+  required?: boolean;
   value: string;
 }) {
   return (
     <label className="space-y-2">
-      <span className="text-muted-soft text-sm font-semibold">{label}</span>
+      <span className="text-muted-soft text-sm font-semibold">
+        {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
+      </span>
       <textarea
         className={`liquid-input ${minHeightClass} resize-y border-border/70 bg-surface-elevated/88 leading-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]`}
         onChange={(event) => onChange(event.target.value)}
@@ -2067,7 +2075,7 @@ function CampaignPublicationDialog({
   phase: "loading" | "success" | "error";
   message: string;
   metaItems: Array<{ label: string; value: string; ready: boolean }>;
-  publishMode: PublishMode;
+  publishMode: PublishMode | "";
   onClose: () => void;
   onRetry: () => void;
 }) {
@@ -2131,14 +2139,6 @@ function CampaignPublicationDialog({
                           : "Gerando textos e preparando a campanha na Leadi."}
                       </p>
                     </div>
-                    <button
-                      className="mt-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-5 py-2.5 text-sm font-semibold text-primary"
-                      disabled
-                      type="button"
-                    >
-                      <Loader2 className="animate-spin" size={16} />
-                      Aguarde...
-                    </button>
                   </motion.div>
                 )}
 
@@ -2278,16 +2278,16 @@ function createInitialForm(
     adAccountId: connectedAccounts.metaAdAccounts[0]?.metaAdAccountId ?? "",
     leadFormId: connectedAccounts.metaLeadForms[0]?.metaFormId ?? "",
     aiCredits,
-    audience: "Donos e gestores de ME, LTDA e empresas de 2 a 49 vidas",
-    offer: "Análise consultiva para comparar plano empresarial",
-    regions: ["Campinas", "Região"],
-    differential: "Atendimento rápido com comparativo objetivo entre operadoras",
-    objections: "Medo de carências na troca e receio com reajustes altos",
-    contractType: "Empresarial (MEI/PME)",
+    audience: "",
+    offer: "",
+    regions: [],
+    differential: "",
+    objections: "",
+    contractType: "",
     notes: "",
     adNotes: "",
     tone: "Consultivo e direto",
-    publishMode: "manual_review",
+    publishMode: "",
     dailyBudget: "",
     creativeMode: "enviar_arquivo",
     creativeType: "imagem_anuncio",
@@ -2352,7 +2352,7 @@ function resolvePublicationState({
 }: {
   hasMetaConnection: boolean;
   hasMinimumMetaAssets: boolean;
-  publishMode: PublishMode;
+  publishMode: PublishMode | "";
 }) {
   if (!hasMetaConnection) {
     return {

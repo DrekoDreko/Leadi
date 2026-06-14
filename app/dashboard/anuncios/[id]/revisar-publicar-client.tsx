@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Loader2,
   Megaphone,
+  Rocket,
   ShieldCheck,
   Sparkles,
   XCircle
@@ -41,11 +42,13 @@ const riskBadge = {
 export function RevisarPublicarClient({
   campaign,
   initialReview,
-  metaAssets
+  metaAssets,
+  creativeImageUrl
 }: {
   campaign: CampaignHistoryItem;
   initialReview: ReviewLike;
   metaAssets: MetaAssets;
+  creativeImageUrl: string | null;
 }) {
   const router = useRouter();
 
@@ -305,6 +308,20 @@ export function RevisarPublicarClient({
             </div>
           </Card>
 
+          {creativeImageUrl ? (
+            <Card className="rounded-[28px] border border-white/50 bg-white/60 p-6 dark:border-white/10 dark:bg-white/5">
+              <h2 className="text-lg font-semibold mb-4">Criativo do anúncio</h2>
+              <div className="relative w-full overflow-hidden rounded-[18px] border border-white/60 bg-white/40">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={creativeImageUrl}
+                  alt="Criativo do anúncio"
+                  className="h-auto w-full object-contain"
+                />
+              </div>
+            </Card>
+          ) : null}
+
           {/* Validador de compliance */}
           <Card className="rounded-[28px] border border-white/50 bg-white/60 p-6 dark:border-white/10 dark:bg-white/5">
             <div className="flex items-center justify-between gap-3">
@@ -438,7 +455,7 @@ export function RevisarPublicarClient({
               onClick={handlePublish}
               type="button"
             >
-              {isPublishing ? <Loader2 className="animate-spin" size={16} /> : <Megaphone size={16} />}
+              <Megaphone size={16} />
               Publicar pausado no Meta
             </button>
 
@@ -452,6 +469,25 @@ export function RevisarPublicarClient({
           </Card>
         </section>
       </div>
+
+      {isPublishing ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-5 rounded-[28px] bg-white px-10 py-10 shadow-xl">
+            <div className="relative flex h-16 w-16 items-center justify-center">
+              <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-cobalt/60" />
+              <Rocket className="text-cobalt/70" size={28} aria-hidden="true" />
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-ink">Publicando campanha...</p>
+              <p className="mt-1 text-sm text-ink/55">Gerando textos e preparando a campanha na Leadi.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-cobalt/15 bg-cobalt/5 px-4 py-2 text-sm text-cobalt">
+              <Loader2 className="animate-spin" size={14} />
+              Aguarde...
+            </span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

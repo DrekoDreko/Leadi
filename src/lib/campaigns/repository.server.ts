@@ -430,6 +430,28 @@ export async function updateCampaignCopyForCurrentUser(
   return mapCampaignRowToHistoryItem(data as CampaignRow);
 }
 
+export async function deleteCampaignForCurrentUser(campaignId: string): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    return;
+  }
+
+  const profile = await getCurrentProfile();
+
+  const supabase = hasSupabaseServiceRole()
+    ? createSupabaseAdminClient()
+    : await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("campaigns")
+    .delete()
+    .eq("id", campaignId)
+    .eq("organization_id", profile.organization_id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 async function getCurrentProfile() {
   const supabase = await createSupabaseServerClient();
   const {

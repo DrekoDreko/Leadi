@@ -3,6 +3,7 @@ import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getCampaignByIdForCurrentUser } from "@/lib/campaigns/repository.server";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 import { reviewCampaignCopyLocally } from "@/lib/campaigns/compliance";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { RevisarPublicarClient } from "./revisar-publicar-client";
 
 type RevisarPublicarPageProps = {
@@ -43,6 +44,23 @@ export default async function RevisarPublicarPage({ params }: RevisarPublicarPag
     callToAction: campaign.result.callToAction
   });
 
+  let creativeImageUrl: string | null = null;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data: imageRow } = await supabase
+      .from("meta_ad_image_uploads")
+      .select("meta_image_url")
+      .eq("campaign_id", id)
+      .eq("local_status", "uploaded")
+      .not("meta_image_url", "is", null)
+      .order("uploaded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    creativeImageUrl = imageRow?.meta_image_url ?? null;
+  } catch {
+    // Image fetch is non-critical
+  }
+
   return (
     <RevisarPublicarClient
       campaign={campaign}
@@ -52,6 +70,7 @@ export default async function RevisarPublicarPage({ params }: RevisarPublicarPag
         adAccountName,
         leadFormName
       }}
+      creativeImageUrl={creativeImageUrl}
     />
   );
 }
