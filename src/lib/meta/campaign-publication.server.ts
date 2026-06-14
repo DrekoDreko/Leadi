@@ -498,7 +498,7 @@ async function createPausedMetaCampaign(input: {
   body.set("name", input.campaignName);
   body.set("objective", "OUTCOME_LEADS");
   body.set("status", "PAUSED");
-  body.set("special_ad_categories", JSON.stringify(["CREDIT"]));
+  body.set("special_ad_categories", JSON.stringify(["NONE"]));
 
   const response = await fetch(url, {
     method: "POST",
