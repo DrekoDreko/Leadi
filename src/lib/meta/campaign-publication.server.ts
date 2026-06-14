@@ -498,7 +498,7 @@ async function createPausedMetaCampaign(input: {
   body.set("name", input.campaignName);
   body.set("objective", "OUTCOME_LEADS");
   body.set("status", "PAUSED");
-  body.set("special_ad_categories", JSON.stringify(["NONE"]));
+  body.set("special_ad_categories", JSON.stringify([]));
 
   const response = await fetch(url, {
     method: "POST",
@@ -511,14 +511,16 @@ async function createPausedMetaCampaign(input: {
   });
 
   const payload = (await response.json().catch(() => null)) as MetaCampaignCreateResponse | {
-    error?: { message?: string };
+    error?: { message?: string; error_user_msg?: string; error_subcode?: number };
   } | null;
 
   if (!response.ok) {
-    const errorMessage = (payload as { error?: { message?: string } } | null)?.error?.message;
+    const metaError = (payload as { error?: { message?: string; error_user_msg?: string; error_subcode?: number } } | null)?.error;
+    const detail = metaError?.error_user_msg || metaError?.message;
+    const suffix = metaError?.error_subcode ? ` (subcode: ${metaError.error_subcode})` : "";
     throw new Error(
-      errorMessage
-        ? `Falha ao publicar campanha pausada na Meta: ${errorMessage}`
+      detail
+        ? `Falha ao publicar campanha pausada na Meta: ${detail}${suffix}`
         : `Falha ao publicar campanha pausada na Meta: status ${response.status}.`
     );
   }
