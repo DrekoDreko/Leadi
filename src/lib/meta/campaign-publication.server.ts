@@ -548,6 +548,7 @@ async function createPausedAdSet(input: {
   body.set("name", input.name);
   body.set("billing_event", "IMPRESSIONS");
   body.set("optimization_goal", "LEAD_GENERATION");
+  body.set("bid_strategy", "LOWEST_COST_WITHOUT_CAP");
   body.set("daily_budget", String(input.dailyBudgetCents));
   body.set("status", "PAUSED");
   body.set("promoted_object", JSON.stringify({
