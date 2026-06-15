@@ -102,7 +102,7 @@ describe("Perfil Créditos Page (/dashboard/perfil/creditos)", () => {
     expect(screen.getByText("Campanha completa")).toBeInTheDocument();
     expect(screen.getByText("Revisão de anúncio")).toBeInTheDocument();
     expect(screen.getByText("Imagem de anúncio")).toBeInTheDocument();
-    expect(screen.getByText("30 créditos por geração")).toBeInTheDocument();
+    expect(screen.getByText("50 créditos por geração")).toBeInTheDocument();
     expect(screen.getByText("10 créditos por análise")).toBeInTheDocument();
     expect(screen.queryByText("Texto de anúncio")).not.toBeInTheDocument();
     expect(screen.queryByText("50 créditos")).not.toBeInTheDocument();

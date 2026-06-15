@@ -1,5 +1,6 @@
 import { buildWhatsAppStageObjective, buildWhatsAppStagePrompt } from "../whatsapp/templates";
 import { getAdImageStylePreset } from "../creatives/ad-image-presets";
+import { resolvePlacementFromFormat } from "../creatives/ad-creative-specs";
 import {
   campaignMarketExamples,
   complianceRewriteExamples,
@@ -301,8 +302,54 @@ export function buildComplianceReviewPrompt(input: ComplianceReviewPromptInput) 
   ]);
 }
 
+const creativeBestPractices = [
+  "Mobile-first: a arte sera vista majoritariamente no celular. Use texto grande, legivel e com alto contraste em relacao ao fundo.",
+  "Combata a sobreposicao de elementos: nao empilhe texto sobre texto nem texto sobre elementos visuais carregados. Cada elemento (titulo, oferta, contato, logo) deve ter respiro e area propria.",
+  "Mantenha uma unica mensagem principal clara. Evite poluir a arte com muitos blocos competindo pela atencao.",
+  "Respeite as zonas de seguranca do posicionamento: nenhuma informacao essencial (texto, logo, CTA, contato) pode ficar nas areas que a interface do app cobre."
+];
+
+function buildPlacementSection(spec: ReturnType<typeof resolvePlacementFromFormat>) {
+  if (!spec) {
+    return "";
+  }
+
+  return buildSection(`Especificacoes do posicionamento Meta: ${spec.label}`, [
+    `Proporcao alvo: ${spec.aspectRatioLabel}.`,
+    `Dimensao de referencia: ${spec.recommendedSize}.`,
+    `Limites de texto recomendados: titulo ate ${spec.textLimits.headlineMax} caracteres; texto de apoio enxuto (referencia ${spec.textLimits.primaryMax} caracteres).`,
+    ...spec.promptDirectives
+  ]);
+}
+
+function buildSafeZoneSection(spec: ReturnType<typeof resolvePlacementFromFormat>) {
+  if (!spec) {
+    return "";
+  }
+
+  const { top, bottom, sides } = spec.safeZone;
+  const lines = [
+    `Deixe o topo ~${top}% da arte livre de texto, logo e CTA.`,
+    `Deixe o rodape ~${bottom}% da arte livre de texto, logo e CTA.`
+  ];
+
+  if (sides > 0) {
+    lines.push(`Deixe ~${sides}% de cada lateral livre de texto, logo e CTA.`);
+  }
+
+  lines.push(
+    "Essas margens sao cobertas pela interface do app (icone de perfil, legenda, botoes e CTA). Posicione todo o conteudo essencial dentro da area central segura."
+  );
+  lines.push(
+    "Esta zona de seguranca tem prioridade sobre as demais instrucoes: quando o padrao de arte ou as diretrizes pedirem logo no topo ou assinatura/contato no rodape, mantenha-os nessas posicoes, porem logo ABAIXO do limite do topo reservado e logo ACIMA do limite do rodape reservado — sempre dentro da area central segura, nunca coladas nas bordas absolutas."
+  );
+
+  return buildSection("Zona de seguranca (areas que devem ficar livres)", lines);
+}
+
 export function buildAdImagePrompt(input: AdImagePromptInput) {
   const preset = getAdImageStylePreset(input.stylePreset);
+  const placement = resolvePlacementFromFormat(input.format);
 
   const colorDirectives: string[] = [];
   if (input.carrierColor && input.carrier) {
@@ -328,6 +375,7 @@ export function buildAdImagePrompt(input: AdImagePromptInput) {
     preset
       ? buildSection(`Padrao de arte selecionado: ${preset.label} (siga rigorosamente)`, preset.promptSpec)
       : "",
+    buildPlacementSection(placement),
     buildContextSection([
       `Titulo/chamada principal da arte: ${input.title}`,
       `Subtitulo / texto de apoio: ${formatOptional(input.subtitle)}`,
@@ -356,6 +404,8 @@ export function buildAdImagePrompt(input: AdImagePromptInput) {
       "Quando o desconto ou valor for informado, destaque-o como elemento visual forte (ex: selo de porcentagem, numero gigante).",
       "Se nenhum telefone, marca ou contato for informado, nao inclua area de contato na arte."
     ]),
+    buildSafeZoneSection(placement),
+    buildSection("Boas praticas universais de criativo", creativeBestPractices),
     input.hasReferences
       ? buildSection("Referencias visuais adicionais", [
           "Alem dos logos e selos, o usuario enviou imagens de referencia para guiar o estilo.",

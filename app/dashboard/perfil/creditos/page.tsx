@@ -94,9 +94,9 @@ const AI_CONSUMPTION_CARDS: ConsumptionCardItem[] = [
   },
   {
     title: "Imagem de anúncio",
-    consumption: "30 créditos por geração",
-    description: "Gere imagens para usar em campanhas, criativos e peças de divulgação.",
-    supportText: "Imagens em alta qualidade, prontas para usar em criativos e peças de divulgação.",
+    consumption: "50 créditos por geração",
+    description: "Gere o par de imagens (Feed 4:5 e Vertical 9:16) pronto para os posicionamentos da Meta.",
+    supportText: "Cada geração entrega duas artes em alta qualidade, prontas para Feed, Stories e Reels.",
     icon: ImagePlus
   }
 ] as const;

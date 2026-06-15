@@ -5,7 +5,8 @@ export const AI_CREDIT_COSTS = {
   generate_creative_brief: 4,
   generate_campaign_plan: 25,
   generate_compliance_review: 10,
-  generate_ad_image: 30
+  generate_ad_image: 30,
+  generate_ad_image_set: 50
 } as const;
 
 export type AiFeatureKey = keyof typeof AI_CREDIT_COSTS;
@@ -17,7 +18,8 @@ export const AI_FEATURE_LABELS: Record<AiFeatureKey, string> = {
   generate_creative_brief: "Briefing criativo",
   generate_campaign_plan: "Campanha completa",
   generate_compliance_review: "Análise de compliance",
-  generate_ad_image: "Imagem de anúncio"
+  generate_ad_image: "Imagem de anúncio",
+  generate_ad_image_set: "Par de imagens (Feed + Vertical)"
 };
 
 export const AI_PUBLIC_CONSUMPTION_ITEMS = [
@@ -27,9 +29,9 @@ export const AI_PUBLIC_CONSUMPTION_ITEMS = [
     credits: AI_CREDIT_COSTS.generate_whatsapp_message
   },
   {
-    feature: "generate_ad_image",
+    feature: "generate_ad_image_set",
     label: "Imagem de anúncio",
-    credits: AI_CREDIT_COSTS.generate_ad_image
+    credits: AI_CREDIT_COSTS.generate_ad_image_set
   }
 ] as const;
 

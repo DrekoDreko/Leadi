@@ -658,6 +658,8 @@ function getAiLedgerSourceForFeature(feature: AiFeatureKey) {
       return "compliance_review";
     case "generate_ad_image":
       return "image_standard";
+    case "generate_ad_image_set":
+      return "image_set";
     default:
       return "legacy";
   }

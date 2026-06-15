@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { EnvValidationError } from "@/lib/env/server";
 import { AiCreditsError, runAiActionWithCredits } from "@/lib/ai/credits";
-import { generateAdImage, LeadHealthOpenAIError, type AdImageSize } from "@/lib/openai";
+import { LeadHealthOpenAIError } from "@/lib/openai";
+import { generateAdImageSet } from "@/lib/creatives/ad-image-set.server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import {
   CREATIVE_REQUEST_ATTACHMENT_MAX_SIZE_BYTES,
@@ -22,13 +23,6 @@ import {
 import { getOperator } from "@/lib/creatives/operator-config";
 
 const MAX_REFERENCE_IMAGES = 4;
-const FORMAT_TO_SIZE: Record<string, AdImageSize> = {
-  story: "1024x1536",
-  portrait: "1024x1536",
-  feed: "1024x1024",
-  square: "1024x1024",
-  landscape: "1536x1024"
-};
 
 const generateImageSchema = z.object({
   title: requiredTrimmedString("Informe o titulo da arte.").max(160),
@@ -110,13 +104,11 @@ export async function POST(request: Request) {
       }
     }
 
-    const size = resolveSize(fields.format);
-
     const { result, remainingCredits } = await runAiActionWithCredits({
       orgId: billingContext.organizationId,
       userId: billingContext.profileId,
-      feature: "generate_ad_image",
-      description: "Geracao de arte com IA",
+      feature: "generate_ad_image_set",
+      description: "Geracao de par de artes com IA (Feed + Vertical)",
       metadata: {
         route: "creatives/generate-image",
         format: fields.format ?? null,
@@ -126,16 +118,16 @@ export async function POST(request: Request) {
         referenceCount: referenceImages.length,
         operator: operator?.slug ?? null,
         hasOperatorLogo,
-        hasBrokerLogo
+        hasBrokerLogo,
+        assets: ["feed", "vertical"]
       },
       generate: (apiKey) =>
-        generateAdImage(
+        generateAdImageSet(
           {
             ...fields,
             carrier: operator?.name ?? fields.carrier,
             carrierColor: operator?.primaryColor,
             brandName: fields.brandName ?? billingContext.brokerageName,
-            size,
             referenceImages,
             hasOperatorLogo,
             hasBrokerLogo
@@ -144,7 +136,19 @@ export async function POST(request: Request) {
         )
     });
 
-    return NextResponse.json({ image: result, remainingCredits }, { status: 201 });
+    return NextResponse.json(
+      {
+        // Retrocompatibilidade: `image` aponta para o ativo de Feed.
+        image: {
+          b64: result.feed.b64,
+          mimeType: result.feed.mimeType,
+          size: `${result.feed.width}x${result.feed.height}`
+        },
+        assets: result,
+        remainingCredits
+      },
+      { status: 201 }
+    );
   } catch (error) {
     const { message, status } = getGenerateImageError(error);
 
@@ -219,14 +223,6 @@ function extractReferenceImages(formData: FormData) {
   }
 
   return files;
-}
-
-function resolveSize(format?: string): AdImageSize {
-  if (!format) {
-    return "1024x1024";
-  }
-
-  return FORMAT_TO_SIZE[format.trim().toLowerCase()] ?? "1024x1024";
 }
 
 function getGenerateImageError(error: unknown) {

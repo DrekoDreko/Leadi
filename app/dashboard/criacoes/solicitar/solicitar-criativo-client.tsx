@@ -21,7 +21,7 @@ import { AD_IMAGE_STYLE_PRESETS } from "@/lib/creatives/ad-image-presets";
 import { OPERATORS, getOperator } from "@/lib/creatives/operator-config";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 
-const IMAGE_COST = AI_CREDIT_COSTS.generate_ad_image;
+const IMAGE_COST = AI_CREDIT_COSTS.generate_ad_image_set;
 const MAX_REFERENCES = 4;
 const REFERENCE_ACCEPT = "image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp";
 
@@ -214,7 +214,7 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
     }
 
     if (!hasEnoughCredits) {
-      setError(`Você precisa de ${IMAGE_COST} créditos de IA para gerar uma arte.`);
+      setError(`Você precisa de ${IMAGE_COST} créditos de IA para gerar a arte.`);
       return;
     }
 
@@ -290,7 +290,7 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
       >
         <span className="text-muted-soft inline-flex items-center gap-2 rounded-full bg-surface-elevated px-4 py-2 text-sm font-medium ring-1 ring-border/70">
           <Wand2 size={16} aria-hidden="true" />
-          {IMAGE_COST} créditos por arte · {credits} disponíveis
+          {IMAGE_COST} créditos por geração · {credits} disponíveis
         </span>
       </InfiniteGridHero>
 
@@ -612,7 +612,7 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
 
             {!hasEnoughCredits ? (
               <p className="text-muted-soft text-sm">
-                Você tem {credits} créditos. São necessários {IMAGE_COST} para gerar uma arte.
+                Você tem {credits} créditos. São necessários {IMAGE_COST} para gerar a arte.
               </p>
             ) : null}
 
