@@ -90,7 +90,7 @@ type CampaignFormState = {
   creativeObjective: string;
   creativeNotes: string;
   creativeBriefing: string;
-  uploadedFiles: string[];
+  uploadedFiles: File[];
 };
 
 type DirtyFields = Partial<Record<keyof CampaignFormState, boolean>>;
@@ -491,6 +491,23 @@ export function CampaignGenerator({
     setForm((currentForm) => ({ ...currentForm, aiCredits: aiBalance }));
   }, [aiBalance]);
 
+  async function uploadCreativeFiles(files: File[], metaAdAccountId: string, campaignId: string) {
+    for (const file of files) {
+      try {
+        const formData = new FormData();
+        formData.set("file", file);
+        formData.set("metaAdAccountId", metaAdAccountId);
+        formData.set("campaignId", campaignId);
+        await fetch("/api/integrations/meta/ad-images", {
+          method: "POST",
+          body: formData
+        });
+      } catch {
+        // Upload failure is non-blocking — the user can re-upload from the review page
+      }
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isSubmitting) return;
@@ -525,6 +542,7 @@ export function CampaignGenerator({
       });
       const payload = (await response.json().catch(() => null)) as {
         campaign?: CampaignTextOutput;
+        savedCampaign?: { id: string };
         aiBalance?: number;
         error?: string;
       } | null;
@@ -539,6 +557,16 @@ export function CampaignGenerator({
         setCurrentAiBalance(payload.aiBalance);
         setForm((currentForm) => ({ ...currentForm, aiCredits: payload.aiBalance ?? currentForm.aiCredits }));
       }
+
+      if (
+        form.creativeMode === "enviar_arquivo" &&
+        form.uploadedFiles.length > 0 &&
+        form.adAccountId &&
+        payload.savedCampaign?.id
+      ) {
+        await uploadCreativeFiles(form.uploadedFiles, form.adAccountId, payload.savedCampaign.id);
+      }
+
       setCompletedSteps(campaignFlowSteps.map((step) => step.number));
       const notice = buildCampaignSubmissionNotice(form, connectedAccounts);
       setSubmissionNotice(notice);
@@ -645,6 +673,7 @@ export function CampaignGenerator({
       });
       const result = (await response.json().catch(() => null)) as {
         campaign?: CampaignTextOutput;
+        savedCampaign?: { id: string };
         aiBalance?: number;
         error?: string;
       } | null;
@@ -657,6 +686,16 @@ export function CampaignGenerator({
         setCurrentAiBalance(result.aiBalance);
         setForm((currentForm) => ({ ...currentForm, aiCredits: result.aiBalance ?? currentForm.aiCredits }));
       }
+
+      if (
+        form.creativeMode === "enviar_arquivo" &&
+        form.uploadedFiles.length > 0 &&
+        form.adAccountId &&
+        result.savedCampaign?.id
+      ) {
+        await uploadCreativeFiles(form.uploadedFiles, form.adAccountId, result.savedCampaign.id);
+      }
+
       setDraftNotice("Rascunho salvo com sucesso! Acesse seus rascunhos na página de anúncios.");
       setCompletedSteps(campaignFlowSteps.map((step) => step.number));
     } catch (requestError) {
@@ -1631,21 +1670,28 @@ function CampaignCreativeStep({
               multiple
               onChange={(event) => {
                 const files = Array.from(event.currentTarget.files ?? []);
-                // TODO: Enviar arquivos reais quando houver vínculo de upload direto com a campanha gerada.
-                onChange("uploadedFiles", files.map((file) => file.name));
+                onChange("uploadedFiles", [...form.uploadedFiles, ...files]);
               }}
               type="file"
             />
           </label>
           {form.uploadedFiles.length ? (
             <div className="mt-4 flex flex-wrap gap-2">
-              {form.uploadedFiles.map((fileName) => (
+              {form.uploadedFiles.map((file, index) => (
                 <span
                   className="surface-pill inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
-                  key={fileName}
+                  key={`${file.name}-${index}`}
                 >
                   <Paperclip size={13} aria-hidden="true" />
-                  {fileName}
+                  {file.name}
+                  <button
+                    className="ml-1 rounded-full p-0.5 hover:bg-ink/10"
+                    onClick={() => onChange("uploadedFiles", form.uploadedFiles.filter((_, i) => i !== index))}
+                    type="button"
+                    aria-label={`Remover ${file.name}`}
+                  >
+                    <X size={12} />
+                  </button>
                 </span>
               ))}
             </div>
@@ -1840,7 +1886,7 @@ function CampaignSummaryStep({
           value={
             form.creativeMode === "solicitar_criativo"
               ? form.creativeBriefing || "Briefing não preenchido"
-              : form.uploadedFiles.join(", ") || "Nenhum arquivo adicionado"
+              : form.uploadedFiles.map((f) => f.name).join(", ") || "Nenhum arquivo adicionado"
           }
         />
       </div>
@@ -2311,7 +2357,7 @@ function buildCampaignRequestPayload(form: CampaignFormState) {
     creativeAssetType: form.creativeType,
     creativeBrief: [form.creativeObjective, form.creativeBriefing].filter(Boolean).join("\n"),
     creativeRequestMode: form.creativeMode,
-    creativeFileNames: form.uploadedFiles,
+    creativeFileNames: form.uploadedFiles.map((file) => file.name),
     metaPageId: form.pageId,
     metaAdAccountId: form.adAccountId,
     metaLeadFormId: form.leadFormId,
