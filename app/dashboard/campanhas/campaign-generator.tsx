@@ -491,19 +491,17 @@ export function CampaignGenerator({
     setForm((currentForm) => ({ ...currentForm, aiCredits: aiBalance }));
   }, [aiBalance]);
 
-  async function uploadCreativeFiles(files: File[], metaAdAccountId: string, campaignId: string) {
+  async function uploadCreativeFiles(files: File[], campaignId: string) {
     for (const file of files) {
       try {
         const formData = new FormData();
         formData.set("file", file);
-        formData.set("metaAdAccountId", metaAdAccountId);
-        formData.set("campaignId", campaignId);
-        await fetch("/api/integrations/meta/ad-images", {
+        await fetch(`/api/campaigns/${campaignId}/creatives`, {
           method: "POST",
           body: formData
         });
       } catch {
-        // Upload failure is non-blocking — the user can re-upload from the review page
+        // Upload failure is non-blocking
       }
     }
   }
@@ -561,10 +559,9 @@ export function CampaignGenerator({
       if (
         form.creativeMode === "enviar_arquivo" &&
         form.uploadedFiles.length > 0 &&
-        form.adAccountId &&
         payload.savedCampaign?.id
       ) {
-        await uploadCreativeFiles(form.uploadedFiles, form.adAccountId, payload.savedCampaign.id);
+        await uploadCreativeFiles(form.uploadedFiles, payload.savedCampaign.id);
       }
 
       setCompletedSteps(campaignFlowSteps.map((step) => step.number));
@@ -690,10 +687,9 @@ export function CampaignGenerator({
       if (
         form.creativeMode === "enviar_arquivo" &&
         form.uploadedFiles.length > 0 &&
-        form.adAccountId &&
         result.savedCampaign?.id
       ) {
-        await uploadCreativeFiles(form.uploadedFiles, form.adAccountId, result.savedCampaign.id);
+        await uploadCreativeFiles(form.uploadedFiles, result.savedCampaign.id);
       }
 
       setDraftNotice("Rascunho salvo com sucesso! Acesse seus rascunhos na página de anúncios.");
