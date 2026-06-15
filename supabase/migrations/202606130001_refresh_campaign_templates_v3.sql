@@ -7,10 +7,9 @@ set is_active = false,
 where template_type = 'campaign'
   and is_active = true;
 
-insert into public.system_templates (id, template_type, category, title, description, content, is_active)
+insert into public.system_templates (template_type, category, title, description, content, is_active)
 values
   (
-    'tpl-campaign-revisao-preco',
     'campaign',
     'Revisão de preço',
     'Pagando caro no plano? Migre para PME e economize',
@@ -26,7 +25,6 @@ values
     true
   ),
   (
-    'tpl-campaign-mei',
     'campaign',
     'MEI',
     'Plano empresarial para MEI a partir de 2 vidas',
@@ -42,7 +40,6 @@ values
     true
   ),
   (
-    'tpl-campaign-rede-credenciada',
     'campaign',
     'Rede credenciada',
     'Escolha o plano pelo hospital e rede que você precisa',
@@ -58,7 +55,6 @@ values
     true
   ),
   (
-    'tpl-campaign-primeira-contratacao',
     'campaign',
     'Primeira contratação',
     'Empresa nova? Veja como contratar o primeiro plano',
@@ -74,7 +70,6 @@ values
     true
   ),
   (
-    'tpl-campaign-reajuste',
     'campaign',
     'Reajuste',
     'Reajuste veio alto? Compare e troque de operadora',
@@ -90,7 +85,6 @@ values
     true
   ),
   (
-    'tpl-campaign-equipe-pequena',
     'campaign',
     'Equipe pequena',
     'Plano de saúde para equipes de 2 a 29 pessoas',
@@ -104,13 +98,6 @@ values
       "notes": "Evitar urgência artificial ou promessa de menor preço do mercado. Falar em planejamento, composição de vidas e viabilidade."
     }'::jsonb,
     true
-  )
-on conflict (id) do update set
-  category = excluded.category,
-  title = excluded.title,
-  description = excluded.description,
-  content = excluded.content,
-  is_active = excluded.is_active,
-  updated_at = now();
+  );
 
 notify pgrst, 'reload schema';
