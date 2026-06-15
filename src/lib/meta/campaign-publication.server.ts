@@ -480,7 +480,7 @@ async function updateCampaignAfterFailure(
   }
 }
 
-async function ensureMetaMarketingPermission(accessToken: string) {
+export async function ensureMetaMarketingPermission(accessToken: string) {
   const response = await fetch(
     new URL(`https://graph.facebook.com/${getMetaGraphApiVersion()}/me/permissions`),
     {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, FileText } from "lucide-react";
+import { ArrowUpRight, FileText, TrendingUp } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
@@ -41,6 +41,13 @@ export default async function AnunciosPage({
         }
       >
         <div className="flex items-center gap-3">
+          <Link
+            className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+            href="/dashboard/desempenho"
+          >
+            <TrendingUp size={16} aria-hidden="true" />
+            Desempenho
+          </Link>
           {filterDrafts ? (
             <Link
               className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"

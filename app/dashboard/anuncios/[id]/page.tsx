@@ -5,7 +5,9 @@ import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repositor
 import { reviewCampaignCopyLocally } from "@/lib/campaigns/compliance";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
+import { buildMetaBillingUrl } from "@/lib/meta/campaign-controls.server";
 import { RevisarPublicarClient } from "./revisar-publicar-client";
+import { CampaignDeliveryControls } from "./campaign-delivery-controls";
 
 type RevisarPublicarPageProps = {
   params: Promise<{ id: string }>;
@@ -100,15 +102,25 @@ export default async function RevisarPublicarPage({ params }: RevisarPublicarPag
   }
 
   return (
-    <RevisarPublicarClient
-      campaign={campaign}
-      initialReview={review}
-      metaAssets={{
-        pageName,
-        adAccountName,
-        leadFormName
-      }}
-      creativeImages={creativeImages}
-    />
+    <div className="space-y-4">
+      {campaign.metaCampaignId ? (
+        <CampaignDeliveryControls
+          campaignId={campaign.id}
+          initialStatus={campaign.publicationStatus}
+          hasAdSet={Boolean(campaign.metaAdSetId)}
+          billingUrl={buildMetaBillingUrl(campaign.metaAdAccountId)}
+        />
+      ) : null}
+      <RevisarPublicarClient
+        campaign={campaign}
+        initialReview={review}
+        metaAssets={{
+          pageName,
+          adAccountName,
+          leadFormName
+        }}
+        creativeImages={creativeImages}
+      />
+    </div>
   );
 }
