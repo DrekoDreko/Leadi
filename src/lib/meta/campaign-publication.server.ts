@@ -1,5 +1,7 @@
 import "server-only";
 
+import sharp from "sharp";
+
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
 import {
@@ -213,18 +215,14 @@ export async function publishPausedMetaCampaign(
       : 2000;
 
     const orgWebsite = await loadOrganizationWebsite(supabase, input.organizationId);
-    let imageHash = await loadCampaignImageHash(supabase, campaign.id);
-
-    if (!imageHash) {
-      imageHash = await uploadStorageCreativeToMeta({
-        supabase,
-        organizationId: input.organizationId,
-        campaignId: campaign.id,
-        connectedAccountId: campaign.connected_account_id,
-        accessToken,
-        adAccountId: campaign.meta_ad_account_id
-      });
-    }
+    const creativeHashes = await uploadCampaignCreativesToMeta({
+      supabase,
+      organizationId: input.organizationId,
+      campaignId: campaign.id,
+      connectedAccountId: campaign.connected_account_id,
+      accessToken,
+      adAccountId: campaign.meta_ad_account_id
+    });
 
     if (campaign.meta_page_id && campaign.meta_lead_form_id) {
       const adSet = await createPausedAdSet({
@@ -246,7 +244,8 @@ export async function publishPausedMetaCampaign(
           pageId: campaign.meta_page_id,
           leadFormId: campaign.meta_lead_form_id!,
           link: orgWebsite,
-          imageHash,
+          feedImageHash: creativeHashes.feedHash,
+          verticalImageHash: creativeHashes.verticalHash,
           primaryText: campaign.primary_text,
           headline: campaign.headline,
           description: campaign.description,
@@ -331,23 +330,6 @@ async function loadOrganizationWebsite(
   const website = data?.website?.trim();
   if (!website) return FALLBACK_WEBSITE;
   return website.startsWith("http") ? website : `https://${website}`;
-}
-
-async function loadCampaignImageHash(
-  supabase: ReturnType<typeof createSupabaseAdminClient>,
-  campaignId: string
-): Promise<string | null> {
-  const { data } = await supabase
-    .from("meta_ad_image_uploads")
-    .select("meta_image_hash")
-    .eq("campaign_id", campaignId)
-    .eq("local_status", "uploaded")
-    .not("meta_image_hash", "is", null)
-    .order("uploaded_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  return data?.meta_image_hash ?? null;
 }
 
 async function loadCampaign(
@@ -639,6 +621,9 @@ async function createPausedAdSet(input: {
   return payload as MetaCampaignCreateResponse;
 }
 
+const FEED_ASSET_LABEL = "feed_asset";
+const VERTICAL_ASSET_LABEL = "vertical_asset";
+
 async function createAdCreative(input: {
   accessToken: string;
   adAccountId: string;
@@ -646,7 +631,8 @@ async function createAdCreative(input: {
   pageId: string;
   leadFormId: string;
   link: string;
-  imageHash: string | null;
+  feedImageHash: string | null;
+  verticalImageHash: string | null;
   primaryText: string;
   headline: string;
   description: string;
@@ -658,27 +644,75 @@ async function createAdCreative(input: {
 
   const ctaType = mapCallToActionType(input.callToAction);
 
-  const linkData: Record<string, unknown> = {
-    link: input.link,
-    message: input.primaryText,
-    name: input.headline,
-    description: input.description,
-    call_to_action: {
-      type: ctaType,
-      value: { lead_gen_form_id: input.leadFormId }
-    }
-  };
-
-  if (input.imageHash) {
-    linkData.image_hash = input.imageHash;
-  }
-
   const body = new URLSearchParams();
   body.set("name", input.name);
-  body.set("object_story_spec", JSON.stringify({
-    page_id: input.pageId,
-    link_data: linkData
-  }));
+
+  const hasBothPlacements = Boolean(input.feedImageHash && input.verticalImageHash);
+
+  if (hasBothPlacements) {
+    // Personalizacao por posicionamento: Feed (4:5) para feed/marketplace/explore
+    // e Vertical (9:16) para stories/reels. A Meta exige object_story_spec apenas
+    // com a page_id quando se usa asset_feed_spec.
+    const assetFeedSpec = {
+      images: [
+        { hash: input.feedImageHash, adlabels: [{ name: FEED_ASSET_LABEL }] },
+        { hash: input.verticalImageHash, adlabels: [{ name: VERTICAL_ASSET_LABEL }] }
+      ],
+      bodies: [{ text: input.primaryText }],
+      titles: [{ text: input.headline }],
+      descriptions: [{ text: input.description }],
+      ad_formats: ["SINGLE_IMAGE"],
+      link_urls: [{ website_url: input.link }],
+      call_to_actions: [
+        { type: ctaType, value: { lead_gen_form_id: input.leadFormId } }
+      ],
+      asset_customization_rules: [
+        {
+          priority: 1,
+          image_label: { name: FEED_ASSET_LABEL },
+          customization_spec: {
+            publisher_platforms: ["facebook", "instagram"],
+            facebook_positions: ["feed", "marketplace", "video_feeds", "search"],
+            instagram_positions: ["stream", "explore", "explore_home"]
+          }
+        },
+        {
+          priority: 2,
+          image_label: { name: VERTICAL_ASSET_LABEL },
+          customization_spec: {
+            publisher_platforms: ["facebook", "instagram"],
+            facebook_positions: ["story", "facebook_reels"],
+            instagram_positions: ["story", "reels"]
+          }
+        }
+      ]
+    };
+
+    body.set("object_story_spec", JSON.stringify({ page_id: input.pageId }));
+    body.set("asset_feed_spec", JSON.stringify(assetFeedSpec));
+  } else {
+    const singleImageHash = input.feedImageHash ?? input.verticalImageHash;
+
+    const linkData: Record<string, unknown> = {
+      link: input.link,
+      message: input.primaryText,
+      name: input.headline,
+      description: input.description,
+      call_to_action: {
+        type: ctaType,
+        value: { lead_gen_form_id: input.leadFormId }
+      }
+    };
+
+    if (singleImageHash) {
+      linkData.image_hash = singleImageHash;
+    }
+
+    body.set("object_story_spec", JSON.stringify({
+      page_id: input.pageId,
+      link_data: linkData
+    }));
+  }
 
   const response = await fetch(url, {
     method: "POST",
@@ -840,42 +874,115 @@ function isMissingMarketingPermissionError(error: unknown) {
 
 const STORAGE_BUCKET = "campaign-creatives";
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp"]);
+// Acima deste limiar de altura/largura tratamos a imagem como Vertical (9:16 ~ 1.78).
+// 4:5 (1.25) e 1:1 (1.0) ficam abaixo e sao tratados como Feed.
+const VERTICAL_ASPECT_THRESHOLD = 1.5;
 
-async function uploadStorageCreativeToMeta(input: {
+type CampaignCreativeHashes = {
+  feedHash: string | null;
+  verticalHash: string | null;
+};
+
+async function classifyPlacementByAspect(buffer: Buffer): Promise<"feed" | "vertical"> {
+  try {
+    const metadata = await sharp(buffer).metadata();
+    const width = metadata.width ?? 0;
+    const height = metadata.height ?? 0;
+
+    if (width > 0 && height > 0 && height / width >= VERTICAL_ASPECT_THRESHOLD) {
+      return "vertical";
+    }
+  } catch {
+    // Sem metadados confiaveis: trata como Feed (formato mais universal).
+  }
+
+  return "feed";
+}
+
+// Le ate 2 imagens da pasta da campanha, classifica cada uma por proporcao
+// (Feed x Vertical) e envia a primeira de cada grupo para a biblioteca da Meta.
+// Retrocompativel: com apenas uma imagem, so um dos hashes vem preenchido e a
+// publicacao cai no object_story_spec de imagem unica.
+async function uploadCampaignCreativesToMeta(input: {
   supabase: ReturnType<typeof createSupabaseAdminClient>;
   organizationId: string;
   campaignId: string;
   connectedAccountId: string | null;
   accessToken: string;
   adAccountId: string;
-}): Promise<string | null> {
+}): Promise<CampaignCreativeHashes> {
+  const result: CampaignCreativeHashes = { feedHash: null, verticalHash: null };
+
   try {
     const folder = `${input.organizationId}/${input.campaignId}`;
     const { data: files } = await input.supabase.storage
       .from(STORAGE_BUCKET)
       .list(folder, { limit: 50 });
 
-    if (!files || files.length === 0) return null;
+    if (!files || files.length === 0) return result;
 
-    const imageFile = files.find((f) => {
+    const imageFiles = files.filter((f) => {
       if (!f.name || f.name.startsWith(".")) return false;
       const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
       return IMAGE_EXTENSIONS.has(ext);
     });
 
-    if (!imageFile) return null;
+    for (const imageFile of imageFiles) {
+      if (result.feedHash && result.verticalHash) break;
 
-    const filePath = `${folder}/${imageFile.name}`;
-    const { data: downloaded, error: downloadError } = await input.supabase.storage
-      .from(STORAGE_BUCKET)
-      .download(filePath);
+      const filePath = `${folder}/${imageFile.name}`;
+      const { data: downloaded, error: downloadError } = await input.supabase.storage
+        .from(STORAGE_BUCKET)
+        .download(filePath);
 
-    if (downloadError || !downloaded) return null;
+      if (downloadError || !downloaded) continue;
 
-    const buffer = Buffer.from(await downloaded.arrayBuffer());
-    const bytes = buffer.toString("base64");
+      const buffer = Buffer.from(await downloaded.arrayBuffer());
+      const placement = await classifyPlacementByAspect(buffer);
+
+      if (placement === "feed" && result.feedHash) continue;
+      if (placement === "vertical" && result.verticalHash) continue;
+
+      const hash = await sendCampaignImageToMeta({
+        supabase: input.supabase,
+        organizationId: input.organizationId,
+        campaignId: input.campaignId,
+        connectedAccountId: input.connectedAccountId,
+        accessToken: input.accessToken,
+        adAccountId: input.adAccountId,
+        buffer,
+        fileName: imageFile.name
+      });
+
+      if (!hash) continue;
+
+      if (placement === "feed") {
+        result.feedHash = hash;
+      } else {
+        result.verticalHash = hash;
+      }
+    }
+
+    return result;
+  } catch {
+    return result;
+  }
+}
+
+async function sendCampaignImageToMeta(input: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  organizationId: string;
+  campaignId: string;
+  connectedAccountId: string | null;
+  accessToken: string;
+  adAccountId: string;
+  buffer: Buffer;
+  fileName: string;
+}): Promise<string | null> {
+  try {
+    const bytes = input.buffer.toString("base64");
     const safeName = sanitizeCreativeRequestAttachmentName(
-      imageFile.name.replace(/^[a-f0-9-]+-/, "")
+      input.fileName.replace(/^[a-f0-9-]+-/, "")
     );
 
     const formData = new FormData();
@@ -913,7 +1020,7 @@ async function uploadStorageCreativeToMeta(input: {
             campaign_id: input.campaignId,
             source_filename: safeName,
             source_mime_type: "image/jpeg",
-            source_size_bytes: buffer.length,
+            source_size_bytes: input.buffer.length,
             local_status: "uploaded",
             uploaded_at: new Date().toISOString(),
             meta_image_hash: hash,

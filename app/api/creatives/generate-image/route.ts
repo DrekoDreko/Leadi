@@ -138,12 +138,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        // Retrocompatibilidade: `image` aponta para o ativo de Feed.
-        image: {
-          b64: result.feed.b64,
-          mimeType: result.feed.mimeType,
-          size: `${result.feed.width}x${result.feed.height}`
-        },
         assets: result,
         remainingCredits
       },

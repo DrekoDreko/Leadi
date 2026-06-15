@@ -27,13 +27,6 @@ const REFERENCE_ACCEPT = "image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
 
 const contractTypeOptions = ["PME", "Familiar", "Individual", "Adesão"];
 
-const formatOptions = [
-  { value: "story", label: "Story / Reels (9:16)" },
-  { value: "feed", label: "Feed quadrado (1:1)" },
-  { value: "portrait", label: "Retrato (4:5)" },
-  { value: "landscape", label: "Paisagem (16:9)" }
-];
-
 type FormState = {
   title: string;
   subtitle: string;
@@ -44,7 +37,6 @@ type FormState = {
   offer: string;
   phone: string;
   brandName: string;
-  format: string;
   style: string;
   stylePreset: string;
 };
@@ -59,7 +51,6 @@ const initialForm: FormState = {
   offer: "",
   phone: "",
   brandName: "",
-  format: "feed",
   style: "",
   stylePreset: ""
 };
@@ -70,8 +61,9 @@ type ReferenceFile = {
   previewUrl: string;
 };
 
-type GeneratedImage = {
-  dataUrl: string;
+type GeneratedAssets = {
+  feed: string;
+  vertical: string;
 };
 
 export function SolicitarCriativoClient({ availableCredits }: { availableCredits: number }) {
@@ -82,7 +74,7 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
   const [credits, setCredits] = useState(availableCredits);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<GeneratedImage | null>(null);
+  const [result, setResult] = useState<GeneratedAssets | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const brokerLogoInputRef = useRef<HTMLInputElement>(null);
 
@@ -231,7 +223,6 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
       formData.append("offer", form.offer);
       formData.append("phone", form.phone);
       formData.append("brandName", form.brandName);
-      formData.append("format", form.format);
       formData.append("style", form.style);
       formData.append("stylePreset", form.stylePreset);
       formData.append("useStyleReference", String(useStyleReference && Boolean(form.stylePreset)));
@@ -251,19 +242,23 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
 
       const payload = (await response.json().catch(() => null)) as
         | {
-            image?: { b64: string; mimeType: string };
+            assets?: {
+              feed: { b64: string; mimeType: string };
+              vertical: { b64: string; mimeType: string };
+            };
             remainingCredits?: number;
             error?: string;
           }
         | null;
 
-      if (!response.ok || !payload?.image?.b64) {
-        setError(payload?.error ?? "Não foi possível gerar a arte. Tente novamente.");
+      if (!response.ok || !payload?.assets?.feed?.b64 || !payload.assets.vertical?.b64) {
+        setError(payload?.error ?? "Não foi possível gerar as artes. Tente novamente.");
         return;
       }
 
       setResult({
-        dataUrl: `data:${payload.image.mimeType};base64,${payload.image.b64}`
+        feed: `data:${payload.assets.feed.mimeType};base64,${payload.assets.feed.b64}`,
+        vertical: `data:${payload.assets.vertical.mimeType};base64,${payload.assets.vertical.b64}`
       });
 
       if (typeof payload.remainingCredits === "number") {
@@ -286,7 +281,7 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
           </>
         }
         title="Gere sua arte de plano de saúde com IA"
-        subtitle="Preencha o briefing, escolha a operadora e receba uma arte profissional pronta para publicar."
+        subtitle="Preencha o briefing, escolha a operadora e receba duas artes profissionais (Feed e Vertical) prontas para publicar."
       >
         <span className="text-muted-soft inline-flex items-center gap-2 rounded-full bg-surface-elevated px-4 py-2 text-sm font-medium ring-1 ring-border/70">
           <Wand2 size={16} aria-hidden="true" />
@@ -513,32 +508,22 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
             </div>
           </FieldGroup>
 
-          {/* Seção 5 — Formato e estilo */}
-          <FieldGroup title="Formato e estilo" description="Como a arte deve sair.">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <SelectField
-                label="Formato"
-                value={form.format}
-                onChange={(value) => updateField("format", value)}
-              >
-                {formatOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectField>
-              <div className="space-y-2">
-                <TextField
-                  label="Estilo visual (observações)"
-                  placeholder="Ex: moderno, com elementos médicos, fundo azul"
-                  value={form.style}
-                  onChange={(value) => updateField("style", value)}
-                />
-                <p className="text-muted-soft text-xs leading-5">
-                  A cor principal é definida automaticamente pela operadora selecionada. Use
-                  este campo para observações adicionais sobre o visual.
-                </p>
-              </div>
+          {/* Seção 5 — Estilo visual */}
+          <FieldGroup
+            title="Estilo visual"
+            description="Cada geração entrega duas artes: Feed (4:5) e Vertical (9:16) para Stories e Reels."
+          >
+            <div className="space-y-2">
+              <TextField
+                label="Estilo visual (observações)"
+                placeholder="Ex: moderno, com elementos médicos, fundo azul"
+                value={form.style}
+                onChange={(value) => updateField("style", value)}
+              />
+              <p className="text-muted-soft text-xs leading-5">
+                A cor principal é definida automaticamente pela operadora selecionada. Use
+                este campo para observações adicionais sobre o visual.
+              </p>
             </div>
           </FieldGroup>
         </div>
@@ -637,35 +622,76 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
 
           {result ? (
             <div className="surface-card space-y-4 rounded-[34px] p-6">
-              <h3 className="text-lg font-semibold">Arte gerada</h3>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={result.dataUrl}
-                alt="Arte gerada por IA"
-                className="w-full rounded-[24px] ring-1 ring-border/70"
-              />
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <a
-                  href={result.dataUrl}
-                  download="arte-leadi.png"
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white transition hover:bg-cobalt/90"
-                >
-                  <Download size={17} aria-hidden="true" />
-                  Baixar arte
-                </a>
-                <button
-                  type="submit"
-                  disabled={isGenerating || !hasEnoughCredits}
-                  className="text-foreground inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-surface-elevated px-5 py-3 text-sm font-semibold ring-1 ring-border/70 transition hover:bg-surface-elevated/80 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <RefreshCcw size={17} aria-hidden="true" />
-                  Gerar novamente
-                </button>
+              <div>
+                <h3 className="text-lg font-semibold">Artes geradas</h3>
+                <p className="text-muted-soft text-sm leading-6">
+                  Cada formato já sai otimizado para os posicionamentos da Meta, com as zonas
+                  de segurança respeitadas.
+                </p>
               </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <GeneratedAssetCard
+                  title="Feed (Facebook/Instagram)"
+                  hint="4:5 · 1080×1350"
+                  dataUrl={result.feed}
+                  downloadName="arte-leadi-feed.png"
+                />
+                <GeneratedAssetCard
+                  title="Stories e Reels"
+                  hint="9:16 · 1080×1920"
+                  dataUrl={result.vertical}
+                  downloadName="arte-leadi-vertical.png"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isGenerating || !hasEnoughCredits}
+                className="text-foreground inline-flex w-full items-center justify-center gap-2 rounded-full bg-surface-elevated px-5 py-3 text-sm font-semibold ring-1 ring-border/70 transition hover:bg-surface-elevated/80 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCcw size={17} aria-hidden="true" />
+                Gerar novamente
+              </button>
             </div>
           ) : null}
         </div>
       </form>
+    </div>
+  );
+}
+
+function GeneratedAssetCard({
+  title,
+  hint,
+  dataUrl,
+  downloadName
+}: {
+  title: string;
+  hint: string;
+  dataUrl: string;
+  downloadName: string;
+}) {
+  return (
+    <div className="space-y-3 rounded-[24px] bg-surface-elevated/40 p-4 ring-1 ring-border/70">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <span className="text-muted-soft text-xs">{hint}</span>
+      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={dataUrl}
+        alt={`Arte ${title}`}
+        className="mx-auto max-h-[420px] w-auto rounded-[18px] ring-1 ring-border/70"
+      />
+      <a
+        href={dataUrl}
+        download={downloadName}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white transition hover:bg-cobalt/90"
+      >
+        <Download size={17} aria-hidden="true" />
+        Baixar
+      </a>
     </div>
   );
 }
