@@ -496,12 +496,16 @@ export function CampaignGenerator({
       try {
         const formData = new FormData();
         formData.set("file", file);
-        await fetch(`/api/campaigns/${campaignId}/creatives`, {
+        const res = await fetch(`/api/campaigns/${campaignId}/creatives`, {
           method: "POST",
           body: formData
         });
-      } catch {
-        // Upload failure is non-blocking
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          console.error("[uploadCreativeFiles] falha:", res.status, body);
+        }
+      } catch (err) {
+        console.error("[uploadCreativeFiles] erro de rede:", err);
       }
     }
   }

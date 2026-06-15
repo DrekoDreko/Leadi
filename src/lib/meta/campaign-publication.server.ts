@@ -14,6 +14,7 @@ import {
   parseCampaignResultPayload
 } from "@/lib/campaigns/payload";
 import { isCampaignCopyBlocked, reviewCampaignCopyLocally } from "@/lib/campaigns/compliance";
+import { sanitizeCreativeRequestAttachmentName } from "@/lib/creative-requests/attachments";
 import type { CampaignHistoryItem, CampaignPublicationStatus, CampaignPublishMode, CampaignApprovalStatus } from "@/lib/campaigns/types";
 
 type CampaignRow = {
@@ -212,7 +213,18 @@ export async function publishPausedMetaCampaign(
       : 2000;
 
     const orgWebsite = await loadOrganizationWebsite(supabase, input.organizationId);
-    const imageHash = await loadCampaignImageHash(supabase, campaign.id);
+    let imageHash = await loadCampaignImageHash(supabase, campaign.id);
+
+    if (!imageHash) {
+      imageHash = await uploadStorageCreativeToMeta({
+        supabase,
+        organizationId: input.organizationId,
+        campaignId: campaign.id,
+        connectedAccountId: campaign.connected_account_id,
+        accessToken,
+        adAccountId: campaign.meta_ad_account_id
+      });
+    }
 
     if (campaign.meta_page_id && campaign.meta_lead_form_id) {
       const adSet = await createPausedAdSet({
@@ -824,4 +836,98 @@ function parseCampaignResult(row: CampaignRow) {
 
 function isMissingMarketingPermissionError(error: unknown) {
   return error instanceof MetaMarketingPermissionError;
+}
+
+const STORAGE_BUCKET = "campaign-creatives";
+const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp"]);
+
+async function uploadStorageCreativeToMeta(input: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  organizationId: string;
+  campaignId: string;
+  connectedAccountId: string | null;
+  accessToken: string;
+  adAccountId: string;
+}): Promise<string | null> {
+  try {
+    const folder = `${input.organizationId}/${input.campaignId}`;
+    const { data: files } = await input.supabase.storage
+      .from(STORAGE_BUCKET)
+      .list(folder, { limit: 50 });
+
+    if (!files || files.length === 0) return null;
+
+    const imageFile = files.find((f) => {
+      if (!f.name || f.name.startsWith(".")) return false;
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      return IMAGE_EXTENSIONS.has(ext);
+    });
+
+    if (!imageFile) return null;
+
+    const filePath = `${folder}/${imageFile.name}`;
+    const { data: downloaded, error: downloadError } = await input.supabase.storage
+      .from(STORAGE_BUCKET)
+      .download(filePath);
+
+    if (downloadError || !downloaded) return null;
+
+    const buffer = Buffer.from(await downloaded.arrayBuffer());
+    const bytes = buffer.toString("base64");
+    const safeName = sanitizeCreativeRequestAttachmentName(
+      imageFile.name.replace(/^[a-f0-9-]+-/, "")
+    );
+
+    const formData = new FormData();
+    formData.set("bytes", bytes);
+    formData.set("access_token", input.accessToken);
+    formData.set("name", safeName);
+
+    const adAccountClean = input.adAccountId.replace(/^act_/i, "").trim();
+    const response = await fetch(
+      `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${adAccountClean}/adimages`,
+      { method: "POST", body: formData }
+    );
+
+    if (!response.ok) return null;
+
+    const payload = await response.json().catch(() => null);
+    if (!payload) return null;
+
+    const images = typeof payload.images === "object" && payload.images ? payload.images : {};
+    const firstEntry = Object.values(images)[0] as Record<string, unknown> | undefined;
+    const hash = typeof firstEntry?.hash === "string" ? firstEntry.hash : null;
+    const metaUrl = typeof firstEntry?.url === "string" ? firstEntry.url : null;
+    const metaId = typeof firstEntry?.id === "string" ? firstEntry.id : null;
+
+    if (!hash) return null;
+
+    if (input.connectedAccountId) {
+      try {
+        await input.supabase
+          .from("meta_ad_image_uploads")
+          .insert({
+            organization_id: input.organizationId,
+            connected_account_id: input.connectedAccountId,
+            meta_ad_account_id: input.adAccountId,
+            campaign_id: input.campaignId,
+            source_filename: safeName,
+            source_mime_type: "image/jpeg",
+            source_size_bytes: buffer.length,
+            local_status: "uploaded",
+            uploaded_at: new Date().toISOString(),
+            meta_image_hash: hash,
+            meta_image_id: metaId,
+            meta_image_url: metaUrl,
+            meta_response: payload as Json
+          });
+      } catch {
+        // Record-keeping failure should not block publication
+      }
+    }
+
+    return hash;
+  } catch {
+    return null;
+  }
 }

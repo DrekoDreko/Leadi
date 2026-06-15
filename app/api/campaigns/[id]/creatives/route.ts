@@ -46,7 +46,11 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Perfil nao encontrado." }, { status: 403 });
     }
 
-    const { data: campaign } = await supabase
+    const campaignClient = hasSupabaseServiceRole()
+      ? createSupabaseAdminClient()
+      : supabase;
+
+    const { data: campaign } = await campaignClient
       .from("campaigns")
       .select("id")
       .eq("id", campaignId)
