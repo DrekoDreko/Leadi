@@ -203,7 +203,7 @@ export function AdminPedidosWorkspace({
       >
         <Link
           className="inline-flex items-center gap-2 rounded-full bg-white/72 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white"
-          href="/dashboard/criacoes/validador"
+          href="/dashboard/criacoes/solicitar-design"
         >
           Voltar para pedidos
         </Link>

@@ -7,8 +7,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   ImageIcon,
   Loader2,
   Megaphone,
@@ -66,7 +64,6 @@ export function RevisarPublicarClient({
   const [aiReview, setAiReview] = useState<ReviewLike | null>(null);
   const [dailyBudget, setDailyBudget] = useState("20");
 
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isSavingCopy, setIsSavingCopy] = useState(false);
   const [isReviewingAi, setIsReviewingAi] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -314,7 +311,7 @@ export function RevisarPublicarClient({
 
           {creativeImages.length > 0 ? (
             <Card className="rounded-[28px] border border-white/50 bg-white/60 p-6 dark:border-white/10 dark:bg-white/5">
-              <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="mb-4 flex items-center justify-between gap-3">
                 <h2 className="flex items-center gap-2 text-lg font-semibold">
                   <ImageIcon className="text-cobalt" size={18} aria-hidden="true" />
                   Criativos do anúncio
@@ -324,59 +321,28 @@ export function RevisarPublicarClient({
                 </span>
               </div>
 
-              <div className="relative w-full overflow-hidden rounded-[18px] border border-white/60 bg-white/40">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={creativeImages[activeImageIndex]?.url}
-                  alt={creativeImages[activeImageIndex]?.filename ?? "Criativo do anúncio"}
-                  className="h-auto w-full object-contain"
-                />
-
-                {creativeImages.length > 1 ? (
-                  <>
-                    <button
-                      className="absolute left-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 shadow-md backdrop-blur-sm transition hover:bg-white disabled:opacity-30"
-                      disabled={activeImageIndex === 0}
-                      onClick={() => setActiveImageIndex((i) => Math.max(0, i - 1))}
-                      type="button"
-                      aria-label="Criativo anterior"
-                    >
-                      <ChevronLeft size={18} />
-                    </button>
-                    <button
-                      className="absolute right-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 shadow-md backdrop-blur-sm transition hover:bg-white disabled:opacity-30"
-                      disabled={activeImageIndex === creativeImages.length - 1}
-                      onClick={() => setActiveImageIndex((i) => Math.min(creativeImages.length - 1, i + 1))}
-                      type="button"
-                      aria-label="Próximo criativo"
-                    >
-                      <ChevronRight size={18} />
-                    </button>
-                  </>
-                ) : null}
-              </div>
-
-              {creativeImages.length > 1 ? (
-                <div className="mt-3 flex items-center justify-center gap-1.5">
-                  {creativeImages.map((img, index) => (
-                    <button
-                      className={`h-2 rounded-full transition-all ${
-                        index === activeImageIndex
-                          ? "w-6 bg-cobalt"
-                          : "w-2 bg-ink/15 hover:bg-ink/30"
-                      }`}
-                      key={img.url}
-                      onClick={() => setActiveImageIndex(index)}
-                      type="button"
-                      aria-label={`Criativo ${index + 1}`}
+              <div className="flex flex-wrap gap-3">
+                {creativeImages.map((img, index) => (
+                  <a
+                    className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-[14px] border border-white/60 bg-white/40 transition hover:border-cobalt/50 hover:shadow-md"
+                    href={img.url}
+                    key={img.url}
+                    rel="noreferrer"
+                    target="_blank"
+                    title={img.filename ?? `Criativo ${index + 1}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img.url}
+                      alt={img.filename ?? `Criativo ${index + 1}`}
+                      className="h-full w-full object-cover"
                     />
-                  ))}
-                </div>
-              ) : null}
-
-              <p className="mt-2 text-center text-xs text-ink/45 truncate">
-                {creativeImages[activeImageIndex]?.filename}
-              </p>
+                    <span className="absolute bottom-1 right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-ink/75 px-1 text-[10px] font-semibold text-cloud">
+                      {index + 1}
+                    </span>
+                  </a>
+                ))}
+              </div>
             </Card>
           ) : null}
 

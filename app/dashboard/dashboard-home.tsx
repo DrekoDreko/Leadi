@@ -166,7 +166,7 @@ export function DashboardHome({
   const campaignHref = preview ? "/login" : "/dashboard/criacoes/campanhas";
   const funnelHref = preview ? "/login" : "/dashboard/funil";
   const anunciosHref = preview ? "/login" : "/dashboard/anuncios";
-  const creativeRequestHref = preview ? "/login" : "/dashboard/criacoes/validador?compose=1";
+  const creativeRequestHref = preview ? "/login" : "/dashboard/criacoes/solicitar-design";
 
   const onboardingSteps = [
     {

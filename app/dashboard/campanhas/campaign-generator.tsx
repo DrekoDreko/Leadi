@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -2125,8 +2126,14 @@ function CampaignPublicationDialog({
   onClose: () => void;
   onRetry: () => void;
 }) {
+  const router = useRouter();
   const readyItems = metaItems.filter((item) => item.ready);
   const isPaused = publishMode === "paused";
+
+  const handleSuccessClose = () => {
+    onClose();
+    router.push("/dashboard/criacoes");
+  };
 
   return (
     <AnimatePresence>
@@ -2238,19 +2245,18 @@ function CampaignPublicationDialog({
 
                     <div className="flex w-full flex-col gap-3 pt-2">
                       {isPaused && (
-                        <a
-                          href="https://adsmanager.facebook.com"
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <Link
+                          href="/dashboard/anuncios"
+                          onClick={onClose}
                           className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
                         >
-                          Abrir Gerenciador de Anúncios
+                          Abrir anúncios criados
                           <ExternalLink size={15} />
-                        </a>
+                        </Link>
                       )}
                       <button
                         className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border/70 bg-card px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted/40"
-                        onClick={onClose}
+                        onClick={handleSuccessClose}
                         type="button"
                       >
                         Fechar

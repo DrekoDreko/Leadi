@@ -42,10 +42,10 @@ const secondaryCreations = [
     icon: ClipboardCheck
   },
   {
-    title: "Acompanhar criativos",
-    description: "Acompanhe o status dos pedidos de criativo, da analise ate a entrega do material.",
-    href: "/dashboard/criacoes/validador",
-    icon: ClipboardCheck
+    title: "Solicitar criativo à equipe de design",
+    description: "Abra um briefing para a nossa equipe de design criar o material (sem IA).",
+    href: "/dashboard/criacoes/solicitar-design",
+    icon: Palette
   }
 ];
 
