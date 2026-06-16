@@ -16,6 +16,10 @@ export async function middleware(request: NextRequest) {
   const isMetaWebhookRoute = pathname === "/api/meta/webhook";
   const isMetaDataDeletionRoute = pathname === "/api/meta/data-deletion";
   const isMetaCallbackRoute = pathname === "/api/integrations/meta/callback";
+  // Rotas internas chamadas por agendadores (cron) sem sessao de usuario. Elas
+  // se autenticam sozinhas via segredo compartilhado (ex.: CRON_SECRET), entao
+  // nao passam pelo gate de sessao do middleware.
+  const isInternalCronRoute = pathname.startsWith("/api/internal/");
   const isImportRoute = pathname === "/dashboard/importar" || pathname.startsWith("/dashboard/importar/");
   const isCreateTeamRoute =
     pathname === "/dashboard/criar-equipe" || pathname.startsWith("/dashboard/criar-equipe/");
@@ -26,9 +30,14 @@ export async function middleware(request: NextRequest) {
     isTeamRoute ||
     isInviteRoute ||
     isCheckoutRoute ||
-    (isApiRoute && !isLeadWebhookRoute && !isMetaWebhookRoute && !isMetaDataDeletionRoute && !isMetaCallbackRoute);
+    (isApiRoute &&
+      !isLeadWebhookRoute &&
+      !isMetaWebhookRoute &&
+      !isMetaDataDeletionRoute &&
+      !isMetaCallbackRoute &&
+      !isInternalCronRoute);
 
-  if (isLeadWebhookRoute || isMetaWebhookRoute || isMetaDataDeletionRoute) {
+  if (isLeadWebhookRoute || isMetaWebhookRoute || isMetaDataDeletionRoute || isInternalCronRoute) {
     const response = NextResponse.next({ request });
     applySecurityHeaders(request, response);
     return response;
