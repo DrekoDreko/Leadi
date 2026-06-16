@@ -175,10 +175,14 @@ export async function uploadProfileAvatarAction(formData: FormData) {
 
   const avatarUrl = `${publicUrlData.publicUrl}?v=${Date.now()}`;
 
-  await auth.supabase
+  const { error: updateError } = await auth.supabase
     .from("profiles")
     .update({ avatar_url: avatarUrl })
     .eq("id", auth.profile.id);
+
+  if (updateError) {
+    redirect("/dashboard/perfil?avatar=upload-failed");
+  }
 
   revalidatePath("/dashboard/perfil");
   revalidatePath("/dashboard");

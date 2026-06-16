@@ -17,6 +17,7 @@ export default async function DashboardLayout({
   return (
     <DashboardShell
       displayName={context.displayName}
+      avatarUrl={context.profile?.avatar_url ?? null}
       notificationCount={reminderState.reminders.length}
       navVariant={context.navVariant}
       subscriptionNotice={subscriptionNotice}

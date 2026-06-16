@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, Check, Clock, Loader2, LogOut, Plus, Search, X } from "lucide-react";
@@ -24,6 +25,7 @@ const DASHBOARD_REMINDERS_UPDATED_EVENT = "dashboard-reminders:updated";
 export function DashboardShell({
   children,
   displayName = "Usuario",
+  avatarUrl = null,
   navVariant = "owner-team",
   preview = false,
   subscriptionNotice = null,
@@ -32,6 +34,7 @@ export function DashboardShell({
 }: {
   children: React.ReactNode;
   displayName?: string;
+  avatarUrl?: string | null;
   navVariant?: DashboardNavVariant;
   preview?: boolean;
   subscriptionNotice?: SubscriptionNotice | null;
@@ -342,11 +345,23 @@ export function DashboardShell({
         <aside className="glass-dark sticky top-4 hidden h-[calc(100vh-32px)] rounded-[38px] px-4 py-5 text-white lg:flex lg:flex-col lg:items-center lg:justify-between">
           <Link
             href={preview ? "/login" : profileHref}
-            className="surface-card flex h-12 w-12 items-center justify-center rounded-full text-foreground"
+            className="surface-card relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-foreground"
             aria-label={`Perfil de ${displayName}`}
             title={`${displayName} - ${workspaceName}`}
           >
-            {preview ? "Le" : getInitials(displayName)}
+            {!preview && avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={displayName}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            ) : preview ? (
+              "Le"
+            ) : (
+              getInitials(displayName)
+            )}
           </Link>
           <nav className="flex flex-col gap-3" aria-label="Menu principal do dashboard">
             {primaryNavItems.map((item) => {

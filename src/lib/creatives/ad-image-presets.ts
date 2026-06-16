@@ -39,12 +39,13 @@ export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
       "Clima: confianca, excelencia medica, cuidado profissional, rede hospitalar de qualidade. Visual de anuncio profissional pronto para feed/story."
     ],
     sample: {
-      title: "Amil Ouro — Enfermaria e Apartamento",
-      subtitle: "Qualidade, economia e conforto para sua empresa",
+      title: "Bradesco Saúde — Qualidade para sua empresa",
+      subtitle: "PME a partir de 3 vidas",
       briefing:
-        "Arte destacando plano empresarial com rede credenciada de qualidade, cobertura completa e opções de enfermaria ou apartamento.",
+        "Arte destacando plano de saúde empresarial com rede credenciada de qualidade, cobertura completa (consultas, exames e internações), opção de enfermaria ou apartamento e programas de saúde e prevenção.",
+      carrier: "Bradesco Saúde",
       contractType: "PME",
-      offer: "Invista no bem-estar da sua equipe",
+      offer: "Solicite uma cotação agora",
       phone: "(00) 00000-0000",
       brandName: "Sua Corretora",
       style: "profissional, hospitalar, confiável"
@@ -68,9 +69,10 @@ export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
     ],
     sample: {
       title: "Cuidado de verdade para sua família e sua empresa",
-      subtitle: "Cobertura completa — Regional e Nacional",
+      subtitle: "Cobertura Completa — Regional e Nacional",
       briefing:
-        "Arte para atrair famílias e empresas interessadas em plano de saúde, transmitindo proteção, segurança e rede de atendimento ampla.",
+        "Arte para atrair famílias e empresas, dividindo os benefícios em dois blocos: 'Para sua família' (segurança em todas as fases da vida, rede hospitalar de confiança, atendimento de qualidade) e 'Para empresas' (benefício valorizado, mais produtividade, planos a partir de 3 vidas).",
+      carrier: "SulAmérica",
       contractType: "Familiar",
       offer: "Mais saúde, mais proteção e mais tranquilidade",
       phone: "(00) 00000-0000",
@@ -86,8 +88,8 @@ export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
     previewImage: "/creatives/presets/oferta-desconto.png",
     promptSpec: [
       "Composicao promocional impactante: fundo com gradiente vibrante ou foto de fundo sutil derivado da cor primaria da operadora.",
-      "Elemento heroi: o VALOR ou PORCENTAGEM de desconto em tamanho gigante e peso forte (numero grande + 'R$' ou '%'), dominando a area central da arte; pode usar cor de destaque contrastante.",
-      "Badge ou etiqueta com condicao especifica (ex: faixa etaria '44 a 48 anos', 'A partir de X vidas', tipo de contratacao).",
+      "Elemento heroi: a PORCENTAGEM de desconto em tamanho gigante e peso forte (numero grande + '%', ex: '40%'), dominando a area central da arte; use cor de destaque contrastante. O desconto e sempre expresso em porcentagem, com teto de ate 40% (nunca exiba percentual acima de 40%).",
+      "Badge ou etiqueta com condicao especifica (ex: 'PME a partir de 2 vidas', 'A partir de X vidas', tipo de contratacao).",
       "Acima ou abaixo do desconto, a chamada principal curta e impactante em tipografia forte; logo abaixo, a condicao comercial em fonte menor.",
       "Subtitulo ou slogan de apoio posicionado de forma complementar.",
       "Secao de diferenciais com icones (ex: atendimento especializado, prevencao e acompanhamento, rede propria).",
@@ -97,13 +99,14 @@ export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
       "Paleta energetica e confiavel derivada da cor primaria da operadora; alto contraste; visual de anuncio promocional pronto para feed/story."
     ],
     sample: {
-      title: "Saúde para quem faz a diferença",
-      subtitle: "PME a partir de 2 vidas",
+      title: "Amil Ouro — Saúde de qualidade",
+      subtitle: "Plano empresarial com o melhor custo-benefício",
       briefing:
-        "Arte promocional destacando valor acessível de plano de saúde para faixa etária 44-48 anos, com forte apelo ao preço.",
-      contractType: "PME",
-      discount: "R$ 810,73",
-      offer: "A partir de R$ 810,73 por pessoa — 44 a 48 anos",
+        "Arte promocional destacando desconto em porcentagem para plano de saúde empresarial, com forte apelo ao percentual de economia. O desconto é sempre em porcentagem, até 40%.",
+      carrier: "Amil",
+      contractType: "PME a partir de 2 vidas",
+      discount: "até 40%",
+      offer: "Até 40% de desconto por pessoa/mês",
       phone: "(00) 00000-0000",
       brandName: "Sua Corretora",
       style: "promocional, vibrante, impactante"

@@ -11,6 +11,7 @@ export default async function TeamLayout({
   return (
     <DashboardShell
       displayName={context.displayName}
+      avatarUrl={context.profile?.avatar_url ?? null}
       navVariant={context.navVariant}
       workspaceName={context.workspaceName}
     >
