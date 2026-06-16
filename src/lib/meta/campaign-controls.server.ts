@@ -8,6 +8,7 @@ import {
   ensureMetaMarketingPermission,
   MetaMarketingPermissionError
 } from "@/lib/meta/campaign-publication.server";
+import { reconcileCampaignDeliveryStatus } from "@/lib/meta/delivery-status.server";
 import type { CampaignHistoryItem } from "@/lib/campaigns/types";
 import { parseCampaignInputPayload, parseCampaignResultPayload } from "@/lib/campaigns/payload";
 
@@ -166,16 +167,16 @@ export async function updateMetaCampaignDelivery(input: {
   }
 
   const isActive = input.action === "activate";
+  const now = new Date().toISOString();
+
+  // Registra o carimbo da tentativa; o status/mensagem reais sao definidos pela
+  // reconciliacao logo abaixo (le o effective_status na Meta em vez de chutar).
   const updated = await supabase
     .from("campaigns")
     .update({
-      publication_status: isActive ? "published" : "paused",
-      publication_message: isActive
-        ? "Campanha ativada pelo app. Entrou em revisao da Meta e veicula se a conta tiver forma de pagamento valida."
-        : "Campanha pausada pelo app.",
-      published_at: isActive ? new Date().toISOString() : undefined,
-      last_publication_attempt_at: new Date().toISOString(),
-      last_publication_error: null
+      last_publication_attempt_at: now,
+      last_publication_error: null,
+      ...(isActive ? { published_at: now } : {})
     })
     .eq("id", campaign.id)
     .eq("organization_id", input.organizationId)
@@ -186,6 +187,18 @@ export async function updateMetaCampaignDelivery(input: {
     throw new Error(
       updated.error?.message ?? "Nao foi possivel atualizar o status da campanha."
     );
+  }
+
+  // Le o estado verdadeiro na Meta (ACTIVE / PENDING_REVIEW / DISAPPROVED / ...)
+  // e grava o publication_status + mensagem honesta. Se a Meta nao responder,
+  // caimos no row recem-atualizado sem inventar mensagem.
+  const reconciled = await reconcileCampaignDeliveryStatus({
+    organizationId: input.organizationId,
+    campaignId: campaign.id
+  });
+
+  if (reconciled) {
+    return reconciled.item;
   }
 
   return mapRowToHistoryItem(updated.data as CampaignControlRow);

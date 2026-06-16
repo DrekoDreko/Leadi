@@ -8,13 +8,46 @@ import type { CampaignPublicationStatus } from "@/lib/campaigns/types";
 type CampaignDeliveryControlsProps = {
   campaignId: string;
   initialStatus: CampaignPublicationStatus;
+  deliveryMessage?: string | null;
+  effectiveStatus?: string | null;
   hasAdSet: boolean;
   billingUrl: string | null;
 };
 
+// Descritor visual de cada estado real de veiculacao lido da Meta.
+const STATUS_BADGE: Record<
+  CampaignPublicationStatus,
+  { label: string; className: string }
+> = {
+  not_connected: { label: "Nao conectada", className: "bg-slate-100 text-slate-700" },
+  ready_to_prepare: { label: "Pronta para preparar", className: "bg-slate-100 text-slate-700" },
+  draft_created: { label: "Rascunho", className: "bg-slate-100 text-slate-700" },
+  pending_review: { label: "Em revisao", className: "bg-amber-50 text-amber-800" },
+  published: { label: "Veiculando", className: "bg-emerald-50 text-emerald-700" },
+  paused: { label: "Pausada", className: "bg-slate-100 text-slate-700" },
+  failed: { label: "Reprovada / falha", className: "bg-red-50 text-red-700" }
+};
+
+function describeToggleResult(status: CampaignPublicationStatus): string {
+  switch (status) {
+    case "published":
+      return "Campanha ativada e veiculando na Meta.";
+    case "pending_review":
+      return "Campanha ativada. Entrou em revisao da Meta.";
+    case "failed":
+      return "A Meta reprovou o anuncio. Ajuste o texto/criativo e reenvie.";
+    case "paused":
+      return "Campanha pausada.";
+    default:
+      return "Status atualizado conforme a Meta.";
+  }
+}
+
 export function CampaignDeliveryControls({
   campaignId,
   initialStatus,
+  deliveryMessage,
+  effectiveStatus,
   hasAdSet,
   billingUrl
 }: CampaignDeliveryControlsProps) {
@@ -25,7 +58,10 @@ export function CampaignDeliveryControls({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // "Veiculando" so quando a Meta confirma ACTIVE (publication_status=published).
+  // pending_review/failed nao sao "ativos" para fins do botao pausar/ativar.
   const isActive = status === "published";
+  const badge = STATUS_BADGE[status] ?? STATUS_BADGE.paused;
 
   async function handleToggle() {
     setError(null);
@@ -44,9 +80,9 @@ export function CampaignDeliveryControls({
       if (!response.ok) {
         throw new Error(data.error ?? "Nao foi possivel atualizar a campanha.");
       }
-      const nextStatus = data.campaign?.publicationStatus ?? (isActive ? "paused" : "published");
+      const nextStatus = data.campaign?.publicationStatus ?? (isActive ? "paused" : "pending_review");
       setStatus(nextStatus);
-      setSuccess(isActive ? "Campanha pausada." : "Campanha ativada. Entrou em revisao da Meta.");
+      setSuccess(describeToggleResult(nextStatus));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido.");
@@ -91,14 +127,19 @@ export function CampaignDeliveryControls({
           <p className="text-sm font-medium text-cobalt">Veiculação</p>
           <h2 className="text-xl font-semibold">Controle do anúncio</h2>
         </div>
-        <span
-          className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-            isActive ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"
-          }`}
-        >
-          {isActive ? "Veiculando" : "Pausada"}
+        <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${badge.className}`}>
+          {badge.label}
         </span>
       </div>
+
+      {deliveryMessage ? (
+        <p className="mt-3 rounded-[18px] border border-cobalt/15 bg-cobalt/5 px-4 py-3 text-sm text-cobalt">
+          {deliveryMessage}
+          {effectiveStatus ? (
+            <span className="ml-1 text-cobalt/60">(Meta: {effectiveStatus})</span>
+          ) : null}
+        </p>
+      ) : null}
 
       <div className="mt-5 flex flex-col gap-3">
         <button

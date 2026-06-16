@@ -6,6 +6,7 @@ import { reviewCampaignCopyLocally } from "@/lib/campaigns/compliance";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { buildMetaBillingUrl } from "@/lib/meta/campaign-controls.server";
+import { reconcileCampaignDeliveryStatus } from "@/lib/meta/delivery-status.server";
 import { RevisarPublicarClient } from "./revisar-publicar-client";
 import { CampaignDeliveryControls } from "./campaign-delivery-controls";
 
@@ -28,6 +29,28 @@ export default async function RevisarPublicarPage({ params }: RevisarPublicarPag
 
   if (!campaign) {
     notFound();
+  }
+
+  // Camada 2: ao abrir a tela, conferimos o estado real na Meta para o status
+  // exibido nunca mentir (ex.: anuncio ja aprovado aparecendo como "em revisao").
+  // Best-effort: falha de leitura mantem os dados ja gravados.
+  let publicationStatus = campaign.publicationStatus;
+  let deliveryMessage: string | null = null;
+  let effectiveStatus: string | null = null;
+  if (campaign.metaCampaignId) {
+    try {
+      const reconciled = await reconcileCampaignDeliveryStatus({
+        organizationId: campaign.organizationId,
+        campaignId: campaign.id
+      });
+      if (reconciled) {
+        publicationStatus = reconciled.publicationStatus;
+        deliveryMessage = reconciled.publicationMessage;
+        effectiveStatus = reconciled.effectiveStatus;
+      }
+    } catch {
+      // Reconciliacao e nao-critica para renderizar a tela.
+    }
   }
 
   const pageName =
@@ -106,7 +129,9 @@ export default async function RevisarPublicarPage({ params }: RevisarPublicarPag
       {campaign.metaCampaignId ? (
         <CampaignDeliveryControls
           campaignId={campaign.id}
-          initialStatus={campaign.publicationStatus}
+          initialStatus={publicationStatus}
+          deliveryMessage={deliveryMessage}
+          effectiveStatus={effectiveStatus}
           hasAdSet={Boolean(campaign.metaAdSetId)}
           billingUrl={buildMetaBillingUrl(campaign.metaAdAccountId)}
         />

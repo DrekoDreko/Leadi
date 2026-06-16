@@ -80,6 +80,11 @@ export function RevisarPublicarClient({
     copy.description !== savedCopy.description ||
     copy.callToAction !== savedCopy.callToAction;
 
+  const alreadyPublished =
+    Boolean(campaign.metaCampaignId) ||
+    campaign.publicationStatus === "published" ||
+    campaign.publicationStatus === "paused";
+
   const approvalOk =
     campaign.approvalStatus === "approved" || campaign.approvalStatus === "not_required";
   const assetsOk = Boolean(campaign.metaPageId && campaign.metaAdAccountId && campaign.metaLeadFormId);
@@ -99,7 +104,7 @@ export function RevisarPublicarClient({
     return items;
   }, [approvalOk, campaign, complianceOk, budgetOk, copyDirty]);
 
-  const canPublish = blockers.length === 0 && !isPublishing && !publishResult;
+  const canPublish = blockers.length === 0 && !isPublishing && !publishResult && !alreadyPublished;
 
   async function handleSaveCopy() {
     setError("");
@@ -479,11 +484,29 @@ export function RevisarPublicarClient({
               onClick={handlePublish}
               type="button"
             >
-              <Megaphone size={16} />
-              Publicar pausado no Meta
+              {alreadyPublished ? (
+                <>
+                  <CheckCircle2 size={16} />
+                  Já publicado no Meta
+                </>
+              ) : (
+                <>
+                  <Megaphone size={16} />
+                  Publicar pausado no Meta
+                </>
+              )}
             </button>
 
-            {blockers.length > 0 && !publishResult ? (
+            {alreadyPublished && !publishResult ? (
+              <p className="mt-3 flex items-start gap-2 rounded-[16px] border border-emerald-200/70 bg-emerald-50/70 p-3 text-xs leading-5 text-emerald-800">
+                <CheckCircle2 className="mt-0.5 shrink-0" size={14} aria-hidden="true" />
+                Esta campanha já foi publicada no Meta
+                {campaign.metaCampaignId ? ` (ID ${campaign.metaCampaignId})` : ""}. Gerencie a
+                veiculação pelo Gerenciador de Anúncios.
+              </p>
+            ) : null}
+
+            {blockers.length > 0 && !publishResult && !alreadyPublished ? (
               <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-ink/55">
                 {blockers.map((blocker, index) => (
                   <li key={index}>{blocker}</li>

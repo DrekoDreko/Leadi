@@ -735,6 +735,8 @@ export type Database = {
           meta_campaign_id: string | null;
           meta_adset_id: string | null;
           meta_ad_id: string | null;
+          meta_effective_status: string | null;
+          delivery_status_synced_at: string | null;
           publication_message: string | null;
           prepared_at: string | null;
           published_at: string | null;
@@ -775,6 +777,8 @@ export type Database = {
           meta_campaign_id?: string | null;
           meta_adset_id?: string | null;
           meta_ad_id?: string | null;
+          meta_effective_status?: string | null;
+          delivery_status_synced_at?: string | null;
           publication_message?: string | null;
           prepared_at?: string | null;
           published_at?: string | null;
@@ -815,6 +819,8 @@ export type Database = {
           meta_campaign_id?: string | null;
           meta_adset_id?: string | null;
           meta_ad_id?: string | null;
+          meta_effective_status?: string | null;
+          delivery_status_synced_at?: string | null;
           publication_message?: string | null;
           prepared_at?: string | null;
           published_at?: string | null;

@@ -101,6 +101,11 @@ export const ENV_VARIABLES = {
     description: "Identificador de remetente usado pelo provedor externo de WhatsApp.",
     public: false
   },
+  CRON_SECRET: {
+    description:
+      "Segredo compartilhado para autenticar chamadas das rotas internas agendadas (ex.: reconciliacao de veiculacao Meta).",
+    public: false
+  },
 } as const satisfies Record<string, EnvVariableDefinition>;
 
 export type EnvVariableName = keyof typeof ENV_VARIABLES;
