@@ -361,7 +361,7 @@ export function buildAdImagePrompt(input: AdImagePromptInput) {
   const logoDirectives: string[] = [];
   if (input.hasOperatorLogo && input.carrier) {
     logoDirectives.push(
-      `Uma das imagens de referencia e o logo oficial da operadora ${input.carrier}. Posicione-o com destaque no topo ou canto superior da arte, respeitando proporcoes e legibilidade. Reproduza o logo fielmente.`
+      `Uma das imagens de referencia e o logo oficial da operadora ${input.carrier}. INSIRA exatamente esse logo na arte (use a imagem de referencia como o proprio logo), posicionado com destaque no topo ou canto superior, respeitando proporcoes, cores e legibilidade. NAO desenhe, recrie, reinterprete, traduza nem altere o logo — nao invente um logo novo nem mude o nome/tipografia da marca; reproduza fielmente o logo fornecido.`
     );
   }
   if (input.hasBrokerLogo) {
@@ -396,6 +396,7 @@ export function buildAdImagePrompt(input: AdImagePromptInput) {
       ? buildSection("Logos e selos nas referencias", logoDirectives)
       : "",
     buildSection("Diretrizes visuais", [
+      "Composicao centralizada e totalmente contida no quadro: TODO o conteudo (titulo, textos, oferta, logo, CTA e contato) deve caber INTEIRAMENTE dentro da imagem, com margem de respiro em relacao as bordas. Nenhum texto, logo ou elemento pode ser cortado, vazar ou tocar/ultrapassar as bordas da arte.",
       "Layout limpo e profissional, hierarquia clara entre chamada principal, oferta e contato.",
       "Use tipografia legivel e bem contrastada; o texto exibido deve estar correto em portugues do Brasil, sem erros de ortografia.",
       "Transmita confianca e cuidado (saude/familia), com paleta harmonica e identidade de plano de saude.",

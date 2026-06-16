@@ -1,3 +1,5 @@
+import type { AdLayoutContent } from "./compositor/types";
+
 export type AdImageStylePresetSample = {
   title: string;
   subtitle?: string;
@@ -19,6 +21,15 @@ export type AdImageStylePreset = {
   previewImage: string;
   promptSpec: string[];
   sample: AdImageStylePresetSample;
+  /** Slug da operadora usada no preview (resolve cor + logo). */
+  carrierSlug?: string;
+  /**
+   * Brief da FOTO/fundo que a IA gera (sem texto/logo). Ausente => fundo
+   * gerado por gradiente da cor da operadora (sem custo de IA).
+   */
+  backgroundPrompt?: string;
+  /** Conteudo estruturado que o compositor desenha (texto/logo reais). */
+  layout?: AdLayoutContent;
 };
 
 export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
@@ -49,6 +60,21 @@ export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
       phone: "(00) 00000-0000",
       brandName: "Sua Corretora",
       style: "profissional, hospitalar, confiável"
+    },
+    carrierSlug: "bradesco-saude",
+    backgroundPrompt:
+      "Foto realista e profissional de banco de imagens de saude, PLANO ABERTO / wide shot: medica brasileira de jaleco branco com estetoscopio, sorrindo e conversando com um casal (cliente) em consultorio ou hospital moderno, claro e acolhedor. As pessoas aparecem em tamanho MENOR, ocupando a faixa central, com BASTANTE espaco livre acima das cabecas e abaixo. Rostos e cabecas COMPLETOS, com folga, nunca cortados nas bordas. Iluminacao natural suave, tons claros. SEM nenhum texto, SEM letras, SEM logotipo, SEM numeros, SEM marca d'agua, SEM bordas.",
+    layout: {
+      title: "Qualidade para sua empresa",
+      contractType: "PME a partir de 3 vidas",
+      benefits: [
+        { title: "Rede credenciada de qualidade" },
+        { title: "Cobertura completa", detail: "Consultas, exames e internações" },
+        { title: "Programas de saúde e prevenção" }
+      ],
+      cta: "Solicite uma cotação agora",
+      phone: "(00) 00000-0000",
+      brandName: "Sua Corretora"
     }
   },
   {
@@ -78,6 +104,25 @@ export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
       phone: "(00) 00000-0000",
       brandName: "Sua Corretora",
       style: "acolhedor, familiar, confiável"
+    },
+    carrierSlug: "sulamerica",
+    backgroundPrompt:
+      "Foto realista e calorosa de banco de imagens, PLANO ABERTO / wide shot: familia brasileira feliz (pai, mae e dois filhos) se abracando e sorrindo, ao ar livre, luz natural suave, clima de protecao e carinho. A familia aparece em tamanho MENOR, ocupando a faixa central da imagem, com BASTANTE espaco livre (fundo desfocado) acima das cabecas e abaixo. Rostos e cabecas COMPLETOS, com folga, nunca cortados nas bordas. SEM nenhum texto, SEM letras, SEM logotipo, SEM numeros, SEM marca d'agua, SEM bordas.",
+    layout: {
+      title: "Cuidado de verdade para sua família e sua empresa",
+      subtitle: "Cobertura Completa — Regional e Nacional",
+      columns: [
+        {
+          heading: "Para sua família",
+          items: ["Segurança em todas as fases", "Rede hospitalar de confiança", "Atendimento de qualidade"]
+        },
+        {
+          heading: "Para empresas",
+          items: ["Benefício valorizado", "Mais produtividade", "Planos a partir de 3 vidas"]
+        }
+      ],
+      phone: "(00) 00000-0000",
+      brandName: "Sua Corretora"
     }
   },
   {
@@ -110,6 +155,18 @@ export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
       phone: "(00) 00000-0000",
       brandName: "Sua Corretora",
       style: "promocional, vibrante, impactante"
+    },
+    carrierSlug: "amil",
+    // Sem backgroundPrompt: fundo em gradiente da cor da operadora (sem custo de IA).
+    layout: {
+      title: "Amil Ouro — Saúde de qualidade",
+      subtitle: "Plano empresarial com o melhor custo-benefício",
+      contractType: "PME a partir de 2 vidas",
+      discount: "até 40%",
+      differentials: ["Cobertura nacional", "Rede de clínicas", "Atendimento de urgência"],
+      cta: "Solicite sua cotação",
+      phone: "(00) 00000-0000",
+      brandName: "Sua Corretora"
     }
   }
 ];

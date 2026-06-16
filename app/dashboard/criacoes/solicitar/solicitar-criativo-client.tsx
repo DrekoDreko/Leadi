@@ -35,6 +35,8 @@ type FormState = {
   contractType: string;
   discount: string;
   offer: string;
+  benefits: string;
+  cta: string;
   phone: string;
   brandName: string;
   style: string;
@@ -49,6 +51,8 @@ const initialForm: FormState = {
   contractType: "",
   discount: "",
   offer: "",
+  benefits: "",
+  cta: "",
   phone: "",
   brandName: "",
   style: "",
@@ -221,6 +225,8 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
       formData.append("contractType", form.contractType);
       formData.append("discount", form.discount);
       formData.append("offer", form.offer);
+      formData.append("benefits", form.benefits);
+      formData.append("cta", form.cta);
       formData.append("phone", form.phone);
       formData.append("brandName", form.brandName);
       formData.append("style", form.style);
@@ -418,7 +424,7 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
               <div className="grid gap-4 sm:grid-cols-2">
                 <TextField
                   label={`Desconto em destaque${isOfertaPreset ? "" : " (opcional)"}`}
-                  placeholder="Ex: 40% ou R$ 810,73"
+                  placeholder={isOfertaPreset ? "Ex: até 40%" : "Ex: 40% ou R$ 810,73"}
                   value={form.discount}
                   onChange={(value) => updateField("discount", value)}
                   required={isOfertaPreset}
@@ -431,6 +437,23 @@ export function SolicitarCriativoClient({ availableCredits }: { availableCredits
                   required={isOfertaPreset}
                 />
               </div>
+
+              <TextAreaField
+                label={`${isOfertaPreset ? "Diferenciais" : "Benefícios"} (um por linha, opcional)`}
+                placeholder={
+                  isOfertaPreset
+                    ? "Cobertura nacional\nRede de clínicas e laboratórios\nAtendimento de urgência"
+                    : "Rede credenciada de qualidade\nCobertura completa — Consultas, exames e internações\nProgramas de saúde e prevenção"
+                }
+                value={form.benefits}
+                onChange={(value) => updateField("benefits", value)}
+              />
+              <TextField
+                label="Texto do botão / CTA (opcional)"
+                placeholder="Ex: Solicite sua cotação"
+                value={form.cta}
+                onChange={(value) => updateField("cta", value)}
+              />
 
               {isOfertaPreset ? (
                 <p className="text-muted-soft text-xs leading-5">
@@ -722,7 +745,7 @@ function PresetCard({
           : "ring-border/70 hover:ring-cobalt/40"
       }`}
     >
-      <div className="relative aspect-[4/3] w-full bg-surface-elevated">
+      <div className="relative aspect-square w-full bg-surface-elevated">
         {showPreview ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

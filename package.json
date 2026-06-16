@@ -23,6 +23,7 @@
     "supabase:gen-types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts"
   },
   "dependencies": {
+    "@fontsource/manrope": "^5.2.8",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@number-flow/react": "^0.6.0",
     "@paper-design/shaders-react": "^0.0.76",
@@ -37,6 +38,7 @@
     "next-themes": "^0.4.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "satori": "^0.26.0",
     "server-only": "^0.0.1",
     "zod": "^4.4.3"
   },

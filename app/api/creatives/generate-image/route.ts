@@ -6,11 +6,8 @@ import { EnvValidationError } from "@/lib/env/server";
 import { AiCreditsError, runAiActionWithCredits } from "@/lib/ai/credits";
 import { LeadHealthOpenAIError } from "@/lib/openai";
 import { generateAdImageSet } from "@/lib/creatives/ad-image-set.server";
+import type { AdBenefit, AdLayoutContent } from "@/lib/creatives/compositor";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
-import {
-  CREATIVE_REQUEST_ATTACHMENT_MAX_SIZE_BYTES,
-  validateCreativeRequestAttachment
-} from "@/lib/creative-requests/attachments";
 import { getAdImageStylePreset } from "@/lib/creatives/ad-image-presets";
 import {
   ApiRouteError,
@@ -22,8 +19,6 @@ import {
 } from "@/lib/api/route-security";
 import { getOperator } from "@/lib/creatives/operator-config";
 
-const MAX_REFERENCE_IMAGES = 4;
-
 const generateImageSchema = z.object({
   title: requiredTrimmedString("Informe o titulo da arte.").max(160),
   subtitle: z.string().trim().max(200).optional(),
@@ -32,6 +27,8 @@ const generateImageSchema = z.object({
   contractType: z.string().trim().max(120).optional(),
   discount: z.string().trim().max(80).optional(),
   offer: z.string().trim().max(280).optional(),
+  benefits: z.string().trim().max(1200).optional(),
+  cta: z.string().trim().max(80).optional(),
   phone: z.string().trim().max(60).optional(),
   brandName: z.string().trim().max(120).optional(),
   format: z.string().trim().max(40).optional(),
@@ -64,6 +61,8 @@ export async function POST(request: Request) {
       contractType: optionalString(formData.get("contractType")),
       discount: optionalString(formData.get("discount")),
       offer: optionalString(formData.get("offer")),
+      benefits: optionalString(formData.get("benefits")),
+      cta: optionalString(formData.get("cta")),
       phone: optionalString(formData.get("phone")),
       brandName: optionalString(formData.get("brandName")),
       format: optionalString(formData.get("format")),
@@ -72,37 +71,31 @@ export async function POST(request: Request) {
     });
 
     const preset = getAdImageStylePreset(fields.stylePreset);
-    const useStyleReference =
-      Boolean(preset) && parseBoolean(formData.get("useStyleReference"));
-
-    const referenceImages = extractReferenceImages(formData);
-
-    if (useStyleReference && preset) {
-      const presetReference = await loadPresetReferenceImage(preset.previewImage);
-      if (presetReference) {
-        referenceImages.unshift(presetReference);
-      }
-    }
-
     const operator = fields.carrier ? getOperator(fields.carrier) : undefined;
-    let hasOperatorLogo = false;
-    let hasBrokerLogo = false;
+    const carrierColor = operator?.primaryColor ?? "#1F4ED8";
+    const logo = operator ? await loadImageBuffer(operator.logoPath) : null;
 
-    if (operator) {
-      const operatorLogo = await loadPresetReferenceImage(operator.logoPath);
-      if (operatorLogo) {
-        referenceImages.push(operatorLogo);
-        hasOperatorLogo = true;
-      }
-    }
+    // Estilo/template: preset escolhido, ou inferido (tem desconto => oferta).
+    const styleId = preset?.id ?? (fields.discount ? "oferta-desconto" : "medico-hospital");
 
-    const brokerLogoFile = formData.get("brokerLogo");
-    if (brokerLogoFile instanceof File && brokerLogoFile.size > 0) {
-      if (brokerLogoFile.type.startsWith("image/")) {
-        referenceImages.push(brokerLogoFile);
-        hasBrokerLogo = true;
-      }
-    }
+    // Oferta usa fundo em gradiente (sem foto). Demais usam foto da IA.
+    const backgroundPrompt =
+      styleId === "oferta-desconto"
+        ? null
+        : preset?.backgroundPrompt ?? buildGenericBackgroundPrompt(fields.briefing);
+
+    const benefits = parseBenefits(fields.benefits);
+    const content: AdLayoutContent = {
+      title: fields.title,
+      subtitle: fields.subtitle,
+      contractType: fields.contractType,
+      discount: fields.discount,
+      offer: fields.offer,
+      benefits: benefits.length > 0 ? benefits : undefined,
+      cta: fields.cta ?? defaultCta(),
+      phone: fields.phone,
+      brandName: fields.brandName ?? billingContext.brokerageName ?? undefined
+    };
 
     const { result, remainingCredits } = await runAiActionWithCredits({
       orgId: billingContext.organizationId,
@@ -111,36 +104,22 @@ export async function POST(request: Request) {
       description: "Geracao de par de artes com IA (Feed + Vertical)",
       metadata: {
         route: "creatives/generate-image",
-        format: fields.format ?? null,
+        styleId,
         stylePreset: preset?.id ?? null,
-        useStyleReference,
-        hasReferences: referenceImages.length > 0,
-        referenceCount: referenceImages.length,
         operator: operator?.slug ?? null,
-        hasOperatorLogo,
-        hasBrokerLogo,
+        hasOperatorLogo: Boolean(logo),
+        usesBackgroundPhoto: Boolean(backgroundPrompt),
         assets: ["feed", "vertical"]
       },
       generate: (apiKey) =>
         generateAdImageSet(
-          {
-            ...fields,
-            carrier: operator?.name ?? fields.carrier,
-            carrierColor: operator?.primaryColor,
-            brandName: fields.brandName ?? billingContext.brokerageName,
-            referenceImages,
-            hasOperatorLogo,
-            hasBrokerLogo
-          },
+          { styleId, content, carrierColor, logo, backgroundPrompt },
           { apiKey }
         )
     });
 
     return NextResponse.json(
-      {
-        assets: result,
-        remainingCredits
-      },
+      { assets: result, remainingCredits, photoSkipped: result.photoSkipped },
       { status: 201 }
     );
   } catch (error) {
@@ -167,56 +146,39 @@ function optionalString(value: FormDataEntryValue | null) {
   return trimmed ? trimmed : undefined;
 }
 
-function parseBoolean(value: FormDataEntryValue | null) {
-  return value === "true" || value === "1" || value === "on";
-}
-
-async function loadPresetReferenceImage(previewImage: string): Promise<File | null> {
-  // previewImage e um caminho publico tipo "/creatives/presets/<id>.png".
-  const relativePath = previewImage.replace(/^\/+/, "");
-  const absolutePath = path.join(process.cwd(), "public", relativePath);
-
+/** Le um asset publico (ex: "/creatives/logos/operadoras/amil.png") como Buffer. */
+async function loadImageBuffer(publicPath: string): Promise<Buffer | null> {
+  const absolutePath = path.join(process.cwd(), "public", publicPath.replace(/^\/+/, ""));
   try {
-    const buffer = await readFile(absolutePath);
-    const fileName = path.basename(absolutePath);
-    return new File([new Uint8Array(buffer)], fileName, { type: "image/png" });
+    return await readFile(absolutePath);
   } catch {
-    // Preview ainda nao gerada: segue apenas com o padrao textual.
     return null;
   }
 }
 
-function extractReferenceImages(formData: FormData) {
-  const files = formData
-    .getAll("references")
-    .filter((entry): entry is File => entry instanceof File && entry.size > 0)
-    .slice(0, MAX_REFERENCE_IMAGES);
-
-  for (const file of files) {
-    const validationError = validateCreativeRequestAttachment({
-      name: file.name,
-      size: file.size,
-      type: file.type
-    });
-
-    if (validationError) {
-      throw new ApiRouteError(400, validationError);
-    }
-
-    if (!file.type.startsWith("image/")) {
-      throw new ApiRouteError(
-        400,
-        "As referencias para a IA devem ser imagens (PNG, JPG ou WebP)."
-      );
-    }
-
-    if (file.size > CREATIVE_REQUEST_ATTACHMENT_MAX_SIZE_BYTES) {
-      const limitMb = CREATIVE_REQUEST_ATTACHMENT_MAX_SIZE_BYTES / (1024 * 1024);
-      throw new ApiRouteError(400, `Cada referencia pode ter no maximo ${limitMb} MB.`);
-    }
+/** Converte o textarea de beneficios (um por linha) em itens estruturados. */
+function parseBenefits(raw?: string): AdBenefit[] {
+  if (!raw) {
+    return [];
   }
 
-  return files;
+  return raw
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[\s•\-*]+/, "").trim())
+    .filter((line) => line.length > 0)
+    .slice(0, 6)
+    .map((line) => {
+      const [title, detail] = line.split(/\s*[—|]\s*/, 2);
+      return detail ? { title: title.trim(), detail: detail.trim() } : { title: title.trim() };
+    });
+}
+
+function defaultCta(): string {
+  return "Solicite sua cotação";
+}
+
+function buildGenericBackgroundPrompt(briefing: string): string {
+  return `Foto realista e profissional de banco de imagens relacionada a plano de saude no Brasil (${briefing}). Pessoas reais, ambiente acolhedor, luz natural suave. SEM nenhum texto, SEM letras, SEM logotipo, SEM numeros, SEM marca d'agua, SEM bordas. Pessoas centralizadas, com area mais limpa no topo e na base.`;
 }
 
 function getGenerateImageError(error: unknown) {

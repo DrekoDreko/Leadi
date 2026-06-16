@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": "../.tmp/compositor-test",
+    "rootDir": "..",
+    "incremental": false,
+    "jsx": "preserve"
+  },
+  "include": [
+    "../scripts/test-compositor.ts",
+    "../src/lib/creatives/compositor/**/*.ts"
+  ],
+  "exclude": ["../**/*.test.ts", "../**/*.test.tsx"]
+}

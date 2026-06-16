@@ -229,6 +229,47 @@ export async function generateAdImage(
   return { b64, mimeType: "image/png", size };
 }
 
+/**
+ * Gera SOMENTE a foto/fundo (sem texto/logo) para o compositor sobrepor depois.
+ * Retorna o PNG ja decodificado.
+ */
+export async function generateBackgroundPhoto(
+  prompt: string,
+  size: AdImageSize,
+  options?: OpenAIRequestOptions
+): Promise<Buffer> {
+  const resolvedApiKey = getOpenAIApiKey(options?.apiKey);
+  const model = getOpenAIImageModel();
+
+  const response = await fetch(OPENAI_IMAGES_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resolvedApiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ model, prompt, size, n: 1 })
+  });
+
+  const payload = (await response.json().catch(() => null)) as OpenAIImagePayload | null;
+
+  if (!response.ok) {
+    throw new LeadHealthOpenAIError(
+      getImageRequestErrorMessage(response.status, payload?.error?.message),
+      "request_failed"
+    );
+  }
+
+  const b64 = payload?.data?.[0]?.b64_json;
+  if (!b64) {
+    throw new LeadHealthOpenAIError(
+      "A IA nao retornou nenhuma imagem de fundo. Tente novamente em instantes.",
+      "empty_response"
+    );
+  }
+
+  return Buffer.from(b64, "base64");
+}
+
 function getOpenAIImageModel() {
   return getServerEnv("OPENAI_IMAGE_MODEL") || DEFAULT_IMAGE_MODEL;
 }
