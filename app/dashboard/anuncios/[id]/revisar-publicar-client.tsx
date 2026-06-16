@@ -13,6 +13,7 @@ import {
   Rocket,
   ShieldCheck,
   Sparkles,
+  TrendingUp,
   XCircle
 } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
@@ -498,12 +499,22 @@ export function RevisarPublicarClient({
             </button>
 
             {alreadyPublished && !publishResult ? (
-              <p className="mt-3 flex items-start gap-2 rounded-[16px] border border-emerald-200/70 bg-emerald-50/70 p-3 text-xs leading-5 text-emerald-800">
-                <CheckCircle2 className="mt-0.5 shrink-0" size={14} aria-hidden="true" />
-                Esta campanha já foi publicada no Meta
-                {campaign.metaCampaignId ? ` (ID ${campaign.metaCampaignId})` : ""}. Gerencie a
-                veiculação pelo Gerenciador de Anúncios.
-              </p>
+              <div className="mt-3 space-y-3">
+                <p className="flex items-start gap-2 rounded-[16px] border border-emerald-200/70 bg-emerald-50/70 p-3 text-xs leading-5 text-emerald-800">
+                  <CheckCircle2 className="mt-0.5 shrink-0" size={14} aria-hidden="true" />
+                  Esta campanha já foi publicada no Meta
+                  {campaign.metaCampaignId ? ` (ID ${campaign.metaCampaignId})` : ""}. Pause, ative ou
+                  ajuste o orçamento pelo painel <strong>Controle do anúncio</strong>, no topo desta
+                  página — sem precisar abrir o Gerenciador de Anúncios.
+                </p>
+                <Link
+                  href={`/dashboard/anuncios/${campaign.id}/desempenho`}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+                >
+                  <TrendingUp size={16} aria-hidden="true" />
+                  Ver desempenho (gasto, leads e custo por lead)
+                </Link>
+              </div>
             ) : null}
 
             {blockers.length > 0 && !publishResult && !alreadyPublished ? (

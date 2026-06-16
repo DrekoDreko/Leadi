@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AlertTriangle, CreditCard, Loader2, Pause, Play, Wallet } from "lucide-react";
+import { CreditCard, Info, Loader2, Pause, Play, Wallet } from "lucide-react";
 import type { CampaignPublicationStatus } from "@/lib/campaigns/types";
 
 type CampaignDeliveryControlsProps = {
@@ -27,6 +27,23 @@ const STATUS_BADGE: Record<
   paused: { label: "Pausada", className: "bg-slate-100 text-slate-700" },
   failed: { label: "Reprovada / falha", className: "bg-red-50 text-red-700" }
 };
+
+// Refina o badge a partir do effective_status real da Meta. ARCHIVED e COMPLETED
+// caem em publication_status="paused", mas merecem rotulo proprio para o badge
+// nao contradizer a mensagem ("Pausada" x "Arquivada na Meta"). Sem migrar o enum.
+function resolveBadge(
+  status: CampaignPublicationStatus,
+  effectiveStatus: string | null | undefined
+): { label: string; className: string } {
+  const normalized = effectiveStatus?.trim().toUpperCase() ?? "";
+  if (normalized === "ARCHIVED") {
+    return { label: "Arquivada", className: "bg-slate-100 text-slate-600" };
+  }
+  if (normalized === "COMPLETED") {
+    return { label: "Concluída", className: "bg-slate-100 text-slate-600" };
+  }
+  return STATUS_BADGE[status] ?? STATUS_BADGE.paused;
+}
 
 function describeToggleResult(status: CampaignPublicationStatus): string {
   switch (status) {
@@ -53,6 +70,7 @@ export function CampaignDeliveryControls({
 }: CampaignDeliveryControlsProps) {
   const router = useRouter();
   const [status, setStatus] = useState<CampaignPublicationStatus>(initialStatus);
+  const [effective, setEffective] = useState<string | null>(effectiveStatus ?? null);
   const [budget, setBudget] = useState("");
   const [pendingAction, setPendingAction] = useState<"toggle" | "budget" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +79,7 @@ export function CampaignDeliveryControls({
   // "Veiculando" so quando a Meta confirma ACTIVE (publication_status=published).
   // pending_review/failed nao sao "ativos" para fins do botao pausar/ativar.
   const isActive = status === "published";
-  const badge = STATUS_BADGE[status] ?? STATUS_BADGE.paused;
+  const badge = resolveBadge(status, effective);
 
   async function handleToggle() {
     setError(null);
@@ -82,6 +100,9 @@ export function CampaignDeliveryControls({
       }
       const nextStatus = data.campaign?.publicationStatus ?? (isActive ? "paused" : "pending_review");
       setStatus(nextStatus);
+      // A acao mudou o estado na Meta; o effective_status anterior (ex.: ARCHIVED)
+      // nao vale mais. Zera para o badge seguir o publication_status ate o refresh.
+      setEffective(null);
       setSuccess(describeToggleResult(nextStatus));
       router.refresh();
     } catch (err) {
@@ -133,20 +154,24 @@ export function CampaignDeliveryControls({
       </div>
 
       {deliveryMessage ? (
-        <p className="mt-3 rounded-[18px] border border-cobalt/15 bg-cobalt/5 px-4 py-3 text-sm text-cobalt">
-          {deliveryMessage}
-          {effectiveStatus ? (
-            <span className="ml-1 text-cobalt/60">(Meta: {effectiveStatus})</span>
-          ) : null}
+        <p className="mt-4 flex items-start gap-2 rounded-[18px] border border-cobalt/15 bg-cobalt/5 px-4 py-3 text-sm text-cobalt">
+          <Info size={16} className="mt-0.5 shrink-0 text-cobalt/70" aria-hidden="true" />
+          <span>
+            {deliveryMessage}
+            {effectiveStatus ? (
+              <span className="ml-1 text-cobalt/55">(Meta: {effectiveStatus})</span>
+            ) : null}
+          </span>
         </p>
       ) : null}
 
-      <div className="mt-5 flex flex-col gap-3">
+      {/* Bloco 1 — acao principal */}
+      <div className="mt-5">
         <button
           type="button"
           onClick={handleToggle}
           disabled={pendingAction !== null}
-          className={`inline-flex w-fit items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition disabled:opacity-60 ${
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold text-white transition disabled:opacity-60 sm:w-fit ${
             isActive ? "bg-amber-600 hover:bg-amber-600/90" : "bg-emerald-600 hover:bg-emerald-600/90"
           }`}
         >
@@ -159,70 +184,82 @@ export function CampaignDeliveryControls({
           )}
           {isActive ? "Pausar campanha" : "Ativar campanha"}
         </button>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          {isActive
+            ? "A campanha está veiculando. Pause para interromper a entrega quando quiser."
+            : "Ao ativar, o anúncio entra em revisão da Meta e só começa a veicular após aprovação."}
+        </p>
+      </div>
 
-        {hasAdSet ? (
-          <div className="surface-card-muted rounded-[24px] p-4">
-            <label htmlFor="daily-budget" className="text-sm font-semibold">
-              Orçamento diário (R$)
-            </label>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Wallet
-                  size={16}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70"
-                  aria-hidden="true"
-                />
-                <input
-                  id="daily-budget"
-                  type="number"
-                  min={1}
-                  step="0.01"
-                  inputMode="decimal"
-                  value={budget}
-                  onChange={(event) => setBudget(event.target.value)}
-                  placeholder="Ex: 30,00"
-                  className="h-11 w-40 rounded-full border border-cobalt/20 bg-white/70 pl-9 pr-4 text-sm focus:border-cobalt/45 focus:outline-none"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleBudget}
-                disabled={pendingAction !== null}
-                className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white transition hover:bg-cobalt/92 disabled:opacity-60"
-              >
-                {pendingAction === "budget" ? (
-                  <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-                ) : null}
-                Salvar orçamento
-              </button>
+      {/* Bloco 2 — orcamento */}
+      {hasAdSet ? (
+        <div className="mt-5 border-t border-black/5 pt-5">
+          <label htmlFor="daily-budget" className="text-sm font-semibold">
+            Orçamento diário
+          </label>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Valor máximo que a campanha pode gastar por dia (mínimo R$ 1).
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Wallet
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70"
+                aria-hidden="true"
+              />
+              <input
+                id="daily-budget"
+                type="number"
+                min={1}
+                step="0.01"
+                inputMode="decimal"
+                value={budget}
+                onChange={(event) => setBudget(event.target.value)}
+                placeholder="Ex: 30,00"
+                className="h-11 w-40 rounded-full border border-cobalt/20 bg-white/70 pl-9 pr-4 text-sm focus:border-cobalt/45 focus:outline-none"
+              />
             </div>
+            <button
+              type="button"
+              onClick={handleBudget}
+              disabled={pendingAction !== null}
+              className="inline-flex items-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white transition hover:bg-cobalt/92 disabled:opacity-60"
+            >
+              {pendingAction === "budget" ? (
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+              ) : null}
+              Salvar orçamento
+            </button>
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
+      {/* Bloco 3 — pagamento na Meta */}
+      <div className="mt-5 border-t border-black/5 pt-5">
+        <p className="text-sm font-semibold">Forma de pagamento</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+          A campanha só veicula com uma forma de pagamento válida na conta de anúncio. Cartão e saldo
+          são adicionados diretamente na Meta — não é possível fazer isso por aqui.
+        </p>
         {billingUrl ? (
           <a
             href={billingUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex w-fit items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white sm:w-fit"
           >
             <CreditCard size={16} aria-hidden="true" />
-            Adicionar forma de pagamento / saldo na Meta
+            Abrir gerenciador de cobrança na Meta
           </a>
         ) : null}
-
-        <div className="flex items-start gap-2 rounded-[20px] border border-amber-200/70 bg-amber-50/80 px-4 py-3 text-sm text-amber-900">
-          <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-          <p>
-            Ao ativar, o anúncio entra em revisão da Meta e só passa a veicular se a conta de anúncio
-            tiver uma forma de pagamento válida. A Meta não permite adicionar cartão ou saldo por
-            aqui — use o botão acima para abrir o gerenciador de cobrança.
-          </p>
-        </div>
-
-        {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
-        {success ? <p className="text-sm font-medium text-emerald-700">{success}</p> : null}
       </div>
+
+      {error || success ? (
+        <div className="mt-4">
+          {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+          {success ? <p className="text-sm font-medium text-emerald-700">{success}</p> : null}
+        </div>
+      ) : null}
     </section>
   );
 }
