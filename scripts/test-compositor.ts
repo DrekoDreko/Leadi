@@ -45,13 +45,14 @@ const CASES: Case[] = [
     id: "medico-hospital",
     carrierColor: "#CC092F",
     logo: "public/creatives/logos/operadoras/bradesco-saude.png",
-    background: "public/creatives/presets/medico-hospital.png",
+    background: ".tmp/preset-photos/medico-hospital.png",
     content: {
       title: "Qualidade para sua empresa",
       contractType: "PME a partir de 3 vidas",
       benefits: [
         { title: "Rede credenciada de qualidade" },
         { title: "Cobertura completa", detail: "Consultas, exames e internações" },
+        { title: "Opção de enfermaria ou apartamento" },
         { title: "Programas de saúde e prevenção" }
       ],
       cta: "Solicite uma cotação agora",
@@ -63,7 +64,7 @@ const CASES: Case[] = [
     id: "familia",
     carrierColor: "#F27A1A",
     logo: "public/creatives/logos/operadoras/sulamerica.png",
-    background: "public/creatives/presets/familia.png",
+    background: ".tmp/preset-photos/familia.png",
     content: {
       title: "Cuidado de verdade para sua família e sua empresa",
       subtitle: "Cobertura Completa — Regional e Nacional",

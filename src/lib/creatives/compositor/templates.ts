@@ -122,6 +122,15 @@ function ctaPill(text: string, bg: string, color: string): SatoriNode {
   );
 }
 
+/** Logo dentro de um selo branco arredondado (contraste sobre cor da marca). */
+function logoBadge(logo: PreparedLogo): SatoriNode {
+  return h(
+    "div",
+    { style: { display: "flex", background: "rgba(255,255,255,0.96)", borderRadius: 16, padding: "12px 22px" } },
+    h("img", { src: logo.src, width: logo.width, height: logo.height })
+  );
+}
+
 /**
  * Camada de fundo: gradiente da cor da operadora SEMPRE presente (plano B quando
  * nao ha foto/credito) + a foto da IA por cima quando disponivel.
@@ -281,7 +290,8 @@ function ofertaTemplate(input: TemplateInput): SatoriNode {
 
 function medicoTemplate(input: TemplateInput): SatoriNode {
   const { content, carrierColor, logo, backgroundUri } = input;
-  const pad = 72;
+  const benefits = content.benefits ?? [];
+  const photoGradient = `linear-gradient(160deg, ${shade(carrierColor, 0.12)} 0%, ${carrierColor} 60%, ${shade(carrierColor, -0.25)} 100%)`;
 
   return h(
     "div",
@@ -292,74 +302,91 @@ function medicoTemplate(input: TemplateInput): SatoriNode {
         height: "100%",
         display: "flex",
         flexDirection: "column",
+        background: carrierColor,
         fontFamily: "Manrope"
       }
     },
-    photoBackdrop(backgroundUri, carrierColor),
-    // faixa superior (compacta: so logo + titulo + condicao)
+    // foto no topo (com gradiente de fundo como plano B sem foto)
     h(
       "div",
-      {
-        style: {
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          background: carrierColor,
-          padding: `48px ${pad}px 30px`
-        }
-      },
-      logo ? h("img", { src: logo.src, width: logo.width, height: logo.height, style: { marginBottom: 4 } }) : null,
-      h(
-        "div",
-        { style: { display: "flex", color: WHITE, fontSize: 56, fontWeight: 800, lineHeight: 1.02 } },
-        content.title
-      ),
-      content.contractType
-        ? h("div", { style: { display: "flex", color: WHITE, opacity: 0.95, fontSize: 30, fontWeight: 700 } }, content.contractType)
+      { style: { display: "flex", width: "100%", height: "46%", overflow: "hidden", backgroundImage: photoGradient } },
+      backgroundUri
+        ? h("img", {
+            src: backgroundUri,
+            style: { width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 26%" }
+          })
         : null
     ),
-    // espaco da foto (cresce e ocupa o centro)
-    h("div", { style: { display: "flex", flexGrow: 1 } }),
-    // painel inferior
+    // conteudo puxado pra cima com curva suave sobre a foto
     h(
       "div",
       {
         style: {
           display: "flex",
           flexDirection: "column",
-          gap: 26,
+          flexGrow: 1,
+          gap: 22,
           background: carrierColor,
-          borderTopLeftRadius: 48,
-          borderTopRightRadius: 48,
-          padding: `${Math.round(pad * 0.66)}px ${pad}px ${Math.round(pad * 0.86)}px`
+          marginTop: -46,
+          borderTopLeftRadius: 56,
+          borderTopRightRadius: 56,
+          padding: "46px 60px 52px"
         }
       },
-      content.benefits && content.benefits.length > 0
+      h(
+        "div",
+        { style: { display: "flex", flexDirection: "column", gap: 6 } },
+        h(
+          "div",
+          { style: { display: "flex", color: WHITE, fontSize: 50, fontWeight: 800, lineHeight: 1.04 } },
+          content.title
+        ),
+        content.contractType
+          ? h("div", { style: { display: "flex", color: WHITE, opacity: 0.95, fontSize: 27, fontWeight: 700 } }, content.contractType)
+          : null
+      ),
+      benefits.length > 0
         ? h(
             "div",
-            { style: { display: "flex", justifyContent: "space-between", gap: 24 } },
-            ...content.benefits.map((b) =>
+            { style: { display: "flex", flexWrap: "wrap", gap: 20 } },
+            ...benefits.map((b) =>
               h(
                 "div",
-                { style: { display: "flex", flexDirection: "column", gap: 8, flex: 1 } },
+                { style: { display: "flex", alignItems: "flex-start", gap: 12, width: "44%" } },
+                checkBadge(30, WHITE, carrierColor),
                 h(
                   "div",
-                  { style: { display: "flex", alignItems: "center", gap: 12 } },
-                  checkBadge(34, WHITE, carrierColor),
-                  h("div", { style: { display: "flex", color: WHITE, fontSize: 27, fontWeight: 800 } }, b.title)
-                ),
-                b.detail
-                  ? h("div", { style: { display: "flex", color: WHITE, opacity: 0.92, fontSize: 22, fontWeight: 600, lineHeight: 1.2 } }, b.detail)
-                  : null
+                  { style: { display: "flex", flexDirection: "column", gap: 2 } },
+                  h("div", { style: { display: "flex", color: WHITE, fontSize: 23, fontWeight: 800, lineHeight: 1.15 } }, b.title),
+                  b.detail
+                    ? h("div", { style: { display: "flex", color: WHITE, opacity: 0.9, fontSize: 18, fontWeight: 600, lineHeight: 1.15 } }, b.detail)
+                    : null
+                )
               )
             )
           )
         : null,
-      content.cta
-        ? h("div", { style: { display: "flex", justifyContent: "center" } }, ctaPill(content.cta, WHITE, carrierColor))
-        : null,
-      footerRow(content, WHITE)
-    )
+      h("div", { style: { display: "flex", flexGrow: 1 } }),
+      h(
+        "div",
+        { style: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" } },
+        content.brandName
+          ? h("div", { style: { display: "flex", color: WHITE, fontSize: 28, fontWeight: 700 } }, content.brandName)
+          : h("div", { style: { display: "flex" } }, " "),
+        content.cta
+          ? ctaPill(content.cta, WHITE, carrierColor)
+          : content.phone
+            ? h(
+                "div",
+                { style: { display: "flex", alignItems: "center", gap: 12 } },
+                whatsappIcon(38),
+                h("div", { style: { display: "flex", color: WHITE, fontSize: 28, fontWeight: 700 } }, content.phone)
+              )
+            : null
+      )
+    ),
+    // logo em selo sobre a foto (topo-esquerda)
+    logo ? h("div", { style: { position: "absolute", top: 44, left: 56, display: "flex" } }, logoBadge(logo)) : null
   );
 }
 

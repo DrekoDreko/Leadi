@@ -70,6 +70,7 @@ export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
       benefits: [
         { title: "Rede credenciada de qualidade" },
         { title: "Cobertura completa", detail: "Consultas, exames e internações" },
+        { title: "Opção de enfermaria ou apartamento" },
         { title: "Programas de saúde e prevenção" }
       ],
       cta: "Solicite uma cotação agora",
