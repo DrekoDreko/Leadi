@@ -183,6 +183,80 @@ export async function getOrganizationSubscriptionNotice(
   };
 }
 
+export type BillingPlanOverview = {
+  billingConfigured: boolean;
+  hasValidSubscription: boolean;
+  plan: {
+    name: string;
+    code: string;
+    description: string | null;
+    amountCents: number;
+    currency: string;
+    intervalUnit: PlanRow["interval_unit"];
+    intervalCount: number;
+  } | null;
+  subscription: {
+    status: SubscriptionRow["status"];
+    statusLabel: string;
+    currentPeriodStart: string;
+    currentPeriodEnd: string;
+    cancelAtPeriodEnd: boolean;
+    canceledAt: string | null;
+  } | null;
+  limits: PlanLimits;
+  usage: UsageSnapshot;
+  features: PlanFeatures;
+};
+
+export async function getCurrentBillingPlanOverview(): Promise<BillingPlanOverview | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  const organizationId = await getCurrentOrganizationId();
+
+  if (!organizationId) {
+    return null;
+  }
+
+  return getOrganizationBillingPlanOverview(organizationId);
+}
+
+export async function getOrganizationBillingPlanOverview(
+  organizationId: string
+): Promise<BillingPlanOverview> {
+  const state = await getOrganizationBillingState(organizationId);
+
+  return {
+    billingConfigured: state.billingMode === "configured",
+    hasValidSubscription: state.hasValidSubscription,
+    plan: state.plan
+      ? {
+          name: state.plan.name,
+          code: state.plan.code,
+          description: state.plan.description,
+          amountCents: state.plan.amount_cents,
+          currency: state.plan.currency,
+          intervalUnit: state.plan.interval_unit,
+          intervalCount: state.plan.interval_count
+        }
+      : null,
+    subscription: state.subscription
+      ? {
+          status: state.subscription.status,
+          statusLabel: getSubscriptionStatusLabel(state.subscription.status),
+          currentPeriodStart: state.subscription.current_period_start,
+          currentPeriodEnd: state.subscription.current_period_end,
+          cancelAtPeriodEnd: state.subscription.cancel_at_period_end,
+          canceledAt: state.subscription.canceled_at
+        }
+      : null,
+    limits: state.limits,
+    usage: state.usage,
+    features: state.features
+  };
+}
+
 export async function getCurrentResourceAccess(
   resource: BillingGuardResource
 ): Promise<ResourceAccessSummary> {

@@ -13,6 +13,9 @@ import type { ReactNode } from "react";
 import { IntegrationNotice } from "@/components/dashboard/integration-notice";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { getCurrentAiBalance } from "@/lib/ai/credits";
+import { getCurrentBillingSnapshot } from "@/lib/billing/admin";
+import { getCurrentBillingPlanOverview } from "@/lib/billing/subscription-limits.server";
+import { PlanBillingCard } from "@/components/dashboard/plan-billing-card";
 import { getConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
 import { countPendingFirstContactLeadsForCurrentUser } from "@/lib/leads/repository.server";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
@@ -127,6 +130,10 @@ export default async function PerfilPage({
     : null;
   const canEditBrokerageName = context.isManager || context.isSoloOwner;
 
+  const [billingOverview, billingSnapshot] = context.isOwner
+    ? await Promise.all([getCurrentBillingPlanOverview(), getCurrentBillingSnapshot()])
+    : [null, null];
+
   return (
     <div className="space-y-4">
       <PageHeading
@@ -190,6 +197,14 @@ export default async function PerfilPage({
           </p>
         </article>
       </section>
+
+      {context.isOwner ? (
+        <PlanBillingCard
+          overview={billingOverview}
+          snapshot={billingSnapshot}
+          manageHref="/dashboard/perfil/creditos"
+        />
+      ) : null}
 
       <Link
         className="group flex items-center justify-between gap-4 glass-strong rounded-[34px] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_80px_rgba(18,23,33,0.14)]"

@@ -12,12 +12,12 @@ import {
 import { AiCreditsPanel } from "@/components/dashboard/ai-credits-panel";
 import { Card } from "@/components/ui/card";
 import { PageHeading } from "@/components/dashboard/widgets";
+import { UsageHistorySection } from "@/components/dashboard/usage-history-section";
 import { DEFAULT_AI_CREDIT_PACKAGES } from "@/lib/ai/credit-packages";
 import {
   getCurrentAiBalanceDetails,
   getAiUsageHistory,
-  listActiveAiCreditPackages,
-  type AiUsageHistoryItem
+  listActiveAiCreditPackages
 } from "@/lib/ai/credits";
 import { getAiCreditPurchaseEligibilityForOrganization } from "@/lib/ai/credit-orders.server";
 import { cn } from "@/lib/utils";
@@ -339,87 +339,3 @@ function FeedbackBanner({
   );
 }
 
-const STATUS_CONFIG = {
-  success: {
-    label: "Sucesso",
-    className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-  },
-  failed: {
-    label: "Falhou",
-    className: "bg-red-500/10 text-red-700 dark:text-red-300"
-  },
-  refunded: {
-    label: "Estornado",
-    className: "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-  }
-} as const;
-
-function UsageHistorySection({ items }: { items: AiUsageHistoryItem[] }) {
-  return (
-    <section className="glass rounded-[34px] p-5 md:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-cobalt">Histórico</p>
-          <h2 className="mt-2 text-2xl font-semibold">Uso de créditos</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/64">
-            Registro de todas as ações que consumiram créditos de IA, incluindo estornos automáticos
-            em caso de erro.
-          </p>
-        </div>
-        <Clock3 className="text-cobalt" size={20} aria-hidden="true" />
-      </div>
-
-      {items.length > 0 ? (
-        <div className="mt-6 space-y-3">
-          {items.map((item) => {
-            const status = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.failed;
-            const date = new Date(item.createdAt);
-
-            return (
-              <div
-                className="flex flex-col gap-2 rounded-[22px] border border-white/50 bg-white/58 p-4 dark:border-white/10 dark:bg-white/5 sm:flex-row sm:items-center sm:justify-between"
-                key={item.id}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-ink dark:text-cloud">
-                    {item.featureLabel}
-                  </p>
-                  <p className="mt-1 text-xs text-ink/54 dark:text-cloud/54">
-                    {date.toLocaleDateString("pt-BR")} às{" "}
-                    {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                    {item.errorMessage ? ` · ${item.errorMessage}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-1 text-xs font-semibold",
-                      status.className
-                    )}
-                  >
-                    {status.label}
-                  </span>
-                  <span
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-semibold",
-                      item.status === "refunded"
-                        ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                        : item.status === "success"
-                          ? "bg-ink text-cloud"
-                          : "bg-red-500/10 text-red-700 dark:text-red-300"
-                    )}
-                  >
-                    {item.status === "refunded" ? "+" : "-"}
-                    {item.creditsCharged}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="mt-6 text-sm leading-6 text-ink/58">Nenhum uso de créditos registrado ainda.</p>
-      )}
-    </section>
-  );
-}

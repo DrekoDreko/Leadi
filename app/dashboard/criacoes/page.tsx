@@ -23,6 +23,7 @@ const primaryCreations = [
     description: "Veja o historico dos anuncios e retome campanhas ja preparadas.",
     href: "/dashboard/anuncios",
     icon: Megaphone,
+    iconClass: "text-emerald-500",
     tone: "bg-surface-elevated text-foreground ring-1 ring-border/70"
   },
   {
@@ -85,7 +86,7 @@ export default async function CriacoesPage() {
               <span
                 className={`inline-flex h-14 w-14 items-center justify-center rounded-[22px] ${item.tone}`}
               >
-                <item.icon size={24} aria-hidden="true" />
+                <item.icon size={24} aria-hidden="true" className={item.iconClass} />
               </span>
               <h2 className="mt-6 text-2xl font-semibold leading-tight">{item.title}</h2>
               <p className="text-muted-soft mt-3 leading-7">{item.description}</p>

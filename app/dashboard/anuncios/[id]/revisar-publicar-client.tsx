@@ -81,10 +81,11 @@ export function RevisarPublicarClient({
     copy.description !== savedCopy.description ||
     copy.callToAction !== savedCopy.callToAction;
 
-  const alreadyPublished =
-    Boolean(campaign.metaCampaignId) ||
-    campaign.publicationStatus === "published" ||
-    campaign.publicationStatus === "paused";
+  // So existe na Meta quem tem meta_campaign_id. Tanto "published" quanto "paused"
+  // reais sempre carregam esse id (gravados juntos no fluxo de publish), entao ele e
+  // o unico sinal honesto de "ja publicado". Checar publicationStatus="paused" sem id
+  // dava falso-positivo para campanhas geradas em modo pausado mas nunca enviadas.
+  const alreadyPublished = Boolean(campaign.metaCampaignId);
 
   const approvalOk =
     campaign.approvalStatus === "approved" || campaign.approvalStatus === "not_required";

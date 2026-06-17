@@ -1,6 +1,11 @@
 # Leadi
 
-Leadi é uma plataforma para corretores e equipes de vendas de planos de saúde organizarem seus leads, criarem campanhas, publicarem anúncios na Meta e fecharem mais negócios. Reúne num só lugar a captação de contatos, o acompanhamento do funil de vendas, a criação de conteúdo com inteligência artificial, o envio de mensagens por WhatsApp e a gestão da equipe.
+> 🚀 **Fase de testes — estamos começando!**
+> O Leadi já está no ar e entrou na fase de testes para o lançamento. As funcionalidades principais estão prontas e em validação com os primeiros usuários. É o momento de usar, testar e nos ajudar a apontar melhorias antes da abertura ao público.
+
+**Leadi** é um SaaS (software por assinatura) que reúne, num só lugar, tudo o que um corretor ou uma equipe de vendas de planos de saúde precisa para vender mais: captar leads, organizar o funil, criar campanhas e conteúdo com inteligência artificial, publicar anúncios na Meta (Facebook/Instagram), conversar pelo WhatsApp e acompanhar os resultados da equipe.
+
+Em vez de espalhar o trabalho entre planilhas, grupos de WhatsApp e o Gerenciador de Anúncios da Meta, o corretor passa a operar tudo de um único painel — da chegada do lead até o fechamento da venda.
 
 ## Acesso
 

@@ -311,10 +311,11 @@ function resolvePublicationStatus(input: {
     return "pending_review";
   }
 
-  if (input.publishMode === "paused") {
-    return "paused";
-  }
-
+  // "paused" e o modo de publicacao escolhido (intencao), guardado em publish_mode.
+  // No momento da geracao nada foi para a Meta ainda, entao publication_status NAO
+  // pode ser "paused" (esse estado significa "pausada na Meta de verdade" e so e
+  // gravado pelo fluxo de publish junto com meta_campaign_id). Antes disso a campanha
+  // esta apenas pronta para preparar/publicar.
   return "ready_to_prepare";
 }
 

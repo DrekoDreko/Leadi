@@ -209,7 +209,7 @@ export function ManagerDashboard({
              {subscriptionNotice?.message ?? "Controle de assinatura centralizado. Para alterar planos, cartões ou visualizar notas fiscais, acesse a área de billing."}
            </p>
            <div className="mt-5">
-             <Link href={subscriptionNotice?.actionHref ?? "/checkout"} className="inline-flex items-center gap-2 text-sm font-semibold text-cobalt hover:underline">
+             <Link href={subscriptionNotice?.actionHref ?? "/dashboard/perfil"} className="inline-flex items-center gap-2 text-sm font-semibold text-cobalt hover:underline">
                {subscriptionNotice?.actionLabel ?? "Gerenciar Assinatura e Billing"} <ArrowUpRight size={16} />
              </Link>
            </div>
