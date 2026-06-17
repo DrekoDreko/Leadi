@@ -145,10 +145,12 @@ export default async function RevisarPublicarPage({ params }: RevisarPublicarPag
           leadFormName
         }}
         creativeImages={creativeImages}
+        statusCard={
+          campaign.metaCampaignId ? (
+            <CampaignStatusCard status={publicationStatus} effectiveStatus={effectiveStatus} />
+          ) : null
+        }
       />
-      {campaign.metaCampaignId ? (
-        <CampaignStatusCard status={publicationStatus} effectiveStatus={effectiveStatus} />
-      ) : null}
     </div>
   );
 }

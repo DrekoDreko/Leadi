@@ -1,12 +1,15 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  ClipboardCheck,
+  BarChart3,
+  MessageSquareText,
   Megaphone,
   Palette,
-  Sparkles
+  Sparkles,
+  Target
 } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
+import { ComingSoonCard } from "@/components/dashboard/coming-soon-card";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { SupportCard } from "./support-card";
 
@@ -23,8 +26,7 @@ const primaryCreations = [
     description: "Veja o historico dos anuncios e retome campanhas ja preparadas.",
     href: "/dashboard/anuncios",
     icon: Megaphone,
-    iconClass: "text-emerald-500",
-    tone: "bg-surface-elevated text-foreground ring-1 ring-border/70"
+    tone: "bg-emerald-500 text-white"
   },
   {
     title: "IA Gerador de Criativo",
@@ -36,12 +38,6 @@ const primaryCreations = [
 ];
 
 const secondaryCreations = [
-  {
-    title: "Validador de texto",
-    description: "Revise textos de anuncio, formulario e mensagem antes de publicar.",
-    href: "/dashboard/criacoes/compliance",
-    icon: ClipboardCheck
-  },
   {
     title: "Solicitar criativo à equipe de design",
     description: "Abra um briefing para a nossa equipe de design criar o material (sem IA).",
@@ -86,7 +82,7 @@ export default async function CriacoesPage() {
               <span
                 className={`inline-flex h-14 w-14 items-center justify-center rounded-[22px] ${item.tone}`}
               >
-                <item.icon size={24} aria-hidden="true" className={item.iconClass} />
+                <item.icon size={24} aria-hidden="true" />
               </span>
               <h2 className="mt-6 text-2xl font-semibold leading-tight">{item.title}</h2>
               <p className="text-muted-soft mt-3 leading-7">{item.description}</p>
@@ -114,6 +110,41 @@ export default async function CriacoesPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
+          <ComingSoonCard
+            title="Qualificador de Leads com IA"
+            description="Triagem automatica do lead (cidade, vidas, interesse) com pontuacao e proxima acao sugerida."
+            icon={Target}
+            modal={{
+              title: "Qualificador de Leads com IA",
+              icon: Target,
+              description: (
+                <>
+                  Estamos validando o interesse nesta funcionalidade antes do lancamento
+                  oficial. Sua participacao e fundamental!
+                </>
+              ),
+              features: [
+                {
+                  icon: Target,
+                  title: "Triagem automatica",
+                  description:
+                    "A IA le as respostas do formulario e pontua o lead por cidade, numero de vidas e interesse."
+                },
+                {
+                  icon: MessageSquareText,
+                  title: "Primeira mensagem pronta",
+                  description:
+                    "Recebe uma mensagem de WhatsApp de qualificacao ja escrita e dentro das regras de compliance."
+                },
+                {
+                  icon: BarChart3,
+                  title: "Proxima acao sugerida",
+                  description:
+                    "O lead volta para o funil com score, o que falta qualificar e a recomendacao de follow-up."
+                }
+              ]
+            }}
+          />
           {secondaryCreations.map((item) => (
             <Link
               className="group surface-card-muted flex min-h-[190px] flex-col justify-between rounded-[26px] p-5 transition hover:-translate-y-1 hover:border-cobalt/18 hover:bg-surface-elevated"

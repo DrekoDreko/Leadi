@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   ImageIcon,
   Loader2,
@@ -45,12 +44,14 @@ export function RevisarPublicarClient({
   campaign,
   initialReview,
   metaAssets,
-  creativeImages
+  creativeImages,
+  statusCard
 }: {
   campaign: CampaignHistoryItem;
   initialReview: ReviewLike;
   metaAssets: MetaAssets;
   creativeImages: Array<{ url: string; filename: string }>;
+  statusCard?: React.ReactNode;
 }) {
   const router = useRouter();
 
@@ -219,15 +220,9 @@ export function RevisarPublicarClient({
         eyebrow="Anúncios"
         title="Revisar e publicar"
         description="Revise o texto, confira os ativos vinculados ao Meta e publique a campanha em modo pausado."
-      >
-        <Link
-          className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
-          href="/dashboard/anuncios"
-        >
-          <ArrowLeft size={16} aria-hidden="true" />
-          Voltar
-        </Link>
-      </PageHeading>
+      />
+
+      {statusCard}
 
       {error ? (
         <div className="flex items-start gap-3 rounded-[24px] border border-red-200/70 bg-red-50/80 p-4 text-sm text-red-800">
@@ -540,12 +535,8 @@ export function RevisarPublicarClient({
             </div>
             <div className="text-center">
               <p className="text-lg font-semibold text-ink">Publicando campanha...</p>
-              <p className="mt-1 text-sm text-ink/55">Gerando textos e preparando a campanha na Leadi.</p>
+              <p className="mt-1 text-sm text-ink/55">Enviando informações para a Meta.</p>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-cobalt/15 bg-cobalt/5 px-4 py-2 text-sm text-cobalt">
-              <Loader2 className="animate-spin" size={14} />
-              Aguarde...
-            </span>
           </div>
         </div>
       ) : null}
