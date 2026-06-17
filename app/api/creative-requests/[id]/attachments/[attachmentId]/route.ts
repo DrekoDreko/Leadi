@@ -4,6 +4,8 @@ import {
   isCreativeRequestSetupErrorMessage
 } from "@/lib/creative-requests/errors";
 import { getCreativeRequestAttachmentDownloadUrlForCurrentUser } from "@/lib/creative-requests/repository.server";
+import { RateLimitError } from "@/lib/rate-limit";
+import { assertRouteRateLimit } from "@/lib/api/route-security";
 
 type RouteContext = {
   params: Promise<{
@@ -12,13 +14,24 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   try {
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-creative-request-attachment-download",
+      limit: 30,
+      windowMs: 60 * 1000
+    });
+
     const { id, attachmentId } = await context.params;
     const signedUrl = await getCreativeRequestAttachmentDownloadUrlForCurrentUser(id, attachmentId);
 
     return NextResponse.redirect(signedUrl);
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error(error);
 
     return NextResponse.json(

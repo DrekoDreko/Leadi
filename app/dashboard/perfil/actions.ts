@@ -16,7 +16,7 @@ export type CreateLeadWebhookTokenActionState = {
 export async function updateBrokerageNameAction(formData: FormData) {
   const brokerageName = String(formData.get("brokerageName") ?? "").trim();
 
-  if (!brokerageName) {
+  if (!brokerageName || brokerageName.length > 120) {
     redirect("/dashboard/perfil?brokerage=missing");
   }
 
@@ -98,7 +98,7 @@ export async function createLeadWebhookTokenAction(
     };
   }
 
-  const label = String(formData.get("label") ?? "").trim();
+  const label = String(formData.get("label") ?? "").trim().slice(0, 120);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user }

@@ -25,6 +25,8 @@ import {
   mapAbacatePayEventToStatus,
   mapAbacatePayEventStatus,
 } from "@/lib/billing/abacatepay";
+import { isAbacatePayWebhookSecretConfigured } from "@/lib/billing/config";
+import { logger } from "@/lib/logger";
 import { EnvValidationError } from "@/lib/env/server";
 import { assertPayloadSize, PayloadTooLargeError } from "@/lib/payload-limits";
 import {
@@ -47,8 +49,21 @@ export async function POST(request: Request) {
     const bodyText = await request.text();
 
     const signature = request.headers.get("x-webhook-signature") ?? "";
-    if (signature && !verifyAbacatePayWebhookSignature(bodyText, signature)) {
-      return jsonError("Assinatura do webhook invalida.", 401);
+    if (isAbacatePayWebhookSecretConfigured()) {
+      // Segredo configurado: assinatura valida e obrigatoria.
+      if (!verifyAbacatePayWebhookSignature(bodyText, signature)) {
+        return jsonError("Assinatura do webhook invalida.", 401);
+      }
+    } else {
+      // Sem segredo configurado ainda (migracao). Mantem comportamento legado,
+      // mas registra para visibilidade ate que ABACATE_PAY_WEBHOOK_SECRET seja definido.
+      logger.info({
+        route: "/api/billing/webhooks/abacatepay",
+        operation: "ABACATEPAY_WEBHOOK_SIGNATURE_SKIPPED",
+        message:
+          "ABACATE_PAY_WEBHOOK_SECRET nao configurado: webhook processado sem verificacao de assinatura.",
+        data: { hasSignatureHeader: Boolean(signature) }
+      });
     }
 
     let bodyPayload: unknown = {};

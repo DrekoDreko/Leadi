@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { listMetaLeadImportSourcesForCurrentUser } from "@/lib/meta/manual-lead-import.server";
 import { logger } from "@/lib/logger";
+import { RateLimitError } from "@/lib/rate-limit";
+import { assertRouteRateLimit } from "@/lib/api/route-security";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-meta-leads-sources-get",
+      limit: 60,
+      windowMs: 60 * 1000
+    });
+
     const state = await listMetaLeadImportSourcesForCurrentUser();
     const status = state.mode === "unauthenticated" ? 401 : 200;
 
@@ -16,6 +25,10 @@ export async function GET() {
 
     return NextResponse.json(state, { status });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     logger.error(
       {
         route: "/api/meta/leads/sources",

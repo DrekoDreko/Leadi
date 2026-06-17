@@ -12,10 +12,14 @@ type SetupResult =
 export async function completeInviteSetupAction(formData: FormData): Promise<SetupResult> {
   const fullName = String(formData.get("fullName") ?? "").trim();
   const teamName = String(formData.get("teamName") ?? "").trim();
-  const role = String(formData.get("role") ?? "seller");
+  const role = formData.get("role") === "admin" ? "admin" : "seller";
 
-  if (!fullName) {
+  if (!fullName || fullName.length > 160) {
     return { ok: false, error: "Informe seu nome completo." };
+  }
+
+  if (teamName.length > 120) {
+    return { ok: false, error: "O nome da equipe e muito longo." };
   }
 
   if (role === "admin" && !teamName) {

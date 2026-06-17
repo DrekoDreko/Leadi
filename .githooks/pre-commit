@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+#
+# Hook anti-segredos: bloqueia commit de arquivos .env e de padroes que parecem
+# chaves/segredos. Ative com:  git config core.hooksPath .githooks
+#
+set -euo pipefail
+
+staged_files="$(git diff --cached --name-only --diff-filter=ACM)"
+
+if [ -z "$staged_files" ]; then
+  exit 0
+fi
+
+fail=0
+
+# 1) Nunca commitar arquivos de ambiente (exceto .env.example).
+while IFS= read -r file; do
+  case "$file" in
+    .env.example) ;;
+    .env|.env.*|*/.env|*/.env.*)
+      echo "🚫 Bloqueado: arquivo de ambiente nao deve ser commitado: $file"
+      fail=1
+      ;;
+  esac
+done <<< "$staged_files"
+
+# 2) Padroes de segredos no conteudo staged.
+#    sk-/sk_live/sk_test = OpenAI/Stripe; AKIA = AWS; eyJ = JWT (anon/service_role);
+#    palavras-chave de service role.
+secret_regex='(sk-[A-Za-z0-9_-]{16,}|sk_(live|test)_[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16}|SUPABASE_SERVICE_ROLE_KEY\s*=\s*ey|service_role.*ey[A-Za-z0-9])'
+
+while IFS= read -r file; do
+  case "$file" in
+    .env.example|*.md|.githooks/*) continue ;;
+  esac
+  [ -f "$file" ] || continue
+
+  if git show ":$file" 2>/dev/null | grep -nEq "$secret_regex"; then
+    echo "🚫 Possivel segredo detectado em: $file"
+    git show ":$file" 2>/dev/null | grep -nE "$secret_regex" | sed 's/\(.\{80\}\).*/\1.../' || true
+    fail=1
+  fi
+done <<< "$staged_files"
+
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "Commit bloqueado pelo hook anti-segredos (.githooks/pre-commit)."
+  echo "Se for um falso-positivo, ajuste o padrao ou use 'git commit --no-verify'."
+  exit 1
+fi
+
+exit 0

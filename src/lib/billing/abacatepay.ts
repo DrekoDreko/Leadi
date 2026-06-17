@@ -6,12 +6,10 @@ import { requireIntegrationEnv } from "@/lib/env/server";
 import {
   getAbacatePayApiKey,
   getAbacatePayReturnUrl,
+  getAbacatePayWebhookSecret,
 } from "./config";
 
 const ABACATEPAY_API_BASE = "https://api.abacatepay.com/v2";
-
-const ABACATEPAY_PUBLIC_KEY =
-  "t9dXRhHHo3yDEj5pVDYz0frf7q6bMKyMRmxxCPIPp3RCplBfXRxqlC6ZpiWmOqj4L63qEaeUOtrCI8P0VMUgo6iIga2ri9ogaHFs0WIIywSMg0q7RmBfybe1E5XJcfC4IW3alNqym0tXoAKkzvfEjZxV6bE0oG2zJrNNYmUCKZyV0KZ3JS8Votf9EAWWYdiDkMkpbMdPggfh1EqHlVkMiTady6jOR3hyzGEHrIz2Ret0xHKMbiqkr9HS1JhNHDX9";
 
 export type AbacatePayCheckoutInput = {
   title: string;
@@ -310,8 +308,11 @@ export function verifyAbacatePayWebhookSignature(
 ): boolean {
   if (!signatureHeader) return false;
 
+  const secret = getAbacatePayWebhookSecret();
+  if (!secret) return false;
+
   const expected = crypto
-    .createHmac("sha256", ABACATEPAY_PUBLIC_KEY)
+    .createHmac("sha256", secret)
     .update(Buffer.from(rawBody, "utf8"))
     .digest("base64");
 

@@ -9,6 +9,14 @@ export function getAbacatePayApiKey() {
   return getServerEnv("ABACATE_PAY_API_KEY");
 }
 
+export function getAbacatePayWebhookSecret() {
+  return getServerEnv("ABACATE_PAY_WEBHOOK_SECRET");
+}
+
+export function isAbacatePayWebhookSecretConfigured() {
+  return Boolean(getAbacatePayWebhookSecret());
+}
+
 export function isBillingConfigured() {
   return isIntegrationConfigured("billing");
 }

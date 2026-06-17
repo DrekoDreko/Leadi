@@ -48,6 +48,10 @@ export const ENV_VARIABLES = {
     description: "Chave server-side do AbacatePay para pagamentos e assinaturas.",
     public: false
   },
+  ABACATE_PAY_WEBHOOK_SECRET: {
+    description: "Segredo HMAC do AbacatePay para validar a assinatura dos webhooks de pagamento.",
+    public: false
+  },
   INTEGRATIONS_SECRET_KEY: {
     description: "Chave opcional para cifrar tokens e API keys das contas conectadas.",
     public: false

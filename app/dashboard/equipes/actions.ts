@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import {
   reassignTeamMember,
   deactivateTeamWithMembersForCurrentUser,
@@ -15,6 +16,14 @@ import { getCurrentWorkspaceContext } from "@/lib/workspaces/context";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+const uuidSchema = z.string().uuid();
+const optionalUuidSchema = z.string().uuid().nullable();
+const teamNameSchema = z.string().trim().min(1).max(120);
+
+function parseUuid(value: FormDataEntryValue | null) {
+  return uuidSchema.safeParse(typeof value === "string" ? value : "");
+}
+
 export async function reassignMemberAction(formData: FormData) {
   const context = await getCurrentWorkspaceContext();
 
@@ -22,23 +31,26 @@ export async function reassignMemberAction(formData: FormData) {
     return { error: "Apenas o gestor pode reorganizar equipes." };
   }
 
-  const profileId = formData.get("profileId") as string;
-  const fromTeamId = (formData.get("fromTeamId") as string) || null;
-  const toTeamId = (formData.get("toTeamId") as string) || null;
-
-  if (!profileId) {
+  const parsedProfile = parseUuid(formData.get("profileId"));
+  if (!parsedProfile.success) {
     return { error: "Membro não informado." };
   }
 
-  if (fromTeamId === toTeamId) {
+  const fromTeamId = optionalUuidSchema.safeParse((formData.get("fromTeamId") as string) || null);
+  const toTeamId = optionalUuidSchema.safeParse((formData.get("toTeamId") as string) || null);
+  if (!fromTeamId.success || !toTeamId.success) {
+    return { error: "Equipe invalida." };
+  }
+
+  if (fromTeamId.data === toTeamId.data) {
     return { error: "O membro já pertence a essa equipe." };
   }
 
   try {
     await reassignTeamMember({
-      profileId,
-      fromTeamId,
-      toTeamId,
+      profileId: parsedProfile.data,
+      fromTeamId: fromTeamId.data,
+      toTeamId: toTeamId.data,
       organizationId: context.workspace.id,
       actorProfileId: context.profile.id
     });
@@ -58,13 +70,13 @@ export async function deactivateTeamAction(formData: FormData) {
     return { error: "Apenas o gestor pode desativar equipes." };
   }
 
-  const teamId = formData.get("teamId") as string;
-  if (!teamId) {
+  const parsedTeam = parseUuid(formData.get("teamId"));
+  if (!parsedTeam.success) {
     return { error: "Equipe não informada." };
   }
 
   try {
-    await deactivateTeamWithMembersForCurrentUser(teamId);
+    await deactivateTeamWithMembersForCurrentUser(parsedTeam.data);
     revalidatePath("/dashboard/equipes");
     return { success: true };
   } catch (error) {
@@ -80,13 +92,13 @@ export async function deactivateMemberAction(formData: FormData) {
     return { error: "Apenas o gestor pode desativar membros." };
   }
 
-  const profileId = formData.get("profileId") as string;
-  if (!profileId) {
+  const parsedProfile = parseUuid(formData.get("profileId"));
+  if (!parsedProfile.success) {
     return { error: "Membro não informado." };
   }
 
   try {
-    await startMemberDeactivationForCurrentUser(profileId);
+    await startMemberDeactivationForCurrentUser(parsedProfile.data);
     revalidatePath("/dashboard/equipes");
     return { success: true };
   } catch (error) {
@@ -102,13 +114,13 @@ export async function reactivateMemberAction(formData: FormData) {
     return { error: "Apenas o gestor pode reativar membros." };
   }
 
-  const profileId = formData.get("profileId") as string;
-  if (!profileId) {
+  const parsedProfile = parseUuid(formData.get("profileId"));
+  if (!parsedProfile.success) {
     return { error: "Membro não informado." };
   }
 
   try {
-    await reactivateMemberForCurrentUser(profileId);
+    await reactivateMemberForCurrentUser(parsedProfile.data);
     revalidatePath("/dashboard/equipes");
     return { success: true };
   } catch (error) {
@@ -124,14 +136,14 @@ export async function updateTeamNameAction(formData: FormData) {
     return { error: "Apenas o gestor pode editar equipes." };
   }
 
-  const teamId = formData.get("teamId") as string;
-  const name = formData.get("name") as string;
-  if (!teamId || !name) {
+  const parsedTeam = parseUuid(formData.get("teamId"));
+  const parsedName = teamNameSchema.safeParse(formData.get("name"));
+  if (!parsedTeam.success || !parsedName.success) {
     return { error: "Equipe ou nome não informados." };
   }
 
   try {
-    await updateTeamForCurrentUser(teamId, { name });
+    await updateTeamForCurrentUser(parsedTeam.data, { name: parsedName.data });
     revalidatePath("/dashboard/equipes");
     return { success: true };
   } catch (error) {
@@ -147,13 +159,13 @@ export async function promoteMemberAction(formData: FormData) {
     return { error: "Apenas o gestor pode promover membros." };
   }
 
-  const profileId = formData.get("profileId") as string;
-  if (!profileId) {
+  const parsedProfile = parseUuid(formData.get("profileId"));
+  if (!parsedProfile.success) {
     return { error: "Membro não informado." };
   }
 
   try {
-    await promoteToSupervisorForCurrentUser(profileId);
+    await promoteToSupervisorForCurrentUser(parsedProfile.data);
     revalidatePath("/dashboard/equipes");
     return { success: true };
   } catch (error) {
@@ -169,13 +181,13 @@ export async function demoteSupervisorAction(formData: FormData) {
     return { error: "Apenas o gestor pode rebaixar supervisores." };
   }
 
-  const profileId = formData.get("profileId") as string;
-  if (!profileId) {
+  const parsedProfile = parseUuid(formData.get("profileId"));
+  if (!parsedProfile.success) {
     return { error: "Membro não informado." };
   }
 
   try {
-    await demoteSupervisorForCurrentUser(profileId);
+    await demoteSupervisorForCurrentUser(parsedProfile.data);
     revalidatePath("/dashboard/equipes");
     return { success: true };
   } catch (error) {
@@ -185,11 +197,13 @@ export async function demoteSupervisorAction(formData: FormData) {
 }
 
 export async function updateWorkspaceNameAction(formData: FormData) {
-  const workspaceName = String(formData.get("workspaceName") ?? "").trim();
+  const parsedName = teamNameSchema.safeParse(formData.get("workspaceName"));
 
-  if (!workspaceName) {
+  if (!parsedName.success) {
     return { ok: false as const, error: "Informe o nome da corretora." };
   }
+
+  const workspaceName = parsedName.data;
 
   if (!isSupabaseConfigured()) {
     return { ok: true as const };
@@ -218,14 +232,14 @@ export async function changeTeamSupervisorAction(formData: FormData) {
     return { error: "Apenas o gestor pode alterar o supervisor." };
   }
 
-  const teamId = formData.get("teamId") as string;
-  const newSupervisorProfileId = formData.get("newSupervisorProfileId") as string;
-  if (!teamId || !newSupervisorProfileId) {
+  const parsedTeam = parseUuid(formData.get("teamId"));
+  const parsedSupervisor = parseUuid(formData.get("newSupervisorProfileId"));
+  if (!parsedTeam.success || !parsedSupervisor.success) {
     return { error: "Equipe ou novo supervisor não informados." };
   }
 
   try {
-    await changeTeamSupervisorForCurrentUser(teamId, newSupervisorProfileId);
+    await changeTeamSupervisorForCurrentUser(parsedTeam.data, parsedSupervisor.data);
     revalidatePath("/dashboard/equipes");
     return { success: true };
   } catch (error) {

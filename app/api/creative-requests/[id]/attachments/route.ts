@@ -6,6 +6,7 @@ import {
 import { addCreativeRequestAttachmentForCurrentUser } from "@/lib/creative-requests/repository.server";
 import { PayloadTooLargeError, validateFilePayloadSize } from "@/lib/payload-limits";
 import { assertRouteRateLimit, assertSameOrigin } from "@/lib/api/route-security";
+import { assertAllowedUploadType, InvalidUploadTypeError } from "@/lib/uploads/validation";
 
 type RouteContext = {
   params: Promise<{
@@ -31,6 +32,7 @@ export async function POST(request: Request, context: RouteContext) {
       throw new Error("Selecione um arquivo para anexar.");
     }
 
+    assertAllowedUploadType(uploadedFile, "ATTACHMENT");
     validateFilePayloadSize(uploadedFile, "ATTACHMENT");
 
     const creativeRequest = await addCreativeRequestAttachmentForCurrentUser(id, uploadedFile);
@@ -83,7 +85,7 @@ function getCreativeRequestAttachmentErrorMessage(error: unknown) {
 }
 
 function getCreativeRequestAttachmentErrorStatus(error: unknown) {
-  if (error instanceof PayloadTooLargeError) {
+  if (error instanceof PayloadTooLargeError || error instanceof InvalidUploadTypeError) {
     return error.status;
   }
 

@@ -7,19 +7,32 @@ import {
   ensureSubWallet
 } from "@/lib/ai/wallets.server";
 import { getCurrentWorkspaceContext } from "@/lib/workspaces/context";
+import {
+  assertRouteRateLimit,
+  assertSameOrigin,
+  ApiRouteError,
+  getErrorStatus
+} from "@/lib/api/route-security";
 
 const allocateSchema = z.object({
   fromWalletId: z.string().uuid(),
   toWalletId: z.string().uuid().optional(),
-  amount: z.number().int().positive(),
-  reason: z.string().min(1),
+  amount: z.number().int().positive().max(100_000_000),
+  reason: z.string().min(1).max(500),
   walletType: z.enum(["team", "user"]).optional(),
   teamId: z.string().uuid().optional(),
   targetUserId: z.string().uuid().optional()
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-credits-wallets-get",
+      limit: 60,
+      windowMs: 60 * 1000
+    });
+
     const supabase = await createSupabaseServerClient();
     const {
       data: { user }
@@ -32,6 +45,9 @@ export async function GET() {
     const wallets = await getAccessibleWallets();
     return NextResponse.json({ wallets });
   } catch (error) {
+    if (error instanceof ApiRouteError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("Erro ao buscar wallets:", error);
     return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 });
   }
@@ -39,6 +55,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-credits-wallets-allocate",
+      limit: 10,
+      windowMs: 60 * 1000
+    });
+    assertSameOrigin(request);
+
     const supabase = await createSupabaseServerClient();
     const {
       data: { user }
@@ -56,7 +80,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => {
+      throw new ApiRouteError(400, "Payload JSON invalido.");
+    });
     const result = allocateSchema.safeParse(body);
 
     if (!result.success) {
@@ -114,8 +140,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, allocation });
   } catch (error: unknown) {
+    if (error instanceof ApiRouteError) {
+      return NextResponse.json({ error: error.message }, { status: getErrorStatus(error) });
+    }
+
     console.error("Erro ao alocar créditos:", error);
-    
+
     if (error instanceof Error && "code" in error && error.code === "insufficient_credits") {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }

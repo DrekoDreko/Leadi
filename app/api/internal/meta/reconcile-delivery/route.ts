@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerEnv } from "@/lib/env/server";
 import { reconcileAllPublishedCampaigns } from "@/lib/meta/delivery-status.server";
+import { RateLimitError } from "@/lib/rate-limit";
+import { assertRouteRateLimit } from "@/lib/api/route-security";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,6 +13,21 @@ export const runtime = "nodejs";
 // Bearer. Pensada para ser chamada por um agendador (Supabase pg_cron + pg_net,
 // cron da hospedagem, ou similar).
 export async function POST(request: Request) {
+  // Limite defensivo por IP: protege contra abuso caso o CRON_SECRET vaze.
+  try {
+    await assertRouteRateLimit({
+      request,
+      keyPrefix: "api-internal-meta-reconcile",
+      limit: 10,
+      windowMs: 60 * 1000
+    });
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
+  }
+
   const configuredSecret = getServerEnv("CRON_SECRET");
   if (!configuredSecret) {
     return NextResponse.json(

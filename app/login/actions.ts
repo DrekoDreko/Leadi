@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { getAuthCallbackOrigin } from "@/lib/site/config";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { assertActionRateLimit } from "@/lib/api/action-security";
+import { RateLimitError } from "@/lib/rate-limit";
+
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 export async function signInAction(formData: FormData) {
   const next = getSafeRedirectPath(formData.get("next"));
@@ -15,6 +19,32 @@ export async function signInAction(formData: FormData) {
 
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+
+  if (email.length > 320 || password.length > 200) {
+    redirect(buildLoginErrorUrl("invalid-credentials", next, "login"));
+  }
+
+  try {
+    // Protege contra brute force por IP e contra ataque direcionado a uma conta.
+    await assertActionRateLimit({
+      keyPrefix: "action-signin-ip",
+      limit: 5,
+      windowMs: RATE_LIMIT_WINDOW_MS
+    });
+    if (email) {
+      await assertActionRateLimit({
+        keyPrefix: "action-signin-email",
+        limit: 10,
+        windowMs: 10 * RATE_LIMIT_WINDOW_MS,
+        suffix: email.toLowerCase()
+      });
+    }
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      redirect(buildLoginErrorUrl("too-many-requests", next, "login"));
+    }
+    throw error;
+  }
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth
@@ -41,7 +71,24 @@ export async function signUpAction(formData: FormData) {
 
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const fullName = String(formData.get("fullName") ?? "").trim();
+  const fullName = String(formData.get("fullName") ?? "").trim().slice(0, 160);
+
+  if (email.length > 320 || password.length > 200) {
+    redirect(buildLoginErrorUrl("signup-failed", next, "signup"));
+  }
+
+  try {
+    await assertActionRateLimit({
+      keyPrefix: "action-signup-ip",
+      limit: 3,
+      windowMs: RATE_LIMIT_WINDOW_MS
+    });
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      redirect(buildLoginErrorUrl("too-many-requests", next, "signup"));
+    }
+    throw error;
+  }
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth
@@ -75,6 +122,19 @@ export async function signInWithGoogleAction(formData: FormData) {
 
   if (!isSupabaseConfigured()) {
     redirect(buildLoginErrorUrl("supabase-not-configured", next, mode));
+  }
+
+  try {
+    await assertActionRateLimit({
+      keyPrefix: "action-oauth-google",
+      limit: 10,
+      windowMs: RATE_LIMIT_WINDOW_MS
+    });
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      redirect(buildLoginErrorUrl("too-many-requests", next, mode));
+    }
+    throw error;
   }
 
   const supabase = await createSupabaseServerClient();

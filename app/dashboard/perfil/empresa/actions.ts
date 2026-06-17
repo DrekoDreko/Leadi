@@ -2,9 +2,28 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizeWorkspaceRole } from "@/lib/workspaces/permissions";
+import { getSafeExtensionForMime } from "@/lib/uploads/validation";
+
+const organizationProfileSchema = z.object({
+  email: z.string().email("E-mail invalido.").max(160).nullable(),
+  phone: z.string().max(40).nullable(),
+  website: z.string().max(200).nullable(),
+  cnpj: z.string().max(20).nullable(),
+  description: z.string().max(2000).nullable(),
+  instagram: z.string().max(200).nullable(),
+  linkedin: z.string().max(200).nullable(),
+  address_cep: z.string().max(20).nullable(),
+  address_street: z.string().max(200).nullable(),
+  address_number: z.string().max(20).nullable(),
+  address_complement: z.string().max(200).nullable(),
+  address_neighborhood: z.string().max(120).nullable(),
+  address_city: z.string().max(120).nullable(),
+  address_state: z.string().max(60).nullable()
+});
 
 const REVALIDATE_PATHS = [
   "/dashboard",
@@ -69,9 +88,14 @@ export async function updateOrganizationProfileAction(formData: FormData) {
     })
   ) as typeof fields;
 
+  const parsed = organizationProfileSchema.safeParse(trimmed);
+  if (!parsed.success) {
+    redirect("/dashboard/perfil/empresa?feedback=invalid");
+  }
+
   const { error } = await auth.supabase
     .from("organizations")
-    .update(trimmed)
+    .update(parsed.data)
     .eq("id", auth.profile.organization_id);
 
   if (error) {
@@ -111,7 +135,7 @@ export async function uploadOrganizationLogoAction(formData: FormData) {
     redirect("/dashboard/perfil/empresa?feedback=too-large");
   }
 
-  const ext = file.type.split("/")[1] === "jpeg" ? "jpg" : file.type.split("/")[1];
+  const ext = getSafeExtensionForMime(file.type);
   const storagePath = `${auth.profile.organization_id}/logo.${ext}`;
 
   const { error: uploadError } = await auth.supabase.storage

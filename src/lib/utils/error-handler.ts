@@ -20,6 +20,7 @@ const ERROR_MAP: Record<string, string> = {
   "oauth-callback-failed": "Houve um problema ao processar seu login social. Tente novamente ou use e-mail/senha.",
   "oauth-failed": "Não conseguimos iniciar o acesso com o Google. Tente novamente em instantes.",
   "supabase-not-configured": "O sistema está em modo de demonstração. Algumas funções de banco de dados podem estar limitadas.",
+  "too-many-requests": "Muitas tentativas em pouco tempo. Aguarde um instante e tente novamente.",
   "User already registered": "Este e-mail já está cadastrado. Tente fazer login ou recupere sua senha.",
   "Invalid login credentials": "E-mail ou senha incorretos.",
   
