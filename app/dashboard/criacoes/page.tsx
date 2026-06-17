@@ -1,17 +1,9 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  BarChart3,
-  MessageSquareText,
-  Megaphone,
-  Palette,
-  Sparkles,
-  Target
-} from "lucide-react";
+import { ArrowRight, Megaphone, Palette, Sparkles } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
-import { ComingSoonCard } from "@/components/dashboard/coming-soon-card";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { SupportCard } from "./support-card";
+import { QualificadorComingSoonCard } from "./qualificador-coming-soon-card";
 
 const primaryCreations = [
   {
@@ -110,41 +102,7 @@ export default async function CriacoesPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <ComingSoonCard
-            title="Qualificador de Leads com IA"
-            description="Triagem automatica do lead (cidade, vidas, interesse) com pontuacao e proxima acao sugerida."
-            icon={Target}
-            modal={{
-              title: "Qualificador de Leads com IA",
-              icon: Target,
-              description: (
-                <>
-                  Estamos validando o interesse nesta funcionalidade antes do lancamento
-                  oficial. Sua participacao e fundamental!
-                </>
-              ),
-              features: [
-                {
-                  icon: Target,
-                  title: "Triagem automatica",
-                  description:
-                    "A IA le as respostas do formulario e pontua o lead por cidade, numero de vidas e interesse."
-                },
-                {
-                  icon: MessageSquareText,
-                  title: "Primeira mensagem pronta",
-                  description:
-                    "Recebe uma mensagem de WhatsApp de qualificacao ja escrita e dentro das regras de compliance."
-                },
-                {
-                  icon: BarChart3,
-                  title: "Proxima acao sugerida",
-                  description:
-                    "O lead volta para o funil com score, o que falta qualificar e a recomendacao de follow-up."
-                }
-              ]
-            }}
-          />
+          <QualificadorComingSoonCard />
           {secondaryCreations.map((item) => (
             <Link
               className="group surface-card-muted flex min-h-[190px] flex-col justify-between rounded-[26px] p-5 transition hover:-translate-y-1 hover:border-cobalt/18 hover:bg-surface-elevated"
