@@ -8,7 +8,7 @@ import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabas
 import { buildMetaBillingUrl } from "@/lib/meta/campaign-controls.server";
 import { reconcileCampaignDeliveryStatus } from "@/lib/meta/delivery-status.server";
 import { RevisarPublicarClient } from "./revisar-publicar-client";
-import { CampaignDeliveryControls } from "./campaign-delivery-controls";
+import { CampaignDeliveryControls, CampaignStatusCard } from "./campaign-delivery-controls";
 
 type RevisarPublicarPageProps = {
   params: Promise<{ id: string }>;
@@ -146,6 +146,9 @@ export default async function RevisarPublicarPage({ params }: RevisarPublicarPag
         }}
         creativeImages={creativeImages}
       />
+      {campaign.metaCampaignId ? (
+        <CampaignStatusCard status={publicationStatus} effectiveStatus={effectiveStatus} />
+      ) : null}
     </div>
   );
 }

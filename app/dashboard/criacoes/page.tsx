@@ -26,8 +26,8 @@ const primaryCreations = [
     tone: "bg-surface-elevated text-foreground ring-1 ring-border/70"
   },
   {
-    title: "Solicitacao de criativo",
-    description: "Abra um briefing para arte, imagem, video ou outro material ligado a campanha.",
+    title: "IA Gerador de Criativo",
+    description: "Gerador de imagens para anuncio com IA a partir do seu briefing.",
     href: "/dashboard/criacoes/solicitar",
     icon: Palette,
     tone: "bg-signal text-accent-foreground"
@@ -55,7 +55,7 @@ export default async function CriacoesPage() {
 
   // Consultor só acessa a solicitação de criativo (sem IA Gerador nem validadores).
   const visiblePrimary = isConsultant
-    ? primaryCreations.filter((item) => item.title === "Solicitacao de criativo")
+    ? primaryCreations.filter((item) => item.title === "IA Gerador de Criativo")
     : context.isOwner
       ? primaryCreations
       : primaryCreations.filter((item) => item.title !== "Anuncios criados");

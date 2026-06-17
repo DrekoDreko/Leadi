@@ -502,10 +502,12 @@ export function RevisarPublicarClient({
               <div className="mt-3 space-y-3">
                 <p className="flex items-start gap-2 rounded-[16px] border border-emerald-200/70 bg-emerald-50/70 p-3 text-xs leading-5 text-emerald-800">
                   <CheckCircle2 className="mt-0.5 shrink-0" size={14} aria-hidden="true" />
-                  Esta campanha já foi publicada no Meta
-                  {campaign.metaCampaignId ? ` (ID ${campaign.metaCampaignId})` : ""}. Pause, ative ou
-                  ajuste o orçamento pelo painel <strong>Controle do anúncio</strong>, no topo desta
-                  página — sem precisar abrir o Gerenciador de Anúncios.
+                  <span>
+                    Esta campanha já foi publicada no Meta
+                    {campaign.metaCampaignId ? ` (ID ${campaign.metaCampaignId})` : ""}. Pause, ative
+                    ou ajuste o orçamento pelo painel <strong>Controle do anúncio</strong>, no topo
+                    desta página — sem precisar abrir o Gerenciador de Anúncios.
+                  </span>
                 </p>
                 <Link
                   href={`/dashboard/anuncios/${campaign.id}/desempenho`}
