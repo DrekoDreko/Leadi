@@ -436,8 +436,7 @@ export async function getAccessibleAiCreditsForUser(
   profileId: string | null | undefined
 ): Promise<number> {
   if (!orgId || !profileId || !hasSupabaseServiceRole()) {
-    const balance = await getAiBalanceForOrganization(orgId);
-    return balance.availableCredits;
+    return sumAccessibleWalletCredits(orgId, profileId);
   }
 
   const admin = createSupabaseAdminClient();
@@ -447,11 +446,62 @@ export async function getAccessibleAiCreditsForUser(
   });
 
   if (error || data == null) {
-    const balance = await getAiBalanceForOrganization(orgId);
-    return balance.availableCredits;
+    return sumAccessibleWalletCredits(orgId, profileId);
   }
 
   return Math.max(0, Number(data));
+}
+
+/**
+ * Fallback degradado para o saldo acessível: soma apenas as carteiras do próprio
+ * usuário (pessoal + equipes ativas). Nunca inclui o pool da organização — que é
+ * exclusivo do owner — para evitar exibir o saldo da corretora a um consultor.
+ * Em qualquer falha, retorna 0 (conservador).
+ */
+async function sumAccessibleWalletCredits(
+  orgId: string,
+  profileId: string | null | undefined
+): Promise<number> {
+  if (!orgId || !profileId || !hasSupabaseServiceRole()) {
+    return 0;
+  }
+
+  try {
+    const admin = createSupabaseAdminClient();
+
+    const { data: teamRows } = await admin
+      .from("team_members")
+      .select("team_id")
+      .eq("organization_id", orgId)
+      .eq("profile_id", profileId)
+      .eq("status", "active");
+
+    const teamIds = new Set((teamRows ?? []).map((row) => row.team_id as string));
+
+    const { data: walletRows } = await admin
+      .from("credit_wallets")
+      .select("available_credits,wallet_type,profile_id,team_id")
+      .eq("organization_id", orgId);
+
+    return (walletRows ?? []).reduce((total, row) => {
+      const wallet = row as {
+        available_credits: number | null;
+        wallet_type: string | null;
+        profile_id: string | null;
+        team_id: string | null;
+      };
+      const isUserWallet = wallet.wallet_type === "user" && wallet.profile_id === profileId;
+      const isTeamWallet =
+        wallet.wallet_type === "team" && wallet.team_id != null && teamIds.has(wallet.team_id);
+
+      if (isUserWallet || isTeamWallet) {
+        return total + Math.max(0, Number(wallet.available_credits ?? 0));
+      }
+      return total;
+    }, 0);
+  } catch {
+    return 0;
+  }
 }
 
 export async function ensureSufficientCreditsForUser({

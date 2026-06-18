@@ -10,7 +10,12 @@ import {
   getCampaignActivitySummaryForCurrentUser,
   getCampaignsForCurrentUser
 } from "@/lib/campaigns/repository.server";
-import { getAiUsageThisPeriod, getCurrentAiBalance, getCurrentAiBalanceDetails } from "@/lib/ai/credits";
+import {
+  getAccessibleAiCreditsForUser,
+  getAiUsageThisPeriod,
+  getCurrentAiBalance,
+  getCurrentAiBalanceDetails
+} from "@/lib/ai/credits";
 import {
   getWhatsAppDeliverySummaryForCurrentUser,
   getWhatsAppMessagesCountForCurrentUser
@@ -96,6 +101,13 @@ export default async function DashboardPage() {
   const isSupervisorDashboard = context.isAdmin && context.workspaceType === "team";
   const isConsultantDashboard = context.isTeamSeller;
 
+  // Para supervisor/consultor o saldo de IA é o que está nas carteiras do próprio
+  // usuário (pessoal + equipes), não o pool da corretora — que é exclusivo do owner.
+  const userAiBalance =
+    isSupervisorDashboard || isConsultantDashboard
+      ? await getAccessibleAiCreditsForUser(context.workspace?.id ?? "", context.profile?.id ?? null)
+      : aiBalance;
+
   if (isManagerDashboard) {
     const pendingCreditRequestsCount = creditRequests?.filter(r => r.status === "pending").length ?? 0;
     
@@ -129,7 +141,7 @@ export default async function DashboardPage() {
 
     return (
       <SupervisorDashboard
-        aiBalance={aiBalance}
+        aiBalance={userAiBalance}
         leads={leadState.leads}
         campaignsCount={campaignState.campaigns.length}
         campaignActivitySummary={campaignActivitySummary}
@@ -151,7 +163,7 @@ export default async function DashboardPage() {
   if (isConsultantDashboard) {
     return (
       <ConsultantDashboard
-        aiBalance={aiBalance}
+        aiBalance={userAiBalance}
         leads={leadState.leads}
         dashboardReminders={reminderState.reminders}
         overdueTasks={overdueTasks}
