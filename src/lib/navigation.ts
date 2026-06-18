@@ -32,6 +32,7 @@ export function getDashboardNavItems(variant: DashboardNavVariant) {
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Leads da Equipe", href: "/dashboard/leads", icon: UsersRound },
       { label: "Créditos da Equipe", href: "/dashboard/perfil/creditos", icon: Coins },
+      { label: "Distribuir Créditos", href: "/dashboard/equipes/creditos", icon: Network },
       { label: "Simulador", href: "/dashboard/simulador", icon: Calculator }
     ];
   }

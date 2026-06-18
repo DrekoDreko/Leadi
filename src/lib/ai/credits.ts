@@ -256,7 +256,66 @@ export type AiUsageHistoryItem = {
   status: AiUsageEventStatus;
   errorMessage: string | null;
   createdAt: string;
+  actorId: string | null;
+  actorName: string | null;
 };
+
+/**
+ * Resolve quais user_ids o usuario atual pode ver no historico de uso de creditos.
+ * - owner: toda a organizacao (sem filtro de autor; vê o gasto de toda a equipe e o seu).
+ * - admin (supervisor): apenas os consultores das suas equipes + ele mesmo.
+ *   Nao enxerga o gasto do owner nem de outros supervisores.
+ * - seller (consultor): apenas o proprio gasto.
+ *
+ * Retorna `null` quando nao deve haver filtro por autor (caso owner).
+ */
+async function resolveUsageHistoryActorScope(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  profile: { id: string; organization_id: string; role: string }
+): Promise<string[] | null> {
+  if (profile.role === "owner") {
+    return null;
+  }
+
+  if (profile.role !== "admin") {
+    // Consultor (seller) ou qualquer outro papel: somente o proprio gasto.
+    return [profile.id];
+  }
+
+  // Supervisor: equipes ativas das quais ele participa.
+  const { data: memberships } = await admin
+    .from("team_members")
+    .select("team_id")
+    .eq("organization_id", profile.organization_id)
+    .eq("profile_id", profile.id)
+    .eq("status", "active");
+
+  const teamIds = [
+    ...new Set((memberships ?? []).map((row) => row.team_id).filter(Boolean))
+  ];
+
+  if (teamIds.length === 0) {
+    return [profile.id];
+  }
+
+  // Consultores ativos dessas equipes.
+  const { data: consultants } = await admin
+    .from("team_members")
+    .select("profile_id")
+    .eq("organization_id", profile.organization_id)
+    .eq("role", "consultant")
+    .eq("status", "active")
+    .in("team_id", teamIds);
+
+  const actorIds = new Set<string>([profile.id]);
+  for (const row of consultants ?? []) {
+    if (row.profile_id) {
+      actorIds.add(row.profile_id);
+    }
+  }
+
+  return [...actorIds];
+}
 
 export async function getAiUsageHistory(limit = 50): Promise<AiUsageHistoryItem[]> {
   if (!isSupabaseConfigured()) {
@@ -274,36 +333,82 @@ export async function getAiUsageHistory(limit = 50): Promise<AiUsageHistoryItem[
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("organization_id")
+    .select("id,organization_id,role")
     .eq("auth_user_id", user.id)
     .single();
 
-  if (!profile?.organization_id || !hasSupabaseServiceRole()) {
+  if (!profile?.organization_id || !profile.id || !hasSupabaseServiceRole()) {
     return [];
   }
 
   const admin = createSupabaseAdminClient();
-  const { data, error } = await admin
+
+  const actorScope = await resolveUsageHistoryActorScope(admin, {
+    id: profile.id,
+    organization_id: profile.organization_id,
+    role: profile.role
+  });
+
+  let query = admin
     .from("ai_usage_events")
-    .select("id,feature,credits_charged,status,error_message,created_at")
+    .select("id,feature,credits_charged,status,error_message,created_at,user_id")
     .eq("org_id", profile.organization_id)
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (actorScope) {
+    if (actorScope.length === 0) {
+      return [];
+    }
+    query = query.in("user_id", actorScope);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) {
     return [];
   }
 
-  return data.map((row) => ({
-    id: row.id as string,
-    feature: row.feature as string,
-    featureLabel:
-      AI_FEATURE_LABELS[row.feature as AiFeatureKey] ?? row.feature,
-    creditsCharged: Number(row.credits_charged ?? 0),
-    status: row.status as AiUsageEventStatus,
-    errorMessage: (row.error_message as string) ?? null,
-    createdAt: row.created_at as string
-  }));
+  // Para owner/supervisor, anexa o nome de quem consumiu para distinguir os gastos.
+  // O consultor ve apenas o proprio historico, entao nao precisa do rotulo.
+  let actorNames = new Map<string, string>();
+  if (profile.role === "owner" || profile.role === "admin") {
+    const actorIds = [
+      ...new Set(
+        data
+          .map((row) => row.user_id as string | null)
+          .filter((id): id is string => Boolean(id))
+      )
+    ];
+
+    if (actorIds.length > 0) {
+      const { data: profiles } = await admin
+        .from("profiles")
+        .select("id,full_name")
+        .in("id", actorIds);
+
+      actorNames = new Map(
+        (profiles ?? [])
+          .filter((row) => row.id)
+          .map((row) => [row.id as string, (row.full_name as string | null)?.trim() || ""])
+      );
+    }
+  }
+
+  return data.map((row) => {
+    const actorId = (row.user_id as string | null) ?? null;
+    return {
+      id: row.id as string,
+      feature: row.feature as string,
+      featureLabel: AI_FEATURE_LABELS[row.feature as AiFeatureKey] ?? row.feature,
+      creditsCharged: Number(row.credits_charged ?? 0),
+      status: row.status as AiUsageEventStatus,
+      errorMessage: (row.error_message as string) ?? null,
+      createdAt: row.created_at as string,
+      actorId,
+      actorName: actorId ? actorNames.get(actorId) || null : null
+    };
+  });
 }
 
 export async function ensureSufficientCredits(orgId: string, requiredCredits: number) {
@@ -321,6 +426,97 @@ export async function ensureSufficientCredits(orgId: string, requiredCredits: nu
   return balance.availableCredits;
 }
 
+/**
+ * Total de créditos que o usuário pode efetivamente gastar:
+ * carteira pessoal + carteiras das equipes ativas + pool da organização.
+ * Espelha a cascata de consumo da RPC `consume_ai_credits_for_user`.
+ */
+export async function getAccessibleAiCreditsForUser(
+  orgId: string,
+  profileId: string | null | undefined
+): Promise<number> {
+  if (!orgId || !profileId || !hasSupabaseServiceRole()) {
+    const balance = await getAiBalanceForOrganization(orgId);
+    return balance.availableCredits;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await rpcUntyped(admin).rpc("accessible_ai_credits", {
+    target_org_id: orgId,
+    p_profile_id: profileId
+  });
+
+  if (error || data == null) {
+    const balance = await getAiBalanceForOrganization(orgId);
+    return balance.availableCredits;
+  }
+
+  return Math.max(0, Number(data));
+}
+
+export async function ensureSufficientCreditsForUser({
+  orgId,
+  profileId,
+  required
+}: {
+  orgId: string;
+  profileId: string | null | undefined;
+  required: number;
+}) {
+  validateCreditAmount(required);
+
+  const available = await getAccessibleAiCreditsForUser(orgId, profileId);
+
+  if (available < required) {
+    throw new AiCreditsError(
+      "Você não possui créditos de IA suficientes para executar esta ação.",
+      "insufficient_credits"
+    );
+  }
+
+  return available;
+}
+
+/**
+ * Estorna uma operação revertendo exatamente os níveis debitados
+ * (carteira pessoal/equipe e/ou pool da org). Idempotente por operationId.
+ */
+export async function refundAiCreditsForUser({
+  orgId,
+  profileId,
+  operationId,
+  reason,
+  metadata
+}: {
+  orgId: string;
+  profileId: string | null | undefined;
+  operationId: string;
+  reason?: string | null;
+  metadata?: Json | null;
+}) {
+  assertAiStorageConfigured();
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await rpcUntyped(admin).rpc("refund_ai_credits_for_user", {
+    target_org_id: orgId,
+    p_profile_id: profileId ?? null,
+    p_reason: reason ?? null,
+    p_operation_id: operationId,
+    p_metadata: metadata ?? {}
+  });
+
+  if (error) {
+    throw mapAiStorageError(error.message);
+  }
+
+  const result = getSingleRowResult(data);
+
+  return {
+    newBalance: Number(result?.new_balance ?? 0),
+    refunded: Number(result?.refunded ?? 0)
+  };
+}
+
 export async function consumeAiCredits({
   orgId,
   userId,
@@ -334,6 +530,33 @@ export async function consumeAiCredits({
   assertAiStorageConfigured();
 
   const admin = createSupabaseAdminClient();
+
+  // Com usuário identificado, o consumo respeita a cascata de carteiras
+  // (pessoal -> equipes ativas -> pool da org). Sem usuário, mantém o
+  // consumo org-level legado.
+  if (userId) {
+    const { data, error } = await rpcUntyped(admin).rpc("consume_ai_credits_for_user", {
+      target_org_id: orgId,
+      p_profile_id: userId,
+      amount,
+      p_reason: reason,
+      p_reference_type: referenceType ?? null,
+      p_reference_id: referenceId ?? null,
+      p_metadata: metadata ?? {}
+    });
+
+    if (error) {
+      throw mapAiStorageError(error.message);
+    }
+
+    const result = getSingleRowResult(data);
+
+    return {
+      newBalance: Number(result?.new_balance ?? 0),
+      ledgerId: String(result?.ledger_id ?? "")
+    };
+  }
+
   const { data, error } = await admin.rpc("consume_ai_credits", {
     target_org_id: orgId,
     amount,
@@ -510,7 +733,9 @@ export async function runAiActionWithCredits<T>({
 }) {
   const credits = getAiCreditCost(feature);
   const apiKey = requirePlatformOpenAIKey();
-  const availableCredits = await ensureSufficientCredits(orgId, credits);
+  const availableCredits = userId
+    ? await ensureSufficientCreditsForUser({ orgId, profileId: userId, required: credits })
+    : await ensureSufficientCredits(orgId, credits);
   const operationId = crypto.randomUUID();
   const reservation = await consumeAiCredits({
     orgId,
@@ -573,24 +798,39 @@ export async function runAiActionWithCredits<T>({
     });
 
     try {
-      const refund = await addAiCredits({
-        orgId,
-        userId,
-        amount: credits,
-        type: "refund",
-        reason: errorMessage ? `Estorno: ${errorMessage}` : "Estorno de créditos de IA",
-        metadata: buildAiMetadata({
-          description,
-          ledger_source: "refund",
-          metadata,
-          reservedCredits: credits,
-          availableCredits,
-          failedAt: new Date().toISOString(),
-          operationId
-        }),
-        referenceType: "ai_usage_refund",
-        referenceId: operationId
-      });
+      const refund = userId
+        ? await refundAiCreditsForUser({
+            orgId,
+            profileId: userId,
+            operationId,
+            reason: errorMessage ? `Estorno: ${errorMessage}` : "Estorno de créditos de IA",
+            metadata: buildAiMetadata({
+              description,
+              ledger_source: "refund",
+              metadata,
+              reservedCredits: credits,
+              failedAt: new Date().toISOString(),
+              operationId
+            })
+          })
+        : await addAiCredits({
+            orgId,
+            userId,
+            amount: credits,
+            type: "refund",
+            reason: errorMessage ? `Estorno: ${errorMessage}` : "Estorno de créditos de IA",
+            metadata: buildAiMetadata({
+              description,
+              ledger_source: "refund",
+              metadata,
+              reservedCredits: credits,
+              availableCredits,
+              failedAt: new Date().toISOString(),
+              operationId
+            }),
+            referenceType: "ai_usage_refund",
+            referenceId: operationId
+          });
 
       await logAiUsageEvent({
         orgId,
@@ -663,6 +903,22 @@ function getAiLedgerSourceForFeature(feature: AiFeatureKey) {
     default:
       return "legacy";
   }
+}
+
+type UntypedRpcClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+};
+
+/**
+ * Permite chamar RPCs ainda nao refletidas nos tipos gerados do banco
+ * (consume/refund wallet-aware), seguindo o mesmo padrao usado em
+ * grantSubscriptionIncludedAiCredits.
+ */
+function rpcUntyped(admin: ReturnType<typeof createSupabaseAdminClient>): UntypedRpcClient {
+  return admin as unknown as UntypedRpcClient;
 }
 
 function getSingleRowResult(data: unknown) {

@@ -97,6 +97,7 @@ const stageToneByValue: Record<LeadStageValue, StageTone> = {
 export function SalesFunnelWorkspace({
   aiBalance,
   canManageLeadOwners,
+  canReorderLeads = true,
   createLeadAccess,
   leadState,
   leadFilters,
@@ -105,6 +106,7 @@ export function SalesFunnelWorkspace({
 }: {
   aiBalance: number;
   canManageLeadOwners: boolean;
+  canReorderLeads?: boolean;
   createLeadAccess: ResourceAccessSummary;
   leadState: LeadDataState;
   leadFilters: LeadUrlFilters;
@@ -275,7 +277,7 @@ export function SalesFunnelWorkspace({
   }
 
   function handleDragStart(event: DragEvent<HTMLElement>, lead: Lead) {
-    if (!(lead.canEdit ?? true)) {
+    if (!canReorderLeads || !(lead.canEdit ?? true)) {
       event.preventDefault();
       return;
     }
@@ -287,6 +289,10 @@ export function SalesFunnelWorkspace({
   }
 
   function handleDragOver(event: DragEvent<HTMLElement>, stage: LeadStageValue) {
+    if (!canReorderLeads) {
+      return;
+    }
+
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
     setActiveDropStage(stage);
@@ -304,6 +310,13 @@ export function SalesFunnelWorkspace({
 
   function handleDrop(event: DragEvent<HTMLElement>, nextStage: LeadStageValue) {
     event.preventDefault();
+
+    if (!canReorderLeads) {
+      setDraggedLeadId(null);
+      setActiveDropStage(null);
+      return;
+    }
+
     const leadId = event.dataTransfer.getData("text/plain") || draggedLeadId;
     const lead = leads.find((currentLead) => currentLead.id === leadId);
 
@@ -325,7 +338,7 @@ export function SalesFunnelWorkspace({
   async function handleLeadStageChange(lead: Lead, nextStage: LeadStageValue) {
     const nextStageLabel = getLeadStageLabel(nextStage);
 
-    if (getLeadStageValue(lead.stage) === nextStage || updatingLeadIds.has(lead.id)) {
+    if (!canReorderLeads || getLeadStageValue(lead.stage) === nextStage || updatingLeadIds.has(lead.id)) {
       return;
     }
 
@@ -426,7 +439,7 @@ export function SalesFunnelWorkspace({
                 Funil de vendas
               </span>
               <span className="inline-flex items-center gap-2 rounded-full bg-surface-elevated/90 px-3 py-1.5 text-xs font-semibold text-foreground ring-1 ring-border/70">
-                Quadro drag and drop com popup de lead
+                {canReorderLeads ? "Quadro drag and drop com popup de lead" : "Quadro de leitura com popup de lead"}
               </span>
             </div>
             <h1 className="max-w-4xl text-3xl font-semibold tracking-tight md:text-4xl xl:text-[2.8rem]">
@@ -577,11 +590,14 @@ export function SalesFunnelWorkspace({
             <div className="max-w-3xl">
               <p className="text-sm font-medium text-cobalt">Pipeline operacional</p>
               <h2 className="mt-2 text-3xl font-semibold md:text-[2.2rem]">
-                Arraste os cards ou abra o lead para agir na conversa
+                {canReorderLeads
+                  ? "Arraste os cards ou abra o lead para agir na conversa"
+                  : "Abra o lead para acompanhar cada etapa da conversa"}
               </h2>
               <p className="mt-3 text-sm leading-6 text-ink/62">
-                O card inteiro abre o popup do cliente. Os controles rápidos continuam disponíveis
-                para ligacao, abertura do lead e mudanca de etapa.
+                {canReorderLeads
+                  ? "O card inteiro abre o popup do cliente. Os controles rápidos continuam disponíveis para ligacao, abertura do lead e mudanca de etapa."
+                  : "O card inteiro abre o popup do cliente para consulta. A movimentação entre etapas fica a cargo da equipe comercial."}
               </p>
             </div>
 
@@ -646,6 +662,7 @@ export function SalesFunnelWorkspace({
                           <FunnelLeadCard
                             active={draggedLeadId === lead.id}
                             canManageLeadOwners={canManageLeadOwners}
+                            canReorderLeads={canReorderLeads}
                             key={lead.id}
                             lead={lead}
                             onDragEnd={handleDragEnd}
@@ -664,7 +681,9 @@ export function SalesFunnelWorkspace({
 
                         {column.cards.length === 0 && (
                           <div className="surface-card flex flex-1 items-center justify-center rounded-[24px] border border-dashed border-border/55 p-6 text-center text-sm font-medium leading-6 text-muted-soft">
-                            Solte um lead aqui para marcar como {column.label.toLowerCase()}.
+                            {canReorderLeads
+                              ? `Solte um lead aqui para marcar como ${column.label.toLowerCase()}.`
+                              : `Nenhum lead em ${column.label.toLowerCase()}.`}
                           </div>
                         )}
                       </div>
@@ -714,6 +733,7 @@ export function SalesFunnelWorkspace({
 function FunnelLeadCard({
   active,
   canManageLeadOwners,
+  canReorderLeads,
   lead,
   onDragEnd,
   onDragStart,
@@ -723,6 +743,7 @@ function FunnelLeadCard({
 }: {
   active: boolean;
   canManageLeadOwners: boolean;
+  canReorderLeads: boolean;
   lead: Lead;
   onDragEnd: () => void;
   onDragStart: (event: DragEvent<HTMLElement>, lead: Lead) => void;
@@ -731,6 +752,7 @@ function FunnelLeadCard({
   pending: boolean;
 }) {
   const canEditLead = lead.canEdit ?? true;
+  const canDragLead = canReorderLeads && canEditLead;
   const phoneHref = buildPhoneHref(lead.phone);
   const stalledState = getLeadStalledState(lead);
   
@@ -746,8 +768,14 @@ function FunnelLeadCard({
         active
           ? "scale-[0.98] opacity-50"
           : "hover:-translate-y-0.5 hover:border-border hover:shadow-md"
-      } ${canEditLead ? "cursor-grab active:cursor-grabbing" : "cursor-default opacity-72"}`}
-      draggable={canEditLead && !pending}
+      } ${
+        canDragLead
+          ? "cursor-grab active:cursor-grabbing"
+          : canEditLead
+            ? "cursor-pointer"
+            : "cursor-default opacity-72"
+      }`}
+      draggable={canDragLead && !pending}
       onClick={() => onLeadOpen(lead)}
       onDragEnd={onDragEnd}
       onDragStart={(event) => onDragStart(event, lead)}
@@ -777,13 +805,15 @@ function FunnelLeadCard({
             </span>
           ) : null}
         </div>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-foreground ring-1 ring-border/70">
-          {pending ? (
+        {pending ? (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-foreground ring-1 ring-border/70">
             <Loader2 className="animate-spin" size={16} aria-hidden="true" />
-          ) : (
+          </span>
+        ) : canDragLead ? (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-foreground ring-1 ring-border/70">
             <GripVertical size={16} aria-hidden="true" />
-          )}
-        </span>
+          </span>
+        ) : null}
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-3">

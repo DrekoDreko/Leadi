@@ -18,6 +18,7 @@ type CheckoutClientProps =
       billingCycle: "monthly" | "annual";
       amount: number;
       creditPackageSlug?: never;
+      initialPix?: never;
     }
   | {
       checkoutMode: "ai_credits";
@@ -25,9 +26,10 @@ type CheckoutClientProps =
       amount: number;
       billingCycle?: never;
       planSlug?: never;
+      initialPix?: PixData | null;
     };
 
-type PixData = {
+export type PixData = {
   orderId: string;
   transparentId: string;
   brCode: string;
@@ -44,9 +46,16 @@ type SubscriptionPending = {
 export function CheckoutClient(props: CheckoutClientProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pixData, setPixData] = useState<PixData | null>(null);
+  const [pixData, setPixData] = useState<PixData | null>(
+    props.checkoutMode === "ai_credits" ? props.initialPix ?? null : null
+  );
   const [subscriptionPending, setSubscriptionPending] =
     useState<SubscriptionPending | null>(null);
+
+  const newPixHref =
+    props.checkoutMode === "ai_credits"
+      ? `/checkout?mode=ai_credits&package=${encodeURIComponent(props.creditPackageSlug)}`
+      : "/dashboard/perfil/creditos";
 
   async function handleCheckout() {
     setError(null);
@@ -115,7 +124,7 @@ export function CheckoutClient(props: CheckoutClientProps) {
   }
 
   if (pixData) {
-    return <PixInlineCheckout pixData={pixData} />;
+    return <PixInlineCheckout pixData={pixData} newPixHref={newPixHref} />;
   }
 
   if (error) {
@@ -264,7 +273,7 @@ function SubscriptionWaiting({ pending }: { pending: SubscriptionPending }) {
   );
 }
 
-function PixInlineCheckout({ pixData }: { pixData: PixData }) {
+function PixInlineCheckout({ pixData, newPixHref }: { pixData: PixData; newPixHref: string }) {
   const [paymentStatus, setPaymentStatus] = useState<string>("PENDING");
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState("");
@@ -348,7 +357,7 @@ function PixInlineCheckout({ pixData }: { pixData: PixData }) {
         <div>
           <h3 className="text-lg font-semibold text-ink">Pagamento confirmado!</h3>
           <p className="mt-1 text-sm text-ink/60">
-            Os créditos já foram adicionados ao saldo da organização.
+            Os créditos já foram adicionados ao seu saldo pessoal.
           </p>
         </div>
         <a
@@ -371,7 +380,7 @@ function PixInlineCheckout({ pixData }: { pixData: PixData }) {
         </div>
         <a
           className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-cloud"
-          href={window.location.href}
+          href={newPixHref}
         >
           Gerar novo PIX
         </a>

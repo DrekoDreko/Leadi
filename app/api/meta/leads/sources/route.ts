@@ -3,6 +3,8 @@ import { listMetaLeadImportSourcesForCurrentUser } from "@/lib/meta/manual-lead-
 import { logger } from "@/lib/logger";
 import { RateLimitError } from "@/lib/rate-limit";
 import { assertRouteRateLimit } from "@/lib/api/route-security";
+import { getCurrentWorkspaceContext } from "@/lib/workspaces/context";
+import { can } from "@/lib/workspaces/permissions";
 
 export async function GET(request: Request) {
   try {
@@ -12,6 +14,20 @@ export async function GET(request: Request) {
       limit: 60,
       windowMs: 60 * 1000
     });
+
+    const context = await getCurrentWorkspaceContext();
+    if (context.mode === "supabase" && !can(context.role, "import_meta_leads")) {
+      return NextResponse.json(
+        {
+          mode: "supabase",
+          hasConnection: false,
+          canImport: false,
+          sources: [],
+          message: "Voce nao tem permissao para importar leads do Meta."
+        },
+        { status: 403 }
+      );
+    }
 
     const state = await listMetaLeadImportSourcesForCurrentUser();
     const status = state.mode === "unauthenticated" ? 401 : 200;

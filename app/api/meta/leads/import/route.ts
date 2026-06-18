@@ -45,8 +45,8 @@ export async function POST(request: Request) {
     await assertServerAuth();
     
     const context = await getCurrentWorkspaceContext();
-    if (context.mode === "supabase" && !can(context.role, "import_leads")) {
-      throw new ApiRouteError(403, "Voce nao tem permissao para importar leads.");
+    if (context.mode === "supabase" && !can(context.role, "import_meta_leads")) {
+      throw new ApiRouteError(403, "Voce nao tem permissao para importar leads do Meta.");
     }
 
     assertPayloadSize(request, "WEBHOOK_JSON");

@@ -17,7 +17,12 @@ vi.mock("@/lib/ai/credits", () => ({
 }));
 
 vi.mock("@/lib/ai/credit-orders.server", () => ({
-  getAiCreditPurchaseEligibilityForOrganization: vi.fn()
+  getAiCreditPurchaseEligibilityForOrganization: vi.fn(),
+  getLatestAiCreditOrderForUser: vi.fn().mockResolvedValue(null),
+  getAiCreditOrderPixDetails: vi.fn().mockReturnValue(null),
+  isAiCreditOrderPixExpired: vi.fn().mockReturnValue(false),
+  wasAiCreditOrderExpiryNotified: vi.fn().mockReturnValue(false),
+  updateAiCreditOrder: vi.fn().mockResolvedValue(null)
 }));
 
 describe("Perfil Créditos Page (/dashboard/perfil/creditos)", () => {
@@ -93,10 +98,10 @@ describe("Perfil Créditos Page (/dashboard/perfil/creditos)", () => {
       )
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
+      screen.queryByText(
         "Os créditos serão adicionados ao saldo da organização após a confirmação do pagamento."
       )
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Consumo por ação")).toBeInTheDocument();
     expect(screen.getByText("Mensagem com IA")).toBeInTheDocument();
     expect(screen.getByText("Campanha completa")).toBeInTheDocument();

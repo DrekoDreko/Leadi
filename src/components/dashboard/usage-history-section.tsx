@@ -74,9 +74,16 @@ export function UsageHistorySection({ items }: { items: AiUsageHistoryItem[] }) 
                   key={item.id}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-ink dark:text-cloud">
-                      {item.featureLabel}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-ink dark:text-cloud">
+                        {item.featureLabel}
+                      </p>
+                      {item.actorName ? (
+                        <span className="rounded-full bg-cobalt/10 px-2 py-0.5 text-[11px] font-medium text-cobalt dark:bg-cobalt/20">
+                          {item.actorName}
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="mt-1 text-xs text-ink/54 dark:text-cloud/54">
                       {date.toLocaleDateString("pt-BR")} às{" "}
                       {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}

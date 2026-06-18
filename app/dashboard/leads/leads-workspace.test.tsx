@@ -287,6 +287,7 @@ describe("LeadsWorkspace permissions", () => {
         canManageLeadOwners={false}
         canExportLeads={false}
         canImportLeads={false}
+        canImportMetaLeads={false}
         createLeadAccess={{ allowed: true } as never}
         initialLeadId={null}
         initialLeadPanel="details"
@@ -299,5 +300,27 @@ describe("LeadsWorkspace permissions", () => {
 
     expect(screen.queryByText("Importar leads Meta")).not.toBeInTheDocument();
     expect(screen.queryByText("Exportar CSV")).not.toBeInTheDocument();
+  });
+
+  it("permite importar CSV mas não importar do Meta para o supervisor", () => {
+    render(
+      <LeadsWorkspace
+        aiBalance={5}
+        canManageLeadOwners
+        canExportLeads={false}
+        canImportLeads
+        canImportMetaLeads={false}
+        createLeadAccess={{ allowed: true } as never}
+        initialLeadId={null}
+        initialLeadPanel="details"
+        leadFilters={defaultLeadUrlFilters}
+        leadOwnerOptions={mockLeadOwnerOptions}
+        leadState={createLeadState()}
+        whatsappTemplates={[]}
+      />
+    );
+
+    expect(screen.queryByText("Importar leads Meta")).not.toBeInTheDocument();
+    expect(screen.getByText("Importar CSV")).toBeInTheDocument();
   });
 });

@@ -86,6 +86,7 @@ export function LeadsWorkspace({
   canDistributeToSupervisors = false,
   canExportLeads = true,
   canImportLeads = true,
+  canImportMetaLeads = true,
   createLeadAccess,
   aiBalance,
   initialLeadId,
@@ -102,6 +103,7 @@ export function LeadsWorkspace({
   canDistributeToSupervisors?: boolean;
   canExportLeads?: boolean;
   canImportLeads?: boolean;
+  canImportMetaLeads?: boolean;
   createLeadAccess: ResourceAccessSummary;
   aiBalance: number;
   initialLeadId: string | null;
@@ -461,9 +463,9 @@ export function LeadsWorkspace({
         title={title}
         description="Lista dedicada para qualificar contatos, acompanhar responsáveis e priorizar próximos passos."
       >
-        {(canImportLeads || canExportLeads) && (
+        {(canImportLeads || canImportMetaLeads || canExportLeads) && (
           <div className="flex flex-wrap items-center gap-2">
-            {canImportLeads && (
+            {canImportMetaLeads && (
               <button
                 className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
                 onClick={() => setIsMetaImportOpen(true)}

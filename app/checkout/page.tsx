@@ -11,7 +11,14 @@ import {
   getAiCreditPackagePresentation,
   isAiCreditPackageSlug
 } from "@/lib/ai/credit-packages";
-import { getAiCreditPackageBySlug } from "@/lib/ai/credit-orders.server";
+import {
+  getAiCreditOrderById,
+  getAiCreditOrderPackageSlug,
+  getAiCreditOrderPixDetails,
+  getAiCreditPackageBySlug,
+  isAiCreditOrderPixExpired
+} from "@/lib/ai/credit-orders.server";
+import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import {
   buildPlanCheckoutPath,
   buildPlanSignupPath,
@@ -21,19 +28,29 @@ import {
 } from "@/lib/billing/checkout-flow";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { CheckoutClient } from "./checkout-client";
+import { CheckoutClient, type PixData } from "./checkout-client";
 
 type CheckoutMode = "plan" | "ai_credits";
 
 export default async function CheckoutPage({
   searchParams
 }: {
-  searchParams: Promise<{ plan?: string; cycle?: string; mode?: string; package?: string }>;
+  searchParams: Promise<{
+    plan?: string;
+    cycle?: string;
+    mode?: string;
+    package?: string;
+    resume?: string;
+  }>;
 }) {
   const params = await searchParams;
   const mode = resolveCheckoutMode(params);
 
   if (mode === "ai_credits") {
+    if (params.resume) {
+      return renderResumeCheckout(params.resume);
+    }
+
     const packageSlug = params.package;
 
     if (!packageSlug || !isAiCreditPackageSlug(packageSlug)) {
@@ -62,7 +79,7 @@ export default async function CheckoutPage({
     return (
       <CheckoutLayout
         eyebrow="Créditos de IA"
-        summaryDescription={`Compra de ${creditPackage.credits} créditos para o saldo da organização.`}
+        summaryDescription={`Compra de ${creditPackage.credits} créditos para o seu saldo pessoal.`}
         summaryItems={displayPackage.approximateUses}
         summaryLabel="Pacote"
         summaryPrice={formatAiCreditPackagePrice(creditPackage.priceCents)}
@@ -131,6 +148,72 @@ export default async function CheckoutPage({
         billingCycle={cycle}
         checkoutMode="plan"
         planSlug={planSlug}
+      />
+    </CheckoutLayout>
+  );
+}
+
+async function renderResumeCheckout(orderId: string) {
+  if (!isSupabaseConfigured()) {
+    redirect("/dashboard/perfil/creditos");
+  }
+
+  const billingContext = await getBillingAuthContext();
+
+  if (!billingContext) {
+    redirect("/login?next=/dashboard/perfil/creditos");
+  }
+
+  const order = await getAiCreditOrderById(orderId);
+
+  if (
+    !order ||
+    order.organizationId !== billingContext.organizationId ||
+    order.userId !== billingContext.profileId
+  ) {
+    redirect("/dashboard/perfil/creditos");
+  }
+
+  const packageSlug = getAiCreditOrderPackageSlug(order);
+  const pix = getAiCreditOrderPixDetails(order);
+
+  // Sem PIX recuperavel, expirado ou ja resolvido: manda gerar um novo.
+  if (order.status !== "pending" || !pix || isAiCreditOrderPixExpired(order)) {
+    redirect(
+      packageSlug && isAiCreditPackageSlug(packageSlug)
+        ? buildAiCreditsCheckoutPath(packageSlug)
+        : "/dashboard/perfil/creditos"
+    );
+  }
+
+  const slug = packageSlug && isAiCreditPackageSlug(packageSlug) ? packageSlug : null;
+  const creditPackage = slug ? await getAiCreditPackageBySlug(slug) : null;
+  const displayPackage = creditPackage ? getAiCreditPackagePresentation(creditPackage) : null;
+
+  const initialPix: PixData = {
+    orderId: order.id,
+    transparentId: pix.transparentId,
+    brCode: pix.brCode,
+    brCodeBase64: pix.brCodeBase64,
+    amount: pix.amount,
+    expiresAt: pix.expiresAt ?? ""
+  };
+
+  return (
+    <CheckoutLayout
+      eyebrow="Créditos de IA"
+      summaryDescription={`Compra de ${order.credits} créditos para o seu saldo pessoal.`}
+      summaryItems={displayPackage?.approximateUses ?? []}
+      summaryLabel="Pacote"
+      summaryPrice={formatAiCreditPackagePrice(order.amountCents)}
+      summaryTitle={displayPackage?.name ?? `${order.credits} créditos de IA`}
+      title="Concluir pagamento dos créditos"
+    >
+      <CheckoutClient
+        amount={order.amountCents / 100}
+        checkoutMode="ai_credits"
+        creditPackageSlug={slug ?? ""}
+        initialPix={initialPix}
       />
     </CheckoutLayout>
   );

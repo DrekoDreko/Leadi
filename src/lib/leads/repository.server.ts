@@ -583,11 +583,18 @@ export async function countUndistributedLeadsForCurrentUser(): Promise<number> {
     .from("leads")
     .select("*", { count: "exact", head: true })
     .eq("organization_id", profile.organization_id)
-    .is("archived_at", null)
-    .is("owner_profile_id", null);
+    .is("archived_at", null);
 
-  if (profile.role === "admin" && teamIds.length > 0) {
-    query = query.in("team_id", teamIds);
+  if (profile.role === "admin") {
+    // Para o supervisor, "sem responsavel" = lead ainda nao repassado a um consultor:
+    // sem dono (null) ou ainda atribuido ao proprio supervisor.
+    query = query.or(`owner_profile_id.is.null,owner_profile_id.eq.${profile.id}`);
+    if (teamIds.length > 0) {
+      query = query.in("team_id", teamIds);
+    }
+  } else {
+    // Para o owner, "sem responsavel" = lead sem dono.
+    query = query.is("owner_profile_id", null);
   }
 
   const { count, error } = await query;
@@ -2077,10 +2084,25 @@ function buildLeadQuery(
   query = applyLeadAccessScopeToQuery(query, accessScope, sellerProfileId);
 
   if (filters.view === "unassigned" && accessScope.role !== "seller") {
-    // Sem responsavel = lead sem dono. Distribuir a um supervisor ja define responsavel.
-    query = query.is("owner_profile_id", null);
+    if (accessScope.role === "admin") {
+      // Para o supervisor, "sem responsavel" = lead ainda nao repassado a um consultor:
+      // sem dono (null) ou ainda atribuido ao proprio supervisor.
+      query = query.or(
+        `owner_profile_id.is.null,owner_profile_id.eq.${accessScope.profileId}`
+      );
+    } else {
+      // Para o owner, "sem responsavel" = lead sem dono. Distribuir a um supervisor ja define responsavel.
+      query = query.is("owner_profile_id", null);
+    }
   } else if (filters.view === "distributed" && accessScope.role !== "seller") {
-    query = query.not("owner_profile_id", "is", null);
+    if (accessScope.role === "admin") {
+      // Para o supervisor, "distribuido" = ja atribuido a um consultor (diferente dele mesmo).
+      query = query
+        .not("owner_profile_id", "is", null)
+        .neq("owner_profile_id", accessScope.profileId);
+    } else {
+      query = query.not("owner_profile_id", "is", null);
+    }
   } else if (ownerProfileIdsFilter) {
     if (ownerProfileIdsFilter.includes("UNASSIGNED_FILTER_ID")) {
       query = query.is("owner_profile_id", null);
@@ -3162,6 +3184,12 @@ function getLeadOwnerLabel(
   ownerProfiles?: Map<string, ProfileRow>
 ) {
   if (!row.owner_profile_id) {
+    return "Sem responsavel";
+  }
+
+  // Para o supervisor, o lead so tem responsavel quando distribuido a um consultor.
+  // Enquanto estiver atribuido ao proprio supervisor, e considerado "sem responsavel".
+  if (profile && profile.role === "admin" && row.owner_profile_id === profile.id) {
     return "Sem responsavel";
   }
 

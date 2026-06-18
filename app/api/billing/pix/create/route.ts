@@ -82,7 +82,11 @@ export async function POST(request: Request) {
       providerPreferenceId: charge.id,
       metadata: {
         transparent_id: charge.id,
-        checkout_mode: "pix_transparent"
+        checkout_mode: "pix_transparent",
+        br_code: charge.brCode,
+        br_code_base64: charge.brCodeBase64,
+        pix_amount: charge.amount,
+        pix_expires_at: charge.expiresAt
       }
     });
 

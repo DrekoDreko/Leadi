@@ -198,14 +198,6 @@ export default async function PerfilPage({
         </article>
       </section>
 
-      {context.isOwner ? (
-        <PlanBillingCard
-          overview={billingOverview}
-          snapshot={billingSnapshot}
-          manageHref="/dashboard/perfil/creditos"
-        />
-      ) : null}
-
       <Link
         className="group flex items-center justify-between gap-4 glass-strong rounded-[34px] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_80px_rgba(18,23,33,0.14)]"
         href="/dashboard/leads"
@@ -327,6 +319,14 @@ export default async function PerfilPage({
           />
         </div>
       </section>
+
+      {context.isOwner ? (
+        <PlanBillingCard
+          overview={billingOverview}
+          snapshot={billingSnapshot}
+          manageHref="/dashboard/perfil/creditos"
+        />
+      ) : null}
     </div>
   );
 }

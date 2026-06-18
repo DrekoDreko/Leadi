@@ -151,6 +151,86 @@ export async function getAiCreditOrderById(orderId: string) {
   return data ? mapOrderRow(data as AiCreditOrderRow) : null;
 }
 
+export async function getLatestAiCreditOrderForUser(
+  organizationId: string,
+  userId: string
+): Promise<AiCreditOrder | null> {
+  if (!isSupabaseConfigured() || !hasSupabaseServiceRole()) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("ai_credit_orders")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data ? mapOrderRow(data as AiCreditOrderRow) : null;
+}
+
+export type AiCreditOrderPixDetails = {
+  transparentId: string;
+  brCode: string;
+  brCodeBase64: string;
+  amount: number;
+  expiresAt: string | null;
+};
+
+function readOrderMetadata(metadata: Json | null): Record<string, unknown> {
+  return metadata && typeof metadata === "object" && !Array.isArray(metadata)
+    ? (metadata as Record<string, unknown>)
+    : {};
+}
+
+export function getAiCreditOrderPixDetails(order: AiCreditOrder): AiCreditOrderPixDetails | null {
+  const meta = readOrderMetadata(order.metadata);
+  const transparentId =
+    typeof meta.transparent_id === "string" && meta.transparent_id
+      ? meta.transparent_id
+      : order.providerPreferenceId;
+  const brCode = typeof meta.br_code === "string" ? meta.br_code : "";
+  const brCodeBase64 = typeof meta.br_code_base64 === "string" ? meta.br_code_base64 : "";
+
+  if (!transparentId || !brCode || !brCodeBase64) {
+    return null;
+  }
+
+  const expiresAt = typeof meta.pix_expires_at === "string" ? meta.pix_expires_at : null;
+  const amount = typeof meta.pix_amount === "number" ? meta.pix_amount : order.amountCents;
+
+  return { transparentId, brCode, brCodeBase64, amount, expiresAt };
+}
+
+export function getAiCreditOrderPackageSlug(order: AiCreditOrder): string | null {
+  const meta = readOrderMetadata(order.metadata);
+  return typeof meta.package_slug === "string" && meta.package_slug ? meta.package_slug : null;
+}
+
+export function isAiCreditOrderPixExpired(order: AiCreditOrder, now = Date.now()): boolean {
+  const meta = readOrderMetadata(order.metadata);
+  const expiresAt = typeof meta.pix_expires_at === "string" ? meta.pix_expires_at : null;
+
+  if (!expiresAt) {
+    return false;
+  }
+
+  const expiresAtMs = new Date(expiresAt).getTime();
+
+  return Number.isFinite(expiresAtMs) && now >= expiresAtMs;
+}
+
+export function wasAiCreditOrderExpiryNotified(order: AiCreditOrder): boolean {
+  return readOrderMetadata(order.metadata).pix_expiry_notified === true;
+}
+
 export async function getAiCreditOrderByPaymentId(paymentId: string) {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin

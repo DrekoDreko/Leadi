@@ -26,6 +26,7 @@ export default async function SalesFunnelPage({ searchParams }: SalesFunnelPageP
     <SalesFunnelWorkspace
       aiBalance={aiBalance}
       canManageLeadOwners={workspaceContext.isManager}
+      canReorderLeads={!workspaceContext.isOwner}
       createLeadAccess={createLeadAccess}
       leadState={leadState}
       leadFilters={leadFilters}

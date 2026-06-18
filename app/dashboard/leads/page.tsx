@@ -44,6 +44,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
   const canExportLeads = workspaceContext.mode === "supabase" ? can(workspaceContext.role, "export_leads") : true;
   const canImportLeads = workspaceContext.mode === "supabase" ? can(workspaceContext.role, "import_leads") : true;
+  const canImportMetaLeads =
+    workspaceContext.mode === "supabase" ? can(workspaceContext.role, "import_meta_leads") : true;
 
   return (
     <LeadsWorkspace
@@ -56,6 +58,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       canDistributeToSupervisors={workspaceContext.isOwner}
       canExportLeads={canExportLeads}
       canImportLeads={canImportLeads}
+      canImportMetaLeads={canImportMetaLeads}
       leadFilters={leadFilters}
       leadOwnerOptions={leadOwnerOptions}
       leadState={leadState}

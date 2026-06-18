@@ -14,6 +14,7 @@ describe("PERMISSION_MAP", () => {
       "view_team_leads",
       "view_own_leads",
       "import_leads",
+      "import_meta_leads",
       "export_leads",
       "delete_archive_leads",
       "distribute_leads",
@@ -32,6 +33,7 @@ describe("PERMISSION_MAP", () => {
       "view_team_reports",
       "use_ai_messages",
       "use_ai_images",
+      "edit_company_profile",
     ];
 
     expect(Object.keys(PERMISSION_MAP)).toHaveLength(expectedPermissions.length);

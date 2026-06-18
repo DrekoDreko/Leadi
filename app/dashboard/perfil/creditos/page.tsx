@@ -16,23 +16,31 @@ import { UsageHistorySection } from "@/components/dashboard/usage-history-sectio
 import { DEFAULT_AI_CREDIT_PACKAGES } from "@/lib/ai/credit-packages";
 import {
   getCurrentAiBalanceDetails,
+  getAccessibleAiCreditsForUser,
   getAiUsageHistory,
   listActiveAiCreditPackages
 } from "@/lib/ai/credits";
-import { getAiCreditPurchaseEligibilityForOrganization } from "@/lib/ai/credit-orders.server";
+import {
+  getAiCreditPurchaseEligibilityForOrganization,
+  getLatestAiCreditOrderForUser,
+  getAiCreditOrderPixDetails,
+  isAiCreditOrderPixExpired,
+  wasAiCreditOrderExpiryNotified,
+  updateAiCreditOrder,
+  type AiCreditOrder
+} from "@/lib/ai/credit-orders.server";
 import { cn } from "@/lib/utils";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
-import { getAccessibleWallets } from "@/lib/ai/wallets.server";
 import { CreditPackagesSection } from "./credit-packages-section";
 
 const purchaseFeedbackMessages: Record<string, { tone: "success" | "warning" | "error"; text: string }> = {
   confirmed: {
     tone: "success",
-    text: "Pagamento confirmado. Os créditos de IA já foram adicionados ao saldo da organização."
+    text: "Pagamento confirmado. Os créditos de IA já foram adicionados ao seu saldo pessoal."
   },
   pending: {
     tone: "warning",
-    text: "Pagamento pendente. Assim que a confirmação do pagamento acontecer, os créditos entrarão automaticamente no saldo da organização."
+    text: "Pagamento pendente. Assim que a confirmação do pagamento acontecer, os créditos entrarão automaticamente no seu saldo pessoal."
   },
   failed: {
     tone: "error",
@@ -114,7 +122,7 @@ export default async function PerfilCreditosPage({
   const params = await searchParams;
 
   let packagesError = "";
-  const [aiBalance, purchaseAccess, accessibleWallets, usageHistory] = await Promise.all([
+  const [aiBalance, purchaseAccess, accessibleTotal, usageHistory] = await Promise.all([
     getCurrentAiBalanceDetails(),
     context.workspace?.id
       ? getAiCreditPurchaseEligibilityForOrganization(context.workspace.id)
@@ -124,7 +132,7 @@ export default async function PerfilCreditosPage({
           message: "Billing ainda nao esta configurado neste ambiente.",
           subscriptionStatus: null
         }),
-    getAccessibleWallets(),
+    getAccessibleAiCreditsForUser(context.workspace?.id ?? "", context.profile?.id ?? null),
     getAiUsageHistory(50)
   ]);
   const packages = purchaseAccess.allowed
@@ -138,37 +146,30 @@ export default async function PerfilCreditosPage({
     (params?.purchase && purchaseFeedbackMessages[params.purchase]) ||
     (params?.status && paymentReturnStatusMessages[params.status]) ||
     null;
-  const purchaseSuccessMessage =
-    "Os créditos serão adicionados ao saldo da organização após a confirmação do pagamento.";
-  const purchaseRequirementMessage =
-    purchaseAccess.allowed || context.role !== "owner"
-      ? null
-      : "Para comprar créditos, sua organização precisa ter uma assinatura ativa ou estar em período de teste.";
 
-  let displayBalance = aiBalance.availableCredits;
-  let includedBalance = aiBalance.includedCredits;
-  let purchasedBalance = aiBalance.purchasedCredits;
-  let walletLabel = "Saldo da organização";
+  // Banner orientado ao estado real do ultimo pedido PIX do proprio usuario.
+  // So aparece quando nao ha feedback vindo da URL (retorno imediato da compra).
+  const latestCreditOrder =
+    !purchaseFeedback && context.workspace?.id && context.profile?.id
+      ? await getLatestAiCreditOrderForUser(context.workspace.id, context.profile.id).catch(
+          () => null
+        )
+      : null;
+  const pixOrderBanner = await resolvePixOrderBanner(latestCreditOrder);
 
-  if (context.role === "admin" && context.teamId) {
-    const teamWallet = accessibleWallets.find(
-      (w) => w.walletType === "team" && w.teamId === context.teamId
-    );
-    if (teamWallet) {
-      displayBalance = teamWallet.availableCredits;
-      includedBalance = 0;
-      purchasedBalance = 0;
-      walletLabel = "Saldo da equipe";
-    }
-  } else if (context.role === "seller") {
-    const userWallet = accessibleWallets.find((w) => w.walletType === "user");
-    if (userWallet) {
-      displayBalance = userWallet.availableCredits;
-      includedBalance = 0;
-      purchasedBalance = 0;
-      walletLabel = "Meu saldo";
-    }
-  }
+  const purchaseRequirementMessage = purchaseAccess.allowed
+    ? null
+    : "Para comprar créditos, a organização precisa ter uma assinatura ativa ou estar em período de teste.";
+
+  // O saldo exibido é o total que o usuário pode efetivamente gastar:
+  // carteira pessoal + carteiras das equipes ativas + pool da organização
+  // (mesma cascata do consumo). Para o owner, ainda separamos a franquia
+  // incluída do plano (incluídos) do restante (avulsos/alocados).
+  const displayBalance = accessibleTotal;
+  const includedBalance = context.role === "owner" ? aiBalance.includedCredits : 0;
+  const purchasedBalance = Math.max(0, accessibleTotal - includedBalance);
+  const walletLabel =
+    context.role === "owner" ? "Saldo da organização" : "Saldo disponível";
 
   return (
     <div className="space-y-4">
@@ -193,8 +194,12 @@ export default async function PerfilCreditosPage({
         <FeedbackBanner message={purchaseFeedback.text} tone={purchaseFeedback.tone} />
       ) : null}
 
-      {!purchaseFeedback && purchaseAccess.allowed ? (
-        <FeedbackBanner message={purchaseSuccessMessage} tone="success" />
+      {!purchaseFeedback && pixOrderBanner ? (
+        <FeedbackBanner
+          message={pixOrderBanner.message}
+          tone={pixOrderBanner.tone}
+          action={pixOrderBanner.action}
+        />
       ) : null}
 
       {packagesError ? <FeedbackBanner message={packagesError} tone="error" /> : null}
@@ -234,14 +239,12 @@ export default async function PerfilCreditosPage({
 
       <UsageHistorySection items={usageHistory} />
 
-      {context.role !== "seller" ? (
-        <CreditPackagesSection
-          canPurchase={purchaseAccess.allowed}
-          disabledMessage={purchaseAccess.allowed ? null : purchaseAccess.message}
-          packages={packages}
-          isOwner={context.isOwner}
-        />
-      ) : null}
+      <CreditPackagesSection
+        canPurchase={purchaseAccess.allowed}
+        disabledMessage={purchaseAccess.allowed ? null : purchaseAccess.message}
+        packages={packages}
+        isOwner={context.isOwner}
+      />
     </div>
   );
 }
@@ -314,12 +317,71 @@ function ConsumptionCard({
   );
 }
 
+type PixOrderBanner = {
+  tone: "success" | "warning" | "error";
+  message: string;
+  action?: { href: string; label: string };
+};
+
+async function resolvePixOrderBanner(order: AiCreditOrder | null): Promise<PixOrderBanner | null> {
+  if (!order) {
+    return null;
+  }
+
+  if (order.status === "pending") {
+    if (isAiCreditOrderPixExpired(order)) {
+      if (!wasAiCreditOrderExpiryNotified(order)) {
+        await updateAiCreditOrder(order.id, {
+          status: "failed",
+          metadata: { pix_expiry_notified: true }
+        }).catch(() => null);
+        return {
+          tone: "error",
+          message:
+            "O PIX da sua última compra de créditos expirou sem pagamento. Gere um novo PIX para concluir."
+        };
+      }
+      return null;
+    }
+
+    const pix = getAiCreditOrderPixDetails(order);
+    if (!pix) {
+      return null;
+    }
+
+    return {
+      tone: "warning",
+      message:
+        "Você tem um pagamento PIX aguardando confirmação. Conclua o pagamento para liberar os créditos.",
+      action: { href: `/checkout?mode=ai_credits&resume=${order.id}`, label: "Retomar pagamento" }
+    };
+  }
+
+  if (order.status === "failed" || order.status === "cancelled") {
+    if (!wasAiCreditOrderExpiryNotified(order)) {
+      await updateAiCreditOrder(order.id, {
+        metadata: { pix_expiry_notified: true }
+      }).catch(() => null);
+      return {
+        tone: "error",
+        message:
+          "Sua última compra de créditos via PIX não foi concluída. Gere um novo PIX para tentar novamente."
+      };
+    }
+    return null;
+  }
+
+  return null;
+}
+
 function FeedbackBanner({
   tone,
-  message
+  message,
+  action
 }: {
   tone: "success" | "warning" | "error";
   message: string;
+  action?: { href: string; label: string };
 }) {
   const className =
     tone === "success"
@@ -333,7 +395,17 @@ function FeedbackBanner({
     <div className={`rounded-[24px] border p-4 text-sm leading-6 ${className}`}>
       <div className="flex items-start gap-3">
         <Icon className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
-        <p>{message}</p>
+        <div className="flex-1">
+          <p>{message}</p>
+          {action ? (
+            <a
+              className="mt-2 inline-flex items-center gap-1 rounded-full bg-ink px-4 py-2 text-xs font-semibold text-cloud transition-opacity hover:opacity-90"
+              href={action.href}
+            >
+              {action.label}
+            </a>
+          ) : null}
+        </div>
       </div>
     </div>
   );

@@ -305,10 +305,14 @@ export function TeamOrganizerWorkspace({
 
       const data = await response.json();
 
+      // A alocação do pool da org retorna orgPoolBalance; as demais, fromWalletBalance.
+      const newFromBalance =
+        data.allocation.fromWalletBalance ?? data.allocation.orgPoolBalance;
+
       setWallets((prev) =>
         prev.map((w) => {
-          if (w.id === orgWallet.id) {
-            return { ...w, availableCredits: data.allocation.fromWalletBalance };
+          if (w.id === orgWallet.id && typeof newFromBalance === "number") {
+            return { ...w, availableCredits: newFromBalance };
           }
           return w;
         })

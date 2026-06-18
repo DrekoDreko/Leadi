@@ -9,6 +9,7 @@ export type Permission =
   | "view_team_leads"
   | "view_own_leads"
   | "import_leads"
+  | "import_meta_leads"
   | "export_leads"
   | "delete_archive_leads"
   | "distribute_leads"
@@ -42,6 +43,7 @@ export const PERMISSION_MAP: Record<Permission, WorkspaceRole[]> = {
   view_team_leads: ["owner", "admin"],
   view_own_leads: ["owner", "admin", "seller"],
   import_leads: ["owner", "admin"],
+  import_meta_leads: ["owner"],
   export_leads: ["owner"],
   delete_archive_leads: ["owner"],
   distribute_leads: ["owner", "admin"],
