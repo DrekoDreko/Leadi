@@ -49,7 +49,7 @@ export default async function DesempenhoPage({
         title="Resultados dos anúncios"
         description="Acompanhe gasto, leads e custo por lead de cada campanha publicada — sem precisar entrar no Gerenciador da Meta."
       >
-        <div className="flex flex-wrap gap-1 rounded-full border border-cobalt/20 bg-white/60 p-1">
+        <div className="flex flex-wrap gap-1 rounded-full border border-cobalt/20 bg-surface-elevated p-1">
           {DATE_PRESET_ORDER.map((preset) => {
             const active = preset === datePreset;
             return (
@@ -92,7 +92,7 @@ export default async function DesempenhoPage({
                 </div>
                 <Link
                   href={`/dashboard/anuncios/${campaign.id}/desempenho`}
-                  className="inline-flex w-fit items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-4 py-2 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+                  className="inline-flex w-fit items-center gap-2 rounded-full border border-cobalt/20 bg-surface-elevated px-4 py-2 text-sm font-semibold text-cobalt transition-colors hover:bg-surface-elevated"
                 >
                   <TrendingUp size={16} aria-hidden="true" />
                   Ver por anúncio
@@ -110,7 +110,7 @@ export default async function DesempenhoPage({
                   <InsightStat label="Cliques" value={formatInteger(summary.clicks)} />
                 </div>
               ) : (
-                <p className="text-muted-soft mt-5 rounded-[22px] border border-white/46 bg-white/34 px-4 py-3 text-sm">
+                <p className="text-muted-soft mt-5 rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm">
                   Ainda não há dados de veiculação para este período. Assim que a campanha começar a
                   rodar, os números aparecem aqui.
                 </p>

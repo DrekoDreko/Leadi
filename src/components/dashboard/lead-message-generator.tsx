@@ -260,7 +260,7 @@ export function LeadMessageGenerator({
   }
 
   return (
-    <section className="rounded-[28px] border border-white/50 bg-white/44 p-5">
+    <section className="rounded-[28px] border border-border bg-surface-elevated p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-cobalt">Gerar mensagem</p>
@@ -419,10 +419,10 @@ export function LeadMessageGenerator({
         </button>
         <a
           aria-disabled={isGenerating || isSending || !savedMessage?.id || !getWhatsAppHref()}
-          className={`inline-flex items-center gap-2 rounded-full border border-cobalt/22 bg-white/70 px-5 py-3 text-sm font-semibold text-cobalt transition ${
+          className={`inline-flex items-center gap-2 rounded-full border border-cobalt/22 bg-surface-elevated px-5 py-3 text-sm font-semibold text-cobalt transition ${
             isGenerating || isSending || !savedMessage?.id || !getWhatsAppHref()
               ? "cursor-not-allowed opacity-70"
-              : "hover:bg-white"
+              : "hover:bg-surface-elevated"
           }`}
           href={getWhatsAppHref() ?? "#"}
           onClick={(e) => {
@@ -446,7 +446,7 @@ export function LeadMessageGenerator({
           className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
             copied
               ? "bg-lagoon text-white"
-              : "bg-white/70 text-ink hover:bg-white"
+              : "bg-surface-elevated text-ink hover:bg-surface-elevated"
           }`}
           onClick={() => void handleCopy()}
           type="button"
@@ -479,7 +479,7 @@ export function LeadMessageGenerator({
       ) : null}
 
       {savedMessage ? (
-        <div className="mt-3 rounded-[22px] border border-white/48 bg-white/40 px-4 py-3 text-sm text-ink/66">
+        <div className="mt-3 rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm text-ink/66">
           Status de envio: {formatDeliveryStatus(savedMessage.delivery.status)}
         </div>
       ) : null}
@@ -491,10 +491,10 @@ export function LeadMessageGenerator({
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <span className="rounded-full bg-white/62 px-3 py-1.5 text-xs font-semibold text-ink/58">
+        <span className="rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-semibold text-ink/58">
           {stageOptions.find((option) => option.value === selectedStage)?.label ?? selectedStage}
         </span>
-        <span className="rounded-full bg-white/62 px-3 py-1.5 text-xs font-semibold text-ink/58">
+        <span className="rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-semibold text-ink/58">
           {getWhatsAppToneLabel(selectedTone)}
         </span>
       </div>
@@ -504,7 +504,7 @@ export function LeadMessageGenerator({
 
 function MessageBlock({ label, value }: { label: string; value: string }) {
   return (
-    <article className="rounded-[22px] bg-white/56 p-4">
+    <article className="rounded-[22px] bg-surface-elevated p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">{label}</p>
       <p className="mt-2 text-sm leading-6 text-ink/76">{value}</p>
     </article>

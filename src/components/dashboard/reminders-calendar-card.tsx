@@ -266,7 +266,7 @@ export function RemindersCalendarCard({
                 {day.reminderCount > 0 ? (
                   <span
                     className={`absolute bottom-2 h-1.5 w-1.5 rounded-full ${
-                      day.dateString === todayDate ? "bg-white" : "bg-cobalt"
+                      day.dateString === todayDate ? "bg-surface-elevated" : "bg-cobalt"
                     }`}
                   />
                 ) : null}
@@ -401,7 +401,7 @@ export function RemindersCalendarCard({
               </div>
             </form>
 
-            <div className="mt-5 rounded-[24px] bg-white/48 p-4">
+            <div className="mt-5 rounded-[24px] bg-surface-elevated p-4">
               <p className="text-sm font-semibold text-ink">Lembretes desta data</p>
               {selectedDayReminders.length === 0 ? (
                 <p className="mt-2 text-sm leading-6 text-ink/62">
@@ -411,7 +411,7 @@ export function RemindersCalendarCard({
                 <div className="mt-3 space-y-2">
                   {selectedDayReminders.map((reminder) => (
                     <article
-                      className={`rounded-[20px] bg-white/72 px-4 py-3 transition-opacity ${
+                      className={`rounded-[20px] bg-surface-elevated px-4 py-3 transition-opacity ${
                         reminder.completed ? "opacity-60" : ""
                       }`}
                       key={reminder.id}

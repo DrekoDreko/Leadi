@@ -395,7 +395,7 @@ export function InvitePageClient({
           description={`Pague para adicionar 1 ${roleLabel} ${methodLabel}.`}
         >
           <button
-            className="inline-flex items-center gap-2 rounded-full bg-white/58 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/72"
+            className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface-elevated"
             onClick={cancelPayment}
             type="button"
           >
@@ -411,7 +411,7 @@ export function InvitePageClient({
               Expira em {pixTimeLeft}
             </div>
 
-            <div className="rounded-2xl border border-ink/10 bg-white p-4">
+            <div className="rounded-2xl border border-ink/10 bg-surface-elevated p-4">
               {pixData.brCodeBase64 ? (
                 <img
                   src={
@@ -503,7 +503,7 @@ export function InvitePageClient({
       >
         <Link
           href="/dashboard/equipes"
-          className="inline-flex items-center gap-2 rounded-full bg-white/58 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/72"
+          className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface-elevated"
         >
           <ArrowLeft size={16} aria-hidden="true" />
           Voltar para equipes
@@ -511,7 +511,7 @@ export function InvitePageClient({
       </PageHeading>
 
       {feedback ? (
-        <p className="rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">
+        <p className="rounded-[22px] bg-surface-elevated px-4 py-3 text-sm font-semibold text-ink">
           {feedback}
         </p>
       ) : null}
@@ -596,7 +596,7 @@ export function InvitePageClient({
 
             {emailInviteUrl ? (
               <div className="mt-5">
-                <div className="rounded-[22px] bg-white/48 p-3 text-sm font-semibold text-ink/70 break-all">
+                <div className="rounded-[22px] bg-surface-elevated p-3 text-sm font-semibold text-ink/70 break-all">
                   {emailInviteUrl}
                 </div>
                 <button
@@ -671,7 +671,7 @@ export function InvitePageClient({
 
             {linkInviteUrl ? (
               <div className="mt-5">
-                <div className="rounded-[22px] bg-white/48 p-3 text-sm font-semibold text-ink/70 break-all">
+                <div className="rounded-[22px] bg-surface-elevated p-3 text-sm font-semibold text-ink/70 break-all">
                   {linkInviteUrl}
                 </div>
                 <button
@@ -703,7 +703,7 @@ export function InvitePageClient({
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {visibleInvites.map((invite) => (
               <div
-                className="rounded-[26px] border border-white/45 bg-white/38 p-4 shadow-soft"
+                className="rounded-[26px] border border-border bg-surface-elevated p-4 shadow-soft"
                 key={invite.id}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -729,7 +729,7 @@ export function InvitePageClient({
                   <p className="mt-2 text-xs text-ink/54">Equipe: {invite.teamName}</p>
                 ) : null}
                 {currentRole === "owner" && isPendingInviteReview(invite) ? (
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-white/45 pt-3">
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
                     <button
                       className="inline-flex items-center gap-2 rounded-full bg-cobalt px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
                       disabled={reviewingInviteId === invite.id}
@@ -781,7 +781,7 @@ function getStatusBadgeClass(invite: TeamInvite) {
   if (status === "pendente") return "bg-signal/24 text-ink/72";
   if (status === "rejeitado") return "bg-signal/34 text-ink/72";
   if (status === "expirado") return "bg-ink/10 text-ink/48";
-  return "bg-white/64 text-ink/72";
+  return "bg-surface-elevated text-ink/72";
 }
 
 function isPendingInviteReview(invite: TeamInvite) {

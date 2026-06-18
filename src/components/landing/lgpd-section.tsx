@@ -28,7 +28,7 @@ export function LGPDSection() {
           </div>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             {points.map((p) => (
-              <li key={p} className="flex items-start gap-3 rounded-[18px] bg-white/50 px-4 py-3">
+              <li key={p} className="flex items-start gap-3 rounded-[18px] bg-surface-elevated px-4 py-3">
                 <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-cobalt" aria-hidden="true" />
                 <span className="text-sm text-ink/75">{p}</span>
               </li>

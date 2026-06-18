@@ -202,14 +202,14 @@ export function LeadFiltersPopup({
 
           <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-ink/10 pt-5">
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-white/54 px-5 py-3 text-sm font-semibold text-ink"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-surface-elevated px-5 py-3 text-sm font-semibold text-ink"
               onClick={onClear}
               type="button"
             >
               Limpar filtros
             </button>
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-ink/10 bg-white/72 px-5 py-3 text-sm font-semibold text-ink"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-ink/10 bg-surface-elevated px-5 py-3 text-sm font-semibold text-ink"
               onClick={onClose}
               type="button"
             >

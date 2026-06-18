@@ -73,7 +73,7 @@ export function WebhookSummaryCard({ summary }: WebhookSummaryCardProps) {
             <ArrowUpRight size={18} aria-hidden="true" />
           </Link>
           <Link
-            className="inline-flex items-center gap-2 rounded-full bg-white/62 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white/80"
+            className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-5 py-3 text-sm font-semibold text-ink transition hover:bg-surface-elevated"
             href="/dashboard/integracoes/webhook-leads#logs"
           >
             Ver logs
@@ -99,7 +99,7 @@ function SummaryStat({
   detail: string;
 }) {
   return (
-    <article className="rounded-[26px] bg-white/48 p-4">
+    <article className="rounded-[26px] bg-surface-elevated p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">{label}</p>
       <p className="mt-2 break-words text-lg font-semibold text-ink">{value}</p>
       <p className="mt-2 break-words text-sm leading-6 text-ink/60">{detail}</p>

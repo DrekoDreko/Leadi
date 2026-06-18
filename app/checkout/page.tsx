@@ -250,7 +250,7 @@ function CheckoutLayout({
         <header className="glass mb-8 flex items-center justify-between rounded-full px-4 py-3">
           <BrandMark />
           <Link
-            className="inline-flex items-center gap-2 rounded-full bg-white/44 px-4 py-2 text-sm font-semibold hover:bg-white/60"
+            className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-4 py-2 text-sm font-semibold hover:bg-surface-elevated"
             href="/dashboard/perfil/creditos"
           >
             <ArrowLeft size={17} aria-hidden="true" />

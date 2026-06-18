@@ -76,8 +76,8 @@ const statusClasses = {
   cancelled: "bg-ink/12 text-ink/70",
   delivered: "bg-cobalt text-white",
   in_progress: "bg-signal text-ink dark:text-cloud",
-  in_review: "bg-white/70 text-ink",
-  requested: "bg-white/62 text-ink"
+  in_review: "surface-pill-strong text-foreground",
+  requested: "surface-pill text-foreground"
 } as const;
 
 const priorityLabels = {
@@ -440,7 +440,7 @@ export function PedidosWorkspace({
       >
         {showAdminLink ? (
           <Link
-            className="inline-flex items-center gap-2 rounded-full bg-white/72 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white"
+            className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition"
             href="/dashboard/admin/pedidos"
           >
             Fila admin
@@ -485,7 +485,7 @@ export function PedidosWorkspace({
         <div
           className={`rounded-[26px] border p-4 text-sm ${
             currentListMode === "supabase"
-              ? "border-white/46 bg-white/34 text-ink/72"
+              ? "surface-pill text-muted-foreground"
               : "border-amber-200/70 bg-amber-50/80 text-amber-900"
           }`}
         >
@@ -568,7 +568,7 @@ export function PedidosWorkspace({
           </div>
 
           <div className="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold text-ink/58">
-            <span className="rounded-full bg-white/58 px-3 py-1.5">
+            <span className="surface-pill rounded-full px-3 py-1.5">
               Mostrando {filteredRequests.length} de {requests.length}{" "}
               {workspaceVariant === "validator" ? "solicitacoes" : "pedidos"}
             </span>
@@ -584,7 +584,7 @@ export function PedidosWorkspace({
           </div>
 
           {requests.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-white/55 bg-white/24 p-6">
+            <div className="surface-card-muted rounded-[28px] border border-dashed border-border p-6">
               <h3 className="text-lg font-semibold text-ink">
                 {workspaceVariant === "validator"
                   ? "Nenhuma solicitacao criada ainda"
@@ -597,7 +597,7 @@ export function PedidosWorkspace({
               </p>
             </div>
           ) : filteredRequests.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-white/55 bg-white/24 p-6">
+            <div className="surface-card-muted rounded-[28px] border border-dashed border-border p-6">
               <h3 className="text-lg font-semibold text-ink">
                 {workspaceVariant === "validator"
                   ? "Nenhuma solicitacao encontrada"
@@ -617,7 +617,7 @@ export function PedidosWorkspace({
                   Limpar filtros
                 </button>
                 <button
-                  className="inline-flex items-center gap-2 rounded-full bg-white/70 px-5 py-3 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                  className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={!canCreateRequests}
                   onClick={() => {
                     if (canCreateRequests) {
@@ -641,8 +641,8 @@ export function PedidosWorkspace({
                     aria-pressed={isSelected}
                     className={`rounded-[26px] p-4 text-left transition ${
                       isSelected
-                        ? "bg-white/72 ring-2 ring-cobalt/28"
-                        : "bg-white/42 hover:bg-white/56"
+                        ? "bg-surface-elevated ring-2 ring-cobalt/28"
+                        : "surface-card-muted hover:bg-surface-elevated"
                     }`}
                     key={request.id}
                     onClick={() => {
@@ -652,7 +652,7 @@ export function PedidosWorkspace({
                     type="button"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-ink/68">
+                      <span className="surface-pill rounded-full px-3 py-1 text-xs font-semibold text-muted-foreground">
                         {typeLabels[request.type]}
                       </span>
                       <span
@@ -672,16 +672,16 @@ export function PedidosWorkspace({
                     </p>
 
                     <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-ink/56">
-                      <span className="rounded-full bg-white/62 px-3 py-1.5">
+                      <span className="surface-pill rounded-full px-3 py-1.5">
                         Criado em {formatDate(request.createdAt)}
                       </span>
-                      <span className="rounded-full bg-white/62 px-3 py-1.5">
+                      <span className="surface-pill rounded-full px-3 py-1.5">
                         {request.dueAt ? `Prazo ${formatDate(request.dueAt)}` : "Sem prazo definido"}
                       </span>
-                      <span className="rounded-full bg-white/62 px-3 py-1.5">
+                      <span className="surface-pill rounded-full px-3 py-1.5">
                         {getAttachmentSummary(request.files.length)}
                       </span>
-                      <span className="rounded-full bg-white/62 px-3 py-1.5">
+                      <span className="surface-pill rounded-full px-3 py-1.5">
                         {getCommentSummary(request.comments.length)}
                       </span>
                     </div>
@@ -712,34 +712,34 @@ export function PedidosWorkspace({
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-ink/58">
-                <span className="rounded-full bg-white/62 px-3 py-1.5">
+                <span className="surface-pill rounded-full px-3 py-1.5">
                   {typeLabels[selectedRequest.type]}
                 </span>
-                <span className="rounded-full bg-white/62 px-3 py-1.5">
+                <span className="surface-pill rounded-full px-3 py-1.5">
                   Prioridade {priorityLabels[selectedRequest.priority]}
                 </span>
-                <span className="rounded-full bg-white/62 px-3 py-1.5">
+                <span className="surface-pill rounded-full px-3 py-1.5">
                   {selectedRequest.dueAt
                     ? `Prazo ${formatDate(selectedRequest.dueAt)}`
                     : "Sem prazo definido"}
                 </span>
-                <span className="rounded-full bg-white/62 px-3 py-1.5">
+                <span className="surface-pill rounded-full px-3 py-1.5">
                   Atualizado em {formatDateTime(selectedRequest.updatedAt)}
                 </span>
               </div>
 
-              <div className="mt-5 rounded-[24px] bg-white/52 p-4">
+              <div className="mt-5 surface-card-muted rounded-[24px] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/48">Objetivo</p>
                 <p className="mt-2 text-sm leading-6 text-ink/72">{selectedRequest.objective}</p>
               </div>
 
-              <div className="mt-4 rounded-[24px] bg-white/52 p-4">
+              <div className="mt-4 surface-card-muted rounded-[24px] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/48">Briefing</p>
                 <p className="mt-2 text-sm leading-6 text-ink/72">{selectedRequest.briefing}</p>
               </div>
 
               {selectedRequest.notes ? (
-                <div className="mt-4 rounded-[24px] bg-white/52 p-4">
+                <div className="mt-4 surface-card-muted rounded-[24px] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/48">
                     Observacoes
                   </p>
@@ -747,7 +747,7 @@ export function PedidosWorkspace({
                 </div>
               ) : null}
 
-              <div className="mt-4 rounded-[24px] border border-white/50 bg-white/48 p-4">
+              <div className="surface-card-muted mt-4 rounded-[24px] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-ink/74">Fluxo do pedido</p>
@@ -756,7 +756,7 @@ export function PedidosWorkspace({
                     </p>
                   </div>
                   {updatingRequestId === selectedRequest.id ? (
-                    <span className="inline-flex items-center gap-2 rounded-full bg-white/78 px-3 py-1.5 text-xs font-semibold text-ink/66">
+                    <span className="surface-pill inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground">
                       <Loader2 className="animate-spin" size={14} aria-hidden="true" />
                       Atualizando
                     </span>
@@ -815,7 +815,7 @@ export function PedidosWorkspace({
                 </label>
               </div>
 
-              <div className="mt-4 rounded-[24px] bg-white/56 p-4">
+              <div className="surface-card-muted mt-4 rounded-[24px] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Paperclip size={16} aria-hidden="true" />
@@ -825,7 +825,7 @@ export function PedidosWorkspace({
                     className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold ${
                       currentListMode === "supabase"
                         ? "bg-ink text-cloud"
-                        : "bg-white/70 text-ink/58"
+                        : "surface-pill text-muted-foreground"
                     } ${uploadingRequestId === selectedRequest.id ? "opacity-70" : ""}`}
                   >
                     {uploadingRequestId === selectedRequest.id ? (
@@ -864,7 +864,7 @@ export function PedidosWorkspace({
                   <div className="mt-3 space-y-2">
                     {selectedRequest.files.map((file) => (
                       <div
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/70 px-3 py-2"
+                        className="surface-card-muted flex flex-wrap items-center justify-between gap-3 rounded-2xl px-3 py-2"
                         key={file.id}
                       >
                         <div className="min-w-0">
@@ -892,7 +892,7 @@ export function PedidosWorkspace({
                 </p>
               </div>
 
-              <div className="mt-4 rounded-[24px] border border-white/50 bg-white/48 p-4">
+              <div className="surface-card-muted mt-4 rounded-[24px] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-ink/74">Comentarios internos</p>
@@ -900,7 +900,7 @@ export function PedidosWorkspace({
                       Registre alinhamentos curtos com a operacao sem sair do pedido.
                     </p>
                   </div>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white/72 px-3 py-1.5 text-xs font-semibold text-ink/64">
+                  <span className="surface-pill inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground">
                     <MessageSquareMore size={14} aria-hidden="true" />
                     {getCommentSummary(selectedRequest.comments.length)}
                   </span>
@@ -913,7 +913,7 @@ export function PedidosWorkspace({
                 ) : (
                   <div className="mt-4 space-y-3">
                     {selectedRequest.comments.map((comment) => (
-                      <article className="rounded-[22px] bg-white/72 p-4" key={comment.id}>
+                      <article className="surface-card-muted rounded-[22px] p-4" key={comment.id}>
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div>
                             <p className="text-sm font-semibold text-ink">{comment.authorName}</p>
@@ -1074,7 +1074,7 @@ export function PedidosWorkspace({
                     {isSubmitting ? "Salvando" : "Salvar pedido"}
                   </button>
                   <button
-                    className="inline-flex items-center gap-2 rounded-full bg-white/64 px-5 py-3 text-sm font-semibold text-ink"
+                    className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
                     onClick={() => {
                       setForm(initialForm);
                       setError("");
@@ -1125,13 +1125,13 @@ export function PedidosWorkspace({
                 "Prazo desejado",
                 "Observacoes sensiveis ou restricoes"
               ].map((item) => (
-                <div className="flex items-center gap-3 rounded-2xl bg-white/42 px-4 py-3" key={item}>
+                <div className="surface-card-muted flex items-center gap-3 rounded-2xl px-4 py-3" key={item}>
                   <CheckCircle2 size={18} className="text-lagoon" aria-hidden="true" />
                   <span className="text-sm font-medium">{item}</span>
                 </div>
               ))}
             </div>
-            <div className="mt-5 rounded-[24px] bg-white/48 p-4 text-sm text-ink/62">
+            <div className="surface-card-muted mt-5 rounded-[24px] p-4 text-sm text-muted-foreground">
               Pedidos com briefing mais completo entram na producao com menos retrabalho.
             </div>
           </section>
@@ -1242,12 +1242,12 @@ function getCommentSummary(commentCount: number) {
 }
 
 const fieldClassName =
-  "w-full rounded-[22px] border border-white/54 bg-white/72 px-4 py-3 text-sm text-ink outline-none transition placeholder:text-ink/36 focus:border-cobalt/40 focus:ring-2 focus:ring-cobalt/15";
+  "w-full rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-cobalt/40 focus:ring-2 focus:ring-cobalt/15";
 
 const stepClasses: Record<WorkflowStepState, string> = {
   active: "bg-ink text-cloud",
   complete: "bg-lagoon text-white",
-  upcoming: "bg-white/72 text-ink/56"
+  upcoming: "surface-pill text-muted-foreground"
 };
 
 function getWorkflowStepState(

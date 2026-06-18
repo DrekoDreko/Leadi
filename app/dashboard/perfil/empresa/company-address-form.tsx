@@ -84,7 +84,7 @@ export function CompanyAddressForm({
     return (
       <div>
         <p className="mb-1.5 text-xs font-semibold text-ink/60">Endereço completo</p>
-        <div className="rounded-[18px] border border-white/44 bg-white/36 px-4 py-3 text-sm text-ink/70">
+        <div className="rounded-[18px] border border-border bg-surface-elevated px-4 py-3 text-sm text-ink/70">
           {fullAddress || "Endereço não cadastrado."}
         </div>
       </div>

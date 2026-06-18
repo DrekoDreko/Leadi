@@ -1208,7 +1208,7 @@ export function LeadDetailsPopup({
                       {deleteError && (
                         <p
                           aria-live="polite"
-                          className="rounded-2xl bg-white/70 px-4 py-3 text-sm font-medium text-red-700"
+                          className="rounded-2xl bg-surface-elevated px-4 py-3 text-sm font-medium text-red-700"
                           role="alert"
                         >
                           {deleteError}
@@ -1216,7 +1216,7 @@ export function LeadDetailsPopup({
                       )}
                       <div className="flex flex-col-reverse gap-2 sm:flex-row">
                         <button
-                          className="inline-flex flex-1 items-center justify-center rounded-full bg-white/70 px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex flex-1 items-center justify-center rounded-full bg-surface-elevated px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-60"
                           disabled={isDeleting}
                           onClick={cancelDelete}
                           type="button"
@@ -1240,7 +1240,7 @@ export function LeadDetailsPopup({
                     </div>
                   ) : (
                     <button
-                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white/70 px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-white"
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-surface-elevated px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-surface-elevated"
                       onClick={startDelete}
                       type="button"
                     >
@@ -1283,7 +1283,7 @@ function LeadQualityBadge({ quality }: { quality: Lead["quality"] }) {
 
   if (!meta) {
     return (
-      <span className="inline-flex items-center rounded-full bg-white/78 px-3 py-1.5 text-xs font-semibold text-ink/58 ring-1 ring-inset ring-black/5">
+      <span className="inline-flex items-center rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-semibold text-ink/58 ring-1 ring-inset ring-black/5">
         Qualidade: Nao classificada
       </span>
     );
@@ -1488,7 +1488,7 @@ function getLeadStageBadgeClassName(tone?: LeadStageTone) {
     case "red":
       return `${sharedClassName} bg-red-600 text-white`;
     default:
-      return `${sharedClassName} bg-white/64 text-ink`;
+      return `${sharedClassName} bg-surface-elevated text-ink`;
   }
 }
 
@@ -1509,7 +1509,7 @@ function getLeadStagePanelClassName(tone?: LeadStageTone) {
     case "red":
       return `${sharedClassName} border border-red-500/18 bg-red-500/10`;
     default:
-      return `${sharedClassName} bg-white/52`;
+      return `${sharedClassName} bg-surface-elevated`;
   }
 }
 

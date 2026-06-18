@@ -37,7 +37,7 @@ export function ProfileAvatarUpload({
     <div className="flex items-center gap-4">
       <button
         type="button"
-        className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-white/50 border border-white/44 transition hover:border-cobalt/30"
+        className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-surface-elevated border border-border transition hover:border-cobalt/30"
         onClick={() => inputRef.current?.click()}
         disabled={isPending}
       >

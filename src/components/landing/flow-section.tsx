@@ -321,8 +321,8 @@ export function FlowSection() {
                 key={step.id}
                 className={`w-full text-left p-4 rounded-[24px] transition-all duration-300 border flex items-start gap-4 ${
                   isActive
-                    ? "glass-strong border-cobalt/20 shadow-[0_12px_36px_rgba(52,98,238,0.06)] bg-white/70 translate-x-2"
-                    : "border-transparent bg-white/20 hover:bg-white/40"
+                    ? "glass-strong border-cobalt/20 shadow-[0_12px_36px_rgba(52,98,238,0.06)] bg-surface-elevated translate-x-2"
+                    : "border-transparent bg-white/20 hover:bg-surface-elevated"
                 }`}
                 onClick={() => {
                   setActiveStep(step.id);
@@ -348,7 +348,7 @@ export function FlowSection() {
         </div>
 
         {/* Right Side: Interactive preview screen */}
-        <div className="glass-strong rounded-[40px] p-8 border border-white/60 relative shadow-soft min-h-[460px] flex flex-col justify-between overflow-hidden">
+        <div className="glass-strong rounded-[40px] p-8 border border-border relative shadow-soft min-h-[460px] flex flex-col justify-between overflow-hidden">
           {/* Header of mockup */}
           <div className="flex items-center justify-between border-b border-ink/8 pb-4 mb-6">
             <h4 className="text-sm font-bold text-ink uppercase tracking-wider flex items-center gap-2">
@@ -392,7 +392,7 @@ export function FlowSection() {
         {steps.map((step) => {
           const Icon = step.icon;
           return (
-            <div key={step.id} className="glass-strong rounded-[28px] p-6 border border-white/40 shadow-soft">
+            <div key={step.id} className="glass-strong rounded-[28px] p-6 border border-border shadow-soft">
               <div className="flex items-center gap-3.5 border-b border-ink/6 pb-3.5 mb-4">
                 <div className="h-10 w-10 rounded-full bg-cobalt flex items-center justify-center text-white shrink-0">
                   <Icon size={18} />
@@ -402,7 +402,7 @@ export function FlowSection() {
                   <p className="text-xs text-ink/50 mt-0.5">{step.shortDesc}</p>
                 </div>
               </div>
-              <div className="rounded-[20px] bg-white/40 p-4 border border-white/50 shadow-inner">
+              <div className="rounded-[20px] bg-surface-elevated p-4 border border-border shadow-inner">
                 <p className="text-xs font-bold uppercase tracking-wider text-ink/40 mb-3">{step.previewTitle}</p>
                 {step.previewContent}
               </div>

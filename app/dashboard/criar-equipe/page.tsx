@@ -12,7 +12,7 @@ export default async function CriarEquipePage() {
         title="Criar equipe"
         description="Transforme seu workspace individual em uma operacao com supervisores e consultores convidados."
       >
-        <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
+        <span className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-5 py-3 text-sm font-semibold text-ink">
           <UserPlus size={18} aria-hidden="true" />
           Workspace individual
         </span>

@@ -141,14 +141,14 @@ export default async function PerfilPage({
         title="Configuracoes"
         description="Visao resumida do usuario, empresa, Meta e créditos de IA para manter a conta organizada sem excesso de rolagem."
       >
-        <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
+        <span className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-5 py-3 text-sm font-semibold text-ink">
           <Settings size={18} aria-hidden="true" />
           {context.role === "owner" ? "Owner" : context.role === "admin" ? "Supervisor" : "Consultor"}
         </span>
       </PageHeading>
 
       {avatarFeedback ? (
-        <p className="rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">
+        <p className="rounded-[22px] bg-surface-elevated px-4 py-3 text-sm font-semibold text-ink">
           {avatarFeedback}
         </p>
       ) : null}
@@ -220,7 +220,7 @@ export default async function PerfilPage({
       </Link>
 
       {brokerageFeedback ? (
-        <p className="rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">
+        <p className="rounded-[22px] bg-surface-elevated px-4 py-3 text-sm font-semibold text-ink">
           {brokerageFeedback}
         </p>
       ) : null}
@@ -262,7 +262,7 @@ export default async function PerfilPage({
             </button>
           </form>
         ) : (
-          <div className="rounded-[24px] border border-white/44 bg-white/36 p-4 text-sm leading-6 text-ink/64">
+          <div className="rounded-[24px] border border-border bg-surface-elevated p-4 text-sm leading-6 text-ink/64">
             Voce esta em uma equipe. O owner ou os supervisores configuram o nome comercial usado no
             contato com clientes.
           </div>

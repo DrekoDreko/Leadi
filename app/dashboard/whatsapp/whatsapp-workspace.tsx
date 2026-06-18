@@ -285,7 +285,7 @@ export function WhatsAppWorkspace({
         </div>
       ) : null}
 
-      <div className="rounded-[22px] bg-white/42 px-4 py-3 text-sm font-medium text-ink/70">
+      <div className="surface-card-muted rounded-[22px] px-4 py-3 text-sm font-medium text-muted-foreground">
         Esta ação consumirá {messageCost} crédito{messageCost === 1 ? "" : "s"}.
       </div>
 
@@ -299,7 +299,7 @@ export function WhatsAppWorkspace({
         <div
           className={`rounded-[26px] border p-4 text-sm ${
             historyMode === "supabase"
-              ? "border-white/46 bg-white/34 text-ink/72"
+              ? "surface-pill text-muted-foreground"
               : "border-amber-200/70 bg-amber-50/80 text-amber-900"
           }`}
         >
@@ -321,7 +321,7 @@ export function WhatsAppWorkspace({
                 return (
                   <button
                     className={`block w-full rounded-[24px] p-4 text-left transition hover:-translate-y-0.5 ${
-                      selected ? "bg-cobalt/10 ring-1 ring-cobalt/20" : "bg-white/42"
+                      selected ? "bg-cobalt/10 ring-1 ring-cobalt/20" : "surface-card-muted"
                     }`}
                     onClick={() => {
                       setSelectedLeadId(lead.id);
@@ -338,7 +338,7 @@ export function WhatsAppWorkspace({
                     <h3 className="font-semibold">{lead.name}</h3>
                     <p className="mt-1 text-sm text-ink/56">{lead.phone}</p>
                     <p className="mt-1 text-sm text-ink/56">{lead.email}</p>
-                    <span className="mt-4 inline-flex rounded-full bg-white/62 px-3 py-1.5 text-xs font-semibold">
+                    <span className="mt-4 inline-flex surface-pill rounded-full px-3 py-1.5 text-xs font-semibold">
                       {getWhatsAppStageLabel(mapLeadStage(lead.stage))}
                     </span>
                   </button>
@@ -378,10 +378,10 @@ export function WhatsAppWorkspace({
                     </p>
                   ) : null}
                   <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-ink/58">
-                    <span className="rounded-full bg-white/58 px-3 py-1.5">{selectedLead.phone}</span>
-                    <span className="rounded-full bg-white/58 px-3 py-1.5">{selectedLead.email}</span>
+                    <span className="surface-pill rounded-full px-3 py-1.5">{selectedLead.phone}</span>
+                    <span className="surface-pill rounded-full px-3 py-1.5">{selectedLead.email}</span>
                     {selectedLead.city ? (
-                      <span className="rounded-full bg-white/58 px-3 py-1.5">{selectedLead.city}</span>
+                      <span className="surface-pill rounded-full px-3 py-1.5">{selectedLead.city}</span>
                     ) : null}
                   </div>
                 </div>
@@ -394,11 +394,11 @@ export function WhatsAppWorkspace({
                 </div>
               ) : null}
 
-              <div className="mb-4 grid gap-3 rounded-[28px] border border-white/44 bg-white/28 p-4 md:grid-cols-2">
+              <div className="surface-card-muted mb-4 grid gap-3 rounded-[28px] p-4 md:grid-cols-2">
                 <label className="text-sm font-semibold text-ink/72">
                   Etapa do funil
                   <select
-                    className="mt-2 w-full rounded-full border border-white/60 bg-white/80 px-4 py-2.5 text-sm font-medium text-ink outline-none transition focus:border-cobalt"
+                    className="mt-2 w-full rounded-full border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground outline-none transition focus:border-cobalt"
                     onChange={(event) => {
                       const nextStage = event.target.value as WhatsAppStage;
                       setSelectedStage(nextStage);
@@ -418,7 +418,7 @@ export function WhatsAppWorkspace({
                 <label className="text-sm font-semibold text-ink/72">
                   Tom da mensagem
                   <select
-                    className="mt-2 w-full rounded-full border border-white/60 bg-white/80 px-4 py-2.5 text-sm font-medium text-ink outline-none transition focus:border-cobalt"
+                    className="mt-2 w-full rounded-full border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground outline-none transition focus:border-cobalt"
                     onChange={(event) => {
                       setSelectedTone(event.target.value as WhatsAppToneValue);
                       setCopiedKey("");
@@ -435,7 +435,7 @@ export function WhatsAppWorkspace({
                 </label>
               </div>
 
-              <div className="rounded-[28px] border border-white/48 bg-white/36 p-5 shadow-soft">
+              <div className="rounded-[28px] surface-card-muted p-5 shadow-soft">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-normal text-ink/42">
@@ -443,10 +443,10 @@ export function WhatsAppWorkspace({
                     </p>
                     <h3 className="mt-1 text-lg font-semibold">{selectedLead.name}</h3>
                     <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-ink/56">
-                      <span className="rounded-full bg-white/64 px-3 py-1.5">
+                      <span className="surface-pill rounded-full px-3 py-1.5">
                         {formatWhatsAppStage(selectedStage)}
                       </span>
-                      <span className="rounded-full bg-white/64 px-3 py-1.5">
+                      <span className="surface-pill rounded-full px-3 py-1.5">
                         {getWhatsAppToneLabel(selectedTone)}
                       </span>
                     </div>
@@ -456,8 +456,8 @@ export function WhatsAppWorkspace({
                       aria-disabled={!getWhatsAppHref(selectedLead?.phone, formatWhatsAppMessage(visibleMessage))}
                       className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
                         getWhatsAppHref(selectedLead?.phone, formatWhatsAppMessage(visibleMessage))
-                          ? "bg-white text-ink hover:bg-emerald-50 hover:text-emerald-700"
-                          : "cursor-not-allowed bg-white/50 text-ink/50"
+                          ? "bg-surface-elevated text-foreground hover:bg-emerald-50 hover:text-emerald-700"
+                          : "cursor-not-allowed surface-card-muted text-muted-foreground"
                       }`}
                       href={getWhatsAppHref(selectedLead?.phone, formatWhatsAppMessage(visibleMessage)) ?? "#"}
                       onClick={(e) => {
@@ -473,7 +473,7 @@ export function WhatsAppWorkspace({
                       Abrir WhatsApp
                     </a>
                     <button
-                      className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/90"
+                      className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition"
                       onClick={() => copyText("current-message", visibleMessage)}
                       title={copiedKey === "current-message" ? "Copiado" : "Copiar mensagem gerada"}
                       type="button"
@@ -527,7 +527,7 @@ export function WhatsAppWorkspace({
                     )}
                     {isGenerating ? "Gerando" : "Gerar nova versão"}
                   </button>
-                  <span className="rounded-full bg-white/64 px-4 py-2 text-sm font-semibold text-ink">
+                  <span className="surface-pill rounded-full px-4 py-2 text-sm font-semibold text-foreground">
                     {selectedHistoryItem ? "Historico desta etapa" : "Modelo por etapa"}
                   </span>
                 </div>
@@ -536,7 +536,7 @@ export function WhatsAppWorkspace({
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {visibleMessage.complianceNotes.map((note) => (
                   <article
-                    className="rounded-[24px] border border-white/40 bg-white/34 p-4 shadow-soft"
+                    className="surface-card-muted rounded-[24px] p-4 shadow-soft"
                     key={note}
                   >
                     <h3 className="text-sm font-semibold">Nota de compliance</h3>
@@ -546,7 +546,7 @@ export function WhatsAppWorkspace({
               </div>
             </>
           ) : (
-            <div className="rounded-[28px] border border-white/48 bg-white/36 p-5 shadow-soft">
+            <div className="rounded-[28px] surface-card-muted p-5 shadow-soft">
               <p className="text-sm font-medium text-cobalt">Mensagem gerada por IA</p>
               <h2 className="mt-2 text-xl font-semibold">Nenhum lead selecionado</h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-ink/64">
@@ -575,7 +575,7 @@ export function WhatsAppWorkspace({
             </p>
             <h2 className="mt-1 text-xl font-semibold">Ultimas mensagens de WhatsApp</h2>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/62 px-3 py-1.5 text-xs font-semibold text-ink/58">
+          <div className="inline-flex items-center gap-2 surface-pill rounded-full px-3 py-1.5 text-xs font-semibold text-ink/58">
             <Clock3 size={14} aria-hidden="true" />
             {visibleHistory.length} registros
           </div>
@@ -585,16 +585,16 @@ export function WhatsAppWorkspace({
           <div className="grid gap-3">
             {visibleHistory.map((item) => (
               <article
-                className="rounded-[24px] border border-white/44 bg-white/36 p-4 shadow-soft"
+                className="surface-card-muted rounded-[24px] p-4 shadow-soft"
                 key={item.id}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-white/62 px-3 py-1 text-xs font-semibold text-ink/58">
+                      <span className="rounded-full surface-pill px-3 py-1 text-xs font-semibold text-muted-foreground">
                         {formatWhatsAppStage(item.stage)}
                       </span>
-                      <span className="rounded-full bg-white/62 px-3 py-1 text-xs font-semibold text-ink/58">
+                      <span className="rounded-full surface-pill px-3 py-1 text-xs font-semibold text-muted-foreground">
                         {formatDeliveryStatus(item.delivery.status)}
                       </span>
                     </div>
@@ -610,8 +610,8 @@ export function WhatsAppWorkspace({
                       aria-disabled={!getWhatsAppHref(leads.find(l => l.id === item.leadId)?.phone, formatWhatsAppMessage(normalizeWhatsAppMessageBrand(item.result, brokerageName)))}
                       className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition ${
                         getWhatsAppHref(leads.find(l => l.id === item.leadId)?.phone, formatWhatsAppMessage(normalizeWhatsAppMessageBrand(item.result, brokerageName)))
-                          ? "bg-white/70 text-ink hover:bg-emerald-50 hover:text-emerald-700"
-                          : "cursor-not-allowed bg-white/40 text-ink/40"
+                          ? "bg-surface-elevated text-foreground hover:bg-emerald-50 hover:text-emerald-700"
+                          : "cursor-not-allowed surface-card-muted text-muted-foreground"
                       }`}
                       href={getWhatsAppHref(leads.find(l => l.id === item.leadId)?.phone, formatWhatsAppMessage(normalizeWhatsAppMessageBrand(item.result, brokerageName))) ?? "#"}
                       onClick={(e) => {
@@ -626,7 +626,7 @@ export function WhatsAppWorkspace({
                       <Send size={16} aria-hidden="true" />
                     </a>
                     <button
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70 text-ink transition hover:bg-white"
+                      className="surface-action-secondary inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition"
                       onClick={() => copyHistoryMessage(item)}
                       title={copiedKey === `history-${item.id}` ? "Copiado" : "Copiar mensagem"}
                       type="button"
@@ -661,22 +661,22 @@ export function WhatsAppWorkspace({
                   {normalizeWhatsAppMessageBrand(item.result, brokerageName).openingMessage}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-ink/56">
-                  <span className="rounded-full bg-white/62 px-3 py-1.5">{item.product}</span>
-                  <span className="rounded-full bg-white/62 px-3 py-1.5">
+                  <span className="surface-pill rounded-full px-3 py-1.5">{item.product}</span>
+                  <span className="surface-pill rounded-full px-3 py-1.5">
                     {formatWhatsAppTone(item.tone)}
                   </span>
-                  <span className="rounded-full bg-white/62 px-3 py-1.5">
+                  <span className="surface-pill rounded-full px-3 py-1.5">
                     {formatDeliveryStatus(item.delivery.status)}
                   </span>
                   {item.leadContext ? (
-                    <span className="rounded-full bg-white/62 px-3 py-1.5">{item.leadContext}</span>
+                    <span className="surface-pill rounded-full px-3 py-1.5">{item.leadContext}</span>
                   ) : null}
                 </div>
               </article>
             ))}
           </div>
         ) : (
-          <div className="rounded-[24px] border border-dashed border-white/52 bg-white/24 p-5 text-sm leading-6 text-ink/58">
+          <div className="surface-card-muted rounded-[24px] border border-dashed border-border p-5 text-sm leading-6 text-muted-foreground">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 shrink-0 text-amber-600" size={18} aria-hidden="true" />
               <p>

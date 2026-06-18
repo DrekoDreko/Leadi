@@ -408,9 +408,9 @@ export function DashboardShell({
                 <div
                   className={`absolute top-0 left-0 right-0 z-40 overflow-hidden transition-all duration-300 ease-in-out border ${
                     shouldShowSearchDropdown
-                      ? "glass-strong rounded-[28px] max-h-[420px] border-white/60 shadow-soft"
-                      : "glass rounded-full max-h-12 border-white/48 shadow-none"
-                  } focus-within:border-cobalt/45 focus-within:bg-white/70 focus-within:shadow-[0_0_0_4px_rgba(52,98,238,0.12)]`}
+                      ? "glass-strong rounded-[28px] max-h-[420px] border-border shadow-soft"
+                      : "glass rounded-full max-h-12 border-border shadow-none"
+                  } focus-within:border-cobalt/45 focus-within:bg-surface-elevated focus-within:shadow-[0_0_0_4px_rgba(52,98,238,0.12)]`}
                 >
                   <div className="relative flex h-12 items-center">
                     <Search
@@ -444,7 +444,7 @@ export function DashboardShell({
                     {searchTerm ? (
                       <button
                         aria-label="Limpar busca de leads"
-                        className="absolute right-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-white/70 hover:text-foreground"
+                        className="absolute right-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-surface-elevated hover:text-foreground"
                         onClick={clearLeadSearch}
                         type="button"
                       >
@@ -469,7 +469,7 @@ export function DashboardShell({
                             <li key={lead.id}>
                               <button
                                 aria-label={`Abrir lead ${lead.name}`}
-                                className="flex w-full items-start justify-between gap-3 rounded-[22px] px-3 py-3 text-left transition hover:bg-white/18"
+                                className="flex w-full items-start justify-between gap-3 rounded-[22px] px-3 py-3 text-left transition hover:bg-surface-elevated"
                                 onClick={() => handleLeadSearchSelect(lead.id)}
                                 onMouseDown={(event) => event.preventDefault()}
                                 type="button"
@@ -524,8 +524,8 @@ export function DashboardShell({
                 <div
                   className={`absolute right-0 top-14 z-40 flex w-[320px] origin-top-right flex-col overflow-hidden rounded-[28px] border transition-all duration-300 ease-in-out md:w-[360px] ${
                     isNotificationsOpen
-                      ? "glass-strong max-h-[420px] border-white/60 shadow-soft opacity-100 visible translate-y-0"
-                      : "glass max-h-0 border-white/48 shadow-none opacity-0 invisible pointer-events-none -translate-y-2"
+                      ? "glass-strong max-h-[420px] border-border shadow-soft opacity-100 visible translate-y-0"
+                      : "glass max-h-0 border-border shadow-none opacity-0 invisible pointer-events-none -translate-y-2"
                   }`}
                 >
                   <div className="border-b border-ink/8 px-4 py-3 flex items-center justify-between">
@@ -618,7 +618,7 @@ export function DashboardShell({
                                         </button>
                                         <button
                                           onClick={() => setOpenSnoozeId(null)}
-                                          className="flex items-center justify-center rounded-full p-1.5 text-muted-foreground transition duration-200 cursor-pointer animate-fade-in hover:bg-white/16"
+                                          className="flex items-center justify-center rounded-full p-1.5 text-muted-foreground transition duration-200 cursor-pointer animate-fade-in hover:bg-surface-elevated"
                                           type="button"
                                           title="Cancelar"
                                         >

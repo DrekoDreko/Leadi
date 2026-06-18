@@ -37,7 +37,7 @@ export function MetaAdsSection() {
           return (
             <div
               key={block.title}
-              className="glass-strong rounded-[32px] p-8 border border-white/50 shadow-soft relative overflow-hidden flex flex-col justify-between"
+              className="glass-strong rounded-[32px] p-8 border border-border shadow-soft relative overflow-hidden flex flex-col justify-between"
             >
               <div>
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cobalt/10 text-cobalt mb-6">

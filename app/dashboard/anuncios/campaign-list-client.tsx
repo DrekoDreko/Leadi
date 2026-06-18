@@ -20,7 +20,7 @@ import { deleteCampaignAction } from "./actions";
 
 function getStatusDisplay(publicationStatus: string, publishMode: string) {
   if (publishMode === "draft" || publicationStatus === "draft_created") {
-    return { label: "Rascunho", color: "bg-slate-100/80 text-slate-900 border border-slate-200/50", Icon: FileText };
+    return { label: "Rascunho", color: "bg-muted text-foreground border border-border/50", Icon: FileText };
   }
   if (publishMode === "paused" || publicationStatus === "paused") {
     return { label: "Pausada", color: "bg-amber-100/80 text-amber-900 border border-amber-200/50", Icon: Pause };
@@ -34,7 +34,7 @@ function getStatusDisplay(publicationStatus: string, publishMode: string) {
   if (publicationStatus === "ready_to_prepare" || publicationStatus === "pending_review") {
     return { label: "Revisão Manual", color: "bg-purple-100/80 text-purple-900 border border-purple-200/50", Icon: ShieldCheck };
   }
-  return { label: publicationStatus.replaceAll("_", " "), color: "bg-white/62 text-ink/62 border border-white/20", Icon: ShieldCheck };
+  return { label: publicationStatus.replaceAll("_", " "), color: "surface-pill text-muted-foreground", Icon: ShieldCheck };
 }
 
 function formatDateTime(dateStr: string) {
@@ -210,7 +210,7 @@ function CampaignDetailModal({
                 {campaign.result.variants.map((variant, index) => (
                   <li
                     key={index}
-                    className="rounded-xl bg-white/40 p-3 text-sm leading-6 text-ink/62 shadow-sm"
+                    className="rounded-xl bg-surface-elevated p-3 text-sm leading-6 text-ink/62 shadow-sm"
                   >
                     {variant}
                   </li>
@@ -220,11 +220,11 @@ function CampaignDetailModal({
           ) : null}
 
           <div className="flex flex-wrap gap-2 border-t border-ink/5 pt-4">
-            <span className="rounded-full bg-white/58 px-3 py-1.5 text-xs font-semibold text-ink/58">
+            <span className="rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-semibold text-ink/58">
               {campaign.input.audience}
             </span>
             {campaign.region ? (
-              <span className="rounded-full bg-white/58 px-3 py-1.5 text-xs font-semibold text-ink/58">
+              <span className="rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-semibold text-ink/58">
                 {campaign.region}
               </span>
             ) : null}
@@ -242,7 +242,7 @@ function CampaignDetailModal({
           </Link>
           <Link
             href={`/dashboard/criacoes/campanhas?copyFrom=${campaign.id}`}
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white/60 px-5 py-2.5 text-sm font-semibold text-cobalt transition-colors hover:bg-white border border-cobalt/15"
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-surface-elevated px-5 py-2.5 text-sm font-semibold text-cobalt transition-colors hover:bg-surface-elevated border border-cobalt/15"
             onClick={onClose}
           >
             <Copy size={15} aria-hidden="true" />
@@ -255,7 +255,7 @@ function CampaignDetailModal({
             className={`inline-flex items-center justify-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors sm:ml-auto ${
               confirmDelete
                 ? "bg-red-600 text-white hover:bg-red-700"
-                : "bg-white/60 text-red-600 hover:bg-red-50 border border-red-200/50"
+                : "bg-surface-elevated text-red-600 hover:bg-red-50 border border-red-200/50"
             }`}
           >
             <Trash2 size={15} aria-hidden="true" />

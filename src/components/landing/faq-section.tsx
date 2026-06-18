@@ -40,9 +40,9 @@ const faqs = [
 function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="glass-strong rounded-[24px] overflow-hidden border border-white/50 shadow-soft">
+    <div className="glass-strong rounded-[24px] overflow-hidden border border-border shadow-soft">
       <button
-        className="flex w-full items-center justify-between gap-4 p-5 text-left font-semibold transition hover:bg-white/30"
+        className="flex w-full items-center justify-between gap-4 p-5 text-left font-semibold transition hover:bg-surface-elevated"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
       >

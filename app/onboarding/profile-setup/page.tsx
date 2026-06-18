@@ -52,7 +52,7 @@ export default async function ProfileSetupPage({
             <form action={completeProfileSetupAction}>
               <input name="setupMode" type="hidden" value="solo" />
               <button
-                className="group h-full w-full rounded-[30px] border border-white/56 bg-white/42 p-6 text-left shadow-soft transition hover:-translate-y-0.5 hover:bg-white/64"
+                className="group h-full w-full rounded-[30px] border border-border bg-surface-elevated p-6 text-left shadow-soft transition hover:-translate-y-0.5 hover:bg-surface-elevated"
                 type="submit"
               >
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-cobalt text-white">
@@ -71,7 +71,7 @@ export default async function ProfileSetupPage({
             <form action={completeProfileSetupAction}>
               <input name="setupMode" type="hidden" value="team" />
               <button
-                className="group h-full w-full rounded-[30px] border border-white/56 bg-white/42 p-6 text-left shadow-soft transition hover:-translate-y-0.5 hover:bg-white/64"
+                className="group h-full w-full rounded-[30px] border border-border bg-surface-elevated p-6 text-left shadow-soft transition hover:-translate-y-0.5 hover:bg-surface-elevated"
                 type="submit"
               >
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-lagoon text-white">

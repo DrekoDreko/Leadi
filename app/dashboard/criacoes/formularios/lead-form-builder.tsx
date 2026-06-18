@@ -98,7 +98,7 @@ export function LeadFormBuilder({ pages }: { pages: PageOption[] }) {
               id="form-page"
               value={pageId}
               onChange={(event) => setPageId(event.target.value)}
-              className="mt-2 h-11 w-full rounded-2xl border border-cobalt/20 bg-white/70 px-4 text-sm focus:border-cobalt/45 focus:outline-none"
+              className="mt-2 h-11 w-full rounded-2xl border border-cobalt/20 bg-surface-elevated px-4 text-sm focus:border-cobalt/45 focus:outline-none"
             >
               {pages.map((page) => (
                 <option key={page.id} value={page.id}>
@@ -118,7 +118,7 @@ export function LeadFormBuilder({ pages }: { pages: PageOption[] }) {
               onChange={(event) => setName(event.target.value)}
               placeholder="Ex: Captação plano empresarial"
               maxLength={200}
-              className="mt-2 h-11 w-full rounded-2xl border border-cobalt/20 bg-white/70 px-4 text-sm focus:border-cobalt/45 focus:outline-none"
+              className="mt-2 h-11 w-full rounded-2xl border border-cobalt/20 bg-surface-elevated px-4 text-sm focus:border-cobalt/45 focus:outline-none"
             />
           </div>
 
@@ -137,7 +137,7 @@ export function LeadFormBuilder({ pages }: { pages: PageOption[] }) {
                     className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
                       checked
                         ? "border-cobalt/30 bg-cobalt/10 text-cobalt"
-                        : "border-cobalt/15 bg-white/50 text-ink/70 hover:bg-white"
+                        : "border-cobalt/15 bg-surface-elevated text-ink/70 hover:bg-surface-elevated"
                     } ${option.locked ? "cursor-default opacity-90" : ""}`}
                   >
                     {checked ? <CheckCircle2 size={15} aria-hidden="true" /> : null}
@@ -159,7 +159,7 @@ export function LeadFormBuilder({ pages }: { pages: PageOption[] }) {
               value={privacyPolicyUrl}
               onChange={(event) => setPrivacyPolicyUrl(event.target.value)}
               placeholder="https://seusite.com/privacidade"
-              className="mt-2 h-11 w-full rounded-2xl border border-cobalt/20 bg-white/70 px-4 text-sm focus:border-cobalt/45 focus:outline-none"
+              className="mt-2 h-11 w-full rounded-2xl border border-cobalt/20 bg-surface-elevated px-4 text-sm focus:border-cobalt/45 focus:outline-none"
             />
             <p className="text-muted-soft mt-1 text-xs">Obrigatório pela Meta.</p>
           </div>
@@ -175,7 +175,7 @@ export function LeadFormBuilder({ pages }: { pages: PageOption[] }) {
               placeholder="Recebemos seus dados. Em breve entraremos em contato!"
               maxLength={500}
               rows={3}
-              className="mt-2 w-full rounded-2xl border border-cobalt/20 bg-white/70 px-4 py-3 text-sm focus:border-cobalt/45 focus:outline-none"
+              className="mt-2 w-full rounded-2xl border border-cobalt/20 bg-surface-elevated px-4 py-3 text-sm focus:border-cobalt/45 focus:outline-none"
             />
           </div>
 

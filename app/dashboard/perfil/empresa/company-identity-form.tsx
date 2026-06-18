@@ -47,7 +47,7 @@ export function CompanyIdentityForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <FieldGroup label="Nome da empresa">
           <input
-            className="liquid-input bg-white/30 cursor-not-allowed"
+            className="liquid-input bg-surface-elevated cursor-not-allowed"
             value={orgName}
             disabled
             readOnly
@@ -57,7 +57,7 @@ export function CompanyIdentityForm({
 
         <FieldGroup label="Nome comercial">
           <input
-            className="liquid-input bg-white/30 cursor-not-allowed"
+            className="liquid-input bg-surface-elevated cursor-not-allowed"
             value={brokerageName}
             disabled
             readOnly
@@ -123,7 +123,7 @@ function ReadOnlyField({
   return (
     <div className={span2 ? "sm:col-span-2" : ""}>
       <p className="mb-1.5 text-xs font-semibold text-ink/60">{label}</p>
-      <div className="rounded-[18px] border border-white/44 bg-white/36 px-4 py-3 text-sm text-ink/70">
+      <div className="rounded-[18px] border border-border bg-surface-elevated px-4 py-3 text-sm text-ink/70">
         {value || "—"}
       </div>
     </div>

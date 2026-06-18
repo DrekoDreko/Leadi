@@ -123,7 +123,7 @@ export function OnboardingChecklist({
                 "group relative flex flex-col gap-3 rounded-2xl border p-5 transition-all duration-500",
                 step.isCompleted
                   ? "surface-card border-teal-500/20"
-                  : "surface-card border-white/40 hover:border-cobalt/30 hover:shadow-lg hover:shadow-cobalt/5"
+                  : "surface-card border-border hover:border-cobalt/30 hover:shadow-lg hover:shadow-cobalt/5"
               )}
             >
               <div className="flex items-start justify-between gap-3">

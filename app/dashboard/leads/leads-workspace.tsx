@@ -1422,8 +1422,8 @@ function LeadTablePanel({
     ? "hidden grid-cols-[44px_minmax(220px,1.2fr)_150px_210px_140px_120px] gap-4 border-b border-ink/8 px-5 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid"
     : "hidden grid-cols-[minmax(220px,1.2fr)_150px_210px_140px_120px] gap-4 border-b border-ink/8 px-5 py-3 text-xs font-semibold uppercase tracking-normal text-ink/42 md:grid";
   const rowGridClassName = canManageLeadOwners
-    ? "grid gap-3 border-b border-ink/8 px-5 py-4 text-left transition hover:bg-white/34 last:border-0 md:grid-cols-[44px_minmax(220px,1.2fr)_150px_210px_140px_120px] md:items-center"
-    : "grid gap-3 border-b border-ink/8 px-5 py-4 text-left transition hover:bg-white/34 last:border-0 md:grid-cols-[minmax(220px,1.2fr)_150px_210px_140px_120px] md:items-center";
+    ? "grid gap-3 border-b border-ink/8 px-5 py-4 text-left transition hover:bg-surface-elevated last:border-0 md:grid-cols-[44px_minmax(220px,1.2fr)_150px_210px_140px_120px] md:items-center"
+    : "grid gap-3 border-b border-ink/8 px-5 py-4 text-left transition hover:bg-surface-elevated last:border-0 md:grid-cols-[minmax(220px,1.2fr)_150px_210px_140px_120px] md:items-center";
 
   return (
     <section className="glass-strong flex h-full flex-col rounded-[34px] p-5">

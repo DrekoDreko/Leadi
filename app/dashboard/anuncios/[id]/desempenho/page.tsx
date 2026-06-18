@@ -63,12 +63,12 @@ export default async function DesempenhoAnuncioPage({
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/dashboard/desempenho"
-            className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-4 py-2 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+            className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-surface-elevated px-4 py-2 text-sm font-semibold text-cobalt transition-colors hover:bg-surface-elevated"
           >
             <ArrowLeft size={16} aria-hidden="true" />
             Voltar
           </Link>
-          <div className="flex flex-wrap gap-1 rounded-full border border-cobalt/20 bg-white/60 p-1">
+          <div className="flex flex-wrap gap-1 rounded-full border border-cobalt/20 bg-surface-elevated p-1">
             {DATE_PRESET_ORDER.map((preset) => {
               const active = preset === datePreset;
               return (
@@ -152,7 +152,7 @@ function Stat({
   return (
     <div
       className={`rounded-[20px] px-4 py-3 ${
-        highlight ? "bg-cobalt/8 border border-cobalt/16" : compact ? "bg-white/40" : "surface-card-muted"
+        highlight ? "bg-cobalt/8 border border-cobalt/16" : compact ? "bg-surface-elevated" : "surface-card-muted"
       }`}
     >
       <p className="text-muted-soft text-xs font-semibold uppercase tracking-wide">{label}</p>

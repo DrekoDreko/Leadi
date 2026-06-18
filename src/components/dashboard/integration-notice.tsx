@@ -21,5 +21,5 @@ export function IntegrationNotice({ message, title, tone = "info" }: Integration
     );
   }
 
-  return <p className="rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">{message}</p>;
+  return <p className="rounded-[22px] bg-surface-elevated px-4 py-3 text-sm font-semibold text-ink">{message}</p>;
 }

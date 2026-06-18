@@ -42,7 +42,7 @@ export default async function AnunciosPage({
       >
         <div className="flex items-center gap-3">
           <Link
-            className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+            className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-surface-elevated px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-surface-elevated"
             href="/dashboard/desempenho"
           >
             <TrendingUp size={16} aria-hidden="true" />
@@ -50,14 +50,14 @@ export default async function AnunciosPage({
           </Link>
           {filterDrafts ? (
             <Link
-              className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-surface-elevated px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-surface-elevated"
               href="/dashboard/anuncios"
             >
               Ver todos
             </Link>
           ) : draftCount > 0 ? (
             <Link
-              className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-surface-elevated px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-surface-elevated"
               href="/dashboard/anuncios?filtro=rascunhos"
             >
               <FileText size={16} aria-hidden="true" />
@@ -81,7 +81,7 @@ export default async function AnunciosPage({
         <div
           className={`rounded-[26px] border p-4 text-sm ${
             campaignState.mode === "supabase"
-              ? "border-white/46 bg-white/34 text-ink/72"
+              ? "border-border bg-surface-elevated text-ink/72"
               : "border-amber-200/70 bg-amber-50/80 text-amber-900"
           }`}
         >

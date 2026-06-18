@@ -69,7 +69,7 @@ export function WebhookSetupCard({
     <section className="glass-strong rounded-[34px] p-6">
       <div className="flex flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
-          <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
+          <article className="rounded-[28px] border border-border bg-surface-elevated p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-cobalt">URL do webhook</p>
@@ -96,7 +96,7 @@ export function WebhookSetupCard({
             ) : null}
           </article>
 
-          <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
+          <article className="rounded-[28px] border border-border bg-surface-elevated p-5">
             <div className="flex items-center gap-2 text-cobalt">
               <KeyRound size={16} aria-hidden="true" />
               <p className="text-sm font-medium">Token da integração</p>
@@ -144,7 +144,7 @@ export function WebhookSetupCard({
                   <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/52">{state.label}</p>
                 ) : null}
                 <div className="mt-3 flex items-start justify-between gap-3">
-                  <code className="block break-all rounded-[18px] bg-white/70 px-3 py-3 text-sm text-ink">
+                  <code className="block break-all rounded-[18px] bg-surface-elevated px-3 py-3 text-sm text-ink">
                     {state.token}
                   </code>
                   <button
@@ -171,7 +171,7 @@ export function WebhookSetupCard({
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
+          <article className="rounded-[28px] border border-border bg-surface-elevated p-5">
             <p className="text-sm font-medium text-cobalt">Como configurar</p>
             <ol className="mt-3 space-y-2 text-sm leading-6 text-ink/66">
               <li>1. Copie a URL do webhook acima.</li>
@@ -179,11 +179,11 @@ export function WebhookSetupCard({
               <li>3. No Make, Zapier ou ferramenta externa, crie uma requisição POST.</li>
               <li>
                 4. Envie o token no header{" "}
-                <code className="rounded bg-white/68 px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
+                <code className="rounded bg-surface-elevated px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
                   x-leadi-token: SEU_TOKEN_AQUI
                 </code>{" "}
                 ou{" "}
-                <code className="rounded bg-white/68 px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
+                <code className="rounded bg-surface-elevated px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
                   Authorization: Bearer SEU_TOKEN_AQUI
                 </code>
                 .
@@ -221,7 +221,7 @@ export function WebhookSetupCard({
             ) : null}
           </article>
 
-          <article className="rounded-[28px] border border-white/44 bg-white/36 p-5">
+          <article className="rounded-[28px] border border-border bg-surface-elevated p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-cobalt">Payload exemplo JSON</p>

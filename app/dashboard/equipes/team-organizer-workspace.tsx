@@ -1260,7 +1260,7 @@ function TeamOverviewCard({
       </div>
       <div className="grid grid-cols-2 gap-3">
         {stats.map((stat) => (
-          <div className="rounded-2xl bg-white/42 px-4 py-3" key={stat.label}>
+          <div className="rounded-2xl bg-surface-elevated px-4 py-3" key={stat.label}>
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-soft">
               {stat.label}
             </p>
@@ -1286,7 +1286,7 @@ function AccessByRoleCard() {
       <h2 className="text-xl font-semibold">Acesso por papel</h2>
       <div className="mt-5 space-y-3">
         {bullets.map((item) => (
-          <div className="flex items-center gap-3 rounded-2xl bg-white/42 px-4 py-3" key={item}>
+          <div className="flex items-center gap-3 rounded-2xl bg-surface-elevated px-4 py-3" key={item}>
             <CheckCircle2 className="shrink-0 text-lagoon" size={18} aria-hidden="true" />
             <span className="text-sm font-medium">{item}</span>
           </div>

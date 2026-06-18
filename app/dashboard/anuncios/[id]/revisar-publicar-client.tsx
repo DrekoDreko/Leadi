@@ -326,7 +326,7 @@ export function RevisarPublicarClient({
               <div className="flex flex-wrap gap-3">
                 {creativeImages.map((img, index) => (
                   <a
-                    className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-[14px] border border-white/60 bg-white/40 transition hover:border-cobalt/50 hover:shadow-md"
+                    className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-[14px] border border-border bg-surface-elevated transition hover:border-cobalt/50 hover:shadow-md"
                     href={img.url}
                     key={img.url}
                     rel="noreferrer"
@@ -507,7 +507,7 @@ export function RevisarPublicarClient({
                 </p>
                 <Link
                   href={`/dashboard/anuncios/${campaign.id}/desempenho`}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cobalt/20 bg-surface-elevated px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-surface-elevated"
                 >
                   <TrendingUp size={16} aria-hidden="true" />
                   Ver desempenho (gasto, leads e custo por lead)
@@ -528,7 +528,7 @@ export function RevisarPublicarClient({
 
       {isPublishing ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-5 rounded-[28px] bg-white px-10 py-10 shadow-xl">
+          <div className="surface-card flex flex-col items-center gap-5 rounded-[28px] px-10 py-10 shadow-xl">
             <div className="relative flex h-16 w-16 items-center justify-center">
               <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-cobalt/60" />
               <Rocket className="text-cobalt/70" size={28} aria-hidden="true" />

@@ -146,7 +146,7 @@ export function MetaOnboardingCard({
 
   return (
     <section className="glass-strong rounded-[34px] p-6 md:p-8">
-      <span className="inline-flex items-center gap-2 rounded-full bg-slate-500/12 px-3 py-1.5 text-xs font-semibold text-slate-700">
+      <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground">
         <Unplug size={14} aria-hidden="true" />
         Conexão não iniciada
       </span>
@@ -1104,7 +1104,7 @@ function getMetaConnectionToneStyles(tone: MetaOperationalSummary["connectionTon
       };
     default:
       return {
-        badgeClassName: "bg-slate-500/12 text-slate-700",
+        badgeClassName: "bg-muted text-muted-foreground",
         icon: <Unplug size={14} aria-hidden="true" />
       };
   }

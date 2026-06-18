@@ -400,7 +400,7 @@ function PixInlineCheckout({ pixData, newPixHref }: { pixData: PixData; newPixHr
         Expira em {timeLeft}
       </div>
 
-      <div className="rounded-2xl border border-ink/10 bg-white p-4">
+      <div className="rounded-2xl border border-ink/10 bg-surface-elevated p-4">
         {pixData.brCodeBase64 ? (
           <img
             src={pixData.brCodeBase64.startsWith("data:") ? pixData.brCodeBase64 : `data:image/png;base64,${pixData.brCodeBase64}`}

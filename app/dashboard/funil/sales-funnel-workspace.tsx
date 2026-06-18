@@ -545,7 +545,7 @@ export function SalesFunnelWorkspace({
 
             return (
               <article
-                className={`rounded-[28px] border border-white/56 p-4 ${tone.card}`}
+                className={`rounded-[28px] border border-border p-4 ${tone.card}`}
                 key={column.value}
               >
                 <div className="flex items-center justify-between gap-3">

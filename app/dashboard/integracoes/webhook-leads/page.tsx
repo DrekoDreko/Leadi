@@ -36,7 +36,7 @@ export default async function WebhookLeadsPage({
         description="Use esta área para conectar ferramentas externas ao Leadi. Depois de configurado, todo lead enviado para esta URL será cadastrado automaticamente no CRM."
       >
         <Link
-          className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white/78"
+          className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-5 py-3 text-sm font-semibold text-ink transition hover:bg-surface-elevated"
           href="/dashboard/perfil"
         >
           <ArrowLeft size={18} aria-hidden="true" />

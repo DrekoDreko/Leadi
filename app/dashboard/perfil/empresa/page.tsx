@@ -46,14 +46,14 @@ export default async function PerfilEmpresaPage({
             : "Visualize os dados da empresa. Apenas o gestor pode editar estas informações."
         }
       >
-        <span className="inline-flex items-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-ink">
+        <span className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-5 py-3 text-sm font-semibold text-ink">
           <Building2 size={18} aria-hidden="true" />
           {context.workspaceName}
         </span>
       </PageHeading>
 
       {feedback && (
-        <p className="rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">
+        <p className="rounded-[22px] bg-surface-elevated px-4 py-3 text-sm font-semibold text-ink">
           {feedback}
         </p>
       )}

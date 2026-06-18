@@ -35,7 +35,7 @@ export function CompanyLogoUpload({
 
   return (
     <div className="flex items-center gap-5">
-      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/50 border border-white/44">
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-surface-elevated border border-border">
         {displayUrl ? (
           <Image
             src={displayUrl}
@@ -50,7 +50,7 @@ export function CompanyLogoUpload({
           </span>
         )}
         {isPending && (
-          <span className="absolute inset-0 flex items-center justify-center bg-white/70">
+          <span className="absolute inset-0 flex items-center justify-center bg-surface-elevated">
             <Loader2 size={22} className="animate-spin text-cobalt" />
           </span>
         )}

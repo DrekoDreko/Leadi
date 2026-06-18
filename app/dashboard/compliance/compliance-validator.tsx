@@ -208,7 +208,7 @@ export function ComplianceValidator({
         <div className="min-w-0 space-y-4">
           <section className="glass-strong rounded-[34px] p-5 md:p-6">
             <form className="grid gap-4" id="compliance-validator-form" onSubmit={handleSubmit}>
-              <div className="rounded-[22px] bg-white/42 px-4 py-3 text-sm font-medium text-ink/70">
+              <div className="rounded-[22px] bg-surface-elevated px-4 py-3 text-sm font-medium text-ink/70">
                 Esta ação consumirá {validationCost} crédito
                 {validationCost === 1 ? "" : "s"} de IA por execução.
               </div>
@@ -309,7 +309,7 @@ export function ComplianceValidator({
 
             <div className="grid gap-3 md:grid-cols-2">
               {visibleReview.reasons.map((reason) => (
-                <article className="rounded-[24px] border border-white/44 bg-white/36 p-4 shadow-soft" key={`${reason.title}-${reason.detail}`}>
+                <article className="rounded-[24px] border border-border bg-surface-elevated p-4 shadow-soft" key={`${reason.title}-${reason.detail}`}>
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <h3 className="font-semibold leading-tight">{reason.title}</h3>
                     <span
@@ -332,7 +332,7 @@ export function ComplianceValidator({
               </div>
               <button
                 aria-label="Copiar reescrita"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/70 text-ink transition hover:bg-white"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-ink transition hover:bg-surface-elevated"
                 onClick={copyRewrite}
                 title={copied ? "Copiado" : "Copiar reescrita"}
                 type="button"
@@ -344,7 +344,7 @@ export function ComplianceValidator({
                 )}
               </button>
             </div>
-            <p className="whitespace-pre-line rounded-[24px] bg-white/40 p-4 text-sm leading-6 text-ink/72">
+            <p className="whitespace-pre-line rounded-[24px] bg-surface-elevated p-4 text-sm leading-6 text-ink/72">
               {visibleReview.rewrittenText}
             </p>
           </section>
@@ -358,7 +358,7 @@ export function ComplianceValidator({
             </div>
             <div className="space-y-3">
               {visibleReview.suggestions.map((suggestion) => (
-                <div className="flex gap-3 rounded-[22px] bg-white/42 p-4" key={suggestion}>
+                <div className="flex gap-3 rounded-[22px] bg-surface-elevated p-4" key={suggestion}>
                   <CheckCircle2 className="mt-0.5 shrink-0 text-lagoon" size={18} aria-hidden="true" />
                   <p className="text-sm leading-6 text-ink/68">{suggestion}</p>
                 </div>
@@ -371,7 +371,7 @@ export function ComplianceValidator({
               <h2 className="font-semibold">Ressalva</h2>
               <ShieldAlert size={20} aria-hidden="true" />
             </div>
-            <p className="rounded-[22px] bg-white/42 p-4 text-sm leading-6 text-ink/68">
+            <p className="rounded-[22px] bg-surface-elevated p-4 text-sm leading-6 text-ink/68">
               {visibleReview.disclaimer}
             </p>
           </section>

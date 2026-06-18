@@ -70,7 +70,7 @@ export function WebhookLogsCard({
             Erro
           </a>
           <button
-            className="inline-flex items-center gap-2 rounded-full bg-white/55 px-4 py-2 text-xs font-semibold text-ink/74 transition hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-4 py-2 text-xs font-semibold text-ink/74 transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-70"
             disabled={!isSupabaseMode || isRefreshing}
             onClick={() => {
               startRefreshTransition(() => {
@@ -85,7 +85,7 @@ export function WebhookLogsCard({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/40 bg-white/34 px-4 py-3 text-sm text-ink/66">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-border bg-surface-elevated px-4 py-3 text-sm text-ink/66">
         <p>
           {isSupabaseMode
             ? "Atualização automática a cada 15 segundos para acompanhar o teste quase em tempo real."
@@ -95,7 +95,7 @@ export function WebhookLogsCard({
           <label className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-ink/60">
             <input
               checked={isAutoRefreshEnabled}
-              className="h-4 w-4 rounded border-white/55 accent-ink"
+              className="h-4 w-4 rounded border-border accent-ink"
               onChange={(event) => setIsAutoRefreshEnabled(event.target.checked)}
               type="checkbox"
             />
@@ -105,7 +105,7 @@ export function WebhookLogsCard({
       </div>
 
       {logs.length === 0 ? (
-        <div className="mt-5 rounded-[22px] border border-white/40 bg-white/34 px-4 py-3 text-sm text-ink/66">
+        <div className="mt-5 rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm text-ink/66">
           <p>Nenhum log encontrado para este filtro.</p>
           <p className="mt-2 text-xs leading-5 text-ink/52">
             {isSupabaseMode
@@ -128,7 +128,7 @@ export function WebhookLogsCard({
             </thead>
             <tbody>
               {logs.map((event) => (
-                <tr key={event.id} className="border-t border-white/35 align-top">
+                <tr key={event.id} className="border-t border-border align-top">
                   <td className="py-3 pr-4 text-ink/72">{formatWebhookLogDate(event.receivedAt)}</td>
                   <td className="py-3 pr-4 text-ink/72">{event.source}</td>
                   <td className="py-3 pr-4">
@@ -161,7 +161,7 @@ function getWebhookFilterClass(current: WebhookLogFilter, target: WebhookLogFilt
     return "rounded-full bg-ink px-4 py-2 text-xs font-semibold text-cloud";
   }
 
-  return "rounded-full bg-white/55 px-4 py-2 text-xs font-semibold text-ink/70 transition hover:bg-white/75";
+  return "rounded-full bg-surface-elevated px-4 py-2 text-xs font-semibold text-ink/70 transition hover:bg-surface-elevated";
 }
 
 function getWebhookStatusLabel(event: LeadWebhookLog) {

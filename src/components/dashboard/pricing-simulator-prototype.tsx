@@ -291,7 +291,7 @@ export function PricingSimulatorPrototype({
                 Total: {totalVidas} {totalVidas === 1 ? "vida" : "vidas"}
               </span>
             </label>
-            <div className="border border-white/45 bg-white/28 rounded-[26px] overflow-hidden max-h-[350px] overflow-y-auto p-2 space-y-1">
+            <div className="border border-border bg-white/28 rounded-[26px] overflow-hidden max-h-[350px] overflow-y-auto p-2 space-y-1">
               {AGE_RANGES.map(({ value, label }) => {
                 const count = beneficiaries[value];
                 return (
@@ -310,7 +310,7 @@ export function PricingSimulatorPrototype({
                         onClick={() => decrementAge(value)}
                         className={`h-7 w-7 flex items-center justify-center rounded-full transition ${
                           count > 0 
-                            ? "bg-white border border-ink/10 text-ink hover:bg-ink/5" 
+                            ? "bg-surface-elevated border border-ink/10 text-ink hover:bg-ink/5" 
                             : "opacity-30 pointer-events-none text-ink/38"
                         }`}
                         type="button"
@@ -322,7 +322,7 @@ export function PricingSimulatorPrototype({
                       </span>
                       <button
                         onClick={() => incrementAge(value)}
-                        className="h-7 w-7 flex items-center justify-center rounded-full bg-white border border-ink/10 text-ink hover:bg-ink/5 transition"
+                        className="h-7 w-7 flex items-center justify-center rounded-full bg-surface-elevated border border-ink/10 text-ink hover:bg-ink/5 transition"
                         type="button"
                       >
                         <Plus size={12} />
@@ -479,7 +479,7 @@ export function PricingSimulatorPrototype({
                       className={`w-full py-4 px-6 rounded-xl text-base font-bold transition flex items-center justify-center gap-3 ${
                         voted 
                           ? "bg-green-500/20 text-green-100 border border-green-400/30 backdrop-blur-md cursor-default" 
-                          : "bg-white text-blue-700 hover:bg-blue-50 hover:scale-[1.02] shadow-xl"
+                          : "bg-surface-elevated text-blue-700 hover:bg-blue-50 hover:scale-[1.02] shadow-xl"
                       }`}
                     >
                       {voted ? (

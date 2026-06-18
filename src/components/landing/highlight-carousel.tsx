@@ -524,7 +524,7 @@ export function HighlightCarousel() {
             </div>
 
             {/* Bottom aligned mockup visual with high whitespace (respiro) */}
-            <div className="mt-8 flex justify-center items-center h-[170px] sm:h-[220px] w-full rounded-2xl bg-neutral-50/0 p-2.5 transition-all duration-300">
+            <div className="mt-8 flex justify-center items-center h-[170px] sm:h-[220px] w-full rounded-2xl bg-muted/0 p-2.5 transition-all duration-300">
               {card.visual}
             </div>
           </div>

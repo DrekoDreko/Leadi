@@ -32,7 +32,7 @@ export default function Error({
             Tentar novamente
           </button>
           <Link
-            className="inline-flex items-center justify-center rounded-full bg-white/54 px-5 py-3 font-semibold text-ink"
+            className="inline-flex items-center justify-center rounded-full bg-surface-elevated px-5 py-3 font-semibold text-ink"
             href="/"
           >
             Voltar para a home

@@ -453,7 +453,7 @@ export function CsvImportWorkspace({
 
           <div className="flex flex-wrap gap-2">
             <label
-              className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-white/60 bg-cloud px-5 py-3 text-sm font-semibold text-slate-950 shadow-soft transition hover:bg-white dark:border-white/12 ${
+              className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-white/60 bg-cloud px-5 py-3 text-sm font-semibold text-[#121721] shadow-soft transition hover:bg-white dark:border-white/12 ${
                 isParsing || isImporting ? "pointer-events-none cursor-not-allowed opacity-70" : ""
               }`}
               htmlFor="csv-file-input"
@@ -522,7 +522,7 @@ export function CsvImportWorkspace({
               <ImportStat label="Ignorados" value={String(invalidRows.length)} note="precisam de ajuste" />
             </div>
 
-            <div className="mt-6 rounded-[28px] border border-white/50 bg-white/42 p-4">
+            <div className="surface-card-muted mt-6 rounded-[28px] p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-ink/56">Campos encontrados</p>
@@ -530,7 +530,7 @@ export function CsvImportWorkspace({
                     O mapeamento abaixo usa estes cabeçalhos como sugestão.
                   </p>
                 </div>
-                <span className="rounded-full bg-white/72 px-3 py-1 text-xs font-semibold text-ink/64">
+                <span className="surface-pill rounded-full px-3 py-1 text-xs font-semibold text-muted-foreground">
                   {mappedFieldsCount} mapeados
                 </span>
               </div>
@@ -538,7 +538,7 @@ export function CsvImportWorkspace({
               <div className="mt-4 flex flex-wrap gap-2">
                 {parsedFile.headers.map((header) => (
                   <span
-                    className="rounded-full bg-white/82 px-3 py-1 text-xs font-semibold text-ink/70"
+                    className="surface-pill rounded-full px-3 py-1 text-xs font-semibold text-muted-foreground"
                     key={header}
                   >
                     {header || "Sem título"}
@@ -598,10 +598,10 @@ export function CsvImportWorkspace({
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <span className="rounded-full bg-white/68 px-3 py-1 text-xs font-semibold text-ink/68">
+                <span className="surface-pill rounded-full px-3 py-1 text-xs font-semibold text-muted-foreground">
                   {validRows.length} válidos
                 </span>
-                <span className="rounded-full bg-white/68 px-3 py-1 text-xs font-semibold text-ink/68">
+                <span className="surface-pill rounded-full px-3 py-1 text-xs font-semibold text-muted-foreground">
                   {invalidRows.length} inválidos
                 </span>
                 {isMetaLeadAdsImport ? (
@@ -627,7 +627,7 @@ export function CsvImportWorkspace({
               </div>
             ) : null}
 
-            <div className="mt-5 overflow-hidden rounded-[28px] border border-white/52 bg-white/28">
+            <div className="surface-card-muted mt-5 overflow-hidden rounded-[28px]">
               <div className="grid grid-cols-[56px_minmax(180px,1.25fr)_180px_150px_130px_150px_minmax(180px,1.4fr)_1.1fr] gap-3 border-b border-ink/8 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/42">
                 <span>Linha</span>
                 <span>Nome</span>
@@ -685,7 +685,7 @@ export function CsvImportWorkspace({
                 <div className="mt-4 space-y-2">
                   {invalidRows.slice(0, 5).map((row) => (
                     <div
-                      className="flex flex-col gap-1 rounded-[20px] bg-white/52 px-4 py-3 text-sm md:flex-row md:items-center md:justify-between"
+                      className="surface-card-muted flex flex-col gap-1 rounded-[20px] px-4 py-3 text-sm md:flex-row md:items-center md:justify-between"
                       key={row.index}
                     >
                       <span className="font-semibold text-ink">Linha {row.index}</span>
@@ -745,7 +745,7 @@ export function CsvImportWorkspace({
                 </div>
 
                 {importSummary.duplicates.length > 0 ? (
-                  <div className="mt-4 rounded-[24px] bg-white/56 p-4">
+                  <div className="surface-card-muted mt-4 rounded-[24px] p-4">
                     <p className="text-sm font-semibold text-ink">Duplicados detectados</p>
                     <div className="mt-3 space-y-2">
                       {importSummary.duplicates.slice(0, 5).map((duplicate) => (
@@ -758,7 +758,7 @@ export function CsvImportWorkspace({
                 ) : null}
 
                 {importSummary.ignored.length > 0 ? (
-                  <div className="mt-4 rounded-[24px] bg-white/56 p-4">
+                  <div className="surface-card-muted mt-4 rounded-[24px] p-4">
                     <p className="text-sm font-semibold text-ink">Linhas ignoradas</p>
                     <div className="mt-3 space-y-2">
                       {importSummary.ignored.slice(0, 5).map((ignoredRow) => (
@@ -771,7 +771,7 @@ export function CsvImportWorkspace({
                 ) : null}
 
                 {importSummary.errors.length > 0 ? (
-                  <div className="mt-4 rounded-[24px] bg-white/56 p-4">
+                  <div className="surface-card-muted mt-4 rounded-[24px] p-4">
                     <p className="text-sm font-semibold text-ink">Erros da importação</p>
                     <div className="mt-3 space-y-2">
                       {importSummary.errors.slice(0, 5).map((failure) => (
@@ -785,7 +785,7 @@ export function CsvImportWorkspace({
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-white/74 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/92"
+                    className="surface-action-secondary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition"
                     onClick={copyImportReport}
                     type="button"
                   >
@@ -793,7 +793,7 @@ export function CsvImportWorkspace({
                     Copiar relatório
                   </button>
                   <button
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-white/74 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/92"
+                    className="surface-action-secondary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition"
                     onClick={downloadImportReport}
                     type="button"
                   >
@@ -921,7 +921,7 @@ export function CsvImportWorkspace({
             </div>
 
             <label
-              className="block w-full cursor-pointer rounded-[28px] border border-dashed border-cobalt/24 bg-white/46 p-6 text-left transition hover:border-cobalt/40 hover:bg-white/60"
+              className="block w-full cursor-pointer rounded-[28px] border border-dashed border-cobalt/24 bg-surface-elevated p-6 text-left transition hover:border-cobalt/40 hover:bg-surface"
               htmlFor="csv-file-input"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
@@ -950,7 +950,7 @@ function ImportStat({
   note: string;
 }) {
   return (
-    <div className="rounded-[24px] bg-white/48 px-4 py-4">
+    <div className="surface-card-muted rounded-[24px] px-4 py-4">
       <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink/46">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-ink">{value}</p>
       <p className="mt-1 text-xs font-medium text-ink/52">{note}</p>
@@ -966,7 +966,7 @@ function MiniStep({
   text: string;
 }) {
   return (
-    <div className="rounded-[24px] bg-white/48 px-4 py-4">
+    <div className="surface-card-muted rounded-[24px] px-4 py-4">
       <p className="text-sm font-semibold text-ink">{title}</p>
       <p className="mt-2 text-sm leading-6 text-ink/60">{text}</p>
     </div>
@@ -981,7 +981,7 @@ function ReportStat({
   value: string;
 }) {
   return (
-    <div className="rounded-[20px] bg-white/68 px-4 py-3">
+    <div className="surface-card-muted rounded-[20px] px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/46">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-ink">{value}</p>
     </div>

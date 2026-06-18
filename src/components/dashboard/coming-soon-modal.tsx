@@ -105,7 +105,7 @@ export function ComingSoonModal({
                     className={`flex w-full items-center justify-center gap-3 rounded-xl px-6 py-4 text-base font-bold transition ${
                       voted
                         ? "cursor-default border border-green-400/30 bg-green-500/20 text-green-100 backdrop-blur-md"
-                        : "bg-white text-blue-700 shadow-xl hover:scale-[1.02] hover:bg-blue-50"
+                        : "bg-surface-elevated text-blue-700 shadow-xl hover:scale-[1.02] hover:bg-blue-50"
                     }`}
                   >
                     {voted ? (

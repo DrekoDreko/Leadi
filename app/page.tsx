@@ -37,7 +37,7 @@ export default function Home() {
             {navLinks.map((l) => (
               <Link
                 key={l.label}
-                className="rounded-full px-3 py-2 transition hover:bg-white/36"
+                className="rounded-full px-3 py-2 transition hover:bg-surface-elevated"
                 href={l.href}
               >
                 {l.label}

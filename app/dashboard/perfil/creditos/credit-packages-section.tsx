@@ -129,7 +129,7 @@ export function CreditPackagesSection({
           ))}
         </div>
       ) : (
-        <div className="mt-6 rounded-[24px] border border-white/40 bg-white/28 p-4 text-sm leading-6 text-ink/64">
+        <div className="mt-6 rounded-[24px] border border-border bg-white/28 p-4 text-sm leading-6 text-ink/64">
           Nenhum pacote de créditos está disponível agora. Recarregue a página em instantes.
         </div>
       )}

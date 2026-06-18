@@ -387,7 +387,7 @@ export function InviteCard({
             </div>
           </div>
           <button
-            className="inline-flex items-center gap-2 rounded-full bg-white/58 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/72"
+            className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface-elevated"
             onClick={cancelPayment}
             type="button"
           >
@@ -402,7 +402,7 @@ export function InviteCard({
             Expira em {pixTimeLeft}
           </div>
 
-          <div className="rounded-2xl border border-ink/10 bg-white p-4">
+          <div className="rounded-2xl border border-ink/10 bg-surface-elevated p-4">
             {pixData.brCodeBase64 ? (
               <img
                 src={
@@ -496,7 +496,7 @@ export function InviteCard({
       ) : null}
 
       {feedback ? (
-        <p className="mb-4 rounded-[22px] bg-white/50 px-4 py-3 text-sm font-semibold text-ink">
+        <p className="mb-4 rounded-[22px] bg-surface-elevated px-4 py-3 text-sm font-semibold text-ink">
           {feedback}
         </p>
       ) : null}
@@ -511,7 +511,7 @@ export function InviteCard({
 
       <div className="grid gap-4 xl:grid-cols-2">
         {/* Convite por Email */}
-        <div className="rounded-[26px] border border-white/45 bg-white/20 p-5">
+        <div className="rounded-[26px] border border-border bg-white/20 p-5">
           <div className="mb-4 flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cobalt text-white">
               <Mail size={18} aria-hidden="true" />
@@ -574,7 +574,7 @@ export function InviteCard({
 
           {emailInviteUrl ? (
             <div className="mt-5">
-              <div className="rounded-[22px] bg-white/48 p-3 text-sm font-semibold text-ink/70 break-all">
+              <div className="rounded-[22px] bg-surface-elevated p-3 text-sm font-semibold text-ink/70 break-all">
                 {emailInviteUrl}
               </div>
               <button
@@ -598,7 +598,7 @@ export function InviteCard({
         </div>
 
         {/* Convite por Link */}
-        <div className="rounded-[26px] border border-white/45 bg-white/20 p-5">
+        <div className="rounded-[26px] border border-border bg-white/20 p-5">
           <div className="mb-4 flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lagoon text-white">
               <Link2 size={18} aria-hidden="true" />
@@ -649,7 +649,7 @@ export function InviteCard({
 
           {linkInviteUrl ? (
             <div className="mt-5">
-              <div className="rounded-[22px] bg-white/48 p-3 text-sm font-semibold text-ink/70 break-all">
+              <div className="rounded-[22px] bg-surface-elevated p-3 text-sm font-semibold text-ink/70 break-all">
                 {linkInviteUrl}
               </div>
               <button
@@ -680,7 +680,7 @@ export function InviteCard({
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {visibleInvites.map((invite) => (
               <div
-                className="rounded-[22px] border border-white/45 bg-white/38 p-4 shadow-soft"
+                className="rounded-[22px] border border-border bg-surface-elevated p-4 shadow-soft"
                 key={invite.id}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -706,7 +706,7 @@ export function InviteCard({
                   <p className="mt-2 text-xs text-ink/54">Equipe: {invite.teamName}</p>
                 ) : null}
                 {currentRole === "owner" && isPendingInviteReview(invite) ? (
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-white/45 pt-3">
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
                     <button
                       className="inline-flex items-center gap-2 rounded-full bg-cobalt px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
                       disabled={reviewingInviteId === invite.id}
@@ -754,7 +754,7 @@ function getStatusBadgeClass(invite: TeamInvite) {
   if (status === "pendente") return "bg-signal/24 text-ink/72";
   if (status === "rejeitado") return "bg-signal/34 text-ink/72";
   if (status === "expirado") return "bg-ink/10 text-ink/48";
-  return "bg-white/64 text-ink/72";
+  return "bg-surface-elevated text-ink/72";
 }
 
 function isPendingInviteReview(invite: TeamInvite) {

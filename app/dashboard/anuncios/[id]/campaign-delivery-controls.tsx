@@ -31,12 +31,12 @@ const STATUS_BADGE: Record<
   CampaignPublicationStatus,
   { label: string; className: string }
 > = {
-  not_connected: { label: "Nao conectada", className: "bg-slate-100 text-slate-700" },
-  ready_to_prepare: { label: "Pronta para preparar", className: "bg-slate-100 text-slate-700" },
-  draft_created: { label: "Rascunho", className: "bg-slate-100 text-slate-700" },
+  not_connected: { label: "Nao conectada", className: "surface-pill text-muted-foreground" },
+  ready_to_prepare: { label: "Pronta para preparar", className: "surface-pill text-muted-foreground" },
+  draft_created: { label: "Rascunho", className: "surface-pill text-muted-foreground" },
   pending_review: { label: "Em revisao", className: "bg-amber-50 text-amber-800" },
   published: { label: "Veiculando", className: "bg-emerald-50 text-emerald-700" },
-  paused: { label: "Pausada", className: "bg-slate-100 text-slate-700" },
+  paused: { label: "Pausada", className: "surface-pill text-muted-foreground" },
   failed: { label: "Reprovada / falha", className: "bg-red-50 text-red-700" }
 };
 
@@ -49,10 +49,10 @@ function resolveBadge(
 ): { label: string; className: string } {
   const normalized = effectiveStatus?.trim().toUpperCase() ?? "";
   if (normalized === "ARCHIVED") {
-    return { label: "Arquivada", className: "bg-slate-100 text-slate-600" };
+    return { label: "Arquivada", className: "surface-pill text-muted-foreground" };
   }
   if (normalized === "COMPLETED") {
-    return { label: "Concluída", className: "bg-slate-100 text-slate-600" };
+    return { label: "Concluída", className: "surface-pill text-muted-foreground" };
   }
   return STATUS_BADGE[status] ?? STATUS_BADGE.paused;
 }
@@ -85,7 +85,7 @@ function ControlSubCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-full flex-col rounded-[22px] border border-black/[0.06] bg-white/55 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="surface-card flex h-full flex-col rounded-[22px] p-4 shadow-soft">
       <div className="flex items-center gap-2.5">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
           {icon}
@@ -257,7 +257,7 @@ export function CampaignDeliveryControls({
                   value={budget}
                   onChange={(event) => setBudget(event.target.value)}
                   placeholder="Ex: 30,00"
-                  className="h-11 w-full rounded-full border border-cobalt/20 bg-white/70 pl-9 pr-4 text-sm focus:border-cobalt/45 focus:outline-none"
+                  className="h-11 w-full rounded-full border border-cobalt/20 bg-surface-elevated pl-9 pr-4 text-sm focus:border-cobalt/45 focus:outline-none"
                 />
               </div>
               <button
@@ -286,7 +286,7 @@ export function CampaignDeliveryControls({
               href={billingUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cobalt/20 bg-white/60 px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-white"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cobalt/20 bg-surface-elevated px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-surface-elevated"
             >
               <CreditCard size={16} aria-hidden="true" />
               Abrir gerenciador de cobrança na Meta
@@ -331,9 +331,9 @@ function resolveStatusCard(
       description: "O anúncio está arquivado na Meta e não está veiculando.",
       icon: <Archive size={20} aria-hidden="true" />,
       highlight: false,
-      cardClassName: "border-black/[0.06] bg-white/55",
-      iconClassName: "bg-slate-100 text-slate-500",
-      badge: { label: "Arquivado", className: "bg-slate-100 text-slate-600" }
+      cardClassName: "surface-card",
+      iconClassName: "surface-pill text-muted-foreground",
+      badge: { label: "Arquivado", className: "surface-pill text-muted-foreground" }
     };
   }
   if (normalized === "COMPLETED") {
@@ -342,9 +342,9 @@ function resolveStatusCard(
       description: "A campanha foi concluída na Meta.",
       icon: <CheckCircle2 size={20} aria-hidden="true" />,
       highlight: false,
-      cardClassName: "border-black/[0.06] bg-white/55",
-      iconClassName: "bg-slate-100 text-slate-500",
-      badge: { label: "Concluído", className: "bg-slate-100 text-slate-600" }
+      cardClassName: "surface-card",
+      iconClassName: "surface-pill text-muted-foreground",
+      badge: { label: "Concluído", className: "surface-pill text-muted-foreground" }
     };
   }
 
@@ -397,8 +397,8 @@ function resolveStatusCard(
         description: "Estado atual do anúncio conforme a Meta.",
         icon: <Info size={20} aria-hidden="true" />,
         highlight: false,
-        cardClassName: "border-black/[0.06] bg-white/55",
-        iconClassName: "bg-slate-100 text-slate-500",
+        cardClassName: "surface-card",
+        iconClassName: "surface-pill text-muted-foreground",
         badge: STATUS_BADGE[status] ?? STATUS_BADGE.paused
       };
   }

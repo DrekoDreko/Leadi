@@ -35,16 +35,16 @@ export function LegalPage({
         <nav className="glass flex items-center justify-between rounded-full px-4 py-3">
           <BrandMark />
           <div className="flex items-center gap-2 text-sm text-ink/68">
-            <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/">
+            <Link className="rounded-full px-4 py-2 hover:bg-surface-elevated" href="/">
               Inicio
             </Link>
-            <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/privacy">
+            <Link className="rounded-full px-4 py-2 hover:bg-surface-elevated" href="/privacy">
               Privacidade
             </Link>
-            <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/terms">
+            <Link className="rounded-full px-4 py-2 hover:bg-surface-elevated" href="/terms">
               Termos
             </Link>
-            <Link className="rounded-full px-4 py-2 hover:bg-white/36" href="/data-deletion">
+            <Link className="rounded-full px-4 py-2 hover:bg-surface-elevated" href="/data-deletion">
               Exclusao de dados
             </Link>
           </div>
@@ -53,9 +53,9 @@ export function LegalPage({
 
       <section className="section-shell pt-10">
         <div className="glass-strong overflow-hidden rounded-[36px]">
-          <div className="border-b border-white/40 px-6 py-8 md:px-10">
+          <div className="border-b border-border px-6 py-8 md:px-10">
             <Link
-              className="inline-flex items-center gap-2 rounded-full bg-white/55 px-4 py-2 text-sm font-semibold text-ink transition hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 rounded-full bg-surface-elevated px-4 py-2 text-sm font-semibold text-ink transition hover:-translate-y-0.5"
               href="/"
             >
               <ArrowLeft size={16} aria-hidden="true" />
@@ -96,7 +96,7 @@ export function LegalPage({
           </div>
 
           {intro ? (
-            <div className="border-b border-white/40 px-6 py-8 md:px-10">{intro}</div>
+            <div className="border-b border-border px-6 py-8 md:px-10">{intro}</div>
           ) : null}
 
           <div className="grid gap-6 px-6 py-8 md:px-10">
