@@ -3,6 +3,7 @@ export type LeadImportFieldKey =
   | "email"
   | "phone"
   | "city"
+  | "estado"
   | "source"
   | "interest"
   | "notes";
@@ -30,6 +31,7 @@ export const leadImportFieldMeta: LeadImportFieldMeta[] = [
   { key: "email", label: "Email", helpText: "Email do contato, se existir." },
   { key: "phone", label: "Telefone", helpText: "Telefone ou WhatsApp com DDD." },
   { key: "city", label: "Cidade", helpText: "Cidade do lead." },
+  { key: "estado", label: "Estado", helpText: "Estado (UF) do lead." },
   {
     key: "source",
     label: "Origem",
@@ -100,6 +102,11 @@ export function buildSuggestedLeadImportMapping(headers: string[]): LeadImportMa
       "municipio",
       "localidade",
       "location"
+    ]),
+    estado: findBestMatchingHeader(headers, [
+      "estado",
+      "state",
+      "uf"
     ]),
     source: looksLikeMetaLeadAdsExport
       ? FIXED_META_SOURCE_VALUE

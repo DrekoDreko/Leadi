@@ -31,12 +31,10 @@ describe("LeadDetailsPopup", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<LeadDetailsPopup lead={leads[0]} onClose={() => undefined} />);
+    render(<LeadDetailsPopup canManageLeadOwners lead={leads[0]} onClose={() => undefined} />);
 
     expect(screen.getByRole("heading", { name: "Dados basicos" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Resumo de origem" })).toBeInTheDocument();
-    expect(screen.getByText("Etapa atual")).toBeInTheDocument();
-    expect(screen.getByText("Entrada e primeira abordagem")).toBeInTheDocument();
     expect(screen.getByText("Responsavel")).toBeInTheDocument();
     expect(screen.getByText("Meta Lead Form")).toBeInTheDocument();
     expect(screen.getByText("Campanha PME conectada")).toBeInTheDocument();
@@ -66,6 +64,22 @@ describe("LeadDetailsPopup", () => {
     );
   });
 
+  it("esconde o resumo de origem para quem nao gerencia responsaveis", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ comments: [] })
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<LeadDetailsPopup lead={leads[0]} onClose={() => undefined} />);
+
+    expect(screen.getByRole("heading", { name: "Dados basicos" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Comentarios internos" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Resumo de origem" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Contexto da oportunidade")).not.toBeInTheDocument();
+  });
+
   it("normaliza a etapa quando o lead chega com value tecnico", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -82,7 +96,6 @@ describe("LeadDetailsPopup", () => {
     );
 
     expect(screen.getByText("Etapa: Venda")).toBeInTheDocument();
-    expect(screen.getByText("Venda ganha")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -95,7 +108,7 @@ describe("LeadDetailsPopup", () => {
     });
   });
 
-  it("mostra e permite editar motivo de perda para leads perdidos", async () => {
+  it("permite editar motivo de perda para leads perdidos", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ comments: [] })
@@ -117,8 +130,9 @@ describe("LeadDetailsPopup", () => {
       />
     );
 
-    expect(screen.getByText("Motivo de perda")).toBeInTheDocument();
-    expect(screen.getByText("Fechou com a operadora atual por menor reajuste.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Fechou com a operadora atual por menor reajuste.")
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTitle("Editar lead"));
 
@@ -294,7 +308,7 @@ describe("LeadDetailsPopup", () => {
     expect(screen.getByText("Primeiro contato confirmado. O lead saiu da fila de Novo.")).toBeInTheDocument();
   });
 
-  it("mantem a caixa marcada quando o primeiro contato ja existe", async () => {
+  it("esconde a caixa de primeiro contato quando ja existe contato", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -323,12 +337,9 @@ describe("LeadDetailsPopup", () => {
       />
     );
 
-    const firstContactCheckbox = await screen.findByRole("checkbox");
-
-    expect(firstContactCheckbox).toBeChecked();
-    expect(firstContactCheckbox).toBeDisabled();
     expect(
-      screen.getByText("Primeiro contato já confirmado para este lead.")
-    ).toBeInTheDocument();
+      screen.queryByText("Marque assim que fizer o primeiro contato com este lead.")
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   });
 });

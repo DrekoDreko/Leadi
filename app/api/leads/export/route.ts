@@ -63,6 +63,7 @@ const leadExportColumns = [
   { header: "telefone", value: (lead: { phone: string }) => lead.phone },
   { header: "email", value: (lead: { email: string }) => lead.email },
   { header: "cidade", value: (lead: { city?: string | null }) => lead.city ?? "" },
+  { header: "estado", value: (lead: { estado?: string | null }) => lead.estado ?? "" },
   { header: "empresa", value: (lead: { companyName?: string | null }) => lead.companyName ?? "" },
   { header: "vidas", value: (lead: { livesCount?: number | null }) => lead.livesCount ?? "" },
   { header: "recebido_em", value: (lead: { receivedAt?: string | null }) => lead.receivedAt ?? "" },

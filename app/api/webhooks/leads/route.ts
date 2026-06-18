@@ -148,6 +148,7 @@ function normalizeWebhookLeadPayload(body: unknown, organizationId: string) {
     ]),
     email: getTextField(leadPayload, ["email", "e-mail", "mail"]),
     city: getTextField(leadPayload, ["city", "cidade", "localidade", "municipio"]),
+    estado: getTextField(leadPayload, ["estado", "state", "uf"]),
     company_name:
       getTextField(leadPayload, ["company_name", "companyName", "empresa", "company"]),
     lives_count:

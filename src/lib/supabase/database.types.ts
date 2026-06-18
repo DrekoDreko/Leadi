@@ -2016,6 +2016,7 @@ export type Database = {
           phone_e164: string | null;
           email: string | null;
           city: string | null;
+          estado: string | null;
           company_name: string | null;
           lives_count: number | null;
           stage: LeadStage;
@@ -2061,6 +2062,7 @@ export type Database = {
           phone_e164?: string | null;
           email?: string | null;
           city?: string | null;
+          estado?: string | null;
           company_name?: string | null;
           lives_count?: number | null;
           stage?: LeadStage;
@@ -2106,6 +2108,7 @@ export type Database = {
           phone_e164?: string | null;
           email?: string | null;
           city?: string | null;
+          estado?: string | null;
           company_name?: string | null;
           lives_count?: number | null;
           stage?: LeadStage;

@@ -100,6 +100,7 @@ export type LeadCreateInput = {
   phone?: unknown;
   email?: unknown;
   city?: unknown;
+  estado?: unknown;
   company_name?: unknown;
   lives_count?: unknown;
   stage?: unknown;
@@ -2700,6 +2701,7 @@ function buildLeadInsert(profile: ProfileRow, input: LeadCreateInput): LeadInser
     phone_e164: phone.e164,
     email: normalizeEmail(input.email),
     city: stringOrNull(input.city),
+    estado: stringOrNull(input.estado),
     company_name: stringOrNull(input.company_name),
     lives_count: normalizeInteger(input.lives_count),
     stage,
@@ -2776,6 +2778,7 @@ function createMockLead(input: LeadCreateInput): Lead {
     phone: phone.display ?? "Sem telefone",
     email: email ?? "Sem email",
     city: stringOrNull(input.city),
+    estado: stringOrNull(input.estado),
     companyName: stringOrNull(input.company_name),
     livesCount: normalizeInteger(input.lives_count),
     createdAt: dateFormatter.format(now),
@@ -2839,6 +2842,7 @@ function updateMockLead(id: string, input: LeadCreateInput): Lead {
         : phone?.display ?? "Sem telefone",
     email: input.email === undefined ? existingLead?.email ?? "Sem email" : email ?? "Sem email",
     city: input.city === undefined ? existingLead?.city ?? null : stringOrNull(input.city),
+    estado: input.estado === undefined ? existingLead?.estado ?? null : stringOrNull(input.estado),
     companyName:
       input.company_name === undefined
         ? existingLead?.companyName ?? null
@@ -3001,6 +3005,7 @@ function buildLeadUpdate(existingLead: LeadRow, input: LeadCreateInput): Databas
     phone_e164: input.phone === undefined ? undefined : phone.e164,
     email: input.email === undefined ? undefined : normalizeEmail(input.email),
     city: input.city === undefined ? undefined : stringOrNull(input.city),
+    estado: input.estado === undefined ? undefined : stringOrNull(input.estado),
     company_name: input.company_name === undefined ? undefined : stringOrNull(input.company_name),
     lives_count: input.lives_count === undefined ? undefined : normalizeInteger(input.lives_count),
     stage: input.stage === undefined ? undefined : normalizeLeadStage(input.stage),
@@ -3067,6 +3072,7 @@ function mapLeadRowToLead(
     phone: row.phone ?? "Sem telefone",
     email: row.email ?? "Sem email",
     city: row.city,
+    estado: row.estado,
     companyName: row.company_name,
     livesCount: row.lives_count,
     createdAt: dateFormatter.format(new Date(row.created_at)),

@@ -33,6 +33,7 @@ export type Lead = {
   phone: string;
   email: string;
   city?: string | null;
+  estado?: string | null;
   companyName?: string | null;
   livesCount?: number | null;
   createdAt: string;
@@ -93,6 +94,7 @@ export const leads: Lead[] = [
     phone: "(19) 98842-1042",
     email: "marina@azevedoclinica.com.br",
     city: "Campinas",
+    estado: "SP",
     companyName: "Azevedo Clinica",
     livesCount: 48,
     quality: "high",
@@ -124,6 +126,7 @@ export const leads: Lead[] = [
     phone: "(11) 97620-1039",
     email: "renato@rcengenharia.com.br",
     city: "Sao Paulo",
+    estado: "SP",
     companyName: "RC Engenharia",
     livesCount: 32,
     quality: "medium",
@@ -145,6 +148,7 @@ export const leads: Lead[] = [
     phone: "(13) 99110-1031",
     email: "paula@mendesstudio.com.br",
     city: "Santos",
+    estado: "SP",
     companyName: "Mendes Studio",
     livesCount: 11,
     quality: "medium",
@@ -166,6 +170,7 @@ export const leads: Lead[] = [
     phone: "(15) 98132-1028",
     email: "fabio@linslogistica.com.br",
     city: "Sorocaba",
+    estado: "SP",
     companyName: "Lins Logistica",
     livesCount: 126,
     quality: "high",

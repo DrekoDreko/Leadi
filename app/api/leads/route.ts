@@ -27,6 +27,7 @@ const leadCreateSchema = z.object({
   phone: z.string().trim().max(40).optional(),
   email: z.email("Informe um e-mail valido.").optional(),
   city: z.string().trim().max(120).optional(),
+  estado: z.string().trim().max(120).optional(),
   company_name: z.string().trim().max(160).optional(),
   lives_count: z.union([z.number(), z.string()]).optional(),
   stage: z.string().trim().max(40).optional(),

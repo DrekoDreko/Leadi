@@ -46,6 +46,7 @@ type ImportPreviewRow = {
     email?: string;
     phone?: string;
     city?: string;
+    estado?: string;
     source: string;
     interest?: string;
     notes?: string;
@@ -65,7 +66,7 @@ type ImportRunSummary = {
   createdLeadIds: string[];
 };
 
-const previewFields: LeadImportFieldKey[] = ["name", "email", "phone", "city", "source", "interest", "notes"];
+const previewFields: LeadImportFieldKey[] = ["name", "email", "phone", "city", "estado", "source", "interest", "notes"];
 
 export function CsvImportWorkspace({
   canCreateMetaAdsLeads,
@@ -1003,6 +1004,7 @@ function mapPreviewRow(
     email: getMappedValue(mapping.email, record),
     phone: getMappedValue(mapping.phone, record),
     city: getMappedValue(mapping.city, record),
+    estado: getMappedValue(mapping.estado, record),
     source: getSourceDisplayValue(mapping.source),
     interest: getMappedValue(mapping.interest, record),
     notes: getMappedValue(mapping.notes, record)
@@ -1044,6 +1046,7 @@ function mapPreviewRow(
             email: email ?? undefined,
             phone: phone.display ?? undefined,
             city: stringOrNull(values.city) ?? undefined,
+            estado: stringOrNull(values.estado) ?? undefined,
             source: resolveImportSource(mapping.source),
             interest: stringOrNull(values.interest) ?? undefined,
             notes: stringOrNull(values.notes) ?? undefined,

@@ -33,7 +33,6 @@ import {
   getLeadOriginDetails
 } from "@/lib/leads/source";
 import { normalizePhone } from "@/lib/leads/normalization";
-import { isLeadPendingFirstContact } from "@/lib/leads/first-contact";
 import { LeadMessageGenerator } from "./lead-message-generator";
 import type { SystemTemplate } from "@/lib/templates/types";
 import type { LeadOwnerOption } from "@/lib/leads/repository.server";
@@ -60,6 +59,7 @@ type LeadEditValues = {
   phone: string;
   owner_profile_id: string;
   city: string;
+  estado: string;
   company_name: string;
   lives_count: string;
   quality: string;
@@ -266,15 +266,10 @@ export function LeadDetailsPopup({
   const activeStageLabel = getLeadStageLabel(activeLead.stage);
   const isLostLead = activeStageMeta?.value === "lost";
   const resolvedOwnerName = getLeadOwnerName(activeLead, leadOwnerOptions);
-  const activeStageDescription =
-    activeStageMeta?.description ?? "Etapa comercial atual do lead no CRM.";
   const stageBadgeClassName = getLeadStageBadgeClassName(activeStageMeta?.tone);
-  const stagePanelClassName = getLeadStagePanelClassName(activeStageMeta?.tone);
-  const leadQualityMeta = getLeadQualityMeta(activeLead.quality);
-  const lossReasonDescription = lead.lossReason?.trim() || "Motivo de perda ainda nao registrado.";
   const hasRecordedFirstContact =
     activeLead.hasRecordedContact === true || comments.some((comment) => comment.type === "contact");
-  const shouldEmphasizeFirstContact = !isEditing;
+  const shouldEmphasizeFirstContact = !isEditing && !hasRecordedFirstContact;
 
   const closePopup = () => {
     if (!isSubmitting && !isDeleting) {
@@ -517,11 +512,12 @@ export function LeadDetailsPopup({
   }
 
   const profileItems = [
-    { icon: UserRound, label: "Responsavel", value: resolvedOwnerName },
-    { icon: UserRound, label: "Empresa", value: lead.companyName ?? "Empresa nao informada" },
     { icon: PhoneCall, label: "Telefone", value: lead.phone },
     { icon: Mail, label: "Email", value: lead.email },
+    { icon: UserRound, label: "Responsavel", value: resolvedOwnerName },
     { icon: CheckCircle2, label: "Cidade", value: lead.city ?? "Cidade nao informada" },
+    { icon: CheckCircle2, label: "Estado", value: lead.estado ?? "Estado nao informado" },
+    { icon: UserRound, label: "Empresa", value: lead.companyName ?? "Empresa nao informada" },
     { icon: CheckCircle2, label: "Vidas", value: formatLivesCount(lead.livesCount) },
     { icon: CheckCircle2, label: "Qualidade", value: getLeadQualityLabel(lead.quality) }
   ];
@@ -696,44 +692,21 @@ export function LeadDetailsPopup({
         ) : null}
 
         {shouldEmphasizeFirstContact ? (
-          <section
-            className={`mt-5 rounded-[28px] border px-5 py-4 ${
-              hasRecordedFirstContact
-                ? "border-emerald-200/70 bg-emerald-50/80 dark:border-emerald-500/30 dark:bg-emerald-500/10"
-                : "border-cobalt/18 bg-[linear-gradient(135deg,rgba(34,70,224,0.14),rgba(74,145,168,0.08))] shadow-[0_18px_50px_rgba(34,70,224,0.12)]"
-            }`}
-          >
-            <label className="flex cursor-pointer items-start gap-4">
+          <section className="mt-5 rounded-[28px] border border-cobalt/18 bg-[linear-gradient(135deg,rgba(34,70,224,0.14),rgba(74,145,168,0.08))] px-5 py-4 shadow-[0_18px_50px_rgba(34,70,224,0.12)]">
+            <label className="flex cursor-pointer items-center gap-4">
               <input
-                checked={hasRecordedFirstContact}
-                className="mt-1 h-5 w-5 rounded border border-cobalt/30 text-cobalt focus:ring-cobalt disabled:cursor-not-allowed"
-                disabled={hasRecordedFirstContact || isRecordingFirstContact || isSubmittingComment}
+                checked={false}
+                className="h-5 w-5 rounded border border-cobalt/30 text-cobalt focus:ring-cobalt disabled:cursor-not-allowed"
+                disabled={isRecordingFirstContact || isSubmittingComment}
                 onChange={(event) => void handleFirstContactToggle(event.target.checked)}
                 type="checkbox"
               />
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-cobalt">
-                    Ação rápida
-                  </span>
-                  {isLeadPendingFirstContact(activeLead) ? (
-                    <span className="inline-flex items-center rounded-full bg-cobalt px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
-                      Novo
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-2 text-base font-semibold text-ink">
-                  {hasRecordedFirstContact
-                    ? "Primeiro contato já confirmado para este lead."
-                    : "Marque assim que fizer o primeiro contato com este lead."}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-ink/68">
-                  {hasRecordedFirstContact
-                    ? "A etiqueta de Novo já foi removida e o lead não precisa mais ficar no topo da fila."
-                    : "Use esta caixa depois da primeira ligação, WhatsApp ou e-mail para tirar o lead do estado Novo e empurrá-lo para o fim da lista."}
+                <p className="text-base font-semibold text-ink">
+                  Marque assim que fizer o primeiro contato com este lead.
                 </p>
                 {isRecordingFirstContact ? (
-                  <p className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-cobalt">
+                  <p className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-cobalt">
                     <Loader2 className="animate-spin" size={16} aria-hidden="true" />
                     Confirmando contato...
                   </p>
@@ -791,6 +764,18 @@ export function LeadDetailsPopup({
                   onChange={(event) => updateField("city", event.target.value)}
                   type="text"
                   value={formValues.city}
+                />
+              </LeadField>
+
+              <LeadField error={errors.estado} label="Estado">
+                <input
+                  aria-invalid={Boolean(errors.estado)}
+                  autoComplete="address-level1"
+                  className={fieldClass(Boolean(errors.estado))}
+                  disabled={isSubmitting}
+                  onChange={(event) => updateField("estado", event.target.value)}
+                  type="text"
+                  value={formValues.estado}
                 />
               </LeadField>
 
@@ -976,95 +961,6 @@ export function LeadDetailsPopup({
               </div>
             </section>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.12fr)_minmax(280px,0.88fr)]">
-              <section className="surface-card-muted rounded-[28px] p-5">
-                <div className="mb-4 flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-info/22 text-foreground">
-                    <CheckCircle2 size={18} aria-hidden="true" />
-                  </span>
-                  <div>
-                    <p className="text-muted-soft text-sm">Leitura comercial</p>
-                    <h3 className="font-semibold">Contexto da oportunidade</h3>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className={stagePanelClassName}>
-                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
-                      Etapa atual
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <span className={stageBadgeClassName}>{activeStageLabel}</span>
-                      <LeadQualityBadge quality={lead.quality} />
-                      <p className="text-muted-soft text-sm font-medium">{activeStageDescription}</p>
-                    </div>
-                  </div>
-
-                  <div className="surface-card rounded-[22px] p-4">
-                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
-                      Qualidade do lead
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <LeadQualityBadge quality={lead.quality} />
-                      <p className="text-muted-soft text-sm font-medium">
-                        {leadQualityMeta?.description ?? "Classificacao comercial ainda nao definida."}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="surface-card rounded-[22px] p-4">
-                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
-                      Interesse principal
-                    </p>
-                    <p className="text-muted-strong mt-2 text-sm leading-6">{lead.interest}</p>
-                  </div>
-
-                  <div className="surface-card rounded-[22px] p-4">
-                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
-                      Ultima interacao
-                    </p>
-                    <p className="text-muted-strong mt-2 text-sm leading-6">{lead.lastInteraction}</p>
-                  </div>
-
-                  <div className="surface-card rounded-[22px] p-4">
-                    <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
-                      Observacoes
-                    </p>
-                    <p className="text-muted-strong mt-2 text-sm leading-6">{lead.notes}</p>
-                  </div>
-
-                  {isLostLead ? (
-                    <div className="surface-card rounded-[22px] p-4">
-                      <p className="text-muted-soft text-xs font-semibold uppercase tracking-normal">
-                        Motivo de perda
-                      </p>
-                      <p className="text-muted-strong mt-2 text-sm leading-6">{lossReasonDescription}</p>
-                    </div>
-                  ) : null}
-                </div>
-              </section>
-
-              <section className="surface-card-muted rounded-[28px] p-5">
-                <div className="mb-4 flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cobalt text-white">
-                    <Clock3 size={18} aria-hidden="true" />
-                  </span>
-                  <div>
-                    <p className="text-muted-soft text-sm">Origem e operacao</p>
-                    <h3 className="font-semibold">Resumo de origem</h3>
-                  </div>
-                </div>
-                <dl className="mt-4 space-y-3 text-sm">
-                  {sourceItems.map((item) => (
-                    <div className="flex items-center justify-between gap-3" key={item.label}>
-                      <dt className="text-muted-soft">{item.label}</dt>
-                      <dd className="max-w-[190px] text-right font-semibold">{item.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            </div>
-
             <section className="surface-card-muted rounded-[28px] p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -1185,6 +1081,28 @@ export function LeadDetailsPopup({
               </div>
             </section>
 
+            {canManageLeadOwners ? (
+              <section className="surface-card-muted rounded-[28px] p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cobalt text-white">
+                    <Clock3 size={18} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="text-muted-soft text-sm">Origem e operacao</p>
+                    <h3 className="font-semibold">Resumo de origem</h3>
+                  </div>
+                </div>
+                <dl className="mt-4 space-y-3 text-sm">
+                  {sourceItems.map((item) => (
+                    <div className="flex items-center justify-between gap-3" key={item.label}>
+                      <dt className="text-muted-soft">{item.label}</dt>
+                      <dd className="max-w-[190px] text-right font-semibold">{item.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ) : null}
+
             <aside className="space-y-4">
               {onDeleted && (
                 <section
@@ -1298,6 +1216,7 @@ function getLeadEditValues(lead: Lead): LeadEditValues {
     email: editableValue(lead.email),
     phone: editableValue(lead.phone),
     city: editableValue(lead.city ?? ""),
+    estado: editableValue(lead.estado ?? ""),
     company_name: editableValue(lead.companyName ?? ""),
     lives_count:
       lead.livesCount === undefined || lead.livesCount === null ? "" : String(lead.livesCount),
@@ -1348,6 +1267,7 @@ function buildLeadUpdatePayload(values: LeadEditValues) {
     phone: values.phone,
     email: values.email,
     city: values.city,
+    estado: values.estado,
     company_name: values.company_name,
     lives_count: values.lives_count ? Number(values.lives_count) : null,
     quality: values.quality || null,
@@ -1489,27 +1409,6 @@ function getLeadStageBadgeClassName(tone?: LeadStageTone) {
       return `${sharedClassName} bg-red-600 text-white`;
     default:
       return `${sharedClassName} bg-surface-elevated text-ink`;
-  }
-}
-
-function getLeadStagePanelClassName(tone?: LeadStageTone) {
-  const sharedClassName = "rounded-[22px] p-4";
-
-  switch (tone) {
-    case "cobalt":
-      return `${sharedClassName} border border-cobalt/18 bg-cobalt/10`;
-    case "lagoon":
-      return `${sharedClassName} border border-lagoon/20 bg-lagoon/12`;
-    case "signal":
-      return `${sharedClassName} border border-signal/40 bg-signal/20`;
-    case "ink":
-      return `${sharedClassName} border border-ink/14 bg-ink/8`;
-    case "emerald":
-      return `${sharedClassName} border border-emerald-500/20 bg-emerald-500/12`;
-    case "red":
-      return `${sharedClassName} border border-red-500/18 bg-red-500/10`;
-    default:
-      return `${sharedClassName} bg-surface-elevated`;
   }
 }
 

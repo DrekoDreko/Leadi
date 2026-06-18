@@ -21,6 +21,7 @@ type LeadFormValues = {
   email: string;
   phone: string;
   city: string;
+  estado: string;
   company_name: string;
   lives_count: string;
   interest: string;
@@ -284,6 +285,18 @@ export function LeadCreateModal({
               />
             </LeadField>
 
+            <LeadField error={errors.estado} label="Estado">
+              <input
+                aria-invalid={Boolean(errors.estado)}
+                autoComplete="address-level1"
+                className={fieldClass(Boolean(errors.estado))}
+                disabled={isSubmitting}
+                name="estado"
+                placeholder="SP"
+                type="text"
+              />
+            </LeadField>
+
             <LeadField error={errors.company_name} label="Empresa">
               <input
                 aria-invalid={Boolean(errors.company_name)}
@@ -419,6 +432,7 @@ function getLeadFormValues(formData: FormData): LeadFormValues {
     email: formString(formData, "email"),
     phone: formString(formData, "phone"),
     city: formString(formData, "city"),
+    estado: formString(formData, "estado"),
     company_name: formString(formData, "company_name"),
     lives_count: formString(formData, "lives_count"),
     interest: formString(formData, "interest"),
@@ -465,6 +479,7 @@ function buildLeadPayload(values: LeadFormValues) {
     phone: values.phone || undefined,
     email: values.email || undefined,
     city: values.city || undefined,
+    estado: values.estado || undefined,
     company_name: values.company_name || undefined,
     lives_count: values.lives_count ? Number(values.lives_count) : undefined,
     interest: values.interest || undefined,
