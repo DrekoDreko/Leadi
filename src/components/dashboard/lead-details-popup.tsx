@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import {
   Archive,
   CheckCircle2,
@@ -121,6 +122,7 @@ export function LeadDetailsPopup({
   whatsappTemplates = []
 }: LeadDetailsPopupProps) {
   const previousLeadIdRef = useRef<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [activePanel, setActivePanel] = useState<"details" | "message">(initialPanel);
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -141,6 +143,10 @@ export function LeadDetailsPopup({
     type: "error" | "success";
     message: string;
   } | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!lead) {
@@ -254,7 +260,7 @@ export function LeadDetailsPopup({
     };
   }, [isConfirmingDelete, isDeleting, isEditing, isSubmitting, lead, onClose]);
 
-  if (!lead) {
+  if (!lead || !mounted) {
     return null;
   }
 
@@ -269,6 +275,9 @@ export function LeadDetailsPopup({
   const stageBadgeClassName = getLeadStageBadgeClassName(activeStageMeta?.tone);
   const hasRecordedFirstContact =
     activeLead.hasRecordedContact === true || comments.some((comment) => comment.type === "contact");
+  const sortedComments = [...comments].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
   const shouldEmphasizeFirstContact = !isEditing && !hasRecordedFirstContact;
 
   const closePopup = () => {
@@ -531,7 +540,7 @@ export function LeadDetailsPopup({
     { label: "Recebido em", value: formatLeadDateTime(lead.receivedAt) ?? lead.createdAt },
     { label: "Criado em", value: lead.createdAt }
   ];
-  return (
+  return createPortal(
     <div
       aria-labelledby="lead-popup-title"
       aria-modal="true"
@@ -1047,7 +1056,7 @@ export function LeadDetailsPopup({
                     objecoes e proximos passos.
                   </div>
                 ) : (
-                  comments.map((comment) => (
+                  sortedComments.map((comment) => (
                     <article
                       className={`rounded-[22px] p-4 ${
                         comment.type === "contact" ? "surface-alert-warning" : "surface-card"
@@ -1172,7 +1181,8 @@ export function LeadDetailsPopup({
           </div>
         )}
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
 

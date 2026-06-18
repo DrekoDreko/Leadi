@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Copy, Loader2, Send, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Copy,
+  MessageCircle,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Loader2
+} from "lucide-react";
 import type { Lead } from "@/data/mock";
 import { getAiCreditCost } from "@/lib/ai/credit-costs";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
@@ -11,7 +20,6 @@ import {
   buildWhatsAppStageObjective,
   getSuggestedWhatsAppTone,
   getWhatsAppStageLabel,
-  getWhatsAppToneLabel,
   getWhatsAppTonePrompt,
   whatsappToneOptions,
   type WhatsAppToneValue
@@ -33,6 +41,8 @@ type GeneratedMessage = {
   objectionReply: string;
   complianceNotes: string[];
 };
+
+type MessageSource = "ai" | "template" | null;
 
 type WhatsAppGenerationResponse = {
   message?: GeneratedMessage;
@@ -57,6 +67,12 @@ const stageOptions: Array<{ value: WhatsAppStage; label: string }> = [
   { value: "objection_follow_up", label: "Follow-up de objecao" }
 ];
 
+const messageBlocks: Array<{ key: keyof GeneratedMessage; label: string; hint: string }> = [
+  { key: "openingMessage", label: "Abertura", hint: "Primeira mensagem para enviar agora." },
+  { key: "followUpMessage", label: "Seguimento", hint: "Use se o lead nao responder." },
+  { key: "objectionReply", label: "Resposta a objecao", hint: "Tenha pronta caso ele hesite." }
+];
+
 export function LeadMessageGenerator({
   aiBalance,
   lead,
@@ -71,10 +87,11 @@ export function LeadMessageGenerator({
   );
   const [objectionReason, setObjectionReason] = useState("");
   const [generatedMessage, setGeneratedMessage] = useState<GeneratedMessage | null>(null);
+  const [messageSource, setMessageSource] = useState<MessageSource>(null);
   const [savedMessage, setSavedMessage] = useState<WhatsAppHistoryItem | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<{
     tone: "success" | "error";
     message: string;
@@ -87,9 +104,11 @@ export function LeadMessageGenerator({
     setCurrentAiBalance(aiBalance);
   }, [aiBalance]);
 
-  const visibleMessage = useMemo(
+  const firstName = getFirstName(lead.name);
+  const hasInsufficientCredits = currentAiBalance < messageCost;
+
+  const previewMessage = useMemo(
     () =>
-      generatedMessage ??
       buildFallbackWhatsAppMessage({
         brokerageName: "Leadi",
         lead: {
@@ -102,26 +121,32 @@ export function LeadMessageGenerator({
         stage: selectedStage,
         tone: selectedTone
       }),
-    [generatedMessage, lead, selectedStage, selectedTone]
+    [lead, selectedStage, selectedTone]
   );
 
-  function getWhatsAppHref() {
-    const normalizedPhone = normalizePhone(lead.phone).e164;
-    if (!normalizedPhone) return undefined;
-    const phone = normalizedPhone.replace(/\D/g, "");
-    const text = encodeURIComponent(formatMessage(visibleMessage));
-    return `https://wa.me/${phone}?text=${text}`;
+  const displayMessage = generatedMessage ?? previewMessage;
+  const hasResult = messageSource !== null && generatedMessage !== null;
+  const whatsappHref = getWhatsAppHref(lead, displayMessage);
+
+  function resetResult() {
+    setGeneratedMessage(null);
+    setMessageSource(null);
+    setSavedMessage(null);
+    setCopiedKey(null);
+    setCopyFeedback(null);
+    setSendError("");
+    setSendSuccess("");
   }
 
   async function handleGenerate() {
-    if (currentAiBalance < messageCost) {
-      setError("Você não possui créditos de IA suficientes para executar esta ação.");
+    if (hasInsufficientCredits) {
+      setError("Voce nao possui creditos de IA suficientes para executar esta acao.");
       return;
     }
 
     setIsGenerating(true);
     setError("");
-    setCopied(false);
+    setCopiedKey(null);
     setCopyFeedback(null);
 
     try {
@@ -149,6 +174,7 @@ export function LeadMessageGenerator({
       }
 
       setGeneratedMessage(payload.message);
+      setMessageSource("ai");
       setSavedMessage(payload.savedMessage ?? null);
       if (typeof payload.aiBalance === "number") {
         setCurrentAiBalance(payload.aiBalance);
@@ -170,27 +196,25 @@ export function LeadMessageGenerator({
     }
   }
 
-  async function handleCopy() {
+  async function copyToClipboard(text: string, key: string) {
     try {
       if (!navigator.clipboard?.writeText) {
         throw new Error("clipboard-unavailable");
       }
 
-      await navigator.clipboard.writeText(formatMessage(visibleMessage));
-      setCopied(true);
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
       setError("");
       setCopyFeedback({
         tone: "success",
         message: "Mensagem copiada. Agora e so colar no WhatsApp."
       });
       window.setTimeout(() => {
-        setCopied(false);
-        setCopyFeedback((current) =>
-          current?.tone === "success" ? null : current
-        );
+        setCopiedKey((current) => (current === key ? null : current));
+        setCopyFeedback((current) => (current?.tone === "success" ? null : current));
       }, 2200);
     } catch (copyError) {
-      setCopied(false);
+      setCopiedKey(null);
       setCopyFeedback({
         tone: "error",
         message: getFriendlyErrorMessage(
@@ -203,7 +227,6 @@ export function LeadMessageGenerator({
 
   async function handleSend() {
     if (!savedMessage?.id) {
-      setSendError("Gere uma mensagem antes de tentar enviar.");
       return;
     }
 
@@ -226,7 +249,7 @@ export function LeadMessageGenerator({
       const payload = (await response.json().catch(() => null)) as WhatsAppSendResponse | null;
 
       if (!response.ok || !payload?.updatedMessage) {
-        throw new Error(payload?.error ?? "Nao foi possivel enviar a mensagem.");
+        throw new Error(payload?.error ?? "Nao foi possivel registrar o envio.");
       }
 
       setSavedMessage(payload.updatedMessage);
@@ -234,13 +257,13 @@ export function LeadMessageGenerator({
       setSendSuccess(
         payload.configurationStatus === "ready"
           ? "Mensagem enviada e historico atualizado."
-          : "Envio registrado, mas a configuracao ainda nao permite disparo real."
+          : "Abrimos o WhatsApp e registramos a abordagem no historico do lead."
       );
     } catch (requestError) {
       setSendError(
         requestError instanceof Error
           ? requestError.message
-          : "Nao foi possivel enviar a mensagem."
+          : "Nao foi possivel registrar o envio."
       );
     } finally {
       setIsSending(false);
@@ -249,8 +272,12 @@ export function LeadMessageGenerator({
 
   function applyTemplate(template: SystemTemplate) {
     const content = template.content as WhatsAppTemplateContent;
-    setCopied(false);
+    setCopiedKey(null);
     setCopyFeedback(null);
+    setSavedMessage(null);
+    setSendError("");
+    setSendSuccess("");
+    setMessageSource("template");
     setGeneratedMessage({
       openingMessage: content.openingMessage?.replace("[Nome do Lead]", lead.name) ?? "",
       followUpMessage: content.followUpMessage ?? "",
@@ -260,153 +287,159 @@ export function LeadMessageGenerator({
   }
 
   return (
-    <section className="rounded-[28px] border border-border bg-surface-elevated p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-cobalt">Gerar mensagem</p>
-          <h3 className="mt-2 text-xl font-semibold">WhatsApp do lead</h3>
-          <p className="mt-2 text-sm leading-6 text-ink/62">
-            Escolha a etapa da conversa e o tom desejado. Esta ação consumirá {messageCost} crédito
-            {messageCost === 1 ? "" : "s"} de IA da plataforma.
-          </p>
-          {selectedStage === "awaiting_response" ? (
-            <p className="mt-2 text-sm leading-6 text-ink/54">
-              O follow-up sem resposta retoma o contato com baixo atrito e abre espaço para uma
-              resposta simples do lead.
+    <section className="space-y-4">
+      {/* Cabecalho */}
+      <div className="surface-card rounded-[28px] p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-cobalt">Mensagem com IA</p>
+            <h3 className="mt-1 text-xl font-semibold text-foreground">
+              Gerar mensagem para {firstName}
+            </h3>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-soft">
+              Escolha a etapa da conversa e o tom. A IA escreve uma abordagem pronta com os dados
+              deste lead.
             </p>
+          </div>
+          <span className="surface-pill inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold text-foreground">
+            <Sparkles className="text-cobalt" size={14} aria-hidden="true" />
+            {messageCost} credito{messageCost === 1 ? "" : "s"} por mensagem
+          </span>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold ${
+              hasInsufficientCredits
+                ? "surface-alert-warning"
+                : "bg-success/14 text-foreground"
+            }`}
+          >
+            <Sparkles size={13} aria-hidden="true" />
+            Saldo: {currentAiBalance} credito{currentAiBalance === 1 ? "" : "s"}
+          </span>
+          {hasInsufficientCredits ? (
+            <Link
+              className="inline-flex items-center gap-1 font-semibold text-cobalt underline underline-offset-4"
+              href="/dashboard/perfil/creditos"
+            >
+              Comprar creditos
+            </Link>
           ) : null}
         </div>
-        <Sparkles className="text-lagoon" size={20} aria-hidden="true" />
       </div>
-
-      {currentAiBalance < messageCost ? (
-        <div className="mt-4 rounded-[24px] border border-cobalt/18 bg-cobalt/8 p-4 text-sm leading-6 text-ink/68">
-          <p>Você não tem créditos suficientes para esta ação.</p>
-          <Link
-            className="mt-3 inline-flex font-semibold text-cobalt underline underline-offset-4"
-            href="/dashboard/perfil/creditos"
-          >
-            Comprar créditos
-          </Link>
-        </div>
-      ) : null}
 
       {error ? (
-        <div className="mt-4 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
-          {error}
-        </div>
-      ) : null}
-      {sendError ? (
-        <div className="mt-4 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
-          {sendError}
-        </div>
-      ) : null}
-      {sendSuccess ? (
-        <div className="mt-4 rounded-[24px] border border-emerald-200/70 bg-emerald-50/80 p-4 text-sm text-emerald-900">
-          {sendSuccess}
+        <div className="surface-danger flex items-start gap-3 rounded-[24px] px-4 py-3 text-sm font-medium">
+          <AlertCircle className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
+          <span>{error}</span>
         </div>
       ) : null}
 
-      {systemTemplates.length > 0 && (
-        <div className="mt-6">
-          <p className="text-sm font-medium text-cobalt">Templates prontos</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {systemTemplates.map((template) => (
-              <button
-                key={template.id}
-                onClick={() => applyTemplate(template)}
-                className="flex h-full flex-col items-start justify-between rounded-[20px] border border-ink/10 bg-white p-4 text-left shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:-translate-y-0.5 hover:border-cobalt/30 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                type="button"
-              >
-                <span className="text-sm font-bold text-ink">
-                  {template.title}
-                </span>
-                <span className="mt-1.5 text-xs leading-relaxed text-ink/60 line-clamp-2">
-                  {template.description}
-                </span>
-              </button>
-            ))}
+      {/* Passo 1 - Configurar */}
+      <div className="surface-card-muted rounded-[28px] p-5">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cobalt text-xs font-bold text-white">
+            1
+          </span>
+          <h4 className="text-sm font-semibold text-foreground">Configurar a abordagem</h4>
+        </div>
+
+        {systemTemplates.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-soft">
+              Comece de um modelo (opcional)
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {systemTemplates.map((template) => {
+                const isActive =
+                  messageSource === "template" && generatedMessage !== null &&
+                  applyTemplateIsActive(template, generatedMessage, lead.name);
+                return (
+                  <button
+                    key={template.id}
+                    onClick={() => applyTemplate(template)}
+                    className={`surface-card flex h-full flex-col items-start justify-between rounded-[20px] border p-4 text-left transition hover:-translate-y-0.5 ${
+                      isActive ? "border-cobalt ring-1 ring-cobalt/40" : "border-border hover:border-cobalt/40"
+                    }`}
+                    type="button"
+                  >
+                    <span className="text-sm font-semibold text-foreground">{template.title}</span>
+                    <span className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-soft">
+                      {template.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <label className="block space-y-2">
-          <span className="text-sm font-semibold text-ink/72">Etapa do processo</span>
-          <select
-            className="liquid-input"
-            onChange={(event) => {
-              const nextStage = event.target.value as WhatsAppStage;
-              setSelectedStage(nextStage);
-              setSelectedTone(getSuggestedWhatsAppTone(nextStage));
-              setGeneratedMessage(null);
-              setSavedMessage(null);
-              setCopied(false);
-              setCopyFeedback(null);
-              setSendError("");
-              setSendSuccess("");
-            }}
-            value={selectedStage}
-          >
-            {stageOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-semibold text-ink/72">Perfil da mensagem</span>
-          <select
-            className="liquid-input"
-            onChange={(event) => {
-              setSelectedTone(event.target.value as WhatsAppToneValue);
-              setGeneratedMessage(null);
-              setSavedMessage(null);
-              setCopied(false);
-              setCopyFeedback(null);
-              setSendError("");
-              setSendSuccess("");
-            }}
-            value={selectedTone}
-          >
-            {whatsappToneOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {selectedStage === "objection_follow_up" && (
-        <div className="mt-4">
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-ink/72">Motivo da objecao</span>
+            <span className="text-sm font-semibold text-foreground">Etapa do processo</span>
+            <select
+              className="liquid-input"
+              onChange={(event) => {
+                setSelectedStage(event.target.value as WhatsAppStage);
+                setSelectedTone(getSuggestedWhatsAppTone(event.target.value as WhatsAppStage));
+                resetResult();
+              }}
+              value={selectedStage}
+            >
+              {stageOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-foreground">Perfil da mensagem</span>
+            <select
+              className="liquid-input"
+              onChange={(event) => {
+                setSelectedTone(event.target.value as WhatsAppToneValue);
+                resetResult();
+              }}
+              value={selectedTone}
+            >
+              {whatsappToneOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {selectedStage === "awaiting_response" ? (
+          <p className="mt-3 rounded-[18px] bg-cobalt/8 px-4 py-2.5 text-xs leading-5 text-muted-soft">
+            O follow-up sem resposta retoma o contato com baixo atrito e abre espaco para uma
+            resposta simples do lead.
+          </p>
+        ) : null}
+
+        {selectedStage === "objection_follow_up" && (
+          <label className="mt-4 block space-y-2">
+            <span className="text-sm font-semibold text-foreground">Motivo da objecao</span>
             <input
               type="text"
               className="liquid-input w-full"
               placeholder="Ex: Achou caro, prefere outra operadora, vai ver com o socio..."
               value={objectionReason}
-              onChange={(e) => {
-                setObjectionReason(e.target.value);
-                setGeneratedMessage(null);
-                setSavedMessage(null);
-                setCopied(false);
-                setCopyFeedback(null);
-                setSendError("");
-                setSendSuccess("");
+              onChange={(event) => {
+                setObjectionReason(event.target.value);
+                resetResult();
               }}
             />
           </label>
-        </div>
-      )}
+        )}
 
-      <div className="mt-5 flex flex-wrap gap-2">
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={isGenerating || currentAiBalance < messageCost}
+          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-cobalt/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          disabled={isGenerating || hasInsufficientCredits}
           onClick={() => void handleGenerate()}
           type="button"
         >
@@ -415,100 +448,229 @@ export function LeadMessageGenerator({
           ) : (
             <Sparkles size={18} aria-hidden="true" />
           )}
-          {isGenerating ? "Gerando" : "Gerar mensagem"}
-        </button>
-        <a
-          aria-disabled={isGenerating || isSending || !savedMessage?.id || !getWhatsAppHref()}
-          className={`inline-flex items-center gap-2 rounded-full border border-cobalt/22 bg-surface-elevated px-5 py-3 text-sm font-semibold text-cobalt transition ${
-            isGenerating || isSending || !savedMessage?.id || !getWhatsAppHref()
-              ? "cursor-not-allowed opacity-70"
-              : "hover:bg-surface-elevated"
-          }`}
-          href={getWhatsAppHref() ?? "#"}
-          onClick={(e) => {
-            if (isGenerating || isSending || !savedMessage?.id || !getWhatsAppHref()) {
-              e.preventDefault();
-              return;
-            }
-            void handleSend();
-          }}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          {isSending ? (
-            <Loader2 className="animate-spin" size={18} aria-hidden="true" />
-          ) : (
-            <Send size={18} aria-hidden="true" />
-          )}
-          Abrir no WhatsApp
-        </a>
-        <button
-          className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
-            copied
-              ? "bg-lagoon text-white"
-              : "bg-surface-elevated text-ink hover:bg-surface-elevated"
-          }`}
-          onClick={() => void handleCopy()}
-          type="button"
-        >
-          {copied ? (
-            <CheckCircle2 size={18} aria-hidden="true" />
-          ) : (
-            <Copy size={18} aria-hidden="true" />
-          )}
-          {copied ? "Copiado" : "Copiar mensagem"}
+          {isGenerating
+            ? "Gerando mensagem..."
+            : `Gerar mensagem · ${messageCost} credito${messageCost === 1 ? "" : "s"}`}
         </button>
       </div>
 
-      {copyFeedback ? (
-        <p
-          aria-live="polite"
-          className={`mt-3 inline-flex items-center gap-2 rounded-[18px] px-3 py-2 text-sm font-medium ${
-            copyFeedback.tone === "success"
-              ? "bg-lagoon/12 text-lagoon"
-              : "bg-red-50 text-red-800"
-          }`}
-        >
-          {copyFeedback.tone === "success" ? (
-            <CheckCircle2 size={16} aria-hidden="true" />
-          ) : (
-            <Copy size={16} aria-hidden="true" />
-          )}
-          {copyFeedback.message}
-        </p>
-      ) : null}
-
-      {savedMessage ? (
-        <div className="mt-3 rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm text-ink/66">
-          Status de envio: {formatDeliveryStatus(savedMessage.delivery.status)}
+      {/* Passo 2 - Resultado */}
+      <div className="surface-card-muted rounded-[28px] p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cobalt text-xs font-bold text-white">
+              2
+            </span>
+            <h4 className="text-sm font-semibold text-foreground">Sua mensagem</h4>
+          </div>
+          {hasResult ? (
+            <span className="surface-pill inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground">
+              {messageSource === "ai" ? (
+                <>
+                  <Sparkles className="text-cobalt" size={13} aria-hidden="true" />
+                  Gerada por IA
+                </>
+              ) : (
+                <>
+                  <MessageCircle className="text-cobalt" size={13} aria-hidden="true" />
+                  Modelo aplicado
+                </>
+              )}
+            </span>
+          ) : null}
         </div>
-      ) : null}
 
-      <div className="mt-5 grid gap-3">
-        <MessageBlock label="Abertura" value={visibleMessage.openingMessage} />
-        <MessageBlock label="Seguimento" value={visibleMessage.followUpMessage} />
-        <MessageBlock label="Resposta de objecao" value={visibleMessage.objectionReply} />
-      </div>
+        {!hasResult ? (
+          <div className="mt-4 flex flex-col items-center justify-center rounded-[24px] border border-dashed border-border px-6 py-10 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
+              <Sparkles size={22} aria-hidden="true" />
+            </span>
+            <p className="mt-3 text-sm font-semibold text-foreground">
+              Sua mensagem aparecera aqui
+            </p>
+            <p className="mt-1 max-w-sm text-sm leading-6 text-muted-soft">
+              Ajuste a etapa e o tom acima e clique em <strong>Gerar mensagem</strong>. Cada geracao
+              consome {messageCost} credito{messageCost === 1 ? "" : "s"} de IA.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="mt-4 space-y-3">
+              {messageBlocks.map((block) => {
+                const value = displayMessage[block.key] as string;
+                if (!value) {
+                  return null;
+                }
+                const copied = copiedKey === block.key;
+                return (
+                  <article className="surface-card rounded-[22px] p-4" key={block.key}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-soft">
+                          {block.label}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-muted-soft/80">{block.hint}</p>
+                      </div>
+                      <button
+                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                          copied
+                            ? "bg-success/16 text-foreground"
+                            : "surface-action-secondary"
+                        }`}
+                        onClick={() => void copyToClipboard(value, block.key)}
+                        type="button"
+                      >
+                        {copied ? (
+                          <CheckCircle2 size={14} aria-hidden="true" />
+                        ) : (
+                          <Copy size={14} aria-hidden="true" />
+                        )}
+                        {copied ? "Copiado" : "Copiar"}
+                      </button>
+                    </div>
+                    <p className="mt-3 whitespace-pre-line text-sm leading-6 text-foreground">
+                      {value}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
 
-      <div className="mt-5 flex flex-wrap gap-2">
-        <span className="rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-semibold text-ink/58">
-          {stageOptions.find((option) => option.value === selectedStage)?.label ?? selectedStage}
-        </span>
-        <span className="rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-semibold text-ink/58">
-          {getWhatsAppToneLabel(selectedTone)}
-        </span>
+            {displayMessage.complianceNotes?.length ? (
+              <div className="mt-3 rounded-[20px] border border-border bg-card px-4 py-3">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-soft">
+                  <ShieldCheck className="text-cobalt" size={14} aria-hidden="true" />
+                  Pontos de atencao
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {displayMessage.complianceNotes.map((note, index) => (
+                    <li className="flex gap-2 text-xs leading-5 text-muted-soft" key={index}>
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-cobalt" />
+                      <span>{note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                  copiedKey === "all"
+                    ? "bg-success/16 text-foreground"
+                    : "surface-action-secondary"
+                }`}
+                onClick={() => void copyToClipboard(formatMessage(displayMessage), "all")}
+                type="button"
+              >
+                {copiedKey === "all" ? (
+                  <CheckCircle2 size={16} aria-hidden="true" />
+                ) : (
+                  <Copy size={16} aria-hidden="true" />
+                )}
+                {copiedKey === "all" ? "Tudo copiado" : "Copiar tudo"}
+              </button>
+              <a
+                aria-disabled={isSending || !whatsappHref}
+                className={`inline-flex items-center gap-2 rounded-full bg-cobalt px-4 py-2.5 text-sm font-semibold text-white transition ${
+                  isSending || !whatsappHref
+                    ? "cursor-not-allowed opacity-60"
+                    : "hover:bg-cobalt/90"
+                }`}
+                href={whatsappHref ?? "#"}
+                onClick={(event) => {
+                  if (isSending || !whatsappHref) {
+                    event.preventDefault();
+                    return;
+                  }
+                  if (savedMessage?.id) {
+                    void handleSend();
+                  }
+                }}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {isSending ? (
+                  <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+                ) : (
+                  <Send size={16} aria-hidden="true" />
+                )}
+                Abrir no WhatsApp
+              </a>
+            </div>
+
+            {!whatsappHref ? (
+              <p className="mt-2 text-xs text-muted-soft">
+                Cadastre um telefone valido no lead para abrir direto no WhatsApp.
+              </p>
+            ) : null}
+
+            {copyFeedback ? (
+              <p
+                aria-live="polite"
+                className={`mt-3 inline-flex items-center gap-2 rounded-[18px] px-3 py-2 text-sm font-medium ${
+                  copyFeedback.tone === "success"
+                    ? "bg-success/14 text-foreground"
+                    : "surface-danger"
+                }`}
+              >
+                {copyFeedback.tone === "success" ? (
+                  <CheckCircle2 size={16} aria-hidden="true" />
+                ) : (
+                  <AlertCircle size={16} aria-hidden="true" />
+                )}
+                {copyFeedback.message}
+              </p>
+            ) : null}
+
+            {sendSuccess ? (
+              <p className="surface-alert-success mt-3 flex items-center gap-2 rounded-[18px] px-3 py-2 text-sm font-medium">
+                <CheckCircle2 size={16} aria-hidden="true" />
+                {sendSuccess}
+              </p>
+            ) : null}
+            {sendError ? (
+              <p className="surface-danger mt-3 flex items-center gap-2 rounded-[18px] px-3 py-2 text-sm font-medium">
+                <AlertCircle size={16} aria-hidden="true" />
+                {sendError}
+              </p>
+            ) : null}
+
+            {savedMessage ? (
+              <p className="mt-3 text-xs text-muted-soft">
+                Status de envio: {formatDeliveryStatus(savedMessage.delivery.status)}
+              </p>
+            ) : null}
+          </>
+        )}
       </div>
     </section>
   );
 }
 
-function MessageBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <article className="rounded-[22px] bg-surface-elevated p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/42">{label}</p>
-      <p className="mt-2 text-sm leading-6 text-ink/76">{value}</p>
-    </article>
-  );
+function getWhatsAppHref(lead: Lead, message: GeneratedMessage) {
+  const normalizedPhone = normalizePhone(lead.phone).e164;
+  if (!normalizedPhone) {
+    return undefined;
+  }
+  const phone = normalizedPhone.replace(/\D/g, "");
+  const text = encodeURIComponent(formatMessage(message));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+function applyTemplateIsActive(
+  template: SystemTemplate,
+  current: GeneratedMessage,
+  leadName: string
+) {
+  const content = template.content as WhatsAppTemplateContent;
+  const expectedOpening = content.openingMessage?.replace("[Nome do Lead]", leadName) ?? "";
+  return expectedOpening === current.openingMessage;
+}
+
+function getFirstName(name: string) {
+  const [first] = name.trim().split(/\s+/);
+  return first || "o lead";
 }
 
 function buildLeadContext(lead: Lead) {
@@ -525,13 +687,9 @@ function buildLeadContext(lead: Lead) {
 }
 
 function formatMessage(message: GeneratedMessage) {
-  return [
-    message.openingMessage,
-    "",
-    message.followUpMessage,
-    "",
-    message.objectionReply
-  ].join("\n");
+  return [message.openingMessage, "", message.followUpMessage, "", message.objectionReply]
+    .filter((line, index) => line !== "" || index % 2 === 1)
+    .join("\n");
 }
 
 function formatDeliveryStatus(status: WhatsAppHistoryItem["delivery"]["status"]) {

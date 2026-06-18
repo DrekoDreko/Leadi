@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import {
   leadPeriodFilterOptions,
@@ -25,6 +26,12 @@ export function LeadFiltersPopup({
   onClose: () => void;
   teamOptions?: LeadTeamOption[];
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) {
       return;
@@ -45,11 +52,11 @@ export function LeadFiltersPopup({
     };
   }, [onClose, open]);
 
-  if (!open) {
+  if (!open || !mounted) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-end bg-ink/42 px-3 py-4 backdrop-blur-md sm:items-center sm:px-5"
@@ -225,7 +232,8 @@ export function LeadFiltersPopup({
           </div>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
 

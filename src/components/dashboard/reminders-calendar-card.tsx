@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays, CheckCircle2, Clock3, Loader2, X } from "lucide-react";
 import type { DashboardReminderItem, DashboardReminderPreset } from "@/lib/dashboard-reminders/types";
 import { buildLocalDateTimeIso, getClientTimezoneOffsetMinutes } from "@/lib/date/client-time";
@@ -295,7 +296,7 @@ export function RemindersCalendarCard({
         </div>
       </section>
 
-      {isModalOpen ? (
+      {isModalOpen ? createPortal(
         <div
           aria-labelledby="dashboard-reminder-title"
           aria-modal="true"
@@ -440,7 +441,8 @@ export function RemindersCalendarCard({
               )}
             </div>
           </section>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </>
   );
