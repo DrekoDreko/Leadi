@@ -663,8 +663,8 @@ export function InviteCard({
             </div>
           ) : null}
 
-          <div className="mt-5 flex items-start gap-2 rounded-[18px] bg-signal/14 px-4 py-3">
-            <ShieldCheck className="mt-0.5 shrink-0 text-signal" size={16} aria-hidden="true" />
+          <div className="mt-5 flex items-start gap-2 rounded-[18px] bg-cobalt/8 px-4 py-3">
+            <ShieldCheck className="mt-0.5 shrink-0 text-cobalt" size={16} aria-hidden="true" />
             <p className="text-xs leading-5 text-ink/62">
               Links gerados exigem aprovacao do gestor apos o cadastro. Apenas usuarios
               autenticados podem aceitar convites.

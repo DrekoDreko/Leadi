@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle, FileText, AlertTriangle } from "lucide-react";
 import type { CampaignHistoryItem } from "@/lib/campaigns/types";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 import { useRouter } from "next/navigation";
+import { PageHeading } from "@/components/dashboard/widgets";
 
 type AdApprovalWorkspaceProps = {
   initialCampaigns: CampaignHistoryItem[];
@@ -44,13 +45,12 @@ export function AdApprovalWorkspace({ initialCampaigns, mode, message }: AdAppro
   }
 
   return (
-    <div className="space-y-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Aprovação de Anúncios</h1>
-        <p className="mt-1 text-sm text-muted-soft">
-          Revise campanhas enviadas pelos supervisores antes de publicar na Meta.
-        </p>
-      </header>
+    <div className="space-y-4">
+      <PageHeading
+        eyebrow="Campanhas"
+        title="Aprovação de Anúncios"
+        description="Revise campanhas enviadas pelos supervisores antes de publicar na Meta."
+      />
 
       {error ? (
         <div className="flex items-start gap-3 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
@@ -66,7 +66,7 @@ export function AdApprovalWorkspace({ initialCampaigns, mode, message }: AdAppro
       ) : null}
 
       {campaigns.length === 0 ? (
-        <div className="flex min-h-[300px] flex-col items-center justify-center rounded-[32px] border border-dashed border-border/60 bg-surface/30 p-8 text-center">
+        <div className="surface-card flex min-h-[300px] flex-col items-center justify-center rounded-[32px] border border-dashed border-border/60 p-8 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-elevated text-muted-soft">
             <CheckCircle2 size={32} />
           </div>

@@ -1217,7 +1217,7 @@ function LeadWorkspaceErrorState({
     <section className="glass-strong rounded-[34px] p-6 md:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-signal/28 text-accent-foreground">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
             <AlertCircle size={20} aria-hidden="true" />
           </div>
           <p className="text-sm font-medium text-cobalt">Leads</p>

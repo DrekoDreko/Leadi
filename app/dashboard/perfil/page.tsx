@@ -269,7 +269,7 @@ export default async function PerfilPage({
         )}
       </section>
 
-      <section className="glass space-y-5 rounded-[34px] p-6">
+      <section className="glass-strong space-y-5 rounded-[34px] p-6">
         <div className="flex items-center gap-3">
           <Building2 size={18} className="text-cobalt" aria-hidden="true" />
           <h2 className="text-xl font-semibold">Gerenciar conta</h2>

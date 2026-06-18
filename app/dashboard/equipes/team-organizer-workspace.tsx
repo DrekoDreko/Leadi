@@ -1282,7 +1282,7 @@ function AccessByRoleCard() {
   ];
 
   return (
-    <section className="glass rounded-[34px] p-5">
+    <section className="glass-strong rounded-[34px] p-5">
       <h2 className="text-xl font-semibold">Acesso por papel</h2>
       <div className="mt-5 space-y-3">
         {bullets.map((item) => (

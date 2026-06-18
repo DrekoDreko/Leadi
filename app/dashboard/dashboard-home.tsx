@@ -575,7 +575,7 @@ export function DashboardHome({
                     Atrasos operacionais no relacionamento com os leads.
                   </p>
                 </div>
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-signal/10 text-signal">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
                   <AlertCircle size={19} aria-hidden="true" />
                 </span>
               </div>
@@ -629,7 +629,7 @@ export function DashboardHome({
                   Regra inicial: lead sem registro manual de contato no histórico comercial.
                 </p>
               </div>
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-signal/30 text-ink dark:text-cloud">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
                 <PhoneOff size={19} aria-hidden="true" />
               </span>
             </div>

@@ -150,7 +150,7 @@ export function ConsultantDashboard({
                     Acompanhe seu follow-up.
                   </p>
                 </div>
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-signal/10 text-signal">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
                   <AlertCircle size={19} aria-hidden="true" />
                 </span>
               </div>

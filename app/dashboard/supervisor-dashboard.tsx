@@ -188,18 +188,18 @@ export function SupervisorDashboard({
 
           {/* Alerta de leads parados */}
           {staleNewLeads.length > 0 && (
-            <section className="surface-card rounded-[34px] border border-signal/22 p-6">
+            <section className="surface-card rounded-[34px] border border-cobalt/22 p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-muted-soft text-sm">Leads parados</p>
-                  <h2 className="mt-1 text-xl font-semibold text-signal">
+                  <h2 className="mt-1 text-xl font-semibold text-cobalt">
                     {staleNewLeads.length} lead{staleNewLeads.length > 1 ? "s" : ""} novo{staleNewLeads.length > 1 ? "s" : ""} sem movimentação
                   </h2>
                   <p className="text-muted-soft mt-2 text-sm leading-6">
                     Leads em &quot;Novo&quot; há mais de {STALE_LEAD_DAYS} dias sem avançar no funil.
                   </p>
                 </div>
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-signal/10 text-signal">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
                   <Clock size={19} aria-hidden="true" />
                 </span>
               </div>
@@ -213,7 +213,7 @@ export function SupervisorDashboard({
                           {lead.owner || "Sem responsável"}
                         </p>
                       </div>
-                      <span className="rounded-full bg-signal/10 px-3 py-1.5 text-xs font-semibold text-signal whitespace-nowrap">
+                      <span className="rounded-full bg-cobalt/10 px-3 py-1.5 text-xs font-semibold text-cobalt whitespace-nowrap">
                         {lead.receivedAt
                           ? new Date(lead.receivedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
                           : "—"}
@@ -223,7 +223,7 @@ export function SupervisorDashboard({
                 ))}
               </div>
               {staleNewLeads.length > 4 && (
-                <div className="mt-3 text-center text-sm font-semibold text-signal">
+                <div className="mt-3 text-center text-sm font-semibold text-cobalt">
                   + {staleNewLeads.length - 4} leads parados
                 </div>
               )}
@@ -300,7 +300,7 @@ export function SupervisorDashboard({
                     Acompanhe o follow-up dos consultores.
                   </p>
                 </div>
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-signal/10 text-signal">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
                   <AlertCircle size={19} aria-hidden="true" />
                 </span>
               </div>
@@ -444,7 +444,7 @@ export function SupervisorDashboard({
               className="surface-card rounded-[24px] p-4 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cobalt/50"
               href={`${leadsHref}?view=unassigned`}
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-500/10 text-yellow-600">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
                 <UsersRound size={16} aria-hidden="true" />
               </span>
               <p className="mt-3 text-sm font-semibold text-ink">Distribuir Leads</p>
@@ -510,7 +510,7 @@ export function SupervisorDashboard({
                   Solicitações enviadas
                 </h2>
               </div>
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-signal/10 text-signal">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
                 <ShieldCheck size={19} aria-hidden="true" />
               </span>
             </div>

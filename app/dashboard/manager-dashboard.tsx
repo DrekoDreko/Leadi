@@ -122,7 +122,7 @@ export function ManagerDashboard({
               Gerencie anúncios criados pelos supervisores, solicitações de créditos e convites de novos membros que aguardam a sua liberação.
             </p>
           </div>
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-signal/10 text-signal">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
             <ShieldCheck size={20} aria-hidden="true" />
           </span>
         </div>

@@ -148,7 +148,7 @@ export function SupervisorCreditsWorkspace({
 
   if (embedded) {
     return (
-      <section className="glass rounded-[34px] p-5 md:p-6">
+      <section className="glass-strong rounded-[34px] p-5 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-cobalt">Gestão</p>

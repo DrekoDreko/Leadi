@@ -227,7 +227,7 @@ export default async function PerfilCreditosPage({
         <SupervisorCreditsWorkspace teams={supervisedTeams} embedded />
       ) : null}
 
-      <section className="glass rounded-[34px] p-5 md:p-6">
+      <section className="glass-strong rounded-[34px] p-5 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-cobalt">Consumo por ação</p>
@@ -277,7 +277,7 @@ function ConsumptionCard({
         "group relative flex h-full flex-col overflow-hidden rounded-[32px] border p-6 transition-all duration-300",
         item.featured
           ? "border-cobalt/30 bg-gradient-to-b from-cobalt/[0.08] to-transparent shadow-[0_24px_60px_rgba(52,98,238,0.12)]"
-          : "border-white/50 bg-white/58 shadow-sm hover:bg-white/80 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+          : "surface-card-strong"
       )}
     >
       {/* Background glow on hover */}
