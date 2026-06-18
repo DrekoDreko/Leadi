@@ -6,14 +6,15 @@
 
 do $$
 declare
-  -- Auth user IDs
-  owner_auth_id    uuid := 'a0000000-0000-0000-0000-000000000001';
-  super1_auth_id   uuid := 'a0000000-0000-0000-0000-000000000002';
-  super2_auth_id   uuid := 'a0000000-0000-0000-0000-000000000003';
-  consult1_auth_id uuid := 'a0000000-0000-0000-0000-000000000004';
-  consult2_auth_id uuid := 'a0000000-0000-0000-0000-000000000005';
-  consult3_auth_id uuid := 'a0000000-0000-0000-0000-000000000006';
-  consult4_auth_id uuid := 'a0000000-0000-0000-0000-000000000007';
+  -- Auth user IDs (UUID v4 válidos: nibble de versão = 4, variante = 8 — exigido
+  -- pela validação estrita de UUID do zod 4; ids "fake" tipo a0000000-...-0000 falham)
+  owner_auth_id    uuid := 'a0000000-0000-4000-8000-000000000001';
+  super1_auth_id   uuid := 'a0000000-0000-4000-8000-000000000002';
+  super2_auth_id   uuid := 'a0000000-0000-4000-8000-000000000003';
+  consult1_auth_id uuid := 'a0000000-0000-4000-8000-000000000004';
+  consult2_auth_id uuid := 'a0000000-0000-4000-8000-000000000005';
+  consult3_auth_id uuid := 'a0000000-0000-4000-8000-000000000006';
+  consult4_auth_id uuid := 'a0000000-0000-4000-8000-000000000007';
 
   -- Will be populated
   owner_profile_id    uuid;
@@ -25,8 +26,10 @@ declare
   consult4_profile_id uuid;
 
   org_id     uuid;
-  team_a_id  uuid := 'b0000000-0000-0000-0000-000000000001';
-  team_b_id  uuid := 'b0000000-0000-0000-0000-000000000002';
+  -- UUID v4 válidos (vide nota acima): a rota /api/credits/wallets valida teamId
+  -- com z.string().uuid(), que rejeita UUIDs sem versão/variante corretas.
+  team_a_id  uuid := 'b0000000-0000-4000-8000-000000000001';
+  team_b_id  uuid := 'b0000000-0000-4000-8000-000000000002';
   equipe_plan_id uuid;
   pw_hash text;
 

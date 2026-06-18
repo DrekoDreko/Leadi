@@ -65,7 +65,7 @@ describe("CreditPackagesSection", () => {
   });
 
   it("renderiza os três pacotes com preços simples e economia progressiva", () => {
-    render(<CreditPackagesSection canPurchase packages={packages} />);
+    render(<CreditPackagesSection canPurchase isOwner packages={packages} />);
 
     expect(screen.getByText("100 créditos")).toBeInTheDocument();
     expect(screen.getByText("300 créditos")).toBeInTheDocument();
@@ -83,6 +83,7 @@ describe("CreditPackagesSection", () => {
       <CreditPackagesSection
         canPurchase={false}
         disabledMessage="Sua organização precisa estar com a assinatura ativa ou em trial para comprar créditos de IA."
+        isOwner
         packages={packages}
       />
     );
@@ -97,15 +98,39 @@ describe("CreditPackagesSection", () => {
   });
 
   it("usa CTA de comprar créditos quando a organização já tem assinatura ou trial", () => {
-    render(<CreditPackagesSection canPurchase packages={packages} />);
+    render(<CreditPackagesSection canPurchase isOwner packages={packages} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Comprar 300 créditos" }));
 
     expect(pushMock).toHaveBeenCalledWith("/checkout?mode=ai_credits&package=campanhas");
   });
 
+  it("permite que o consultor compre os pacotes diretamente", () => {
+    render(<CreditPackagesSection canPurchase isOwner={false} packages={packages} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Comprar 300 créditos" }));
+
+    expect(pushMock).toHaveBeenCalledWith("/checkout?mode=ai_credits&package=campanhas");
+  });
+
+  it("mostra o botão de solicitar créditos ao gestor apenas para consultores", () => {
+    const { rerender } = render(
+      <CreditPackagesSection canPurchase isOwner={false} packages={packages} />
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Pedir Créditos de IA ao gestor" })
+    ).toBeInTheDocument();
+
+    rerender(<CreditPackagesSection canPurchase isOwner packages={packages} />);
+
+    expect(
+      screen.queryByRole("button", { name: "Pedir Créditos de IA ao gestor" })
+    ).not.toBeInTheDocument();
+  });
+
   it("mostra loading ao iniciar a abertura do pagamento", () => {
-    render(<CreditPackagesSection canPurchase packages={packages} />);
+    render(<CreditPackagesSection canPurchase isOwner packages={packages} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Comprar 100 créditos" }));
 
@@ -117,7 +142,7 @@ describe("CreditPackagesSection", () => {
       throw new Error("navigation failed");
     });
 
-    render(<CreditPackagesSection canPurchase packages={packages} />);
+    render(<CreditPackagesSection canPurchase isOwner packages={packages} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Comprar 100 créditos" }));
 

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, startTransition } from "react";
-import { ArrowRight, Coins, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowRight, Coins, HandCoins, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -60,18 +60,9 @@ export function CreditPackagesSection({
   }
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCredits, setSelectedCredits] = useState<number>(100);
-
-  function handleAction(slug: string, credits: number) {
-    if (isOwner) {
-      handleCheckout(slug);
-    } else {
-      setSelectedCredits(credits);
-      setIsModalOpen(true);
-    }
-  }
 
   const referencePackage = getReferencePackage(packages);
+  const smallestPackageCredits = referencePackage?.credits ?? 100;
 
   return (
     <section className="glass-strong rounded-[34px] p-5 md:p-6" id="ai-credit-packages">
@@ -90,13 +81,14 @@ export function CreditPackagesSection({
         </span>
       </div>
 
-      {isOwner && canPurchase ? (
+      {canPurchase ? (
         <div className="mt-5 rounded-[24px] border border-white/44 bg-white/38 p-4 text-sm leading-6 text-ink/72 dark:bg-white/5 dark:text-cloud/78">
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-0.5 shrink-0 text-cobalt" size={18} aria-hidden="true" />
             <p>
-              Os créditos extras entram automaticamente no saldo da organização após a confirmação
-              do pagamento.
+              {isOwner
+                ? "Os créditos extras entram automaticamente no saldo da organização após a confirmação do pagamento."
+                : "Os créditos comprados entram automaticamente no seu saldo pessoal após a confirmação do pagamento."}
             </p>
           </div>
         </div>
@@ -118,11 +110,11 @@ export function CreditPackagesSection({
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
           {packages.map((pkg) => (
             <PackageCard
-              canPurchase={isOwner ? canPurchase : true}
+              canPurchase={canPurchase}
               isLoading={loadingSlug === pkg.slug}
               isOwner={isOwner}
               key={pkg.slug}
-              onAction={() => handleAction(pkg.slug, pkg.credits)}
+              onAction={() => handleCheckout(pkg.slug)}
               pkg={pkg}
               referencePackage={referencePackage}
             />
@@ -133,11 +125,25 @@ export function CreditPackagesSection({
           Nenhum pacote de créditos está disponível agora. Recarregue a página em instantes.
         </div>
       )}
-      
-      <RequestCreditsModal 
+
+      {!isOwner ? (
+        <div className="mt-6 flex justify-center">
+          <Button
+            className="bg-cobalt/10 text-cobalt hover:bg-cobalt/20"
+            onClick={() => setIsModalOpen(true)}
+            type="button"
+            variant="secondary"
+          >
+            <HandCoins size={18} aria-hidden="true" />
+            Pedir Créditos de IA ao gestor
+          </Button>
+        </div>
+      ) : null}
+
+      <RequestCreditsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        defaultCredits={selectedCredits}
+        defaultCredits={smallestPackageCredits}
       />
     </section>
   );
@@ -208,18 +214,18 @@ function PackageCard({
           className="mt-6 text-sm leading-6 text-ink/68 dark:text-cloud/72"
           id={packageNoteId}
         >
-          {!isOwner
-            ? "Solicite estes créditos ao gestor para sua equipe."
-            : canPurchase
-              ? presentation.purchaseNote
-              : "Disponível para compra após ativar a assinatura da organização."}
+          {canPurchase
+            ? presentation.purchaseNote
+            : isOwner
+              ? "Disponível para compra após ativar a assinatura da organização."
+              : "Disponível para compra quando a organização tiver uma assinatura ativa. Você também pode solicitar ao gestor abaixo."}
         </p>
 
         <Button
           aria-busy={isLoading}
           aria-describedby={packageNoteId}
           className={cn("mt-5 w-full py-4 text-sm", pkg.featured && !isLoading ? "bg-cobalt text-white hover:bg-cobalt/92" : "")}
-          disabled={isLoading || (!isOwner ? false : !canPurchase)}
+          disabled={isLoading || (!canPurchase && !isOwner)}
           onClick={onAction}
           type="button"
         >
@@ -229,12 +235,12 @@ function PackageCard({
             <ArrowRight size={18} aria-hidden="true" />
           )}
           {isLoading
-            ? (isOwner ? "Abrindo pagamento..." : "Abrindo solicitação...")
-            : !isOwner
-              ? "Solicitar créditos ao gestor"
-              : canPurchase
-                ? `Comprar ${pkg.credits} créditos`
-                : "Ativar assinatura"}
+            ? "Abrindo pagamento..."
+            : canPurchase
+              ? `Comprar ${pkg.credits} créditos`
+              : isOwner
+                ? "Ativar assinatura"
+                : "Indisponível no momento"}
         </Button>
       </div>
     </Card>
