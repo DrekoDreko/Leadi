@@ -19,7 +19,15 @@ export type SupervisorTeam = {
   consultants: SupervisorConsultant[];
 };
 
-export function SupervisorCreditsWorkspace({ teams: initialTeams }: { teams: SupervisorTeam[] }) {
+export function SupervisorCreditsWorkspace({
+  teams: initialTeams,
+  embedded = false
+}: {
+  teams: SupervisorTeam[];
+  /** Quando true, renderiza dentro de um card grande (ex.: página de créditos do perfil),
+   *  sem o cabeçalho de página próprio. */
+  embedded?: boolean;
+}) {
   const [teams, setTeams] = useState(initialTeams);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
     null
@@ -83,14 +91,8 @@ export function SupervisorCreditsWorkspace({ teams: initialTeams }: { teams: Sup
     }
   }
 
-  return (
-    <div className="flex flex-col gap-5">
-      <PageHeading
-        eyebrow="Gestão"
-        title="Distribuir Créditos"
-        description="Envie créditos da carteira da sua equipe para os consultores."
-      />
-
+  const body = (
+    <>
       {feedback && (
         <div
           className={`rounded-2xl px-4 py-3 text-sm font-medium ${
@@ -141,6 +143,35 @@ export function SupervisorCreditsWorkspace({ teams: initialTeams }: { teams: Sup
           </section>
         ))
       )}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <section className="glass rounded-[34px] p-5 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-cobalt">Gestão</p>
+            <h2 className="mt-2 text-2xl font-semibold">Distribuir Créditos</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/64">
+              Envie créditos da carteira da sua equipe para os consultores.
+            </p>
+          </div>
+          <Coins className="text-cobalt" size={20} aria-hidden="true" />
+        </div>
+        <div className="mt-6 flex flex-col gap-5">{body}</div>
+      </section>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <PageHeading
+        eyebrow="Gestão"
+        title="Distribuir Créditos"
+        description="Envie créditos da carteira da sua equipe para os consultores."
+      />
+      {body}
     </div>
   );
 }

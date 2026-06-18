@@ -31,6 +31,8 @@ import {
 } from "@/lib/ai/credit-orders.server";
 import { cn } from "@/lib/utils";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
+import { SupervisorCreditsWorkspace } from "../../equipes/creditos/supervisor-credits-workspace";
+import { loadSupervisedTeamsWithCredits } from "../../equipes/creditos/supervised-teams.server";
 import { CreditPackagesSection } from "./credit-packages-section";
 
 const purchaseFeedbackMessages: Record<string, { tone: "success" | "warning" | "error"; text: string }> = {
@@ -120,6 +122,15 @@ export default async function PerfilCreditosPage({
 }) {
   const context = await requireCompletedProfile();
   const params = await searchParams;
+
+  // Supervisor (admin de equipe) distribui créditos diretamente nesta página.
+  const isSupervisor = context.role === "admin" && context.workspaceType === "team";
+  const supervisedTeams =
+    isSupervisor && context.workspace?.id && context.profile?.id
+      ? await loadSupervisedTeamsWithCredits(context.workspace.id, context.profile.id).catch(
+          () => []
+        )
+      : [];
 
   let packagesError = "";
   const [aiBalance, purchaseAccess, accessibleTotal, usageHistory] = await Promise.all([
@@ -211,6 +222,10 @@ export default async function PerfilCreditosPage({
         totalBalance={displayBalance}
         walletLabel={walletLabel}
       />
+
+      {isSupervisor ? (
+        <SupervisorCreditsWorkspace teams={supervisedTeams} embedded />
+      ) : null}
 
       <section className="glass rounded-[34px] p-5 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
