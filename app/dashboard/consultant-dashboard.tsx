@@ -250,7 +250,7 @@ export function ConsultantDashboard({
                       <span
                         className={`mt-4 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${
                           isClosed
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"
+                            ? "bg-success/15 text-success"
                             : "bg-signal/14 text-foreground"
                         }`}
                       >

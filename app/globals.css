@@ -136,6 +136,21 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Crossfade suave de toda a tela ao alternar tema claro/escuro
+   (disparado por document.startViewTransition no ThemeToggle). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+  animation-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 body {
   min-height: 100vh;
   margin: 0;

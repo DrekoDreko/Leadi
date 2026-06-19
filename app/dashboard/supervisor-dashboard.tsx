@@ -371,7 +371,7 @@ export function SupervisorDashboard({
                             className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${
                               row.overdueCount > 0
                                 ? "bg-signal/14 text-foreground"
-                                : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"
+                                : "bg-success/15 text-success"
                             }`}
                           >
                             {row.overdueCount} atraso{row.overdueCount === 1 ? "" : "s"}
@@ -415,7 +415,7 @@ export function SupervisorDashboard({
                             </span>
                           )}
                           {bd.won > 0 && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success">
                               {bd.won} venda{bd.won === 1 ? "" : "s"}
                             </span>
                           )}
@@ -526,7 +526,7 @@ export function SupervisorDashboard({
                     <p className="text-muted-soft text-xs">Aguardando gestor</p>
                   </div>
                 </div>
-                <span className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${pendingCampaignsCount > 0 ? "bg-signal/14 text-foreground" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"}`}>
+                <span className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${pendingCampaignsCount > 0 ? "bg-signal/14 text-foreground" : "bg-success/15 text-success"}`}>
                   {pendingCampaignsCount}
                 </span>
               </div>
@@ -541,7 +541,7 @@ export function SupervisorDashboard({
                     <p className="text-muted-soft text-xs">Pedidos de verba</p>
                   </div>
                 </div>
-                <span className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${pendingCreditRequestsCount > 0 ? "bg-signal/14 text-foreground" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"}`}>
+                <span className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${pendingCreditRequestsCount > 0 ? "bg-signal/14 text-foreground" : "bg-success/15 text-success"}`}>
                   {pendingCreditRequestsCount}
                 </span>
               </div>

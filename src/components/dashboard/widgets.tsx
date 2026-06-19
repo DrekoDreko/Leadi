@@ -58,7 +58,7 @@ export function Metric({
     blue: "bg-primary text-primary-foreground",
     yellow: "bg-signal text-accent-foreground",
     teal: "border border-info/28 bg-info/18 text-foreground",
-    dark: "bg-foreground text-background"
+    dark: "surface-pill-strong text-foreground"
   }[tone];
 
   return (

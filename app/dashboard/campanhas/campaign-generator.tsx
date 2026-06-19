@@ -181,18 +181,12 @@ function normalizeTone(value: string): ToneValue {
 
 function getCampaignTemplateTags(template: SystemTemplate, content: CampaignTemplateContent) {
   switch (template.category) {
-    case "Revisão de preço":
-      return ["Revisão de preço", "PME", "Economia"];
-    case "MEI":
-      return ["MEI", "PME", "CNPJ"];
-    case "Rede credenciada":
-      return ["Rede", "Hospitais", "Comparativo"];
-    case "Primeira contratação":
-      return ["Primeira contratação", "CNPJ", "Planejamento"];
-    case "Reajuste":
-      return ["Reajuste", "Troca", "Comparativo"];
-    case "Equipe pequena":
-      return ["Equipe", "PME", "Benefício"];
+    case "Economia PME":
+      return ["Economia PME", "Empresarial", "Rede nacional"];
+    case "Empresarial":
+      return ["Empresarial", "PME", "Rede nacional"];
+    case "Individual":
+      return ["Individual", "Familiar", "Rede nacional"];
     default:
       return [template.category, normalizeTone(content.tone)];
   }
@@ -200,42 +194,34 @@ function getCampaignTemplateTags(template: SystemTemplate, content: CampaignTemp
 
 function getCampaignTemplateCommercialContext(template: SystemTemplate) {
   switch (template.category) {
-    case "Revisão de preço":
+    case "Economia PME":
       return {
-        objections: "Medo de perder a rede atual ou enfrentar novas carências ao migrar de individual para PME.",
+        objections: "Medo de perder a rede atual ou enfrentar novas carências ao migrar do individual para o empresarial.",
         contractType: "Empresarial (PME)"
       };
-    case "MEI":
+    case "Empresarial":
       return {
-        objections: "Receio de não ter tempo de CNPJ suficiente ou de a contratação não se encaixar nas regras da operadora.",
-        contractType: "Empresarial (MEI)"
-      };
-    case "Rede credenciada":
-      return {
-        objections: "Dúvida sobre qual operadora cobre os hospitais e laboratórios desejados na região.",
-        contractType: "Empresarial e Adesão"
-      };
-    case "Primeira contratação":
-      return {
-        objections: "Falta de clareza sobre número mínimo de vidas, documentação e próximos passos da contratação.",
-        contractType: "Empresarial (PME e MEI)"
-      };
-    case "Reajuste":
-      return {
-        objections: "Medo de trocar de operadora e enfrentar novas carências ou perder rede credenciada importante.",
+        objections: "Dúvida sobre número mínimo de vidas e quais operadoras aceitam o CNPJ (a partir de 2 vidas na Amil, 3 nas demais).",
         contractType: "Empresarial (PME)"
       };
-    case "Equipe pequena":
+    case "Individual":
       return {
-        objections: "Percepção de custo alto por vida e receio de burocracia para implantar o benefício.",
-        contractType: "Empresarial (PME)"
+        objections: "Percepção de preço alto do individual e receio de que o empresarial seja complicado demais para contratar.",
+        contractType: "Individual/Familiar"
       };
     default:
       return {
-        objections: "Receio com carências, reajustes e aderência da rede ao uso da empresa.",
+        objections: "Receio com carências, reajustes e aderência da rede nacional ao uso do cliente.",
         contractType: "Empresarial"
       };
   }
+}
+
+const campaignCategoryOrder = ["Economia PME", "Empresarial", "Individual"];
+
+function getCampaignCategoryOrder(category: string) {
+  const index = campaignCategoryOrder.indexOf(category);
+  return index === -1 ? campaignCategoryOrder.length : index;
 }
 
 function resolveCampaignTemplates(systemTemplates?: SystemTemplate[]): CampaignTemplate[] {
@@ -258,6 +244,7 @@ function resolveCampaignTemplates(systemTemplates?: SystemTemplate[]): CampaignT
         "notes" in template.content
       );
     })
+    .sort((a, b) => getCampaignCategoryOrder(a.category) - getCampaignCategoryOrder(b.category))
     .map((template) => {
       const content = template.content;
       const commercialContext = getCampaignTemplateCommercialContext(template);
@@ -645,6 +632,12 @@ export function CampaignGenerator({
     advanceFromStep(1, 2);
   }
 
+  function handleSkipTemplate() {
+    setForm((currentForm) => ({ ...currentForm, selectedTemplateId: "" }));
+    setTemplateNotice("Você vai preencher público, oferta, tom e criativo manualmente nas próximas etapas.");
+    advanceFromStep(1, 2);
+  }
+
   async function handleSaveDraft() {
     const nextValidationMessages = validateForm(form);
     setValidationMessages(nextValidationMessages);
@@ -788,6 +781,7 @@ export function CampaignGenerator({
           >
             <CampaignTemplateSelector
               onSelect={applyTemplate}
+              onSkip={handleSkipTemplate}
               selectedTemplateId={form.selectedTemplateId}
               templates={campaignTemplates}
             />
@@ -1107,10 +1101,12 @@ function CampaignStepCard({
 
 function CampaignTemplateSelector({
   onSelect,
+  onSkip,
   selectedTemplateId,
   templates
 }: {
   onSelect: (template: CampaignTemplate) => void;
+  onSkip: () => void;
   selectedTemplateId: string;
   templates: CampaignTemplate[];
 }) {
@@ -1180,6 +1176,19 @@ function CampaignTemplateSelector({
             </button>
           );
         })}
+      </div>
+      <div className="mt-5 flex flex-col items-start gap-2 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-muted-soft text-sm leading-6">
+          Prefere começar do zero? Pule os modelos e preencha público, oferta e tom manualmente.
+        </p>
+        <button
+          className="surface-action-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-foreground transition hover:translate-y-[-1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt/50"
+          onClick={onSkip}
+          type="button"
+        >
+          Continuar sem os modelos
+          <ArrowRight size={16} aria-hidden="true" />
+        </button>
       </div>
     </div>
   );

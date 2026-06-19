@@ -7,6 +7,8 @@
 
 Em vez de espalhar o trabalho entre planilhas, grupos de WhatsApp e o Gerenciador de Anúncios da Meta, o corretor passa a operar tudo de um único painel — da chegada do lead até o fechamento da venda.
 
+> 💡 **Origem da ideia:** o Leadi nasceu de uma ideia em **05/05/2026**.
+
 ## Acesso
 
 O sistema já está no ar e funcionando:

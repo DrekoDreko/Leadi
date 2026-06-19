@@ -140,7 +140,7 @@ export function ManagerDashboard({
                   Campanhas aguardando revisão
                 </p>
               </div>
-              <span className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${pendingCampaignsCount > 0 ? "bg-signal/14 text-foreground" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"}`}>
+              <span className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${pendingCampaignsCount > 0 ? "bg-signal/14 text-foreground" : "bg-success/15 text-success"}`}>
                 {pendingCampaignsCount} pendente{pendingCampaignsCount === 1 ? "" : "s"}
               </span>
             </div>
@@ -163,7 +163,7 @@ export function ManagerDashboard({
                   Solicitações de verba
                 </p>
               </div>
-              <span className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${pendingCreditRequestsCount > 0 ? "bg-signal/14 text-foreground" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"}`}>
+              <span className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${pendingCreditRequestsCount > 0 ? "bg-signal/14 text-foreground" : "bg-success/15 text-success"}`}>
                 {pendingCreditRequestsCount} pendente{pendingCreditRequestsCount === 1 ? "" : "s"}
               </span>
             </div>
@@ -186,7 +186,7 @@ export function ManagerDashboard({
                   Convites e desativações
                 </p>
               </div>
-              <span className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${totalPendingMembers > 0 ? "bg-signal/14 text-foreground" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200"}`}>
+              <span className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${totalPendingMembers > 0 ? "bg-signal/14 text-foreground" : "bg-success/15 text-success"}`}>
                 {totalPendingMembers} pendente{totalPendingMembers === 1 ? "" : "s"}
               </span>
             </div>

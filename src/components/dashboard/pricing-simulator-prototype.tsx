@@ -381,7 +381,7 @@ export function PricingSimulatorPrototype({
                 </span>
                 <button
                   onClick={() => setShowNotification(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-ink px-8 py-3.5 text-sm font-semibold text-cloud shadow-soft hover:bg-ink/90 transition duration-200"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-8 py-3.5 text-sm font-semibold text-background shadow-soft hover:bg-foreground/90 transition duration-200"
                 >
                   Salvar Mapeamento
                   <ArrowRight size={16} />

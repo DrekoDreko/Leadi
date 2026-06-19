@@ -4,6 +4,7 @@ import { PageHeading } from "@/components/dashboard/widgets";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { SupportCard } from "./support-card";
 import { QualificadorComingSoonCard } from "./qualificador-coming-soon-card";
+import { ContabilidadeCard } from "./contabilidade-card";
 
 const primaryCreations = [
   {
@@ -47,18 +48,18 @@ export default async function CriacoesPage() {
     ? primaryCreations.filter((item) => item.title === "IA Gerador de Criativo")
     : context.isOwner
       ? primaryCreations
-      : primaryCreations.filter((item) => item.title !== "Anuncios criados");
+      : primaryCreations.filter((item) => item.title !== "Anúncios criados");
 
   return (
     <div className="space-y-4">
       <PageHeading
         eyebrow="Criar"
-        title="Novas criacoes"
+        title="Novas Criações"
         description={
           isConsultant
             ? "Abra aqui a sua solicitacao de criativo para a equipe de operacao."
             : context.isOwner
-              ? "Este e o hub de criacao do Leadi: campanhas, validador, solicitacao de criativo e futuras rotinas da operacao."
+              ? "Este e o hub de criação do Leadi: Crie campanhas, criativos e obtenha suporte."
               : "Crie campanhas e solicite criativos para a operacao."
         }
       />
@@ -131,6 +132,11 @@ export default async function CriacoesPage() {
         </div>
       </section>
       )}
+
+      <ContabilidadeCard
+        consultantName={context.displayName}
+        companyName={context.brokerageName}
+      />
     </div>
   );
 }

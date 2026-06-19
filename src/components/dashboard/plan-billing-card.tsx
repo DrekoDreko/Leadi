@@ -26,7 +26,7 @@ const INTERVAL_LABELS: Record<string, string> = {
 };
 
 const STATUS_TONES: Record<string, string> = {
-  active: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200",
+  active: "bg-success/15 text-success",
   trialing: "bg-cobalt/10 text-cobalt",
   pending: "bg-signal/14 text-ink dark:text-cloud",
   past_due: "bg-amber-50 text-amber-700 dark:bg-amber-500/12 dark:text-amber-200",
@@ -41,8 +41,8 @@ const PURCHASE_STATUS: Record<
 > = {
   created: { label: "Iniciado", tone: "bg-ink/8 text-ink/60 dark:text-cloud/60" },
   pending: { label: "Pendente", tone: "bg-signal/14 text-ink dark:text-cloud" },
-  approved: { label: "Aprovado", tone: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200" },
-  credited: { label: "Creditado", tone: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200" },
+  approved: { label: "Aprovado", tone: "bg-success/15 text-success" },
+  credited: { label: "Creditado", tone: "bg-success/15 text-success" },
   rejected: { label: "Recusado", tone: "bg-red-50 text-red-700 dark:bg-red-500/12 dark:text-red-200" },
   cancelled: { label: "Cancelado", tone: "bg-red-50 text-red-700 dark:bg-red-500/12 dark:text-red-200" },
   expired: { label: "Expirado", tone: "bg-red-50 text-red-700 dark:bg-red-500/12 dark:text-red-200" }

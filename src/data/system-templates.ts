@@ -3,108 +3,54 @@ import { getWhatsAppSystemTemplatesFallback } from "@/lib/whatsapp/templates";
 
 const campaignTemplatesFallback: SystemTemplate[] = [
   {
-    id: "tpl-campaign-revisao-preco",
+    id: "tpl-campaign-economia-pme",
     templateType: "campaign",
-    category: "Revisão de preço",
-    title: "Pagando caro no plano? Migre para PME e economize",
-    description: "Para quem já tem plano individual ou familiar e quer reduzir o custo migrando para um plano empresarial PME.",
+    category: "Economia PME",
+    title: "Paga caro no plano individual? No empresarial economiza até 40%",
+    description: "Quem já tem plano individual ou familiar pode migrar para o empresarial e pagar bem menos, mantendo a mesma rede nacional.",
     content: {
-      audience: "Profissionais autônomos, sócios e famílias que pagam plano individual caro e têm CNPJ ativo (MEI, ME, LTDA) para migrar para PME.",
-      offer: "Comparativo entre o plano atual (individual/familiar) e opções empresariais PME com economia real, mantendo rede e cobertura equivalente.",
-      region: "São Paulo, ABC Paulista, Campinas",
-      differentiator: "Mostra quanto o lead pode economizar saindo do plano pessoa física para o empresarial, sem perder rede nem cobertura.",
+      audience: "Pessoas e famílias nas capitais do Nordeste (Salvador, Recife, Fortaleza e região) que pagam caro em plano individual ou familiar e querem reduzir o custo migrando para o empresarial.",
+      offer: "Comparativo entre o plano individual atual e o empresarial PME equivalente, mostrando a economia (que pode chegar a cerca de 40%) com a mesma rede nacional e cobertura.",
+      region: "Salvador, Recife, Fortaleza",
+      differentiator: "Mostra quanto a pessoa economiza saindo do individual para o empresarial, mantendo a rede nacional para usar em qualquer lugar do Brasil.",
       tone: "Consultivo e direto",
-      notes: "Não prometer percentual exato de economia. Focar no comparativo real entre o valor atual e as opções PME. Usar linguagem de revisão e oportunidade."
+      notes: "Não prometer percentual exato de economia; usar \"pode chegar a ~40%\" como referência. Reforçar que a rede nacional atende em todo o Brasil. Empresarial a partir de 2 vidas (Amil) ou 3 vidas (Bradesco, SulAmérica)."
     },
     isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
   {
-    id: "tpl-campaign-mei",
+    id: "tpl-campaign-empresarial-cnpj",
     templateType: "campaign",
-    category: "MEI",
-    title: "Plano empresarial para MEI a partir de 2 vidas",
-    description: "MEI pode contratar plano empresarial com preços menores que o individual. Abra sua cotação.",
+    category: "Empresarial",
+    title: "Tem CNPJ? Plano empresarial a partir de 2 vidas",
+    description: "Para empresário, MEI ou sócio com CNPJ ativo: cotação empresarial com preço menor que o individual.",
     content: {
-      audience: "Microempreendedores individuais (MEI) com CNPJ ativo que querem plano de saúde para si e familiares a preço empresarial.",
-      offer: "Cotação de plano empresarial PME para MEI com 2 a 4 vidas, comparando operadoras e rede credenciada da região.",
-      region: "São Paulo, Guarulhos, Osasco",
-      differentiator: "Explica que MEI já pode contratar PME, quais documentos são necessários e como incluir dependentes no contrato.",
+      audience: "Empresários, MEIs e sócios com CNPJ ativo nas capitais do Nordeste que querem plano de saúde com preço empresarial para si, sócios e dependentes.",
+      offer: "Cotação de plano empresarial PME por número de vidas e rede, comparando operadoras e mostrando a economia frente ao plano individual.",
+      region: "Salvador, Recife, Fortaleza",
+      differentiator: "Estrutura o plano pelo CNPJ já existente, incluindo sócios e dependentes, com preço empresarial e rede nacional.",
       tone: "Humano e claro",
-      notes: "Não prometer aprovação automática. Explicar que a elegibilidade depende da operadora e do tempo de CNPJ. Linguagem acessível."
+      notes: "Empresarial a partir de 2 vidas (Amil) ou 3 vidas (Bradesco, SulAmérica). Não prometer aprovação automática; a elegibilidade depende da operadora e do tempo de CNPJ. Rede nacional atende em todo o Brasil."
     },
     isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
   {
-    id: "tpl-campaign-rede-credenciada",
+    id: "tpl-campaign-individual",
     templateType: "campaign",
-    category: "Rede credenciada",
-    title: "Escolha o plano pelo hospital e rede que você precisa",
-    description: "Compare planos pela rede credenciada: hospitais, laboratórios e clínicas da sua região.",
+    category: "Individual",
+    title: "Quer um plano só para você ou sua família?",
+    description: "Para quem prefere o plano individual ou familiar, sem abrir empresa. Compare operadoras e rede nacional.",
     content: {
-      audience: "Empresas e profissionais que priorizam atendimento em hospitais e laboratórios específicos antes de definir o plano.",
-      offer: "Comparativo de planos por rede credenciada, mostrando quais operadoras atendem nos hospitais e laboratórios desejados.",
-      region: "São Paulo, ABC Paulista, Santos",
-      differentiator: "Parte da rede que o lead precisa e filtra as operadoras por cobertura real na região, ao invés de começar pelo preço.",
-      tone: "Profissional e objetivo",
-      notes: "Não afirmar que todas as operadoras cobrem determinado hospital. Focar em comparação por rede e aderência regional."
-    },
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: "tpl-campaign-primeira-contratacao",
-    templateType: "campaign",
-    category: "Primeira contratação",
-    title: "Empresa nova? Veja como contratar o primeiro plano",
-    description: "Orientação para empresas que nunca contrataram plano e precisam entender por onde começar.",
-    content: {
-      audience: "Empresas recém-abertas ou em crescimento que vão contratar plano de saúde empresarial pela primeira vez.",
-      offer: "Orientação completa: documentação necessária, número mínimo de vidas, operadoras disponíveis e prazo de implantação.",
-      region: "São Paulo, Barueri, Alphaville",
-      differentiator: "Traduz o processo de contratação em passos simples para quem nunca fez isso antes, sem jargão técnico.",
+      audience: "Pessoas e famílias do Nordeste que querem um plano individual ou familiar para si, sem abrir CNPJ.",
+      offer: "Cotação de plano individual/familiar comparando operadoras, valores, carências e rede nacional credenciada na cidade do lead.",
+      region: "Salvador, Recife, Fortaleza",
+      differentiator: "Atende quem prefere o individual, comparando operadoras e mostrando a rede nacional disponível para usar em todo o Brasil.",
       tone: "Educativo e simples",
-      notes: "Evitar prometer implantação sem análise documental. Focar em orientação, preparo e próximos passos claros."
-    },
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: "tpl-campaign-reajuste",
-    templateType: "campaign",
-    category: "Reajuste",
-    title: "Reajuste veio alto? Compare e troque de operadora",
-    description: "Para empresas que receberam reajuste acima do esperado e querem avaliar alternativas.",
-    content: {
-      audience: "Empresas que já têm plano de saúde e receberam reajuste anual alto, buscando alternativas com melhor custo-benefício.",
-      offer: "Análise do reajuste atual com comparativo entre operadoras, considerando rede, carência, portabilidade e coparticipação.",
-      region: "São Paulo, Santos, Interior de SP",
-      differentiator: "Organiza a decisão de troca por rede, carência aproveitada e economia projetada, para o lead decidir com segurança.",
-      tone: "Consultivo e direto",
-      notes: "Não prometer redução garantida de valor. Preferir linguagem de comparação e troca orientada. Explicar portabilidade de carências."
-    },
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: "tpl-campaign-equipe-pequena",
-    templateType: "campaign",
-    category: "Equipe pequena",
-    title: "Plano de saúde para equipes de 2 a 29 pessoas",
-    description: "Estruture o benefício de saúde da sua equipe com planos empresariais PME acessíveis.",
-    content: {
-      audience: "Donos e gestores de pequenas empresas que querem oferecer plano de saúde como benefício para reter e atrair talentos.",
-      offer: "Cotação empresarial PME personalizada por número de vidas, região de uso e orçamento disponível da empresa.",
-      region: "Campinas, Jundiaí, Sorocaba",
-      differentiator: "Ajuda a montar o benefício ideal conforme o tamanho da equipe, incluindo sócios, funcionários e dependentes elegíveis.",
-      tone: "Humano e claro",
-      notes: "Evitar urgência artificial ou promessa de menor preço do mercado. Falar em planejamento, composição de vidas e viabilidade."
+      notes: "Não empurrar o empresarial; respeitar quem quer individual. Pode mencionar que o empresarial costuma ser mais barato caso o lead tenha interesse. Rede nacional atende em todo o Brasil."
     },
     isActive: true,
     createdAt: new Date().toISOString(),

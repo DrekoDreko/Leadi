@@ -128,32 +128,30 @@ describe("CampaignGenerator", () => {
     expect(screen.getByText("Créditos de geração de anúncio")).toBeInTheDocument();
   });
 
-  it("mostra 6 templates seguros e aplica o template selecionado nos campos", () => {
+  it("mostra os 3 templates seguros, o atalho sem modelos e aplica o template selecionado nos campos", () => {
     renderGenerator();
 
-    expect(screen.getByRole("button", { name: /Plano PME para MEI com até 4 vidas/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Revisão de reajuste do plano atual/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Comparativo por rede e hospital de preferência/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Benefício de saúde para equipes pequenas/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Inclusão de sócios, dependentes e pró-labore/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Primeiro plano empresarial para CNPJ em crescimento/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /No empresarial economiza até 40%/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Plano empresarial a partir de 2 vidas/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Quer um plano só para você ou sua família/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Continuar sem os modelos/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Plano PME para MEI com até 4 vidas/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Plano empresarial a partir de 2 vidas/i }));
     fireEvent.click(screen.getByRole("button", { name: /Primeiro passo: exemplos de campanha/i }));
 
-    const selectedTemplate = screen.getByRole("button", { name: /Plano PME para MEI com até 4 vidas/i });
+    const selectedTemplate = screen.getByRole("button", { name: /Plano empresarial a partir de 2 vidas/i });
     expect(within(selectedTemplate).getByText("Selecionado")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Público, oferta e região/i }));
 
     expect(screen.getByLabelText("Perfil do público-alvo")).toHaveValue(
-      "MEIs e pequenos CNPJs com 2 a 4 vidas que querem entender se já podem contratar um plano empresarial."
+      "Empresários, MEIs e sócios com CNPJ ativo nas capitais do Nordeste que querem plano de saúde com preço empresarial para si, sócios e dependentes."
     );
     expect(screen.getByLabelText("Oferta e benefícios")).toHaveValue(
-      "Análise consultiva para validar elegibilidade, documentação e caminhos de contratação conforme o perfil da empresa."
+      "Cotação de plano empresarial PME por número de vidas e rede, comparando operadoras e mostrando a economia frente ao plano individual."
     );
-    expect(screen.getByText("São Paulo")).toBeInTheDocument();
-    expect(screen.getByText("ABC Paulista")).toBeInTheDocument();
+    expect(screen.getByText("Salvador")).toBeInTheDocument();
+    expect(screen.getByText("Recife")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Observações e tom da mensagem/i }));
     expect(screen.getByRole("button", { name: "Humano e claro" })).toHaveClass("border-cobalt/70");
@@ -182,7 +180,7 @@ describe("CampaignGenerator", () => {
     renderGenerator(20, [customTemplate]);
 
     expect(screen.getByRole("button", { name: /Campanha sob medida para rede premium/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Plano PME para MEI com até 4 vidas/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /No empresarial economiza até 40%/i })).not.toBeInTheDocument();
   });
 
   it("valida briefing quando o usuário escolhe solicitar criativo", () => {

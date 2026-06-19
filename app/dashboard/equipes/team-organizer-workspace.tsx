@@ -1214,7 +1214,7 @@ function WorkspaceNameCard({
           type="text"
         />
         <button
-          className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:opacity-60"
+          className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:opacity-60 dark:bg-cobalt dark:text-white dark:hover:bg-cobalt/90"
           disabled={isSavingName}
           type="submit"
         >
