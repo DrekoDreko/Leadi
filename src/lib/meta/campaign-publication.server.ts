@@ -624,6 +624,70 @@ async function createPausedAdSet(input: {
 const FEED_ASSET_LABEL = "feed_asset";
 const VERTICAL_ASSET_LABEL = "vertical_asset";
 
+// Resolve a conta do Instagram que vai representar a empresa nos posicionamentos
+// do Instagram (stories/reels/feed). Sem ela, a Meta recusa o criativo com o
+// subcode 1772103. Ordem: conta business conectada -> conta conectada legada ->
+// conta lastreada pela Pagina (PBIA) existente -> cria uma PBIA nova.
+async function resolveInstagramUserId(input: {
+  accessToken: string;
+  pageId: string;
+}): Promise<string | null> {
+  const version = getMetaGraphApiVersion();
+
+  try {
+    const fieldsUrl = new URL(`https://graph.facebook.com/${version}/${input.pageId}`);
+    fieldsUrl.searchParams.set(
+      "fields",
+      "instagram_business_account,connected_instagram_account,page_backed_instagram_accounts"
+    );
+
+    const response = await fetch(fieldsUrl, {
+      headers: { Authorization: `Bearer ${input.accessToken}` },
+      cache: "no-store"
+    });
+
+    const data = (await response.json().catch(() => null)) as {
+      instagram_business_account?: { id?: string };
+      connected_instagram_account?: { id?: string };
+      page_backed_instagram_accounts?: { data?: Array<{ id?: string }> };
+    } | null;
+
+    if (response.ok && data) {
+      const businessId = data.instagram_business_account?.id;
+      if (businessId) return businessId;
+
+      const connectedId = data.connected_instagram_account?.id;
+      if (connectedId) return connectedId;
+
+      const pbiaId = data.page_backed_instagram_accounts?.data?.[0]?.id;
+      if (pbiaId) return pbiaId;
+    }
+  } catch {
+    // segue para tentar criar uma PBIA abaixo
+  }
+
+  try {
+    const createUrl = new URL(
+      `https://graph.facebook.com/${version}/${input.pageId}/page_backed_instagram_accounts`
+    );
+
+    const response = await fetch(createUrl, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${input.accessToken}` },
+      cache: "no-store"
+    });
+
+    const created = (await response.json().catch(() => null)) as { id?: string } | null;
+    if (response.ok && created?.id) {
+      return created.id;
+    }
+  } catch {
+    // sem conta do Instagram disponivel
+  }
+
+  return null;
+}
+
 async function createAdCreative(input: {
   accessToken: string;
   adAccountId: string;
@@ -643,6 +707,11 @@ async function createAdCreative(input: {
   );
 
   const ctaType = mapCallToActionType(input.callToAction);
+
+  const instagramUserId = await resolveInstagramUserId({
+    accessToken: input.accessToken,
+    pageId: input.pageId
+  });
 
   const body = new URLSearchParams();
   body.set("name", input.name);
@@ -688,7 +757,12 @@ async function createAdCreative(input: {
       ]
     };
 
-    body.set("object_story_spec", JSON.stringify({ page_id: input.pageId }));
+    const storySpec: Record<string, unknown> = { page_id: input.pageId };
+    if (instagramUserId) {
+      storySpec.instagram_user_id = instagramUserId;
+    }
+
+    body.set("object_story_spec", JSON.stringify(storySpec));
     body.set("asset_feed_spec", JSON.stringify(assetFeedSpec));
   } else {
     const singleImageHash = input.feedImageHash ?? input.verticalImageHash;
@@ -708,10 +782,15 @@ async function createAdCreative(input: {
       linkData.image_hash = singleImageHash;
     }
 
-    body.set("object_story_spec", JSON.stringify({
+    const storySpec: Record<string, unknown> = {
       page_id: input.pageId,
       link_data: linkData
-    }));
+    };
+    if (instagramUserId) {
+      storySpec.instagram_user_id = instagramUserId;
+    }
+
+    body.set("object_story_spec", JSON.stringify(storySpec));
   }
 
   const response = await fetch(url, {
