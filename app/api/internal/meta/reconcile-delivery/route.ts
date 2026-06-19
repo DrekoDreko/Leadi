@@ -45,9 +45,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
   }
 
+  // scope=pending: loop rapido (30s) que reconcilia so as campanhas em revisao,
+  // para detectar a aprovacao quase em tempo real. Sem o parametro, varre tudo.
+  const scope = new URL(request.url).searchParams.get("scope");
+  const statuses = scope === "pending" ? (["pending_review"] as const) : undefined;
+
   try {
-    const summary = await reconcileAllPublishedCampaigns();
-    return NextResponse.json({ ok: true, ...summary });
+    const summary = await reconcileAllPublishedCampaigns(
+      statuses ? { statuses: [...statuses] } : undefined
+    );
+    return NextResponse.json({ ok: true, scope: scope ?? "all", ...summary });
   } catch (error) {
     const message =
       error instanceof Error && error.message

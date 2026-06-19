@@ -988,6 +988,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          organization_id: string;
+          recipient_profile_id: string | null;
+          type: "campaign_approved" | "campaign_rejected";
+          title: string;
+          body: string | null;
+          link_url: string | null;
+          campaign_id: string | null;
+          metadata: Json;
+          read_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          recipient_profile_id?: string | null;
+          type: "campaign_approved" | "campaign_rejected";
+          title: string;
+          body?: string | null;
+          link_url?: string | null;
+          campaign_id?: string | null;
+          metadata?: Json;
+          read_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          recipient_profile_id?: string | null;
+          type?: "campaign_approved" | "campaign_rejected";
+          title?: string;
+          body?: string | null;
+          link_url?: string | null;
+          campaign_id?: string | null;
+          metadata?: Json;
+          read_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       meta_ad_image_uploads: {
         Row: {
           id: string;

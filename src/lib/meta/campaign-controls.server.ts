@@ -141,6 +141,27 @@ export async function updateMetaCampaignDelivery(input: {
 
   await ensureMetaMarketingPermission(accessToken);
 
+  // Defesa real (nao apenas UI): ativar um anuncio que a Meta ainda nao aprovou
+  // nao tem efeito util e induz o usuario ao erro. Antes de mandar ACTIVE,
+  // conferimos o estado verdadeiro na Meta e bloqueamos enquanto em revisao ou
+  // reprovado. Reconciliacao best-effort: se a Meta nao responder, seguimos.
+  if (input.action === "activate") {
+    const current = await reconcileCampaignDeliveryStatus({
+      organizationId: input.organizationId,
+      campaignId: campaign.id
+    });
+    if (current?.publicationStatus === "pending_review") {
+      throw new Error(
+        "A campanha ainda esta em revisao pela Meta. Voce podera ativa-la assim que for aprovada."
+      );
+    }
+    if (current?.publicationStatus === "failed") {
+      throw new Error(
+        "A Meta reprovou o anuncio. Ajuste o texto ou o criativo e publique novamente antes de ativar."
+      );
+    }
+  }
+
   try {
     if (input.action === "activate") {
       // Ordem: campanha -> conjunto -> anúncio. Todos precisam estar ACTIVE.
@@ -280,6 +301,60 @@ export async function updateMetaAdSetBudget(input: {
   }
 
   return mapRowToHistoryItem(updated.data as CampaignControlRow);
+}
+
+// Exclui a campanha na Meta via DELETE /{id}. Apagar a campanha remove em
+// cascata o conjunto de anúncios e o anúncio, então basta o meta_campaign_id.
+// Best-effort: se o objeto já não existir (HTTP 404 ou code 100), tratamos como
+// sucesso para não travar a exclusão do registro local. Não exige permissão de
+// marketing aqui — quem chama trata a falha como aviso, não como bloqueio.
+export async function deleteMetaCampaignForOrganization(input: {
+  organizationId: string;
+  metaCampaignId: string | null;
+}): Promise<void> {
+  if (!input.metaCampaignId) {
+    return;
+  }
+
+  const accessToken = await resolveMetaAccessTokenForOrganization(input.organizationId);
+  if (!accessToken) {
+    throw new Error("A conexao Meta nao possui um access token valido.");
+  }
+
+  const url = new URL(
+    `https://graph.facebook.com/${getMetaGraphApiVersion()}/${input.metaCampaignId}`
+  );
+
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    },
+    cache: "no-store"
+  });
+
+  if (response.ok) {
+    return;
+  }
+
+  const payload = (await response.json().catch(() => null)) as {
+    error?: { message?: string; error_user_msg?: string; code?: number; error_subcode?: number };
+  } | null;
+  const metaError = payload?.error;
+
+  // Campanha já removida manualmente na Meta: o objeto não existe mais
+  // (HTTP 404, code 100 "does not exist" ou subcode 33). Seguimos sem erro.
+  if (response.status === 404 || metaError?.code === 100 || metaError?.error_subcode === 33) {
+    return;
+  }
+
+  const detail = metaError?.error_user_msg || metaError?.message;
+  const suffix = metaError?.error_subcode ? ` (subcode: ${metaError.error_subcode})` : "";
+  throw new Error(
+    detail
+      ? `Falha ao excluir a campanha na Meta: ${detail}${suffix}`
+      : `Falha ao excluir a campanha na Meta: status ${response.status}.`
+  );
 }
 
 // Link direto para a área de cobrança da conta de anúncio na Meta. A Graph API

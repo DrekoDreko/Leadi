@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Archive,
+  Ban,
   CheckCircle2,
+  Clock,
   CreditCard,
   Info,
   Loader2,
@@ -117,6 +119,12 @@ export function CampaignDeliveryControls({
   // "Veiculando" so quando a Meta confirma ACTIVE (publication_status=published).
   // pending_review/failed nao sao "ativos" para fins do botao pausar/ativar.
   const isActive = status === "published";
+  const isUnderReview = status === "pending_review";
+  const isReproved = status === "failed";
+  // So da para alternar quando a Meta ja decidiu: veiculando (pausar) ou
+  // pausado/aprovado (ativar). Em revisao ou reprovado, ativar fica bloqueado —
+  // ativar um anuncio que a Meta ainda nao aprovou nao tem efeito real e confunde.
+  const canToggle = isActive || status === "paused";
   const badge = resolveBadge(status, effective);
 
   async function handleToggle() {
@@ -207,31 +215,66 @@ export function CampaignDeliveryControls({
       <div className={`mt-5 grid gap-4 sm:grid-cols-2 ${hasAdSet ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
         {/* Bloco 1 — acao principal */}
         <ControlSubCard
-          icon={isActive ? <Pause size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
-          title="Ativar anúncio"
-          description={
-            isActive
-              ? "A campanha está veiculando. Pause para interromper a entrega quando quiser."
-              : "Ao ativar, o anúncio entra em revisão da Meta e só começa a veicular após aprovação."
-          }
-        >
-          <button
-            type="button"
-            onClick={handleToggle}
-            disabled={pendingAction !== null}
-            className={`inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition disabled:opacity-60 ${
-              isActive ? "bg-amber-600 hover:bg-amber-600/90" : "bg-emerald-600 hover:bg-emerald-600/90"
-            }`}
-          >
-            {pendingAction === "toggle" ? (
-              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+          icon={
+            isUnderReview ? (
+              <Clock size={16} aria-hidden="true" />
+            ) : isReproved ? (
+              <Ban size={16} aria-hidden="true" />
             ) : isActive ? (
               <Pause size={16} aria-hidden="true" />
             ) : (
               <Play size={16} aria-hidden="true" />
-            )}
-            {isActive ? "Pausar campanha" : "Ativar campanha"}
-          </button>
+            )
+          }
+          title="Ativar anúncio"
+          description={
+            isUnderReview
+              ? "A Meta está revisando o anúncio. Você poderá ativar assim que for aprovado — avisamos você por aqui."
+              : isReproved
+                ? "A Meta reprovou o anúncio. Ajuste o texto ou o criativo e publique novamente para uma nova revisão."
+                : isActive
+                  ? "A campanha está veiculando. Pause para interromper a entrega quando quiser."
+                  : "O anúncio foi aprovado e está pausado. Ative para começar a veicular na Meta."
+          }
+        >
+          {canToggle ? (
+            <button
+              type="button"
+              onClick={handleToggle}
+              disabled={pendingAction !== null}
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition disabled:opacity-60 ${
+                isActive ? "bg-amber-600 hover:bg-amber-600/90" : "bg-emerald-600 hover:bg-emerald-600/90"
+              }`}
+            >
+              {pendingAction === "toggle" ? (
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+              ) : isActive ? (
+                <Pause size={16} aria-hidden="true" />
+              ) : (
+                <Play size={16} aria-hidden="true" />
+              )}
+              {isActive ? "Pausar campanha" : "Ativar campanha"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-muted px-5 py-3 text-sm font-semibold text-muted-foreground"
+            >
+              {isUnderReview ? (
+                <>
+                  <Clock size={16} aria-hidden="true" />
+                  Aguardando aprovação da Meta
+                </>
+              ) : (
+                <>
+                  <Ban size={16} aria-hidden="true" />
+                  Anúncio reprovado
+                </>
+              )}
+            </button>
+          )}
         </ControlSubCard>
 
         {/* Bloco 2 — orcamento */}

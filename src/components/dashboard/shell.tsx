@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Check, Clock, Loader2, LogOut, Plus, Search, X } from "lucide-react";
+import { Ban, Bell, Check, CheckCircle2, Clock, Loader2, LogOut, Megaphone, Plus, Search, X } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { DashboardBillingNoticeProvider } from "@/components/billing/billing-notice-context";
 import { BrandMark } from "@/components/brand-mark";
@@ -17,6 +17,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { SubscriptionNotice } from "@/lib/billing/subscription-limits.server";
 import type { DashboardNavVariant } from "@/lib/workspaces/context";
 import type { DashboardReminderItem } from "@/lib/dashboard-reminders/types";
+import type { NotificationItem } from "@/lib/notifications/types";
 
 const MIN_LEAD_SEARCH_LENGTH = 3;
 const HEADER_LEAD_SEARCH_LIMIT = 6;
@@ -59,6 +60,8 @@ export function DashboardShell({
   const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [openSnoozeId, setOpenSnoozeId] = useState<string | null>(null);
+  const [appNotifications, setAppNotifications] = useState<NotificationItem[]>([]);
+  const [appUnreadCount, setAppUnreadCount] = useState(0);
   const searchWrapperRef = useRef<HTMLDivElement | null>(null);
   const notificationsWrapperRef = useRef<HTMLDivElement | null>(null);
 
@@ -73,7 +76,47 @@ export function DashboardShell({
       : currentPath === href || currentPath.startsWith(`${href}/`);
   };
   const creationActive = isActive(creationHref);
-  const displayNotificationCount = reminderCount > 99 ? "99+" : String(reminderCount);
+  const totalBadgeCount = reminderCount + appUnreadCount;
+  const displayNotificationCount = totalBadgeCount > 99 ? "99+" : String(totalBadgeCount);
+
+  const fetchAppNotifications = async () => {
+    if (preview) {
+      return;
+    }
+    try {
+      const response = await fetch("/api/notifications");
+      if (!response.ok) {
+        return;
+      }
+      const data = (await response.json()) as {
+        notifications?: NotificationItem[];
+        unreadCount?: number;
+      };
+      setAppNotifications(data.notifications ?? []);
+      setAppUnreadCount(data.unreadCount ?? 0);
+    } catch {
+      // Notificacoes sao best-effort; falha de rede nao deve travar o sino.
+    }
+  };
+
+  const handleMarkNotificationRead = async (id: string) => {
+    setAppNotifications((items) =>
+      items.map((item) => (item.id === id ? { ...item, readAt: new Date().toISOString() } : item))
+    );
+    setAppUnreadCount((count) => Math.max(0, count - 1));
+    if (preview) {
+      return;
+    }
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+    } catch {
+      // Otimista: o estado local ja reflete a leitura.
+    }
+  };
 
   const fetchNotifications = async () => {
     if (preview) {
@@ -224,9 +267,17 @@ export function DashboardShell({
   useEffect(() => {
     if (isNotificationsOpen) {
       void fetchNotifications();
+      void fetchAppNotifications();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNotificationsOpen]);
+
+  // Carrega a contagem de notificacoes nao lidas no mount para o badge refletir
+  // avisos (ex.: anuncio aprovado) sem o usuario precisar abrir o sino.
+  useEffect(() => {
+    void fetchAppNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (preview) {
@@ -501,7 +552,7 @@ export function DashboardShell({
               <div ref={notificationsWrapperRef} className="relative">
                 <button
                   aria-label={
-                    reminderCount > 0 ? `${reminderCount} notificações de lembrete` : "Notificações"
+                    totalBadgeCount > 0 ? `${totalBadgeCount} notificações` : "Notificações"
                   }
                   className={`icon-button relative z-50 transition-all ${
                     isNotificationsOpen ? "bg-surface-elevated/90 shadow-soft" : ""
@@ -511,7 +562,7 @@ export function DashboardShell({
                   title="Notificações"
                 >
                   <Bell size={18} aria-hidden="true" />
-                  {reminderCount > 0 ? (
+                  {totalBadgeCount > 0 ? (
                     <span
                       aria-hidden="true"
                       className="absolute -right-0.5 -top-0.5 flex min-h-5 min-w-5 items-center justify-center rounded-full border border-white/80 bg-[#ff3b30] px-1.5 text-[10px] font-semibold leading-none text-white shadow-[0_0_0_1px_rgba(18,23,33,0.04)]"
@@ -532,14 +583,81 @@ export function DashboardShell({
                     <span className="text-muted-soft text-[11px] font-semibold uppercase tracking-[0.18em]">
                       Lembretes e Notificações
                     </span>
-                    {reminderCount > 0 && (
+                    {totalBadgeCount > 0 && (
                       <span className="shrink-0 rounded-full bg-cobalt/8 px-2 py-0.5 text-[10px] font-semibold text-cobalt">
-                        {reminderCount} ativos
+                        {totalBadgeCount} ativos
                       </span>
                     )}
                   </div>
 
                   <div className="flex-1 overflow-y-auto min-h-0 animate-fade-in">
+                    {appNotifications.length > 0 ? (
+                      <ul className="p-2 space-y-1">
+                        {appNotifications.map((notification) => {
+                          const approved = notification.type === "campaign_approved";
+                          return (
+                            <li key={notification.id}>
+                              <div
+                                className={`surface-card-strong group relative flex flex-col items-start gap-1.5 rounded-[20px] px-4 py-3 transition ${
+                                  notification.readAt ? "opacity-60" : ""
+                                }`}
+                              >
+                                <div className="flex w-full items-center justify-between gap-2">
+                                  <span
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                                      approved
+                                        ? "bg-emerald-500/12 text-emerald-700"
+                                        : "bg-red-500/12 text-red-600"
+                                    }`}
+                                  >
+                                    {approved ? (
+                                      <CheckCircle2 size={11} aria-hidden="true" />
+                                    ) : (
+                                      <Ban size={11} aria-hidden="true" />
+                                    )}
+                                    {approved ? "Aprovado" : "Reprovado"}
+                                  </span>
+                                  {notification.readAt ? null : (
+                                    <button
+                                      onClick={() => handleMarkNotificationRead(notification.id)}
+                                      className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-muted-foreground transition hover:bg-surface-elevated"
+                                      type="button"
+                                      title="Marcar como lida"
+                                    >
+                                      <Check size={12} aria-hidden="true" />
+                                      Lida
+                                    </button>
+                                  )}
+                                </div>
+                                <p className="text-sm font-semibold leading-snug text-foreground/90">
+                                  {notification.title}
+                                </p>
+                                {notification.body ? (
+                                  <p className="text-xs leading-snug text-muted-foreground">
+                                    {notification.body}
+                                  </p>
+                                ) : null}
+                                {notification.linkUrl ? (
+                                  <Link
+                                    href={getHref(notification.linkUrl)}
+                                    onClick={() => {
+                                      setIsNotificationsOpen(false);
+                                      if (!notification.readAt) {
+                                        void handleMarkNotificationRead(notification.id);
+                                      }
+                                    }}
+                                    className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-cobalt hover:underline"
+                                  >
+                                    <Megaphone size={12} aria-hidden="true" />
+                                    Ver campanha
+                                  </Link>
+                                ) : null}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : null}
                     {isNotificationsLoading ? (
                       <div className="text-muted-soft flex items-center justify-center gap-2 px-4 py-8 text-sm">
                         <Loader2 className="animate-spin text-cobalt" size={16} aria-hidden="true" />
@@ -633,13 +751,13 @@ export function DashboardShell({
                           );
                         })}
                       </ul>
-                    ) : (
+                    ) : appNotifications.length === 0 ? (
                       <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
                         <Bell size={24} className="mb-2 text-muted-foreground/45" />
                         <p className="text-muted-soft text-sm font-medium">Nenhum lembrete para este mês</p>
                         <p className="mt-1 text-xs text-muted-foreground/72">Tudo limpo por aqui!</p>
                       </div>
-                    )}
+                    ) : null}
                   </div>
 
                 </div>

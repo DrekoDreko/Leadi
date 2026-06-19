@@ -5,6 +5,7 @@ import type { Json } from "@/lib/supabase/database.types";
 import { getMetaGraphApiVersion } from "@/lib/meta/config";
 import { resolveMetaAccessTokenForOrganization } from "@/lib/integrations/repository.server";
 import { parseCampaignInputPayload, parseCampaignResultPayload } from "@/lib/campaigns/payload";
+import { createCampaignReviewNotification } from "@/lib/notifications/repository.server";
 import type {
   CampaignHistoryItem,
   CampaignPublicationStatus
@@ -239,6 +240,12 @@ async function applyReconciliation(
 
   const updatedRow = data as CampaignDeliveryRow;
 
+  // Detecta a saida da revisao e avisa o dono da campanha (sino do dashboard).
+  // Best-effort: nunca deixa a notificacao quebrar a reconciliacao.
+  if (changed && row.publication_status === "pending_review") {
+    await maybeEmitReviewNotification(updatedRow, effectiveStatus);
+  }
+
   return {
     item: mapRowToHistoryItem(updatedRow),
     effectiveStatus,
@@ -246,6 +253,51 @@ async function applyReconciliation(
     publicationMessage: mapping.message,
     changed
   };
+}
+
+// effective_status que representam "a Meta terminou a revisao e aprovou" — seja
+// veiculando (ACTIVE/WITH_ISSUES) ou aprovado e pausado (PAUSED/..._PAUSED).
+// ARCHIVED/COMPLETED/DELETED nao sao aprovacao, entao ficam de fora.
+const APPROVED_EFFECTIVE_STATUSES = new Set([
+  "ACTIVE",
+  "WITH_ISSUES",
+  "PAUSED",
+  "CAMPAIGN_PAUSED",
+  "ADSET_PAUSED"
+]);
+
+async function maybeEmitReviewNotification(
+  row: CampaignDeliveryRow,
+  effectiveStatus: string
+): Promise<void> {
+  const normalized = effectiveStatus.trim().toUpperCase();
+  const link = `/dashboard/anuncios/${row.id}`;
+
+  try {
+    if (APPROVED_EFFECTIVE_STATUSES.has(normalized)) {
+      await createCampaignReviewNotification({
+        organizationId: row.organization_id,
+        campaignId: row.id,
+        recipientProfileId: row.created_by_profile_id,
+        type: "campaign_approved",
+        title: "Anúncio aprovado pela Meta",
+        body: `A campanha "${row.campaign_name}" foi aprovada. Você já pode ativá-la para começar a veicular.`,
+        linkUrl: link
+      });
+    } else if (normalized === "DISAPPROVED") {
+      await createCampaignReviewNotification({
+        organizationId: row.organization_id,
+        campaignId: row.id,
+        recipientProfileId: row.created_by_profile_id,
+        type: "campaign_rejected",
+        title: "Anúncio reprovado pela Meta",
+        body: `A campanha "${row.campaign_name}" foi reprovada. Ajuste o texto ou o criativo e publique novamente.`,
+        linkUrl: link
+      });
+    }
+  } catch {
+    // Notificacao e nao-critica para a reconciliacao.
+  }
 }
 
 // Reconciliacao pontual de UMA campanha. Usada na acao de ativar/pausar
@@ -278,22 +330,29 @@ export type ReconcileAllSummary = {
   failed: number;
 };
 
-// Reconciliacao em lote (camada 3 / background). Varre todas as campanhas
-// publicadas que tem objeto na Meta e atualiza o status real, sem ninguem abrir
-// a tela. Resolve o token uma vez por organizacao.
+// Reconciliacao em lote (camada 3 / background). Varre as campanhas que tem
+// objeto na Meta e atualiza o status real, sem ninguem abrir a tela. Resolve o
+// token uma vez por organizacao.
+//
+// `statuses` permite escopar a varredura: o loop rapido (a cada 30s) reconcilia
+// apenas as que estao em revisao (pending_review) para detectar a aprovacao
+// quase em tempo real sem martelar a Meta com campanhas ja decididas; a varredura
+// ampla (menos frequente) cobre published/paused para pegar mudancas externas.
 export async function reconcileAllPublishedCampaigns(options?: {
   limit?: number;
+  statuses?: CampaignPublicationStatus[];
 }): Promise<ReconcileAllSummary> {
   requireServiceRole();
 
   const supabase = createSupabaseAdminClient();
   const limit = options?.limit ?? 200;
+  const statuses = options?.statuses ?? ["published", "paused", "pending_review"];
 
   const { data, error } = await supabase
     .from("campaigns")
     .select("*")
     .not("meta_campaign_id", "is", null)
-    .in("publication_status", ["published", "paused", "pending_review"])
+    .in("publication_status", statuses)
     .order("delivery_status_synced_at", { ascending: true, nullsFirst: true })
     .limit(limit);
 
