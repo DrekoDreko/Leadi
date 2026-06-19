@@ -625,20 +625,25 @@ const FEED_ASSET_LABEL = "feed_asset";
 const VERTICAL_ASSET_LABEL = "vertical_asset";
 
 // Resolve a conta do Instagram que vai representar a empresa nos posicionamentos
-// do Instagram (stories/reels/feed). Sem ela, a Meta recusa o criativo com o
-// subcode 1772103. Ordem: conta business conectada -> conta conectada legada ->
-// conta lastreada pela Pagina (PBIA) existente -> cria uma PBIA nova.
+// do Instagram (stories/reels/feed). Sem ela, a Meta recusa o criativo/anuncio
+// com o subcode 1772103. Ordem: conta business conectada -> conta conectada
+// legada -> conta lastreada pela Pagina (PBIA) existente -> cria uma PBIA nova.
+//
+// Importante: tanto listar quanto criar uma PBIA exigem um Page Access Token,
+// nao o token do usuario/organizacao. Por isso buscamos o access_token da
+// Pagina antes (campo so retorna quando o token tem permissao sobre a Pagina).
 async function resolveInstagramUserId(input: {
   accessToken: string;
   pageId: string;
 }): Promise<string | null> {
   const version = getMetaGraphApiVersion();
+  let pageAccessToken = input.accessToken;
 
   try {
     const fieldsUrl = new URL(`https://graph.facebook.com/${version}/${input.pageId}`);
     fieldsUrl.searchParams.set(
       "fields",
-      "instagram_business_account,connected_instagram_account,page_backed_instagram_accounts"
+      "access_token,instagram_business_account,connected_instagram_account"
     );
 
     const response = await fetch(fieldsUrl, {
@@ -647,25 +652,48 @@ async function resolveInstagramUserId(input: {
     });
 
     const data = (await response.json().catch(() => null)) as {
+      access_token?: string;
       instagram_business_account?: { id?: string };
       connected_instagram_account?: { id?: string };
-      page_backed_instagram_accounts?: { data?: Array<{ id?: string }> };
     } | null;
 
     if (response.ok && data) {
+      if (data.access_token) {
+        pageAccessToken = data.access_token;
+      }
+
       const businessId = data.instagram_business_account?.id;
       if (businessId) return businessId;
 
       const connectedId = data.connected_instagram_account?.id;
       if (connectedId) return connectedId;
-
-      const pbiaId = data.page_backed_instagram_accounts?.data?.[0]?.id;
-      if (pbiaId) return pbiaId;
     }
   } catch {
-    // segue para tentar criar uma PBIA abaixo
+    // segue para tentar a PBIA abaixo com o token disponivel
   }
 
+  // Lista PBIAs existentes (precisa do Page Access Token).
+  try {
+    const listUrl = new URL(
+      `https://graph.facebook.com/${version}/${input.pageId}/page_backed_instagram_accounts`
+    );
+
+    const response = await fetch(listUrl, {
+      headers: { Authorization: `Bearer ${pageAccessToken}` },
+      cache: "no-store"
+    });
+
+    const data = (await response.json().catch(() => null)) as {
+      data?: Array<{ id?: string }>;
+    } | null;
+
+    const pbiaId = response.ok ? data?.data?.[0]?.id : undefined;
+    if (pbiaId) return pbiaId;
+  } catch {
+    // segue para criar uma PBIA nova
+  }
+
+  // Cria uma PBIA (precisa do Page Access Token).
   try {
     const createUrl = new URL(
       `https://graph.facebook.com/${version}/${input.pageId}/page_backed_instagram_accounts`
@@ -673,16 +701,26 @@ async function resolveInstagramUserId(input: {
 
     const response = await fetch(createUrl, {
       method: "POST",
-      headers: { Authorization: `Bearer ${input.accessToken}` },
+      headers: { Authorization: `Bearer ${pageAccessToken}` },
       cache: "no-store"
     });
 
-    const created = (await response.json().catch(() => null)) as { id?: string } | null;
+    const created = (await response.json().catch(() => null)) as {
+      id?: string;
+      error?: { message?: string; error_user_msg?: string };
+    } | null;
+
     if (response.ok && created?.id) {
       return created.id;
     }
-  } catch {
-    // sem conta do Instagram disponivel
+
+    console.error("[meta] falha ao criar PBIA", {
+      pageId: input.pageId,
+      status: response.status,
+      error: created?.error?.error_user_msg || created?.error?.message
+    });
+  } catch (error) {
+    console.error("[meta] erro ao criar PBIA", { pageId: input.pageId, error });
   }
 
   return null;
