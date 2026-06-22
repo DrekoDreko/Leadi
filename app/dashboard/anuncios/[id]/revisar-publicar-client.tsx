@@ -44,14 +44,12 @@ export function RevisarPublicarClient({
   campaign,
   initialReview,
   metaAssets,
-  creativeImages,
-  statusCard
+  creativeImages
 }: {
   campaign: CampaignHistoryItem;
   initialReview: ReviewLike;
   metaAssets: MetaAssets;
   creativeImages: Array<{ url: string; filename: string }>;
-  statusCard?: React.ReactNode;
 }) {
   const router = useRouter();
 
@@ -221,8 +219,6 @@ export function RevisarPublicarClient({
         title="Revisar e publicar"
         description="Revise o texto, confira os ativos vinculados ao Meta e publique a campanha em modo pausado."
       />
-
-      {statusCard}
 
       {error ? (
         <div className="flex items-start gap-3 rounded-[24px] border border-red-200/70 bg-red-50/80 p-4 text-sm text-red-800">

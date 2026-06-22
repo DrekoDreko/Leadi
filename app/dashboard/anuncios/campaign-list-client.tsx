@@ -14,6 +14,7 @@ import {
   Trash2,
   X,
   Calendar,
+  AlertTriangle,
 } from "lucide-react";
 import type { CampaignHistoryItem } from "@/lib/campaigns/types";
 import { deleteCampaignAction } from "./actions";
@@ -110,11 +111,11 @@ function CampaignDetailModal({
   const StatusIcon = status.Icon;
   const { date, time } = formatDateTime(campaign.createdAt);
 
-  function handleDelete() {
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      return;
-    }
+  // Campanha já existe no Meta quando tem um meta_campaign_id (publicada, ativa
+  // ou pausada). É isso que decide se o aviso de exclusão menciona o Meta.
+  const isOnMeta = Boolean(campaign.metaCampaignId);
+
+  function confirmAndDelete() {
     startTransition(async () => {
       const result = await deleteCampaignAction(campaign.id);
       if (result.error) {
@@ -251,15 +252,93 @@ function CampaignDetailModal({
           <button
             type="button"
             disabled={isPending}
-            onClick={handleDelete}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors sm:ml-auto ${
-              confirmDelete
-                ? "bg-red-600 text-white hover:bg-red-700"
-                : "bg-surface-elevated text-red-600 hover:bg-red-50 border border-red-200/50"
-            }`}
+            onClick={() => setConfirmDelete(true)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-surface-elevated px-5 py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10 border border-destructive/20 sm:ml-auto disabled:opacity-60"
           >
             <Trash2 size={15} aria-hidden="true" />
-            {isPending ? "Excluindo..." : confirmDelete ? "Confirmar exclusão" : "Excluir"}
+            Excluir
+          </button>
+        </div>
+      </section>
+
+      {confirmDelete ? (
+        <DeleteConfirmDialog
+          isOnMeta={isOnMeta}
+          isPending={isPending}
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={confirmAndDelete}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function DeleteConfirmDialog({
+  isOnMeta,
+  isPending,
+  onCancel,
+  onConfirm,
+}: {
+  isOnMeta: boolean;
+  isPending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      aria-labelledby="delete-confirm-title"
+      aria-modal="true"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/55 px-4 py-6 backdrop-blur-md"
+      onClick={onCancel}
+      role="alertdialog"
+    >
+      <section
+        className="surface-modal w-full max-w-md rounded-[28px] p-6 shadow-glass sm:p-7"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <span className="surface-danger inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+            <AlertTriangle size={18} className="text-destructive" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 id="delete-confirm-title" className="text-lg font-semibold leading-tight">
+              Tem certeza que deseja excluir?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-soft">
+              {isOnMeta ? (
+                <>
+                  Esta exclusão é <strong className="text-foreground">permanente</strong> e não pode
+                  ser desfeita. A campanha também será apagada no{" "}
+                  <strong className="text-foreground">Meta</strong>, no Gerenciador de Anúncios,
+                  interrompendo a veiculação.
+                </>
+              ) : (
+                <>
+                  Esta exclusão é <strong className="text-foreground">permanente</strong> e não pode
+                  ser desfeita.
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={onCancel}
+            className="inline-flex items-center justify-center rounded-full bg-surface-elevated px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted border border-border disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={onConfirm}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-destructive px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-destructive/90 disabled:opacity-60"
+          >
+            <Trash2 size={15} aria-hidden="true" />
+            {isPending ? "Excluindo..." : "Sim, excluir"}
           </button>
         </div>
       </section>

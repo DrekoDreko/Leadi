@@ -3,6 +3,7 @@ import type { Database, Json } from "@/lib/supabase/database.types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
+import { deleteMetaCampaignForOrganization } from "@/lib/meta/campaign-controls.server";
 import {
   buildCampaignInputPayload,
   buildCampaignResultPayload,
@@ -440,6 +441,36 @@ export async function deleteCampaignForCurrentUser(campaignId: string): Promise<
   const supabase = hasSupabaseServiceRole()
     ? createSupabaseAdminClient()
     : await createSupabaseServerClient();
+
+  // Carrega o identificador da Meta antes de remover o registro local, para
+  // poder excluir a campanha publicada também do Gerenciador de Anúncios.
+  const { data: existing, error: loadError } = await supabase
+    .from("campaigns")
+    .select("meta_campaign_id")
+    .eq("id", campaignId)
+    .eq("organization_id", profile.organization_id)
+    .maybeSingle();
+
+  if (loadError) {
+    throw new Error(loadError.message);
+  }
+
+  // Se a campanha já foi publicada na Meta, exclui lá também. É best-effort: se
+  // falhar (token inválido, conta sem permissão, etc.) registramos o aviso mas
+  // seguimos removendo o registro local para não deixar o usuário travado.
+  if (existing?.meta_campaign_id) {
+    try {
+      await deleteMetaCampaignForOrganization({
+        organizationId: profile.organization_id,
+        metaCampaignId: existing.meta_campaign_id
+      });
+    } catch (err) {
+      console.error(
+        "Falha ao excluir a campanha na Meta; removendo apenas o registro local.",
+        err
+      );
+    }
+  }
 
   const { error } = await supabase
     .from("campaigns")

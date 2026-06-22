@@ -16,6 +16,8 @@ import {
   formatCostPerLead,
   formatInteger
 } from "@/lib/meta/insights-format";
+import { CampaignControlsSection } from "../campaign-controls-section";
+import { RevisarPublicarSection } from "../revisar-publicar-section";
 
 type DesempenhoAnuncioPageProps = {
   params: Promise<{ id: string }>;
@@ -87,6 +89,10 @@ export default async function DesempenhoAnuncioPage({
         </div>
       </PageHeading>
 
+      {/* Mesmos controles de veiculação da página do anúncio: status real na Meta,
+          pausar/ativar, orçamento diário e forma de pagamento. */}
+      <CampaignControlsSection campaign={campaign} />
+
       {summary ? (
         <section className="surface-card-strong rounded-[30px] p-5 md:p-6">
           <h2 className="text-lg font-semibold">Resumo da campanha</h2>
@@ -134,6 +140,10 @@ export default async function DesempenhoAnuncioPage({
           </div>
         )}
       </section>
+
+      {/* Mesmo bloco de "Revisar e publicar" da página do anúncio: editar textos,
+          conferir ativos vinculados e (re)publicar. */}
+      <RevisarPublicarSection campaign={campaign} />
     </div>
   );
 }

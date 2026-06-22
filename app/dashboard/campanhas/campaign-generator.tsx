@@ -2194,10 +2194,10 @@ function CampaignPublicationDialog({
                       <Rocket className="text-primary" size={28} />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-foreground">Publicando campanha...</h2>
+                      <h2 className="text-lg font-bold text-foreground">Preparando campanha...</h2>
                       <p className="mt-2 text-sm text-muted-foreground">
                         {isPaused
-                          ? "Criando campanha, conjunto de anúncios e criativo na Meta em modo pausado."
+                          ? "Gerando campanha, conjunto de anúncios e criativo na Leadi e vinculando os ativos da Meta. A publicação na Meta acontece na revisão."
                           : "Gerando textos e preparando a campanha na Leadi."}
                       </p>
                     </div>
@@ -2222,10 +2222,10 @@ function CampaignPublicationDialog({
                     </motion.div>
 
                     <div>
-                      <h2 className="text-xl font-bold text-foreground">Campanha enviada!</h2>
+                      <h2 className="text-xl font-bold text-foreground">Campanha preparada!</h2>
                       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                         {isPaused
-                          ? "Sua campanha foi publicada na Meta em modo pausado. Ative quando estiver pronto."
+                          ? "Sua campanha foi gerada e preparada na Leadi com os ativos da Meta vinculados. Revise e publique na Meta na área de anúncios."
                           : "Seus textos foram gerados e salvos na Leadi."}
                       </p>
                     </div>
@@ -2259,7 +2259,7 @@ function CampaignPublicationDialog({
                           onClick={onClose}
                           className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:bg-primary/92"
                         >
-                          Abrir anúncios criados
+                          Revisar e publicar na Meta
                           <ExternalLink size={15} />
                         </Link>
                       )}

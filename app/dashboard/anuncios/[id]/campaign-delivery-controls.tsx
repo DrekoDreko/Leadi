@@ -447,8 +447,9 @@ function resolveStatusCard(
   }
 }
 
-// Card de status do anuncio, exibido abaixo de "Revisar e publicar". Server-driven:
-// reflete o publication/effective status reconciliado e ganha destaque quando ativo/pausado.
+// Card de status do anuncio, exibido no topo da pagina, acima de "Controle do anuncio".
+// Server-driven: reflete o publication/effective status reconciliado e ganha destaque
+// quando ativo/pausado.
 export function CampaignStatusCard({
   status,
   effectiveStatus

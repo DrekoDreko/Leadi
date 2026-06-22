@@ -102,6 +102,16 @@ type MetaMarketingPublicationResult = {
 
 const REQUIRED_MARKETING_PERMISSION = "ads_management";
 
+// Planos de saude sao Categoria Especial de Anuncio na Meta (Credito/Seguros).
+// Declarar a categoria e obrigatorio para nao haver rejeicao/ma-classificacao e
+// impoe restricoes de targeting: sem filtro de idade/genero/CEP e raio minimo de
+// 25 km por cidade (ver buildTargeting/resolveGeoLocations). Se a Meta recusar
+// este valor, o erro retornado lista os validos para a conta.
+const META_SPECIAL_AD_CATEGORY = "CREDIT";
+
+// Raio minimo (km) exigido pela Categoria Especial ao segmentar por cidade.
+const SPECIAL_CATEGORY_MIN_RADIUS_KM = 25;
+
 export class MetaMarketingPermissionError extends Error {
   public readonly status = 403;
 
@@ -215,14 +225,25 @@ export async function publishPausedMetaCampaign(
       : 2000;
 
     const orgWebsite = await loadOrganizationWebsite(supabase, input.organizationId);
+
+    // Tipo de criativo escolhido no gerador (carrossel x imagem unica) e regiao
+    // vem do payload de input persistido da campanha.
+    const inputForm = parseCampaignInputPayload(campaign);
+    const isCarousel = inputForm.creativeAssetType === "carrossel";
+
     const creativeHashes = await uploadCampaignCreativesToMeta({
       supabase,
       organizationId: input.organizationId,
       campaignId: campaign.id,
       connectedAccountId: campaign.connected_account_id,
       accessToken,
-      adAccountId: campaign.meta_ad_account_id
+      adAccountId: campaign.meta_ad_account_id,
+      includeCarousel: isCarousel
     });
+
+    // Segmentacao real por localizacao + pixel da conta (best-effort, sem UI).
+    const geoLocations = await resolveGeoLocations(accessToken, campaign.region);
+    const pixelId = await resolveAdAccountPixel(accessToken, campaign.meta_ad_account_id);
 
     if (campaign.meta_page_id && campaign.meta_lead_form_id) {
       const adSet = await createPausedAdSet({
@@ -232,11 +253,18 @@ export async function publishPausedMetaCampaign(
         name: `${campaign.campaign_name} - Conjunto`,
         dailyBudgetCents,
         pageId: campaign.meta_page_id,
-        leadFormId: campaign.meta_lead_form_id
+        leadFormId: campaign.meta_lead_form_id,
+        geoLocations
       });
       metaAdSetId = adSet.id ?? null;
 
       if (metaAdSetId) {
+        // Carrossel exige >= 2 imagens; caso contrario cai no fluxo de imagem unica.
+        const carouselImageHashes =
+          isCarousel && creativeHashes.carouselHashes.length >= 2
+            ? creativeHashes.carouselHashes
+            : null;
+
         const adCreative = await createAdCreative({
           accessToken,
           adAccountId: campaign.meta_ad_account_id,
@@ -246,6 +274,7 @@ export async function publishPausedMetaCampaign(
           link: orgWebsite,
           feedImageHash: creativeHashes.feedHash,
           verticalImageHash: creativeHashes.verticalHash,
+          carouselImageHashes,
           primaryText: campaign.primary_text,
           headline: campaign.headline,
           description: campaign.description,
@@ -259,7 +288,8 @@ export async function publishPausedMetaCampaign(
             adAccountId: campaign.meta_ad_account_id,
             adSetId: metaAdSetId,
             creativeId: metaAdCreativeId,
-            name: `${campaign.campaign_name} - Anuncio`
+            name: `${campaign.campaign_name} - Anuncio`,
+            pixelId
           });
           metaAdId = ad.id ?? null;
         }
@@ -532,7 +562,7 @@ async function createPausedMetaCampaign(input: {
   body.set("name", input.campaignName);
   body.set("objective", "OUTCOME_LEADS");
   body.set("status", "PAUSED");
-  body.set("special_ad_categories", JSON.stringify([]));
+  body.set("special_ad_categories", JSON.stringify([META_SPECIAL_AD_CATEGORY]));
   body.set("is_adset_budget_sharing_enabled", "false");
 
   const response = await fetch(url, {
@@ -563,6 +593,86 @@ async function createPausedMetaCampaign(input: {
   return payload as MetaCampaignCreateResponse;
 }
 
+// Estrutura de geo_locations da Meta. Para Categoria Especial usamos cidades com
+// raio (>= 25 km) e/ou regioes (estados); o fallback e o pais inteiro (Brasil).
+type MetaGeoLocations = {
+  countries?: string[];
+  regions?: Array<{ key: string }>;
+  cities?: Array<{ key: string; radius: number; distance_unit: "kilometer" }>;
+};
+
+const FALLBACK_GEO_LOCATIONS: MetaGeoLocations = { countries: ["BR"] };
+
+// Resolve o texto livre de regiao da campanha (ex.: "Recife, Fortaleza") em
+// geo_locations reais via Targeting Search API da Meta. Best-effort: qualquer
+// falha cai no fallback de pais inteiro (Brasil), preservando o comportamento
+// anterior em vez de quebrar a publicacao.
+async function resolveGeoLocations(
+  accessToken: string,
+  regionText: string | null | undefined
+): Promise<MetaGeoLocations> {
+  const tokens = (regionText ?? "")
+    .split(/[,\n;]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2);
+
+  if (tokens.length === 0) {
+    return FALLBACK_GEO_LOCATIONS;
+  }
+
+  const version = getMetaGraphApiVersion();
+  const cities: MetaGeoLocations["cities"] = [];
+  const regions: MetaGeoLocations["regions"] = [];
+  const seenKeys = new Set<string>();
+
+  for (const token of tokens) {
+    try {
+      const url = new URL(`https://graph.facebook.com/${version}/search`);
+      url.searchParams.set("type", "adgeolocation");
+      url.searchParams.set("location_types", JSON.stringify(["city", "region"]));
+      url.searchParams.set("q", token);
+      url.searchParams.set("limit", "10");
+      url.searchParams.set("access_token", accessToken);
+
+      const response = await fetch(url, { method: "GET", cache: "no-store" });
+      const payload = (await response.json().catch(() => null)) as {
+        data?: Array<{ key?: string; type?: string; country_code?: string }>;
+      } | null;
+
+      if (!response.ok || !payload?.data?.length) continue;
+
+      // Prioriza matches no Brasil; se nao houver, usa o primeiro retornado.
+      const matches = payload.data;
+      const match =
+        matches.find((entry) => entry.country_code === "BR") ?? matches[0];
+
+      if (!match?.key || seenKeys.has(match.key)) continue;
+      seenKeys.add(match.key);
+
+      if (match.type === "city") {
+        cities.push({
+          key: match.key,
+          radius: SPECIAL_CATEGORY_MIN_RADIUS_KM,
+          distance_unit: "kilometer"
+        });
+      } else if (match.type === "region") {
+        regions.push({ key: match.key });
+      }
+    } catch {
+      // Token nao resolvido: ignora e segue para os demais.
+    }
+  }
+
+  if (cities.length === 0 && regions.length === 0) {
+    return FALLBACK_GEO_LOCATIONS;
+  }
+
+  const geoLocations: MetaGeoLocations = {};
+  if (cities.length > 0) geoLocations.cities = cities;
+  if (regions.length > 0) geoLocations.regions = regions;
+  return geoLocations;
+}
+
 async function createPausedAdSet(input: {
   accessToken: string;
   adAccountId: string;
@@ -571,6 +681,7 @@ async function createPausedAdSet(input: {
   dailyBudgetCents: number;
   pageId: string;
   leadFormId: string;
+  geoLocations: MetaGeoLocations;
 }) {
   const url = new URL(
     `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${sanitizeAdAccountId(input.adAccountId)}/adsets`
@@ -588,9 +699,11 @@ async function createPausedAdSet(input: {
   body.set("promoted_object", JSON.stringify({
     page_id: input.pageId
   }));
+  // Categoria Especial (Credito/Seguros): proibido filtrar por idade/genero/CEP.
+  // Por isso o targeting leva apenas a localizacao (cidades com raio >= 25 km
+  // e/ou estados), sem age_min/genders.
   body.set("targeting", JSON.stringify({
-    geo_locations: { countries: ["BR"] },
-    age_min: 18
+    geo_locations: input.geoLocations
   }));
 
   const response = await fetch(url, {
@@ -735,6 +848,7 @@ async function createAdCreative(input: {
   link: string;
   feedImageHash: string | null;
   verticalImageHash: string | null;
+  carouselImageHashes: string[] | null;
   primaryText: string;
   headline: string;
   description: string;
@@ -754,9 +868,40 @@ async function createAdCreative(input: {
   const body = new URLSearchParams();
   body.set("name", input.name);
 
+  const hasCarousel = Boolean(input.carouselImageHashes && input.carouselImageHashes.length >= 2);
   const hasBothPlacements = Boolean(input.feedImageHash && input.verticalImageHash);
 
-  if (hasBothPlacements) {
+  if (hasCarousel) {
+    // Carrossel: um cartao por imagem. O CTA com lead_gen_form_id fica no nivel
+    // do link_data (vale para todos os cartoes do carrossel de Lead Ads).
+    const childAttachments = (input.carouselImageHashes ?? []).map((hash) => ({
+      image_hash: hash,
+      link: input.link,
+      name: input.headline,
+      description: input.description
+    }));
+
+    const linkData: Record<string, unknown> = {
+      link: input.link,
+      message: input.primaryText,
+      child_attachments: childAttachments,
+      multi_share_optimized: true,
+      call_to_action: {
+        type: ctaType,
+        value: { lead_gen_form_id: input.leadFormId }
+      }
+    };
+
+    const storySpec: Record<string, unknown> = {
+      page_id: input.pageId,
+      link_data: linkData
+    };
+    if (instagramUserId) {
+      storySpec.instagram_user_id = instagramUserId;
+    }
+
+    body.set("object_story_spec", JSON.stringify(storySpec));
+  } else if (hasBothPlacements) {
     // Personalizacao por posicionamento: Feed (4:5) para feed/marketplace/explore
     // e Vertical (9:16) para stories/reels. A Meta exige object_story_spec apenas
     // com a page_id quando se usa asset_feed_spec.
@@ -859,12 +1004,46 @@ async function createAdCreative(input: {
   return payload as MetaCampaignCreateResponse;
 }
 
+// Resolve o pixel da conta de anuncios para mensuracao de site (best-effort).
+// Sem pixel ou em caso de erro retorna null e o anuncio segue sem tracking_specs
+// (a campanha de Leads nao depende de pixel).
+async function resolveAdAccountPixel(
+  accessToken: string,
+  adAccountId: string
+): Promise<string | null> {
+  try {
+    const url = new URL(
+      `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${sanitizeAdAccountId(adAccountId)}/adspixels`
+    );
+    url.searchParams.set("fields", "id");
+    url.searchParams.set("limit", "1");
+
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store"
+    });
+
+    const payload = (await response.json().catch(() => null)) as {
+      data?: Array<{ id?: string }>;
+    } | null;
+
+    if (response.ok) {
+      return payload?.data?.[0]?.id ?? null;
+    }
+  } catch {
+    // Sem pixel acessivel: segue sem tracking_specs.
+  }
+
+  return null;
+}
+
 async function createPausedAd(input: {
   accessToken: string;
   adAccountId: string;
   adSetId: string;
   creativeId: string;
   name: string;
+  pixelId: string | null;
 }) {
   const url = new URL(
     `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${sanitizeAdAccountId(input.adAccountId)}/ads`
@@ -875,6 +1054,13 @@ async function createPausedAd(input: {
   body.set("adset_id", input.adSetId);
   body.set("creative", JSON.stringify({ creative_id: input.creativeId }));
   body.set("status", "PAUSED");
+
+  if (input.pixelId) {
+    body.set(
+      "tracking_specs",
+      JSON.stringify([{ "action.type": ["offsite_conversion"], fb_pixel: [input.pixelId] }])
+    );
+  }
 
   const response = await fetch(url, {
     method: "POST",
@@ -998,7 +1184,13 @@ const VERTICAL_ASPECT_THRESHOLD = 1.5;
 type CampaignCreativeHashes = {
   feedHash: string | null;
   verticalHash: string | null;
+  // Hashes (formato feed) para carrossel, na ordem dos arquivos. So preenchido
+  // quando includeCarousel = true.
+  carouselHashes: string[];
 };
+
+// Limite de cartoes de um carrossel na Meta.
+const MAX_CAROUSEL_CARDS = 10;
 
 async function classifyPlacementByAspect(buffer: Buffer): Promise<"feed" | "vertical"> {
   try {
@@ -1016,10 +1208,12 @@ async function classifyPlacementByAspect(buffer: Buffer): Promise<"feed" | "vert
   return "feed";
 }
 
-// Le ate 2 imagens da pasta da campanha, classifica cada uma por proporcao
-// (Feed x Vertical) e envia a primeira de cada grupo para a biblioteca da Meta.
-// Retrocompativel: com apenas uma imagem, so um dos hashes vem preenchido e a
-// publicacao cai no object_story_spec de imagem unica.
+// Le as imagens da pasta da campanha, classifica cada uma por proporcao
+// (Feed x Vertical) e envia para a biblioteca da Meta.
+// - Imagem unica: so um dos hashes vem preenchido e a publicacao cai no
+//   object_story_spec de imagem unica.
+// - includeCarousel: coleta ate MAX_CAROUSEL_CARDS imagens de formato feed em
+//   carouselHashes (na ordem dos arquivos) para montar o carrossel.
 async function uploadCampaignCreativesToMeta(input: {
   supabase: ReturnType<typeof createSupabaseAdminClient>;
   organizationId: string;
@@ -1027,8 +1221,13 @@ async function uploadCampaignCreativesToMeta(input: {
   connectedAccountId: string | null;
   accessToken: string;
   adAccountId: string;
+  includeCarousel: boolean;
 }): Promise<CampaignCreativeHashes> {
-  const result: CampaignCreativeHashes = { feedHash: null, verticalHash: null };
+  const result: CampaignCreativeHashes = {
+    feedHash: null,
+    verticalHash: null,
+    carouselHashes: []
+  };
 
   try {
     const folder = `${input.organizationId}/${input.campaignId}`;
@@ -1045,20 +1244,25 @@ async function uploadCampaignCreativesToMeta(input: {
     });
 
     for (const imageFile of imageFiles) {
-      if (result.feedHash && result.verticalHash) break;
+      // Imagem unica: para quando ja tem feed + vertical. Carrossel: para ao
+      // atingir o limite de cartoes.
+      if (input.includeCarousel) {
+        if (result.carouselHashes.length >= MAX_CAROUSEL_CARDS) break;
+      } else if (result.feedHash && result.verticalHash) {
+        break;
+      }
 
-      const filePath = `${folder}/${imageFile.name}`;
-      const { data: downloaded, error: downloadError } = await input.supabase.storage
-        .from(STORAGE_BUCKET)
-        .download(filePath);
+      const buffer = await downloadCampaignImage(input.supabase, `${folder}/${imageFile.name}`);
+      if (!buffer) continue;
 
-      if (downloadError || !downloaded) continue;
-
-      const buffer = Buffer.from(await downloaded.arrayBuffer());
       const placement = await classifyPlacementByAspect(buffer);
 
-      if (placement === "feed" && result.feedHash) continue;
-      if (placement === "vertical" && result.verticalHash) continue;
+      // Carrossel usa imagens de formato feed; verticais sao ignoradas aqui.
+      if (input.includeCarousel && placement === "vertical") continue;
+      if (!input.includeCarousel) {
+        if (placement === "feed" && result.feedHash) continue;
+        if (placement === "vertical" && result.verticalHash) continue;
+      }
 
       const hash = await sendCampaignImageToMeta({
         supabase: input.supabase,
@@ -1074,7 +1278,8 @@ async function uploadCampaignCreativesToMeta(input: {
       if (!hash) continue;
 
       if (placement === "feed") {
-        result.feedHash = hash;
+        if (!result.feedHash) result.feedHash = hash;
+        if (input.includeCarousel) result.carouselHashes.push(hash);
       } else {
         result.verticalHash = hash;
       }
@@ -1084,6 +1289,18 @@ async function uploadCampaignCreativesToMeta(input: {
   } catch {
     return result;
   }
+}
+
+async function downloadCampaignImage(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  filePath: string
+): Promise<Buffer | null> {
+  const { data: downloaded, error: downloadError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .download(filePath);
+
+  if (downloadError || !downloaded) return null;
+  return Buffer.from(await downloaded.arrayBuffer());
 }
 
 async function sendCampaignImageToMeta(input: {
