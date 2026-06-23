@@ -6,6 +6,7 @@ import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabas
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerEnv } from "@/lib/env/server";
+import { isBillingDisabledForTests } from "@/lib/billing/config";
 import { LeadHealthOpenAIError } from "@/lib/openai";
 import {
   listStoredAiCreditPackages,
@@ -783,6 +784,31 @@ export async function runAiActionWithCredits<T>({
 }) {
   const credits = getAiCreditCost(feature);
   const apiKey = requirePlatformOpenAIKey();
+
+  // Flag temporaria de testes: nao verifica saldo, nao debita nem estorna.
+  // O saldo permanece intacto e nenhuma acao de IA e bloqueada.
+  if (isBillingDisabledForTests()) {
+    const result = await generate(apiKey);
+    const remainingCredits = userId
+      ? await getAccessibleAiCreditsForUser(orgId, userId).catch(() => 0)
+      : 0;
+
+    await logAiUsageEvent({
+      orgId,
+      userId,
+      feature,
+      status: "success",
+      creditsCharged: 0,
+      metadata: buildAiMetadata({
+        description,
+        metadata,
+        note: "billing_disabled_test"
+      })
+    });
+
+    return { result, remainingCredits };
+  }
+
   const availableCredits = userId
     ? await ensureSufficientCreditsForUser({ orgId, profileId: userId, required: credits })
     : await ensureSufficientCredits(orgId, credits);

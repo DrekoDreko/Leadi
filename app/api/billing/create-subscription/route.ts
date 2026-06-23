@@ -4,6 +4,10 @@ import { requireIntegrationEnv } from "@/lib/env/server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import { createBillingAdminClient } from "@/lib/billing/admin";
 import { createAbacatePaySubscription } from "@/lib/billing/abacatepay";
+import {
+  isBillingSimulationEnabled,
+  simulateAbacatePayPaidEvent
+} from "@/lib/billing/test-mode.server";
 import { isBillingCycle, type BillingCycle } from "@/lib/billing/checkout-flow";
 import {
   ApiRouteError,
@@ -29,7 +33,13 @@ export async function POST(request: Request) {
       windowMs: 60 * 1000,
     });
 
-    requireIntegrationEnv("billing");
+    const simulated = isBillingSimulationEnabled();
+
+    // No periodo de testes (BILLING_DISABLED) nao exigimos as chaves do
+    // AbacatePay: o pagamento e simulado e nada e cobrado de verdade.
+    if (!simulated) {
+      requireIntegrationEnv("billing");
+    }
 
     const body = await parseJsonBody(request, createSubscriptionSchema);
     const context = await getBillingAuthContext();
@@ -92,6 +102,23 @@ export async function POST(request: Request) {
 
     if (subError || !subscription) {
       throw new Error("Não foi possível registrar a assinatura.");
+    }
+
+    // Modo de testes: simula o pagamento aprovado (ativa a assinatura e concede
+    // os creditos inclusos) sem chamar o AbacatePay nem cobrar. A tela de
+    // checkout continua igual; o status passa a "active" na hora.
+    if (simulated) {
+      await simulateAbacatePayPaidEvent({
+        event: "subscription.completed",
+        externalReference: subscription.id
+      });
+
+      return NextResponse.json({
+        success: true,
+        subscriptionId: subscription.id,
+        checkoutUrl: "",
+        simulated: true
+      });
     }
 
     const billing = await createAbacatePaySubscription({

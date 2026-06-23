@@ -21,6 +21,15 @@ export function isBillingConfigured() {
   return isIntegrationConfigured("billing");
 }
 
+/**
+ * Flag TEMPORARIA de testes. Quando BILLING_DISABLED === "true", todas as
+ * cobrancas (convites de equipe, creditos de IA e gate de plano) ficam
+ * desativadas. Reativar em producao = remover a env var e redeployar.
+ */
+export function isBillingDisabledForTests() {
+  return getServerEnv("BILLING_DISABLED") === "true";
+}
+
 export function isAbacatePayConfigured() {
   return Boolean(getAbacatePayApiKey());
 }

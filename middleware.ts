@@ -9,6 +9,7 @@ export async function middleware(request: NextRequest) {
   const isDashboardRoute = pathname === "/dashboard" || pathname.startsWith("/dashboard/");
   const isOnboardingRoute = pathname === "/onboarding" || pathname.startsWith("/onboarding/");
   const isProfileSetupRoute = pathname === "/onboarding/profile-setup";
+  const isPlansRoute = pathname === "/onboarding/plans";
   const isTeamRoute = pathname === "/team" || pathname.startsWith("/team/");
   const isInviteRoute = pathname === "/invite" || pathname.startsWith("/invite/");
   const isApiRoute = pathname === "/api" || pathname.startsWith("/api/");
@@ -110,9 +111,9 @@ export async function middleware(request: NextRequest) {
       return forbiddenResponse;
     }
 
-    if (isProtectedRoute && !isProfileSetupRoute && !isInviteRoute) {
+    if (isProtectedRoute && !isOnboardingRoute && !isInviteRoute) {
       const redirectResponse = NextResponse.redirect(
-        new URL("/onboarding/profile-setup", request.url)
+        new URL("/onboarding/plans", request.url)
       );
       applySecurityHeaders(request, redirectResponse);
       return redirectResponse;
@@ -133,7 +134,7 @@ export async function middleware(request: NextRequest) {
   const isManager = isWorkspaceManagerRole(role);
   const workspaceType = workspace?.type === "team" ? "team" : "solo";
 
-  if (isProtectedRoute && !profileSetupCompleted && !isProfileSetupRoute && !isInviteRoute) {
+  if (isProtectedRoute && !profileSetupCompleted && !isOnboardingRoute && !isInviteRoute) {
     if (isApiRoute) {
       const pendingSetupResponse = NextResponse.json(
         { error: "Configuracao inicial pendente." },
@@ -144,13 +145,16 @@ export async function middleware(request: NextRequest) {
     }
 
     const redirectResponse = NextResponse.redirect(
-      new URL("/onboarding/profile-setup", request.url)
+      new URL("/onboarding/plans", request.url)
     );
     applySecurityHeaders(request, redirectResponse);
     return redirectResponse;
   }
 
-  if (profileSetupCompleted && isProfileSetupRoute) {
+  // Onboarding ja concluido: nao deixa voltar para a escolha de plano.
+  // As demais telas de onboarding (atribuicoes / wizard de equipe) seguem
+  // acessiveis para o usuario terminar o fluxo guiado.
+  if (profileSetupCompleted && (isPlansRoute || isProfileSetupRoute)) {
     const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
     applySecurityHeaders(request, redirectResponse);
     return redirectResponse;

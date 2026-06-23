@@ -1,5 +1,6 @@
 import { createBillingAdminClient } from "@/lib/billing/admin";
-import { isBillingConfigured } from "@/lib/billing/config";
+import { isBillingConfigured, isBillingDisabledForTests } from "@/lib/billing/config";
+import { getPlanPermissions, planAllowsAi } from "@/lib/billing/plan-permissions";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -70,63 +71,6 @@ type OrganizationBillingState = {
 
 const VALID_SUBSCRIPTION_STATUSES = new Set<SubscriptionRow["status"]>(["trialing", "active"]);
 const DEFAULT_ACTION_HREF = "/dashboard/perfil/creditos";
-
-const DEFAULT_PLAN_LIMITS: Record<
-  string,
-  {
-    limits: PlanLimits;
-    features: PlanFeatures;
-  }
-> = {
-  default: {
-    limits: {
-      leads: 1000,
-      users: 1,
-      campaigns: 30
-    },
-    features: {
-      ai: true,
-      creativeRequests: false,
-      teamInvites: false
-    }
-  },
-  equipe: {
-    limits: {
-      leads: 10000,
-      users: 3,
-      campaigns: 180
-    },
-    features: {
-      ai: true,
-      creativeRequests: false,
-      teamInvites: true
-    }
-  },
-  essencial: {
-    limits: {
-      leads: 1500,
-      users: 1,
-      campaigns: 40
-    },
-    features: {
-      ai: true,
-      creativeRequests: false,
-      teamInvites: false
-    }
-  },
-  profissional: {
-    limits: {
-      leads: 5000,
-      users: 1,
-      campaigns: 180
-    },
-    features: {
-      ai: true,
-      creativeRequests: false,
-      teamInvites: false
-    }
-  }
-};
 
 export class BillingResourceAccessError extends Error {
   access: ResourceAccessSummary;
@@ -442,10 +386,70 @@ async function getCurrentOrganizationId() {
   return profile?.organization_id ?? null;
 }
 
+async function getOrganizationPlanCode(organizationId: string): Promise<string | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("organizations")
+    .select("plan_type")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  return data?.plan_type ?? null;
+}
+
+/**
+ * Gate de IA dirigido pelo PLANO escolhido (organizations.plan_type), valido
+ * mesmo com BILLING_DISABLED. O gate por assinatura (getOrganizationResourceAccess)
+ * libera tudo no modo amigavel, entao a restricao de IA do Essencial precisa
+ * desta verificacao explicita nas rotas de IA.
+ */
+export async function assertOrganizationAiFeatureEnabled(organizationId: string) {
+  if (!isSupabaseConfigured()) {
+    return;
+  }
+
+  const planCode = await getOrganizationPlanCode(organizationId);
+
+  if (!planAllowsAi(planCode)) {
+    throw new BillingResourceAccessError({
+      resource: "campaign_generation",
+      allowed: false,
+      reason: "feature_unavailable",
+      title: "Seu plano nao inclui IA",
+      message:
+        "Os recursos de IA do Leadi (campanhas, imagens, mensagens e textos) ficam disponiveis a partir do plano Profissional. Faca upgrade para usar a IA.",
+      actionHref: DEFAULT_ACTION_HREF,
+      actionLabel: "Fazer upgrade",
+      limit: null,
+      used: null
+    });
+  }
+}
+
+export async function assertCurrentAiFeatureEnabled() {
+  const organizationId = await getCurrentOrganizationId();
+
+  if (!organizationId) {
+    return;
+  }
+
+  await assertOrganizationAiFeatureEnabled(organizationId);
+}
+
 async function getOrganizationBillingState(
   organizationId: string
 ): Promise<OrganizationBillingState> {
-  if (!isBillingConfigured()) {
+  if (isBillingDisabledForTests() || !isBillingConfigured()) {
+    // Com cobranca desativada nao impomos limites de quantidade, mas ainda
+    // respeitamos as FEATURES do plano escolhido (ex.: Essencial sem IA),
+    // lendo `organizations.plan_type` como fonte da verdade.
+    const planCode = await getOrganizationPlanCode(organizationId);
+    const permissions = getPlanPermissions(planCode);
+
     return {
       billingMode: "not-configured",
       plan: null,
@@ -457,9 +461,9 @@ async function getOrganizationBillingState(
         campaigns: null
       },
       features: {
-        ai: true,
-        creativeRequests: true,
-        teamInvites: true
+        ai: permissions.features.ai,
+        creativeRequests: permissions.features.creativeRequests,
+        teamInvites: permissions.features.teamInvites
       },
       usage: {
         leads: 0,
@@ -574,11 +578,7 @@ function neq(column: string, value: string) {
 }
 
 function getPlanDefaults(planCode?: string | null) {
-  if (!planCode) {
-    return DEFAULT_PLAN_LIMITS.default;
-  }
-
-  return DEFAULT_PLAN_LIMITS[planCode] ?? DEFAULT_PLAN_LIMITS.default;
+  return getPlanPermissions(planCode);
 }
 
 function getMetadataNumber(value: Json | null | undefined, path: string[]) {

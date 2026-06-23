@@ -52,6 +52,11 @@ export const ENV_VARIABLES = {
     description: "Segredo HMAC do AbacatePay para validar a assinatura dos webhooks de pagamento.",
     public: false
   },
+  BILLING_DISABLED: {
+    description:
+      "Flag TEMPORARIA de testes: quando 'true', desativa todas as cobrancas (convites de equipe, creditos de IA e gate de plano). NAO deve ficar setada em producao publica.",
+    public: false
+  },
   INTEGRATIONS_SECRET_KEY: {
     description: "Chave opcional para cifrar tokens e API keys das contas conectadas.",
     public: false

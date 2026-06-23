@@ -183,7 +183,7 @@ function getAuthMode(value: FormDataEntryValue | null) {
 function getPostSignupRedirectPath(value: FormDataEntryValue | null) {
   const next = getSafeRedirectPath(value);
 
-  return next === "/dashboard" ? "/onboarding/profile-setup" : next;
+  return next === "/dashboard" ? "/onboarding/plans" : next;
 }
 
 function buildLoginErrorUrl(error: string, next: string, mode: "login" | "signup") {

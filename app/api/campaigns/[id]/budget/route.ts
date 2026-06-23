@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolveCurrentIdentity } from "@/lib/integrations/repository.server";
 import { MetaMarketingPermissionError } from "@/lib/meta/campaign-publication.server";
-import { updateMetaAdSetBudget } from "@/lib/meta/campaign-controls.server";
+import { updateMetaCampaignBudget } from "@/lib/meta/campaign-controls.server";
 import {
   ApiRouteError,
   assertRouteRateLimit,
@@ -52,7 +52,7 @@ export async function POST(
   const body = await parseJsonBody(request, budgetSchema);
 
   try {
-    const campaign = await updateMetaAdSetBudget({
+    const campaign = await updateMetaCampaignBudget({
       organizationId: identity.organization.id,
       campaignId,
       dailyBudget: body.dailyBudget

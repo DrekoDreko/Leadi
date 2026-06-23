@@ -141,7 +141,7 @@ begin
   if setup_mode = 'supervisor' then
     workspace_type := 'team';
     next_role := 'supervisor';
-    next_redirect := '/team/setup';
+    next_redirect := '/team/invite';
   else
     workspace_type := 'solo';
     next_role := 'seller';

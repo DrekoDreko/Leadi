@@ -225,9 +225,10 @@ export async function updateMetaCampaignDelivery(input: {
   return mapRowToHistoryItem(updated.data as CampaignControlRow);
 }
 
-// Atualiza o orçamento diário do conjunto de anúncios (em reais; convertido para
-// centavos, mesma unidade usada na criação do ad set).
-export async function updateMetaAdSetBudget(input: {
+// Atualiza o orçamento diário da campanha (em reais; convertido para centavos,
+// mesma unidade usada na criação). O orçamento vive no nível da campanha
+// (Advantage Campaign Budget), então o POST vai para o meta_campaign_id.
+export async function updateMetaCampaignBudget(input: {
   organizationId: string;
   campaignId: string;
   dailyBudget: number;
@@ -241,8 +242,8 @@ export async function updateMetaAdSetBudget(input: {
     throw new Error("Campanha nao encontrada para esta organizacao.");
   }
 
-  if (!campaign.meta_adset_id) {
-    throw new Error("Esta campanha ainda nao possui um conjunto de anuncios na Meta.");
+  if (!campaign.meta_campaign_id) {
+    throw new Error("Esta campanha ainda nao foi publicada na Meta.");
   }
 
   const accessToken = await resolveMetaAccessTokenForOrganization(input.organizationId);
@@ -255,7 +256,7 @@ export async function updateMetaAdSetBudget(input: {
   const dailyBudgetCents = Math.round(input.dailyBudget * 100);
 
   const url = new URL(
-    `https://graph.facebook.com/${getMetaGraphApiVersion()}/${campaign.meta_adset_id}`
+    `https://graph.facebook.com/${getMetaGraphApiVersion()}/${campaign.meta_campaign_id}`
   );
   const body = new URLSearchParams();
   body.set("daily_budget", String(dailyBudgetCents));

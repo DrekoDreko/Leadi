@@ -4,7 +4,9 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { createPortal } from "react-dom";
 import {
   Archive,
+  Check,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   Edit3,
   Loader2,
@@ -27,7 +29,9 @@ import {
   getLeadStageLabel,
   getLeadStageMeta,
   getLeadStageValue,
-  type LeadStageTone
+  leadStageMetas,
+  type LeadStageTone,
+  type LeadStageValue
 } from "@/lib/leads/stages";
 import {
   getLeadOriginDescription,
@@ -126,6 +130,7 @@ export function LeadDetailsPopup({
   const [activePanel, setActivePanel] = useState<"details" | "message">(initialPanel);
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpdatingStage, setIsUpdatingStage] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [formValues, setFormValues] = useState<LeadEditValues | null>(null);
@@ -164,6 +169,7 @@ export function LeadDetailsPopup({
     setStatus(null);
     setIsEditing(initialEditMode);
     setIsSubmitting(false);
+    setIsUpdatingStage(false);
     setIsConfirmingDelete(false);
     setIsDeleting(false);
     setDeleteError(null);
@@ -381,6 +387,51 @@ export function LeadDetailsPopup({
     }
   }
 
+  async function handleStageChange(nextStage: LeadStageValue) {
+    if (!onUpdated || isUpdatingStage) {
+      return;
+    }
+
+    if (getLeadStageValue(activeLead.stage) === nextStage) {
+      return;
+    }
+
+    setStatus(null);
+    setIsUpdatingStage(true);
+
+    try {
+      const response = await fetch(`/api/leads/${encodeURIComponent(activeLead.id)}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ stage: nextStage })
+      });
+      const data = await parseLeadUpdateResponse(response);
+
+      if (!response.ok || !data.lead) {
+        throw new Error(getFriendlyUpdateError(data.error));
+      }
+
+      onUpdated(data.lead, data.mode);
+      setFormValues(getLeadEditValues(data.lead));
+      setStatus({
+        type: "success",
+        message: `Etapa atualizada para ${getLeadStageLabel(nextStage)}.`
+      });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel atualizar a etapa agora. Tente novamente."
+      });
+    } finally {
+      setIsUpdatingStage(false);
+    }
+  }
+
   async function handleDeleteConfirmed() {
     if (!onDeleted) {
       return;
@@ -558,9 +609,17 @@ export function LeadDetailsPopup({
               <span className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-cloud">
                 {lead.id}
               </span>
-              <span className={stageBadgeClassName}>
-                Etapa: {activeStageLabel}
-              </span>
+              {onUpdated && !isEditing ? (
+                <LeadStageSelect
+                  badgeClassName={stageBadgeClassName}
+                  currentLabel={activeStageLabel}
+                  currentValue={getLeadStageValue(activeLead.stage) ?? "new"}
+                  isUpdating={isUpdatingStage}
+                  onSelect={handleStageChange}
+                />
+              ) : (
+                <span className={stageBadgeClassName}>Etapa: {activeStageLabel}</span>
+              )}
               <LeadQualityBadge quality={lead.quality} />
             </div>
             <h2 className="text-2xl font-semibold sm:text-3xl" id="lead-popup-title">
@@ -1218,6 +1277,132 @@ function LeadQualityBadge({ quality }: { quality: Lead["quality"] }) {
   }
 
   return <span className={meta.badgeClassName}>Qualidade: {meta.label}</span>;
+}
+
+function LeadStageSelect({
+  badgeClassName,
+  currentLabel,
+  currentValue,
+  isUpdating,
+  onSelect
+}: {
+  badgeClassName: string;
+  currentLabel: string;
+  currentValue: LeadStageValue;
+  isUpdating: boolean;
+  onSelect: (next: LeadStageValue) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        // Evita que o Escape feche o popup inteiro enquanto o menu esta aberto.
+        event.stopPropagation();
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        className={`${badgeClassName} inline-flex items-center gap-1.5 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70`}
+        disabled={isUpdating}
+        onClick={() => setIsOpen((open) => !open)}
+        title="Alterar etapa do funil"
+        type="button"
+      >
+        Etapa: {currentLabel}
+        {isUpdating ? (
+          <Loader2 className="animate-spin" size={13} aria-hidden="true" />
+        ) : (
+          <ChevronDown size={13} aria-hidden="true" />
+        )}
+      </button>
+
+      {isOpen ? (
+        <ul
+          className="surface-modal absolute left-0 top-[calc(100%+6px)] z-10 min-w-[210px] overflow-hidden rounded-2xl border border-border/70 p-1.5 shadow-glass"
+          role="listbox"
+        >
+          {leadStageMetas.map((meta) => {
+            const isActive = meta.value === currentValue;
+
+            return (
+              <li key={meta.value}>
+                <button
+                  aria-selected={isActive}
+                  className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium transition ${
+                    isActive
+                      ? "bg-surface-elevated text-foreground"
+                      : "text-muted-foreground hover:bg-surface-elevated/70 hover:text-foreground"
+                  }`}
+                  onClick={() => {
+                    setIsOpen(false);
+                    onSelect(meta.value);
+                  }}
+                  role="option"
+                  type="button"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span
+                      aria-hidden="true"
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${stageDotClassName(meta.tone)}`}
+                    />
+                    {meta.label}
+                  </span>
+                  {isActive ? (
+                    <Check className="shrink-0 text-cobalt" size={15} aria-hidden="true" />
+                  ) : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function stageDotClassName(tone?: LeadStageTone) {
+  switch (tone) {
+    case "cobalt":
+      return "bg-cobalt";
+    case "lagoon":
+      return "bg-lagoon";
+    case "signal":
+      return "bg-signal";
+    case "ink":
+      return "bg-ink";
+    case "emerald":
+      return "bg-emerald-500";
+    case "red":
+      return "bg-red-500";
+    default:
+      return "bg-muted-foreground";
+  }
 }
 
 function getLeadEditValues(lead: Lead): LeadEditValues {

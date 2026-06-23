@@ -55,7 +55,33 @@ export async function getNotificationsForCurrentUser(limit = 30): Promise<Notifi
     return EMPTY_STATE;
   }
 
-  const rows = ((data as NotificationRow[] | null) ?? []).map(mapRow);
+  let rows = ((data as NotificationRow[] | null) ?? []).map(mapRow);
+
+  if (identity.profile.role === "owner") {
+    const { data: pendingInvites } = await supabase
+      .from("invites")
+      .select("*")
+      .eq("workspace_id", identity.organization.id)
+      .eq("approval_status", "pending")
+      .eq("status", "active")
+      .eq("requires_approval", true);
+
+    if (pendingInvites && pendingInvites.length > 0) {
+      const inviteNotifications: NotificationItem[] = pendingInvites.map((invite) => ({
+        id: `invite-${invite.id}`,
+        type: "invite_pending",
+        title: "Convite pendente de aprovacao",
+        body: "O gestor ainda precisa aprovar este convite antes de liberar seu acesso.",
+        linkUrl: "/dashboard/equipe",
+        campaignId: null,
+        readAt: null,
+        createdAt: invite.created_at
+      }));
+
+      rows = [...inviteNotifications, ...rows];
+    }
+  }
+
   return {
     notifications: rows,
     unreadCount: rows.filter((item) => item.readAt === null).length

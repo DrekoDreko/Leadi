@@ -41,6 +41,7 @@ export default async function CheckoutPage({
     mode?: string;
     package?: string;
     resume?: string;
+    next?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -128,6 +129,10 @@ export default async function CheckoutPage({
       : currentPrice.unavailableMessage ??
         "Este ciclo ainda não está disponível no checkout.";
 
+  // Para onde continuar apos a confirmacao do pagamento (usado no onboarding por
+  // plano). So aceitamos caminhos internos seguros.
+  const nextPath = sanitizeNextPath(params.next);
+
   return (
     <CheckoutLayout
       eyebrow="Planos"
@@ -148,9 +153,18 @@ export default async function CheckoutPage({
         billingCycle={cycle}
         checkoutMode="plan"
         planSlug={planSlug}
+        nextPath={nextPath}
       />
     </CheckoutLayout>
   );
+}
+
+function sanitizeNextPath(value: string | undefined): string | undefined {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return undefined;
+  }
+
+  return value;
 }
 
 async function renderResumeCheckout(orderId: string) {

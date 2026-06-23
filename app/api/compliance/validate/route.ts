@@ -13,6 +13,10 @@ import {
 } from "@/lib/openai";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import {
+  assertOrganizationAiFeatureEnabled,
+  BillingResourceAccessError
+} from "@/lib/billing/subscription-limits.server";
+import {
   ApiRouteError,
   assertRouteRateLimit,
   assertSameOrigin,
@@ -64,6 +68,8 @@ export async function POST(request: Request) {
     if (!billingContext) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
+
+    await assertOrganizationAiFeatureEnabled(billingContext.organizationId);
 
     const { result: aiReview, remainingCredits } = await runAiActionWithCredits({
       orgId: billingContext.organizationId,
@@ -183,6 +189,13 @@ function dedupeStrings(values: string[]) {
 }
 
 function getComplianceError(error: unknown) {
+  if (error instanceof BillingResourceAccessError) {
+    return {
+      message: error.message,
+      status: error.status
+    };
+  }
+
   if (error instanceof ApiRouteError) {
     return {
       message: error.message,

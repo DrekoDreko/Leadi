@@ -12,6 +12,10 @@ import {
   getMetaConnectionForOrganization
 } from "@/lib/integrations/repository.server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
+import {
+  assertOrganizationAiFeatureEnabled,
+  BillingResourceAccessError
+} from "@/lib/billing/subscription-limits.server";
 import { saveCampaignForCurrentUser } from "@/lib/campaigns/repository.server";
 import { createCreativeRequestForCurrentUser } from "@/lib/creative-requests/repository.server";
 import type {
@@ -90,6 +94,8 @@ export async function POST(request: Request) {
     if (!billingContext) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
+
+    await assertOrganizationAiFeatureEnabled(billingContext.organizationId);
 
     const body = await parseJsonBody(request, campaignRequestSchema);
     const metaConnection = await getMetaConnectionForOrganization(billingContext.organizationId);
@@ -334,6 +340,13 @@ function getLocalComplianceNotes(values: string[]) {
 }
 
 function getCampaignError(error: unknown) {
+  if (error instanceof BillingResourceAccessError) {
+    return {
+      message: error.message,
+      status: error.status
+    };
+  }
+
   if (error instanceof ApiRouteError) {
     return {
       message: error.message,

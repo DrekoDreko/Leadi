@@ -70,7 +70,7 @@ export const pricingPlans: PricingPlan[] = [
       "Organização comercial simples para centralizar leads, acompanhar oportunidades e manter o histórico de atendimento.",
     cta: "Contratar",
     highlight: false,
-    includedCredits: 25,
+    includedCredits: 0,
     includedUsers: 1,
     prices: {
       monthly: {
@@ -96,9 +96,7 @@ export const pricingPlans: PricingPlan[] = [
       "Histórico de atendimento",
       "Importação manual ou CSV",
       "Lembretes e calendário",
-      "25 créditos de IA por mês",
-      "Mensagens com IA",
-      "Textos de anúncio com IA"
+      "Organização comercial sem recursos de IA"
     ]
   },
   {
@@ -220,18 +218,18 @@ export const pricingComparisonCategories: PricingComparisonCategory[] = [
       {
         label: "Créditos de IA inclusos",
         values: {
-          essencial: "25 créditos/mês",
+          essencial: "Não incluso",
           profissional: "75 créditos/mês",
           equipe: "150 créditos/mês"
         }
       },
       {
         label: "Mensagens com IA",
-        values: { essencial: true, profissional: true, equipe: true }
+        values: { essencial: false, profissional: true, equipe: true }
       },
       {
         label: "Textos de anúncio com IA",
-        values: { essencial: true, profissional: true, equipe: true }
+        values: { essencial: false, profissional: true, equipe: true }
       },
       {
         label: "Campanhas completas com IA",

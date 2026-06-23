@@ -12,21 +12,24 @@ const primaryCreations = [
     description: "Monte a campanha com publico, objetivo, oferta, observacoes e briefing criativo.",
     href: "/dashboard/criacoes/campanhas",
     icon: Sparkles,
-    tone: "bg-primary text-primary-foreground"
+    tone: "bg-primary text-primary-foreground",
+    ai: true
   },
   {
     title: "Anuncios criados",
     description: "Veja o historico dos anuncios e retome campanhas ja preparadas.",
     href: "/dashboard/anuncios",
     icon: Megaphone,
-    tone: "bg-emerald-500 text-white"
+    tone: "bg-emerald-500 text-white",
+    ai: false
   },
   {
     title: "IA Gerador de Criativo",
     description: "Gerador de imagens para anuncio com IA a partir do seu briefing.",
     href: "/dashboard/criacoes/solicitar",
     icon: Palette,
-    tone: "bg-signal text-accent-foreground"
+    tone: "bg-signal text-accent-foreground",
+    ai: true
   }
 ];
 
@@ -43,12 +46,16 @@ export default async function CriacoesPage() {
   const context = await requireCompletedProfile();
   const isConsultant = context.isTeamSeller;
 
+  // Planos sem IA (ex.: Essencial) nao veem os fluxos de criacao com IA.
+  const aiAllowed = context.canUseAi;
+  const availablePrimary = primaryCreations.filter((item) => aiAllowed || !item.ai);
+
   // Consultor só acessa a solicitação de criativo (sem IA Gerador nem validadores).
   const visiblePrimary = isConsultant
-    ? primaryCreations.filter((item) => item.title === "IA Gerador de Criativo")
+    ? availablePrimary.filter((item) => item.title === "IA Gerador de Criativo")
     : context.isOwner
-      ? primaryCreations
-      : primaryCreations.filter((item) => item.title !== "Anúncios criados");
+      ? availablePrimary
+      : availablePrimary.filter((item) => item.title !== "Anúncios criados");
 
   return (
     <div className="space-y-4">

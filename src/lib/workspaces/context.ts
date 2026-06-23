@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database, WorkspaceType } from "@/lib/supabase/database.types";
+import { planAllowsAi } from "@/lib/billing/plan-permissions";
 import { isWorkspaceManagerRole, normalizeWorkspaceRole, type WorkspaceRole, can } from "./permissions";
 import type { Permission } from "./permission-map";
 
@@ -26,6 +27,8 @@ export type WorkspaceContext = {
   isManager: boolean;
   isSoloOwner: boolean;
   isTeamSeller: boolean;
+  planCode: string | null;
+  canUseAi: boolean;
   navVariant: DashboardNavVariant;
   teamId?: string;
   teamName?: string;
@@ -48,6 +51,8 @@ const demoWorkspaceContext: WorkspaceContext = {
   isManager: true,
   isSoloOwner: false,
   isTeamSeller: false,
+  planCode: null,
+  canUseAi: true,
   navVariant: "owner-team",
   teamId: undefined,
   teamName: undefined,
@@ -112,6 +117,8 @@ export async function getCurrentWorkspaceContext(): Promise<WorkspaceContext> {
     isManager,
     isSoloOwner,
     isTeamSeller,
+    planCode: workspace.plan_type ?? null,
+    canUseAi: planAllowsAi(workspace.plan_type),
     navVariant: getDashboardNavVariant(role, workspaceType),
     teamId: undefined, // TODO: Fetch from team_members when implemented
     teamName: undefined,
@@ -164,6 +171,20 @@ export async function requireSoloOwner() {
 
   if (context.mode === "supabase" && !context.isSoloOwner) {
     redirect("/dashboard");
+  }
+
+  return context;
+}
+
+/**
+ * Garante que o plano da conta libera recursos de IA. Planos sem IA (ex.:
+ * Essencial) sao redirecionados para o dashboard com um aviso de upgrade.
+ */
+export async function requireAiFeature() {
+  const context = await requireCompletedProfile();
+
+  if (context.mode === "supabase" && !context.canUseAi) {
+    redirect("/dashboard?upgrade=ai");
   }
 
   return context;

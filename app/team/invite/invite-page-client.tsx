@@ -26,6 +26,7 @@ type InvitePageClientProps = {
   invites: TeamInvite[];
   teams: TeamSetupTeam[];
   workspaceType: "solo" | "team";
+  billingDisabled: boolean;
 };
 
 type PixData = {
@@ -47,7 +48,8 @@ export function InvitePageClient({
   inviteAccess,
   invites: initialInvites,
   teams,
-  workspaceType
+  workspaceType,
+  billingDisabled
 }: InvitePageClientProps) {
   const [invites, setInvites] = useState(initialInvites);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -154,20 +156,20 @@ export function InvitePageClient({
     return () => clearInterval(interval);
   }, [pixData]);
 
-  // Auto-create invite after payment confirms
-  useEffect(() => {
-    if (!isPaid || !pendingInvite || isCreatingInvite) return;
-
-    async function createInviteAfterPayment() {
+  // Cria o convite de fato. Usado tanto apos a confirmacao de pagamento quanto
+  // no bypass de testes (billingDisabled), sem passar pelo PIX.
+  const finalizeInvite = useCallback(
+    async (pending: PendingInvite) => {
       setIsCreatingInvite(true);
+      const prefix = billingDisabled ? "" : "Pagamento confirmado! ";
 
       try {
         const formData = new FormData();
-        formData.set("roleToAssign", pendingInvite!.role);
+        formData.set("roleToAssign", pending.role);
 
         let result;
-        if (pendingInvite!.method === "email" && pendingInvite!.email) {
-          formData.set("email", pendingInvite!.email);
+        if (pending.method === "email" && pending.email) {
+          formData.set("email", pending.email);
           result = await createInviteByEmailAction(formData);
         } else {
           result = await createInviteLinkAction(formData);
@@ -197,36 +199,53 @@ export function InvitePageClient({
 
         setInvites((current) => [nextInvite, ...current]);
 
-        if (pendingInvite!.method === "email") {
+        if (pending.method === "email") {
           setEmailInvitePath(result.invitePath);
           setEmailInviteEmail("");
           setFeedback(
-            `Pagamento confirmado! Convite criado para ${result.invitedEmail}. Copie o link e envie manualmente.`
+            `${prefix}Convite criado para ${result.invitedEmail}. Copie o link e envie manualmente.`
           );
         } else {
           setLinkInvitePath(result.invitePath);
           setFeedback(
             result.requiresApproval
-              ? "Pagamento confirmado! Link gerado. O membro precisara da sua aprovacao apos se cadastrar."
-              : "Pagamento confirmado! Link gerado com sucesso."
+              ? `${prefix}Link gerado. O membro precisara da sua aprovacao apos se cadastrar.`
+              : `${prefix}Link gerado com sucesso.`
           );
         }
       } catch {
-        setFeedback("Pagamento confirmado, mas ocorreu um erro ao gerar o convite. Tente novamente.");
+        setFeedback(
+          billingDisabled
+            ? "Ocorreu um erro ao gerar o convite. Tente novamente."
+            : "Pagamento confirmado, mas ocorreu um erro ao gerar o convite. Tente novamente."
+        );
       } finally {
         setIsCreatingInvite(false);
         setPixData(null);
         setPendingInvite(null);
         setPaymentStatus("PENDING");
       }
-    }
+    },
+    [billingDisabled]
+  );
 
-    createInviteAfterPayment();
-  }, [isPaid, pendingInvite, isCreatingInvite]);
+  // Auto-create invite after payment confirms
+  useEffect(() => {
+    if (!isPaid || !pendingInvite || isCreatingInvite) return;
+
+    finalizeInvite(pendingInvite);
+  }, [isPaid, pendingInvite, isCreatingInvite, finalizeInvite]);
 
   async function startPayment(method: "email" | "link", role: InviteRole, email: string | null) {
     if (!inviteAccess.allowed) {
       setFeedback(inviteAccess.message);
+      return;
+    }
+
+    // Bypass de testes: cria o convite direto, sem gerar PIX nem cobrar.
+    if (billingDisabled) {
+      setFeedback(null);
+      await finalizeInvite({ method, role, email });
       return;
     }
 
@@ -470,14 +489,18 @@ export function InvitePageClient({
     );
   }
 
-  // Post-payment: creating invite
-  if (isPaid && isCreatingInvite) {
+  // Post-payment (ou bypass de testes): creating invite
+  if (isCreatingInvite) {
     return (
       <div className="space-y-4">
         <PageHeading
           eyebrow="Equipe"
           title="Gerando convite..."
-          description="Pagamento confirmado! Criando o convite agora."
+          description={
+            billingDisabled
+              ? "Criando o convite agora."
+              : "Pagamento confirmado! Criando o convite agora."
+          }
         />
         <section className="glass-strong rounded-[34px] p-8">
           <div className="flex flex-col items-center gap-4 py-6">
@@ -581,7 +604,7 @@ export function InvitePageClient({
             </div>
 
             <button
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
               disabled={isGeneratingPix || !emailInviteEmail}
               onClick={handleEmailInvite}
               type="button"
@@ -656,7 +679,7 @@ export function InvitePageClient({
             </div>
 
             <button
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
               disabled={isGeneratingPix}
               onClick={handleLinkInvite}
               type="button"

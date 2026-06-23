@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkAbacatePayTransparent } from "@/lib/billing/abacatepay";
+import { isBillingSimulationEnabled } from "@/lib/billing/test-mode.server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import {
   assertRouteRateLimit,
@@ -28,6 +29,15 @@ export async function GET(request: Request) {
 
     if (!transparentId) {
       return NextResponse.json({ error: "ID do pagamento ausente." }, { status: 400 });
+    }
+
+    // Modo de testes: o PIX foi simulado como pago na criacao; reportamos PAID
+    // sem consultar o AbacatePay (a cobranca real nem existe).
+    if (isBillingSimulationEnabled()) {
+      return NextResponse.json({
+        status: "PAID",
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      });
     }
 
     const result = await checkAbacatePayTransparent(transparentId);

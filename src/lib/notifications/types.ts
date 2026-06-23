@@ -1,4 +1,4 @@
-export const notificationTypes = ["campaign_approved", "campaign_rejected"] as const;
+export const notificationTypes = ["campaign_approved", "campaign_rejected", "invite_pending"] as const;
 
 export type NotificationType = (typeof notificationTypes)[number];
 

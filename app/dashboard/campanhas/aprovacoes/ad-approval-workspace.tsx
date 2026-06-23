@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, XCircle, FileText, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, AlertTriangle, Megaphone } from "lucide-react";
 import type { CampaignHistoryItem } from "@/lib/campaigns/types";
 import { getFriendlyErrorMessage } from "@/lib/utils/error-handler";
 import { useRouter } from "next/navigation";
-import { PageHeading } from "@/components/dashboard/widgets";
 
 type AdApprovalWorkspaceProps = {
   initialCampaigns: CampaignHistoryItem[];
@@ -44,13 +43,24 @@ export function AdApprovalWorkspace({ initialCampaigns, mode, message }: AdAppro
     }
   }
 
+  const isEmpty = campaigns.length === 0;
+
   return (
-    <div className="space-y-4">
-      <PageHeading
-        eyebrow="Campanhas"
-        title="Aprovação de Anúncios"
-        description="Revise campanhas enviadas pelos supervisores antes de publicar na Meta."
-      />
+    <div className="space-y-6">
+      <div className="max-w-2xl">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
+          <Megaphone size={20} aria-hidden="true" />
+        </div>
+        <p className="text-sm font-medium text-cobalt">Aprovações</p>
+        <h2 className="mt-2 text-2xl font-semibold md:text-3xl">
+          {isEmpty ? "Tudo em dia!" : "Aprovação de anúncios"}
+        </h2>
+        <p className="mt-3 max-w-xl leading-7 text-ink/64">
+          {isEmpty
+            ? "Não há nenhuma campanha pendente de aprovação neste momento."
+            : "Revise as campanhas enviadas pelos supervisores antes de publicar na Meta."}
+        </p>
+      </div>
 
       {error ? (
         <div className="flex items-start gap-3 rounded-[24px] border border-red-200/70 bg-red-50/70 p-4 text-sm text-red-800">
@@ -65,17 +75,7 @@ export function AdApprovalWorkspace({ initialCampaigns, mode, message }: AdAppro
         </div>
       ) : null}
 
-      {campaigns.length === 0 ? (
-        <div className="surface-card flex min-h-[300px] flex-col items-center justify-center rounded-[32px] border border-dashed border-border/60 p-8 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-elevated text-muted-soft">
-            <CheckCircle2 size={32} />
-          </div>
-          <h3 className="mt-4 text-lg font-semibold text-foreground">Tudo em dia!</h3>
-          <p className="mt-2 max-w-sm text-sm text-muted-soft">
-            Não há nenhuma campanha pendente de aprovação neste momento.
-          </p>
-        </div>
-      ) : (
+      {isEmpty ? null : (
         <div className="grid gap-4 md:grid-cols-2">
           {campaigns.map((campaign) => (
             <div

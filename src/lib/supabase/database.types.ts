@@ -2559,6 +2559,14 @@ export type Database = {
           redirect_path: string;
         }[];
       };
+      complete_plan_setup: {
+        Args: { plan_code: "essencial" | "profissional" | "equipe" };
+        Returns: {
+          plan_slug: "essencial" | "profissional" | "equipe";
+          workspace_type: "solo" | "team";
+          organization_id: string;
+        }[];
+      };
       create_workspace_invite: {
         Args: {
           requested_role_to_assign?: "admin" | "seller";

@@ -8,6 +8,10 @@ import { LeadHealthOpenAIError } from "@/lib/openai";
 import { generateAdImageSet } from "@/lib/creatives/ad-image-set.server";
 import type { AdBenefit, AdLayoutContent } from "@/lib/creatives/compositor";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
+import {
+  assertOrganizationAiFeatureEnabled,
+  BillingResourceAccessError
+} from "@/lib/billing/subscription-limits.server";
 import { getAdImageStylePreset } from "@/lib/creatives/ad-image-presets";
 import {
   ApiRouteError,
@@ -51,6 +55,8 @@ export async function POST(request: Request) {
     if (!billingContext) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
+
+    await assertOrganizationAiFeatureEnabled(billingContext.organizationId);
 
     const formData = await request.formData();
     const fields = generateImageSchema.parse({
@@ -182,6 +188,10 @@ function buildGenericBackgroundPrompt(briefing: string): string {
 }
 
 function getGenerateImageError(error: unknown) {
+  if (error instanceof BillingResourceAccessError) {
+    return { message: error.message, status: error.status };
+  }
+
   if (error instanceof ApiRouteError) {
     return { message: error.message, status: getErrorStatus(error) };
   }

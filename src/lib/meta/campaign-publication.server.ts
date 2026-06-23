@@ -206,10 +206,19 @@ export async function publishPausedMetaCampaign(
       throw new Error("Selecione uma conta de anuncio antes de publicar a campanha.");
     }
 
+    // Orcamento diario (centavos) fica no nivel da CAMPANHA (Advantage Campaign
+    // Budget / CBO). Assim o limite e aplicado a campanha inteira — exatamente o
+    // que a UI promete ("valor maximo que a campanha pode gastar por dia") — em
+    // vez de ficar no conjunto, onde a campanha aparecia "sem limite" na Meta.
+    const dailyBudgetCents = input.dailyBudget
+      ? Math.round(input.dailyBudget * 100)
+      : 2000;
+
     const metaCampaign = await createPausedMetaCampaign({
       accessToken,
       adAccountId: campaign.meta_ad_account_id,
-      campaignName: campaign.campaign_name
+      campaignName: campaign.campaign_name,
+      dailyBudgetCents
     });
 
     if (!metaCampaign.id) {
@@ -219,10 +228,6 @@ export async function publishPausedMetaCampaign(
     let metaAdSetId: string | null = null;
     let metaAdCreativeId: string | null = null;
     let metaAdId: string | null = null;
-
-    const dailyBudgetCents = input.dailyBudget
-      ? Math.round(input.dailyBudget * 100)
-      : 2000;
 
     const orgWebsite = await loadOrganizationWebsite(supabase, input.organizationId);
 
@@ -251,7 +256,6 @@ export async function publishPausedMetaCampaign(
         adAccountId: campaign.meta_ad_account_id,
         campaignId: metaCampaign.id,
         name: `${campaign.campaign_name} - Conjunto`,
-        dailyBudgetCents,
         pageId: campaign.meta_page_id,
         leadFormId: campaign.meta_lead_form_id,
         geoLocations
@@ -553,6 +557,7 @@ async function createPausedMetaCampaign(input: {
   accessToken: string;
   adAccountId: string;
   campaignName: string;
+  dailyBudgetCents: number;
 }) {
   const url = new URL(
     `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${sanitizeAdAccountId(input.adAccountId)}/campaigns`
@@ -563,7 +568,11 @@ async function createPausedMetaCampaign(input: {
   body.set("objective", "OUTCOME_LEADS");
   body.set("status", "PAUSED");
   body.set("special_ad_categories", JSON.stringify([META_SPECIAL_AD_CATEGORY]));
-  body.set("is_adset_budget_sharing_enabled", "false");
+  // Orcamento no nivel da campanha (Advantage Campaign Budget): a Meta limita o
+  // gasto diario da campanha inteira e distribui entre os conjuntos. Com isso o
+  // conjunto NAO pode ter daily_budget proprio (ver createPausedAdSet).
+  body.set("daily_budget", String(input.dailyBudgetCents));
+  body.set("bid_strategy", "LOWEST_COST_WITHOUT_CAP");
 
   const response = await fetch(url, {
     method: "POST",
@@ -678,7 +687,6 @@ async function createPausedAdSet(input: {
   adAccountId: string;
   campaignId: string;
   name: string;
-  dailyBudgetCents: number;
   pageId: string;
   leadFormId: string;
   geoLocations: MetaGeoLocations;
@@ -692,8 +700,8 @@ async function createPausedAdSet(input: {
   body.set("name", input.name);
   body.set("billing_event", "IMPRESSIONS");
   body.set("optimization_goal", "LEAD_GENERATION");
-  body.set("bid_strategy", "LOWEST_COST_WITHOUT_CAP");
-  body.set("daily_budget", String(input.dailyBudgetCents));
+  // Orcamento e estrategia de lance ficam na CAMPANHA (CBO). O conjunto nao pode
+  // ter daily_budget/bid_strategy proprios — a Meta rejeitaria com erro.
   body.set("status", "PAUSED");
   body.set("destination_type", "ON_AD");
   body.set("promoted_object", JSON.stringify({

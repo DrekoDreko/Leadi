@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Megaphone,
   Network,
-  TrendingUp,
   UserPlus,
   UsersRound
 } from "lucide-react";
@@ -19,8 +18,7 @@ export function getDashboardNavItems(variant: DashboardNavVariant) {
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Leads", href: "/dashboard/leads", icon: UsersRound },
       { label: "Equipes", href: "/dashboard/equipes", icon: Network },
-      { label: "Campanhas", href: "/dashboard/campanhas/aprovacoes", icon: Megaphone },
-      { label: "Desempenho", href: "/dashboard/desempenho", icon: TrendingUp },
+      { label: "Campanhas", href: "/dashboard/desempenho", icon: Megaphone },
       { label: "Créditos", href: "/dashboard/perfil/creditos", icon: Coins },
       { label: "Relatórios", href: "/dashboard/relatorios", icon: BarChart },
       { label: "Simulador", href: "/dashboard/simulador", icon: Calculator }

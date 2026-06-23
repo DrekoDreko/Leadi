@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Ban, Bell, Check, CheckCircle2, Clock, Loader2, LogOut, Megaphone, Plus, Search, X } from "lucide-react";
+import { Ban, Bell, Check, CheckCircle2, Clock, Loader2, LogOut, Megaphone, Plus, Search, X, Link as LinkIcon } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { DashboardBillingNoticeProvider } from "@/components/billing/billing-notice-context";
 import { BrandMark } from "@/components/brand-mark";
@@ -607,17 +607,21 @@ export function DashboardShell({
                                     className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                                       approved
                                         ? "bg-emerald-500/12 text-emerald-700"
-                                        : "bg-red-500/12 text-red-600"
+                                        : notification.type === "invite_pending"
+                                          ? "bg-cobalt/12 text-cobalt"
+                                          : "bg-red-500/12 text-red-600"
                                     }`}
                                   >
                                     {approved ? (
                                       <CheckCircle2 size={11} aria-hidden="true" />
+                                    ) : notification.type === "invite_pending" ? (
+                                      <LinkIcon size={11} aria-hidden="true" />
                                     ) : (
                                       <Ban size={11} aria-hidden="true" />
                                     )}
-                                    {approved ? "Aprovado" : "Reprovado"}
+                                    {approved ? "Aprovado" : notification.type === "invite_pending" ? "Pendente" : "Reprovado"}
                                   </span>
-                                  {notification.readAt ? null : (
+                                  {notification.readAt || notification.type === "invite_pending" ? null : (
                                     <button
                                       onClick={() => handleMarkNotificationRead(notification.id)}
                                       className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-muted-foreground transition hover:bg-surface-elevated"
@@ -642,14 +646,23 @@ export function DashboardShell({
                                     href={getHref(notification.linkUrl)}
                                     onClick={() => {
                                       setIsNotificationsOpen(false);
-                                      if (!notification.readAt) {
+                                      if (!notification.readAt && notification.type !== "invite_pending") {
                                         void handleMarkNotificationRead(notification.id);
                                       }
                                     }}
                                     className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-cobalt hover:underline"
                                   >
-                                    <Megaphone size={12} aria-hidden="true" />
-                                    Ver campanha
+                                    {notification.type === "invite_pending" ? (
+                                      <>
+                                        <LinkIcon size={12} aria-hidden="true" />
+                                        Ver equipe
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Megaphone size={12} aria-hidden="true" />
+                                        Ver campanha
+                                      </>
+                                    )}
                                   </Link>
                                 ) : null}
                               </div>

@@ -21,6 +21,17 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     devtoolSegmentExplorer: false
+  },
+  async redirects() {
+    return [
+      // Rota legada do onboarding de equipe que nunca existiu como pagina.
+      // Mantemos o redirect para nao quebrar links/historico antigos.
+      {
+        source: "/team/setup",
+        destination: "/team/invite",
+        permanent: true
+      }
+    ];
   }
 };
 

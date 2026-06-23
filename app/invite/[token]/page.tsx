@@ -27,6 +27,14 @@ export default async function InvitePage({ params }: InvitePageProps) {
     redirect(`/login?next=/invite/${encodeURIComponent(token)}&mode=signup`);
   }
 
+  // Se a conta foi recem-criada (nos ultimos 5 minutos) a partir do fluxo de convite,
+  // marcamos o perfil como configurado para que o consultor/supervisor pule direto para o dashboard
+  // em vez de cair na tela de escolha de plano (onboarding), mesmo se o convite estiver pendente.
+  const isNewAccount = new Date(user.created_at).getTime() > Date.now() - 5 * 60 * 1000;
+  if (isNewAccount) {
+    await supabase.from("profiles").update({ profile_setup_completed: true }).eq("auth_user_id", user.id);
+  }
+
   const { error } = await supabase
     .rpc("accept_workspace_invite", { invite_token: token })
     .single();

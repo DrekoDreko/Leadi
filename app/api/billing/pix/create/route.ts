@@ -12,6 +12,10 @@ import {
   type AiCreditPackageSlug
 } from "@/lib/ai/credit-packages";
 import { createAbacatePayTransparent } from "@/lib/billing/abacatepay";
+import {
+  isBillingSimulationEnabled,
+  simulateAbacatePayPaidEvent
+} from "@/lib/billing/test-mode.server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import {
   ApiRouteError,
@@ -36,7 +40,11 @@ export async function POST(request: Request) {
       windowMs: 60 * 1000
     });
 
-    requireIntegrationEnv("billing");
+    const simulated = isBillingSimulationEnabled();
+
+    if (!simulated) {
+      requireIntegrationEnv("billing");
+    }
 
     const body = await parseJsonBody(request, pixCheckoutSchema);
     const packageSlug = parsePackageSlug(body.packageSlug);
@@ -66,6 +74,26 @@ export async function POST(request: Request) {
         checkout_mode: "pix_transparent"
       }
     });
+
+    // Modo de testes: simula o PIX pago na hora (concede os creditos) sem
+    // gerar cobranca real. A tela do PIX aparece e ja confirma como pago.
+    if (simulated) {
+      await simulateAbacatePayPaidEvent({
+        event: "checkout.completed",
+        externalReference: order.id
+      });
+
+      return NextResponse.json({
+        success: true,
+        simulated: true,
+        orderId: order.id,
+        transparentId: order.id,
+        brCode: "",
+        brCodeBase64: "",
+        amount: packageRecord.priceCents,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      });
+    }
 
     const charge = await createAbacatePayTransparent({
       amount: packageRecord.priceCents,

@@ -1,3 +1,4 @@
+import { isBillingDisabledForTests } from "@/lib/billing/config";
 import { getCurrentResourceAccess } from "@/lib/billing/subscription-limits.server";
 import { requireWorkspaceManager } from "@/lib/workspaces/context";
 import { getTeamSetupData } from "@/lib/workspaces/team";
@@ -17,6 +18,7 @@ export default async function InvitePage() {
       invites={teamData.invites}
       teams={teamData.teams}
       workspaceType={context.workspaceType}
+      billingDisabled={isBillingDisabledForTests()}
     />
   );
 }

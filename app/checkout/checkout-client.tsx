@@ -17,6 +17,7 @@ type CheckoutClientProps =
       planSlug: string;
       billingCycle: "monthly" | "annual";
       amount: number;
+      nextPath?: string;
       creditPackageSlug?: never;
       initialPix?: never;
     }
@@ -24,6 +25,7 @@ type CheckoutClientProps =
       checkoutMode: "ai_credits";
       creditPackageSlug: string;
       amount: number;
+      nextPath?: never;
       billingCycle?: never;
       planSlug?: never;
       initialPix?: PixData | null;
@@ -41,6 +43,7 @@ export type PixData = {
 type SubscriptionPending = {
   subscriptionId: string;
   checkoutUrl: string;
+  simulated?: boolean;
 };
 
 export function CheckoutClient(props: CheckoutClientProps) {
@@ -74,15 +77,21 @@ export function CheckoutClient(props: CheckoutClientProps) {
 
         const data = await response.json().catch(() => null);
 
-        if (!response.ok || !data?.checkoutUrl) {
-          throw new Error(data?.error || "Erro ao processar assinatura.");
-        }
+        // Modo de testes (BILLING_DISABLED): a API ja aprovou o pagamento,
+        // entao nao ha aba externa para abrir — apenas mostramos a tela de
+        // confirmacao, que vai detectar a assinatura ativa na hora.
+        if (!data?.simulated) {
+          if (!response.ok || !data?.checkoutUrl) {
+            throw new Error(data?.error || "Erro ao processar assinatura.");
+          }
 
-        window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
+          window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
+        }
 
         setSubscriptionPending({
           subscriptionId: data.subscriptionId,
-          checkoutUrl: data.checkoutUrl
+          checkoutUrl: data.checkoutUrl,
+          simulated: Boolean(data.simulated)
         });
 
         setIsLoading(false);
@@ -120,7 +129,12 @@ export function CheckoutClient(props: CheckoutClientProps) {
   }
 
   if (subscriptionPending) {
-    return <SubscriptionWaiting pending={subscriptionPending} />;
+    return (
+      <SubscriptionWaiting
+        pending={subscriptionPending}
+        nextPath={props.checkoutMode === "plan" ? props.nextPath : undefined}
+      />
+    );
   }
 
   if (pixData) {
@@ -178,9 +192,16 @@ export function CheckoutClient(props: CheckoutClientProps) {
   );
 }
 
-function SubscriptionWaiting({ pending }: { pending: SubscriptionPending }) {
+function SubscriptionWaiting({
+  pending,
+  nextPath
+}: {
+  pending: SubscriptionPending;
+  nextPath?: string;
+}) {
   const [status, setStatus] = useState<string>("pending");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const successHref = nextPath ?? "/dashboard?checkout=success";
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -229,9 +250,9 @@ function SubscriptionWaiting({ pending }: { pending: SubscriptionPending }) {
         </div>
         <a
           className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-cloud"
-          href="/dashboard?checkout=success"
+          href={successHref}
         >
-          Ir para o dashboard
+          Continuar
         </a>
       </div>
     );
@@ -246,8 +267,9 @@ function SubscriptionWaiting({ pending }: { pending: SubscriptionPending }) {
       <div className="text-center">
         <h3 className="text-lg font-semibold text-ink">Aguardando pagamento</h3>
         <p className="mt-1 text-sm text-ink/60">
-          Complete o pagamento na aba que foi aberta.
-          Esta página será atualizada automaticamente.
+          {pending.simulated
+            ? "Período de testes: confirmando o pagamento automaticamente."
+            : "Complete o pagamento na aba que foi aberta. Esta página será atualizada automaticamente."}
         </p>
       </div>
 
@@ -256,19 +278,23 @@ function SubscriptionWaiting({ pending }: { pending: SubscriptionPending }) {
         Verificando status...
       </div>
 
-      <a
-        className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-ink/5 px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-ink/10"
-        href={pending.checkoutUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <ExternalLink size={16} aria-hidden="true" />
-        Reabrir página de pagamento
-      </a>
+      {pending.simulated ? null : (
+        <>
+          <a
+            className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-ink/5 px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-ink/10"
+            href={pending.checkoutUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <ExternalLink size={16} aria-hidden="true" />
+            Reabrir página de pagamento
+          </a>
 
-      <p className="text-center text-xs leading-5 text-ink/40">
-        Se o popup foi bloqueado, clique no botão acima para abrir o pagamento.
-      </p>
+          <p className="text-center text-xs leading-5 text-ink/40">
+            Se o popup foi bloqueado, clique no botão acima para abrir o pagamento.
+          </p>
+        </>
+      )}
     </div>
   );
 }

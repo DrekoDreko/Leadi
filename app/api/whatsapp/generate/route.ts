@@ -7,6 +7,10 @@ import {
   type WhatsAppMessageInput
 } from "@/lib/openai";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
+import {
+  assertOrganizationAiFeatureEnabled,
+  BillingResourceAccessError
+} from "@/lib/billing/subscription-limits.server";
 import { saveWhatsAppMessageForCurrentUser } from "@/lib/whatsapp/repository.server";
 import type { WhatsAppGenerationForm, WhatsAppHistoryItem } from "@/lib/whatsapp/types";
 import {
@@ -67,6 +71,8 @@ export async function POST(request: Request) {
     if (!billingContext) {
       return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
     }
+
+    await assertOrganizationAiFeatureEnabled(billingContext.organizationId);
 
     const { result: message, remainingCredits } = await runAiActionWithCredits({
       orgId: billingContext.organizationId,
@@ -177,6 +183,13 @@ function getStage(value: unknown): WhatsAppMessageInput["stage"] {
 }
 
 function getWhatsAppError(error: unknown) {
+  if (error instanceof BillingResourceAccessError) {
+    return {
+      message: error.message,
+      status: error.status
+    };
+  }
+
   if (error instanceof ApiRouteError) {
     return {
       message: error.message,
