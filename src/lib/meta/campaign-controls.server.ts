@@ -3,7 +3,11 @@ import "server-only";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
 import { getMetaGraphApiVersion } from "@/lib/meta/config";
-import { resolveMetaAccessTokenForOrganization } from "@/lib/integrations/repository.server";
+import {
+  resolveMetaAccessTokenForOrganization,
+  resolveMetaAccessTokenForProfile,
+  getMetaConnectionForProfile
+} from "@/lib/integrations/repository.server";
 import {
   ensureMetaMarketingPermission,
   MetaMarketingPermissionError
@@ -115,10 +119,25 @@ async function updateMetaObjectStatus(
 // níveis (campanha + conjunto + anúncio) precisam ficar ACTIVE; para pausar,
 // basta pausar a campanha. A conta de anúncio precisa ter forma de pagamento
 // válida na Meta para a veiculação realmente começar.
+/**
+ * Resolve o access token correto para uma campanha: se ela foi criada por um consultor
+ * com conexão Meta pessoal, usa o token dele; senão, o da corretora.
+ */
+async function resolveAccessTokenForCampaign(
+  campaign: { created_by_profile_id: string },
+  organizationId: string
+) {
+  const personalConnection = await getMetaConnectionForProfile(campaign.created_by_profile_id);
+  return personalConnection
+    ? resolveMetaAccessTokenForProfile(campaign.created_by_profile_id)
+    : resolveMetaAccessTokenForOrganization(organizationId);
+}
+
 export async function updateMetaCampaignDelivery(input: {
   organizationId: string;
   campaignId: string;
   createdByProfileId: string;
+  restrictToCreatorProfileId?: string | null;
   action: CampaignDeliveryAction;
 }): Promise<CampaignHistoryItem> {
   requireServiceRole();
@@ -130,11 +149,18 @@ export async function updateMetaCampaignDelivery(input: {
     throw new Error("Campanha nao encontrada para esta organizacao.");
   }
 
+  if (
+    input.restrictToCreatorProfileId &&
+    campaign.created_by_profile_id !== input.restrictToCreatorProfileId
+  ) {
+    throw new Error("Voce so pode gerenciar campanhas que voce mesmo criou.");
+  }
+
   if (!campaign.meta_campaign_id) {
     throw new Error("Esta campanha ainda nao foi publicada na Meta.");
   }
 
-  const accessToken = await resolveMetaAccessTokenForOrganization(input.organizationId);
+  const accessToken = await resolveAccessTokenForCampaign(campaign, input.organizationId);
   if (!accessToken) {
     throw new Error("A conexao Meta nao possui um access token valido.");
   }
@@ -232,6 +258,7 @@ export async function updateMetaCampaignBudget(input: {
   organizationId: string;
   campaignId: string;
   dailyBudget: number;
+  restrictToCreatorProfileId?: string | null;
 }): Promise<CampaignHistoryItem> {
   requireServiceRole();
 
@@ -242,11 +269,18 @@ export async function updateMetaCampaignBudget(input: {
     throw new Error("Campanha nao encontrada para esta organizacao.");
   }
 
+  if (
+    input.restrictToCreatorProfileId &&
+    campaign.created_by_profile_id !== input.restrictToCreatorProfileId
+  ) {
+    throw new Error("Voce so pode gerenciar campanhas que voce mesmo criou.");
+  }
+
   if (!campaign.meta_campaign_id) {
     throw new Error("Esta campanha ainda nao foi publicada na Meta.");
   }
 
-  const accessToken = await resolveMetaAccessTokenForOrganization(input.organizationId);
+  const accessToken = await resolveAccessTokenForCampaign(campaign, input.organizationId);
   if (!accessToken) {
     throw new Error("A conexao Meta nao possui um access token valido.");
   }

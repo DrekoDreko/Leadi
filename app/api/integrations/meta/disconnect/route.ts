@@ -6,6 +6,10 @@ import {
   resolveCurrentIdentity
 } from "@/lib/integrations/repository.server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { canManageOwnMetaConnection } from "@/lib/workspaces/permissions";
+import {
+  getMetaConnectionForProfile
+} from "@/lib/integrations/repository.server";
 import {
   assertRouteRateLimit,
   assertSameOrigin,
@@ -29,34 +33,57 @@ export async function POST(request: Request) {
     return redirectBack(requestUrl, returnTo, "meta=disconnected");
   }
 
-  if (!identity.canManageConnections) {
+  const canManagePersonal = canManageOwnMetaConnection(
+    identity.profile.role,
+    identity.profile.ad_creation_enabled
+  );
+
+  if (!identity.canManageConnections && !canManagePersonal) {
     return redirectBack(requestUrl, returnTo, "meta=forbidden");
   }
 
-  const connection = await getMetaConnectionForOrganization(identity.organization.id);
+  // Owner desconecta a conexão da corretora (owner_profile_id IS NULL); consultor liberado
+  // desconecta apenas a própria. Escopo evita que o owner apague conexões dos consultores.
+  const ownerProfileId = identity.canManageConnections ? null : identity.profile.id;
+
+  const connection = ownerProfileId
+    ? await getMetaConnectionForProfile(ownerProfileId)
+    : await getMetaConnectionForOrganization(identity.organization.id);
   if (!connection) {
     return redirectBack(requestUrl, returnTo, "meta=disconnected");
   }
 
   try {
     await markMetaConnectionDisconnected({
-      organizationId: identity.organization.id
+      organizationId: identity.organization.id,
+      ownerProfileId
     });
 
     const admin = createSupabaseAdminClient();
+
+    const pagesUpdate = admin
+      .from("meta_pages")
+      .update({ status: "inactive" })
+      .eq("organization_id", identity.organization.id);
+    const formsUpdate = admin
+      .from("meta_forms")
+      .update({ status: "inactive" })
+      .eq("organization_id", identity.organization.id);
+    const adAccountsUpdate = admin
+      .from("meta_ad_accounts")
+      .update({ status: "disconnected" })
+      .eq("organization_id", identity.organization.id);
+
     await Promise.all([
-      admin
-        .from("meta_pages")
-        .update({ status: "inactive" })
-        .eq("organization_id", identity.organization.id),
-      admin
-        .from("meta_forms")
-        .update({ status: "inactive" })
-        .eq("organization_id", identity.organization.id),
-      admin
-        .from("meta_ad_accounts")
-        .update({ status: "disconnected" })
-        .eq("organization_id", identity.organization.id)
+      ownerProfileId
+        ? pagesUpdate.eq("owner_profile_id", ownerProfileId)
+        : pagesUpdate.is("owner_profile_id", null),
+      ownerProfileId
+        ? formsUpdate.eq("owner_profile_id", ownerProfileId)
+        : formsUpdate.is("owner_profile_id", null),
+      ownerProfileId
+        ? adAccountsUpdate.eq("owner_profile_id", ownerProfileId)
+        : adAccountsUpdate.is("owner_profile_id", null)
     ]);
 
     await recordIntegrationSyncLog({

@@ -53,6 +53,9 @@ describe("Invites approval API - /api/invites/approve", () => {
       approvalStatus: "approved" as const,
       approvedByUserId: "owner-1",
       invitedEmail: null,
+      requestedByUserId: "seller-1",
+      requestedByName: "Consultor Teste",
+      requestedByEmail: "consultor@leadi.example",
       createdAt: "2026-05-29T22:00:00.000Z",
       expiresAt: "2026-06-28T22:00:00.000Z"
     };

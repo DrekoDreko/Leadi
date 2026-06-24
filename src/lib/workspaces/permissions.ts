@@ -101,6 +101,34 @@ export function canRemoveWorkspaceMember(
   return normalizedRole === "admin" && normalizedTargetRole === "seller";
 }
 
+/**
+ * Criação de anúncio com IA. Owner/admin podem pelo papel (PERMISSION_MAP).
+ * O consultor (seller) só pode quando o owner liberou individualmente
+ * (`profiles.ad_creation_enabled`), usando a própria conta Meta.
+ */
+export function canProfileCreateAd(
+  role: string | null | undefined,
+  adCreationEnabled: boolean | null | undefined
+): boolean {
+  if (can(role, "create_ad")) {
+    return true;
+  }
+
+  return normalizeWorkspaceRole(role) === "seller" && Boolean(adCreationEnabled);
+}
+
+/**
+ * Gerenciar a conexão Meta PESSOAL (própria conta de anúncios/página/perfil).
+ * Vale apenas para o consultor liberado — o owner gerencia a conexão da corretora
+ * via `canManageConnections`.
+ */
+export function canManageOwnMetaConnection(
+  role: string | null | undefined,
+  adCreationEnabled: boolean | null | undefined
+): boolean {
+  return normalizeWorkspaceRole(role) === "seller" && Boolean(adCreationEnabled);
+}
+
 export function can(role: string | null | undefined, permission: Permission): boolean {
   const normalizedRole = normalizeWorkspaceRole(role);
   const allowedRoles = PERMISSION_MAP[permission] || [];

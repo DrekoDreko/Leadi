@@ -993,7 +993,7 @@ export type Database = {
           id: string;
           organization_id: string;
           recipient_profile_id: string | null;
-          type: "campaign_approved" | "campaign_rejected";
+          type: "campaign_approved" | "campaign_rejected" | "team_member_added" | "ad_creation_enabled";
           title: string;
           body: string | null;
           link_url: string | null;
@@ -1007,7 +1007,7 @@ export type Database = {
           id?: string;
           organization_id: string;
           recipient_profile_id?: string | null;
-          type: "campaign_approved" | "campaign_rejected";
+          type: "campaign_approved" | "campaign_rejected" | "team_member_added" | "ad_creation_enabled";
           title: string;
           body?: string | null;
           link_url?: string | null;
@@ -1021,7 +1021,7 @@ export type Database = {
           id?: string;
           organization_id?: string;
           recipient_profile_id?: string | null;
-          type?: "campaign_approved" | "campaign_rejected";
+          type?: "campaign_approved" | "campaign_rejected" | "team_member_added" | "ad_creation_enabled";
           title?: string;
           body?: string | null;
           link_url?: string | null;
@@ -1352,6 +1352,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
+          owner_profile_id: string | null;
           connected_by_profile_id: string | null;
           connected_at: string | null;
           expires_at: string | null;
@@ -1374,6 +1375,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
+          owner_profile_id?: string | null;
           connected_by_profile_id?: string | null;
           connected_at?: string | null;
           expires_at?: string | null;
@@ -1396,6 +1398,7 @@ export type Database = {
         Update: {
           id?: string;
           organization_id?: string;
+          owner_profile_id?: string | null;
           connected_by_profile_id?: string | null;
           connected_at?: string | null;
           expires_at?: string | null;
@@ -1421,6 +1424,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
+          owner_profile_id: string | null;
           integration_id: string;
           connected_account_id: string | null;
           page_id: string;
@@ -1434,6 +1438,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
+          owner_profile_id?: string | null;
           integration_id: string;
           connected_account_id?: string | null;
           page_id: string;
@@ -1447,6 +1452,7 @@ export type Database = {
         Update: {
           id?: string;
           organization_id?: string;
+          owner_profile_id?: string | null;
           integration_id?: string;
           connected_account_id?: string | null;
           page_id?: string;
@@ -1463,6 +1469,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
+          owner_profile_id: string | null;
           page_connection_id: string;
           connected_account_id: string | null;
           page_id: string;
@@ -1477,6 +1484,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
+          owner_profile_id?: string | null;
           page_connection_id: string;
           connected_account_id?: string | null;
           page_id: string;
@@ -1491,6 +1499,7 @@ export type Database = {
         Update: {
           id?: string;
           organization_id?: string;
+          owner_profile_id?: string | null;
           page_connection_id?: string;
           connected_account_id?: string | null;
           page_id?: string;
@@ -1508,6 +1517,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
+          owner_profile_id: string | null;
           connected_account_id: string;
           meta_ad_account_id: string;
           name: string;
@@ -1521,6 +1531,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
+          owner_profile_id?: string | null;
           connected_account_id: string;
           meta_ad_account_id: string;
           name: string;
@@ -1534,6 +1545,7 @@ export type Database = {
         Update: {
           id?: string;
           organization_id?: string;
+          owner_profile_id?: string | null;
           connected_account_id?: string;
           meta_ad_account_id?: string;
           name?: string;
@@ -1937,6 +1949,7 @@ export type Database = {
           role: ProfileRole;
           is_platform_admin: boolean;
           profile_setup_completed: boolean;
+          ad_creation_enabled: boolean;
           avatar_url: string | null;
           created_at: string;
           updated_at: string;
@@ -1950,6 +1963,7 @@ export type Database = {
           role?: ProfileRole;
           is_platform_admin?: boolean;
           profile_setup_completed?: boolean;
+          ad_creation_enabled?: boolean;
           avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -1963,6 +1977,7 @@ export type Database = {
           role?: ProfileRole;
           is_platform_admin?: boolean;
           profile_setup_completed?: boolean;
+          ad_creation_enabled?: boolean;
           avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -2011,6 +2026,8 @@ export type Database = {
           invited_email: string | null;
           used_by_user_id: string | null;
           used_at: string | null;
+          requested_by_user_id: string | null;
+          requested_at: string | null;
           created_at: string;
           expires_at: string;
         };
@@ -2028,6 +2045,8 @@ export type Database = {
           invited_email?: string | null;
           used_by_user_id?: string | null;
           used_at?: string | null;
+          requested_by_user_id?: string | null;
+          requested_at?: string | null;
           created_at?: string;
           expires_at?: string;
         };
@@ -2045,6 +2064,8 @@ export type Database = {
           invited_email?: string | null;
           used_by_user_id?: string | null;
           used_at?: string | null;
+          requested_by_user_id?: string | null;
+          requested_at?: string | null;
           created_at?: string;
           expires_at?: string;
         };
@@ -2550,6 +2571,14 @@ export type Database = {
           workspace_id: string;
           role: WorkspaceMemberRole;
         }[];
+      };
+      claim_workspace_invite: {
+        Args: { invite_token: string };
+        Returns: undefined;
+      };
+      enroll_invited_member: {
+        Args: { p_invite_id: string };
+        Returns: undefined;
       };
       complete_profile_setup: {
         Args: { setup_mode: "solo" | "team" };

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Ban, Bell, Check, CheckCircle2, Clock, Loader2, LogOut, Megaphone, Plus, Search, X, Link as LinkIcon } from "lucide-react";
+import { Ban, Bell, Check, CheckCircle2, Clock, Loader2, LogOut, Megaphone, Plus, Search, UserPlus, X, Link as LinkIcon } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { DashboardBillingNoticeProvider } from "@/components/billing/billing-notice-context";
 import { BrandMark } from "@/components/brand-mark";
@@ -28,6 +28,7 @@ export function DashboardShell({
   displayName = "Usuario",
   avatarUrl = null,
   navVariant = "owner-team",
+  canCreateAd = false,
   preview = false,
   subscriptionNotice = null,
   notificationCount = 0,
@@ -37,6 +38,7 @@ export function DashboardShell({
   displayName?: string;
   avatarUrl?: string | null;
   navVariant?: DashboardNavVariant;
+  canCreateAd?: boolean;
   preview?: boolean;
   subscriptionNotice?: SubscriptionNotice | null;
   notificationCount?: number;
@@ -44,7 +46,7 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const primaryNavItems = getDashboardNavItems(navVariant);
+  const primaryNavItems = getDashboardNavItems(navVariant, canCreateAd);
   const currentPath = pathname ?? "";
   const isFunnelPage = currentPath === "/dashboard/funil";
   const creationHref = "/dashboard/criacoes";
@@ -595,6 +597,8 @@ export function DashboardShell({
                       <ul className="p-2 space-y-1">
                         {appNotifications.map((notification) => {
                           const approved = notification.type === "campaign_approved";
+                          const isInvitePending = notification.type === "invite_pending";
+                          const isTeamMemberAdded = notification.type === "team_member_added";
                           return (
                             <li key={notification.id}>
                               <div
@@ -607,19 +611,27 @@ export function DashboardShell({
                                     className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                                       approved
                                         ? "bg-emerald-500/12 text-emerald-700"
-                                        : notification.type === "invite_pending"
+                                        : isInvitePending || isTeamMemberAdded
                                           ? "bg-cobalt/12 text-cobalt"
                                           : "bg-red-500/12 text-red-600"
                                     }`}
                                   >
                                     {approved ? (
                                       <CheckCircle2 size={11} aria-hidden="true" />
-                                    ) : notification.type === "invite_pending" ? (
+                                    ) : isTeamMemberAdded ? (
+                                      <UserPlus size={11} aria-hidden="true" />
+                                    ) : isInvitePending ? (
                                       <LinkIcon size={11} aria-hidden="true" />
                                     ) : (
                                       <Ban size={11} aria-hidden="true" />
                                     )}
-                                    {approved ? "Aprovado" : notification.type === "invite_pending" ? "Pendente" : "Reprovado"}
+                                    {approved
+                                      ? "Aprovado"
+                                      : isTeamMemberAdded
+                                        ? "Equipe"
+                                        : isInvitePending
+                                          ? "Pendente"
+                                          : "Reprovado"}
                                   </span>
                                   {notification.readAt || notification.type === "invite_pending" ? null : (
                                     <button

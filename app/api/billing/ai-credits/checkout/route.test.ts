@@ -56,7 +56,8 @@ describe("AI Credits Checkout API - /api/billing/ai-credits/checkout", () => {
       displayName: "Ana",
       brokerageName: "Leadi",
       email: "ana@example.com",
-      role: "owner"
+      role: "owner",
+      adCreationEnabled: false
     });
     vi.mocked(assertAiCreditPurchaseAllowed).mockResolvedValue({
       allowed: true,

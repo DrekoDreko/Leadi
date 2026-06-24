@@ -3,7 +3,14 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database, WorkspaceType } from "@/lib/supabase/database.types";
 import { planAllowsAi } from "@/lib/billing/plan-permissions";
-import { isWorkspaceManagerRole, normalizeWorkspaceRole, type WorkspaceRole, can } from "./permissions";
+import {
+  isWorkspaceManagerRole,
+  normalizeWorkspaceRole,
+  type WorkspaceRole,
+  can,
+  canProfileCreateAd,
+  canManageOwnMetaConnection
+} from "./permissions";
 import type { Permission } from "./permission-map";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
@@ -29,6 +36,8 @@ export type WorkspaceContext = {
   isTeamSeller: boolean;
   planCode: string | null;
   canUseAi: boolean;
+  canCreateAd: boolean;
+  canManageOwnMetaConnection: boolean;
   navVariant: DashboardNavVariant;
   teamId?: string;
   teamName?: string;
@@ -53,6 +62,8 @@ const demoWorkspaceContext: WorkspaceContext = {
   isTeamSeller: false,
   planCode: null,
   canUseAi: true,
+  canCreateAd: true,
+  canManageOwnMetaConnection: false,
   navVariant: "owner-team",
   teamId: undefined,
   teamName: undefined,
@@ -119,6 +130,8 @@ export async function getCurrentWorkspaceContext(): Promise<WorkspaceContext> {
     isTeamSeller,
     planCode: workspace.plan_type ?? null,
     canUseAi: planAllowsAi(workspace.plan_type),
+    canCreateAd: canProfileCreateAd(role, profile.ad_creation_enabled),
+    canManageOwnMetaConnection: canManageOwnMetaConnection(role, profile.ad_creation_enabled),
     navVariant: getDashboardNavVariant(role, workspaceType),
     teamId: undefined, // TODO: Fetch from team_members when implemented
     teamName: undefined,
@@ -185,6 +198,20 @@ export async function requireAiFeature() {
 
   if (context.mode === "supabase" && !context.canUseAi) {
     redirect("/dashboard?upgrade=ai");
+  }
+
+  return context;
+}
+
+/**
+ * Garante que o usuário pode criar anúncios com IA: owner/admin pelo papel ou
+ * consultor liberado individualmente pelo owner (`profile.ad_creation_enabled`).
+ */
+export async function requireAdCreation() {
+  const context = await requireCompletedProfile();
+
+  if (context.mode === "supabase" && !context.canCreateAd) {
+    redirect("/dashboard");
   }
 
   return context;

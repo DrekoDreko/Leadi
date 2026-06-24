@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { DashboardNavVariant } from "@/lib/workspaces/context";
 
-export function getDashboardNavItems(variant: DashboardNavVariant) {
+export function getDashboardNavItems(variant: DashboardNavVariant, canCreateAd = false) {
   if (variant === "owner-team") {
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -39,6 +39,10 @@ export function getDashboardNavItems(variant: DashboardNavVariant) {
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Meus Leads", href: "/dashboard/leads", icon: UsersRound },
       { label: "Funil de Vendas", href: "/dashboard/funil", icon: Filter },
+      // Consultor liberado pelo owner cria anúncios com IA na própria conta Meta.
+      ...(canCreateAd
+        ? [{ label: "Criar Anúncio", href: "/dashboard/criacoes", icon: Megaphone }]
+        : []),
       { label: "Créditos", href: "/dashboard/perfil/creditos", icon: Coins },
       { label: "Simulador", href: "/dashboard/simulador", icon: Calculator }
     ];

@@ -4,6 +4,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolveCurrentIdentity } from "@/lib/integrations/repository.server";
 import { MetaMarketingPermissionError } from "@/lib/meta/campaign-publication.server";
 import { updateMetaCampaignDelivery } from "@/lib/meta/campaign-controls.server";
+import { canManageOwnMetaConnection } from "@/lib/workspaces/permissions";
 import {
   ApiRouteError,
   assertRouteRateLimit,
@@ -41,9 +42,14 @@ export async function POST(
     return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
   }
 
-  if (!identity.canManageConnections) {
+  const canManagePersonal = canManageOwnMetaConnection(
+    identity.profile.role,
+    identity.profile.ad_creation_enabled
+  );
+
+  if (!identity.canManageConnections && !canManagePersonal) {
     return NextResponse.json(
-      { error: "Apenas owner ou admin podem ativar ou pausar campanhas." },
+      { error: "Voce nao tem permissao para ativar ou pausar campanhas." },
       { status: 403 }
     );
   }
@@ -56,6 +62,7 @@ export async function POST(
       organizationId: identity.organization.id,
       campaignId,
       createdByProfileId: identity.profile.id,
+      restrictToCreatorProfileId: identity.canManageConnections ? null : identity.profile.id,
       action: body.action
     });
 

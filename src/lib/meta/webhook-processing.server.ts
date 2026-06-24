@@ -6,13 +6,19 @@ import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabas
 import type { Database } from "@/lib/supabase/database.types";
 import { fetchAndMapMetaLeadById } from "./lead-retrieval.server";
 import type { MetaLeadgenEvent } from "./webhook";
-import { resolveMetaAccessTokenForOrganization } from "@/lib/integrations/repository.server";
+import {
+  resolveMetaAccessTokenForOrganization,
+  resolveMetaAccessTokenForProfile
+} from "@/lib/integrations/repository.server";
 
 type MetaFormRow = Database["public"]["Tables"]["meta_forms"]["Row"];
 type MetaPageRow = Database["public"]["Tables"]["meta_pages"]["Row"];
 type MetaLeadConnection = {
   organizationId: string;
   integrationId: string;
+  // Quando a página/formulário é de um consultor, o lead é atribuído a esse perfil
+  // e o token usado para buscar o lead na Meta é o dele.
+  ownerProfileId: string | null;
   form: MetaFormRow | null;
   page: MetaPageRow | null;
 };
@@ -36,7 +42,10 @@ export async function processMetaLeadgenEvent(input: {
   requireIntegrationEnv("meta_lead_sync");
 
   const connection = await resolveMetaLeadConnection(input.event);
-  const accessToken = await resolveMetaAccessTokenForOrganization(connection.organizationId);
+  // Lead de página/formulário de um consultor usa o token Meta dele; senão, o da corretora.
+  const accessToken = connection.ownerProfileId
+    ? await resolveMetaAccessTokenForProfile(connection.ownerProfileId)
+    : await resolveMetaAccessTokenForOrganization(connection.organizationId);
 
   if (!accessToken) {
     throw new Error(
@@ -56,6 +65,8 @@ export async function processMetaLeadgenEvent(input: {
 
   const result = await createLeadFromWebhook({
     organization_id: connection.organizationId,
+    // Atribui o lead ao consultor dono da página/formulário (se houver); senão, distribuição padrão.
+    owner_profile_id: connection.ownerProfileId ?? undefined,
     name: mappedLead.name,
     phone: mappedLead.phone,
     email: mappedLead.email,
@@ -114,6 +125,7 @@ async function resolveMetaLeadConnection(event: MetaLeadgenEvent): Promise<MetaL
       return {
         organizationId: form.organization_id,
         integrationId: page?.integration_id ?? pageConnectionIntegrationFallback(form),
+        ownerProfileId: form.owner_profile_id ?? page?.owner_profile_id ?? null,
         form,
         page
       };
@@ -141,6 +153,7 @@ async function resolveMetaLeadConnection(event: MetaLeadgenEvent): Promise<MetaL
       return {
         organizationId: page.organization_id,
         integrationId: page.integration_id,
+        ownerProfileId: page.owner_profile_id ?? null,
         form: null,
         page
       };

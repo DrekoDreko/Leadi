@@ -20,6 +20,7 @@ export default async function DashboardLayout({
       avatarUrl={context.profile?.avatar_url ?? null}
       notificationCount={reminderState.reminders.length}
       navVariant={context.navVariant}
+      canCreateAd={context.canCreateAd}
       subscriptionNotice={subscriptionNotice}
       workspaceName={context.workspaceName}
     >

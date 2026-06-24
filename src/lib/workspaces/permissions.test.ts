@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { can, canOrThrow, canAll, canAny } from "./permissions";
+import {
+  can,
+  canOrThrow,
+  canAll,
+  canAny,
+  canProfileCreateAd,
+  canManageOwnMetaConnection
+} from "./permissions";
 
 describe("Workspace Permissions Helpers", () => {
   describe("can()", () => {
@@ -87,6 +94,35 @@ describe("Workspace Permissions Helpers", () => {
 
     it("should return true when permissions array is empty", () => {
       expect(canAll("seller", [])).toBe(true);
+    });
+  });
+
+  describe("canProfileCreateAd()", () => {
+    it("owner e admin criam anúncio pelo papel, independente do grant", () => {
+      expect(canProfileCreateAd("owner", false)).toBe(true);
+      expect(canProfileCreateAd("admin", false)).toBe(true);
+    });
+
+    it("consultor só cria anúncio quando liberado pelo owner", () => {
+      expect(canProfileCreateAd("seller", false)).toBe(false);
+      expect(canProfileCreateAd("seller", true)).toBe(true);
+    });
+
+    it("trata null/undefined no grant como sem liberação", () => {
+      expect(canProfileCreateAd("seller", null)).toBe(false);
+      expect(canProfileCreateAd("seller", undefined)).toBe(false);
+    });
+  });
+
+  describe("canManageOwnMetaConnection()", () => {
+    it("só o consultor liberado gerencia a própria conexão Meta", () => {
+      expect(canManageOwnMetaConnection("seller", true)).toBe(true);
+      expect(canManageOwnMetaConnection("seller", false)).toBe(false);
+    });
+
+    it("owner/admin não usam a conexão pessoal (gerenciam a da corretora)", () => {
+      expect(canManageOwnMetaConnection("owner", true)).toBe(false);
+      expect(canManageOwnMetaConnection("admin", true)).toBe(false);
     });
   });
 

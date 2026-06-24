@@ -3,6 +3,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolveCurrentIdentity } from "@/lib/integrations/repository.server";
 import { buildMetaOAuthAuthorizationUrl } from "@/lib/integrations/meta-graph.server";
 import { createMetaOAuthState } from "@/lib/integrations/oauth-state.server";
+import { canManageOwnMetaConnection } from "@/lib/workspaces/permissions";
 import {
   assertRouteRateLimit,
   normalizeReturnTo
@@ -27,14 +28,23 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(returnTo)}`, requestUrl));
   }
 
-  if (!identity.canManageConnections) {
+  const canManagePersonal = canManageOwnMetaConnection(
+    identity.profile.role,
+    identity.profile.ad_creation_enabled
+  );
+
+  if (!identity.canManageConnections && !canManagePersonal) {
     return redirectToReturnPath(requestUrl, returnTo, "meta=forbidden");
   }
+
+  // Owner/admin conectam a conexão da corretora; consultor liberado conecta a própria.
+  const scope = identity.canManageConnections ? "organization" : "personal";
 
   try {
     const state = createMetaOAuthState({
       organizationId: identity.organization.id,
       profileId: identity.profile.id,
+      scope,
       returnTo
     });
     const authUrl = buildMetaOAuthAuthorizationUrl({ state, returnTo });

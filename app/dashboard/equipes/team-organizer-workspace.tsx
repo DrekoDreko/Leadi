@@ -18,6 +18,7 @@ import {
   Coins,
   GripVertical,
   Loader2,
+  Megaphone,
   Pencil,
   Plus,
   Power,
@@ -45,7 +46,8 @@ import {
   updateTeamNameAction,
   promoteMemberAction,
   demoteSupervisorAction,
-  changeTeamSupervisorAction
+  changeTeamSupervisorAction,
+  setMemberAdCreationGrantAction
 } from "./actions";
 import { updateWorkspaceNameAction } from "./actions";
 
@@ -218,6 +220,14 @@ export function TeamOrganizerWorkspace({
     const fd = new FormData();
     fd.set("profileId", profileId);
     runAction(deactivateMemberAction, fd);
+  }
+
+  function handleToggleAdCreation(profileId: string, enabled: boolean) {
+    setConsultantMenu(null);
+    const fd = new FormData();
+    fd.set("profileId", profileId);
+    fd.set("enabled", String(enabled));
+    runAction(setMemberAdCreationGrantAction, fd);
   }
 
   function handleReactivateMember(profileId: string) {
@@ -471,6 +481,20 @@ export function TeamOrganizerWorkspace({
             onClick={() => handlePromoteMember(consultantMenu.member.profileId)}
           />
           <ActionItem
+            icon={<Megaphone className="h-4 w-4" />}
+            label={
+              consultantMenu.member.adCreationEnabled
+                ? "Remover criação de anúncios"
+                : "Liberar criação de anúncios com IA"
+            }
+            onClick={() =>
+              handleToggleAdCreation(
+                consultantMenu.member.profileId,
+                !consultantMenu.member.adCreationEnabled
+              )
+            }
+          />
+          <ActionItem
             icon={<UserMinus className="h-4 w-4" />}
             label="Desativar Usuário"
             destructive
@@ -634,25 +658,6 @@ function KanbanBoard({
 
   return (
     <div className="flex gap-4 overflow-x-auto px-1 pb-20 pt-1">
-      {/* Unassigned column */}
-      {unassigned.length > 0 && (
-        <KanbanColumn
-          title="Sem Equipe"
-          subtitle="Não atribuídos"
-          teamId={null}
-          members={unassigned}
-          isDropTarget={activeDropTeamId === "__unassigned__"}
-          draggedProfileId={draggedProfileId}
-          isPending={isPending}
-          onDragStart={onDragStart}
-          onDragOver={(e) => onDragOver(e, null)}
-          onDragLeave={(e) => onDragLeave(e, null)}
-          onDrop={(e) => onDrop(e, null)}
-          onDragEnd={onDragEnd}
-          onCardClick={onCardClick}
-        />
-      )}
-
       {activeTeams.map((team) => {
         const supervisor = getSupervisor(team.id);
         const teamConsultants = getTeamConsultants(team.id);
@@ -679,6 +684,26 @@ function KanbanBoard({
           />
         );
       })}
+
+      {/* Coluna "Sem Equipe": convidados recem-aprovados ainda sem equipe.
+          Fica depois das equipes para o gestor arrastar para a equipe certa. */}
+      {unassigned.length > 0 && (
+        <KanbanColumn
+          title="Sem Equipe"
+          subtitle="Aguardando alocação"
+          teamId={null}
+          members={unassigned}
+          isDropTarget={activeDropTeamId === null && draggedProfileId !== null}
+          draggedProfileId={draggedProfileId}
+          isPending={isPending}
+          onDragStart={onDragStart}
+          onDragOver={(e) => onDragOver(e, null)}
+          onDragLeave={(e) => onDragLeave(e, null)}
+          onDrop={(e) => onDrop(e, null)}
+          onDragEnd={onDragEnd}
+          onCardClick={onCardClick}
+        />
+      )}
 
       <Link
         href="/dashboard/criar-equipe"

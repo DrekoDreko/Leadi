@@ -9,7 +9,9 @@ import {
 } from "@/lib/meta/config";
 import {
   getMetaConnectionForOrganization,
-  resolveMetaAccessTokenForOrganization
+  resolveMetaAccessTokenForOrganization,
+  getMetaConnectionForProfile,
+  resolveMetaAccessTokenForProfile
 } from "@/lib/integrations/repository.server";
 import {
   parseCampaignInputPayload,
@@ -91,6 +93,9 @@ type MetaMarketingPublicationInput = {
   organizationId: string;
   campaignId: string;
   createdByProfileId: string;
+  // Quando definido, só permite publicar campanhas criadas por esse perfil (consultor
+  // publicando a própria campanha). null = sem restrição (owner/admin).
+  restrictToCreatorProfileId?: string | null;
   publishMode?: CampaignPublishMode;
   dailyBudget?: number;
 };
@@ -133,6 +138,13 @@ export async function publishPausedMetaCampaign(
 
   if (!campaign) {
     throw new Error("Campanha nao encontrada para esta organizacao.");
+  }
+
+  if (
+    input.restrictToCreatorProfileId &&
+    campaign.created_by_profile_id !== input.restrictToCreatorProfileId
+  ) {
+    throw new Error("Voce so pode publicar campanhas que voce mesmo criou.");
   }
 
   if (campaign.approval_status !== "approved" && campaign.approval_status !== "not_required") {
@@ -190,12 +202,24 @@ export async function publishPausedMetaCampaign(
       };
     }
 
-    const connection = await getMetaConnectionForOrganization(input.organizationId);
+    // Quando a campanha foi criada por um consultor com conexão Meta pessoal, publica na
+    // conta de anúncios DELE; caso contrário, usa a conexão da corretora.
+    const personalConnection = await getMetaConnectionForProfile(campaign.created_by_profile_id);
+    const usePersonalConnection = Boolean(personalConnection);
+
+    const connection =
+      personalConnection ?? (await getMetaConnectionForOrganization(input.organizationId));
     if (!connection) {
-      throw new Error("Conexao Meta nao encontrada para esta organizacao.");
+      throw new Error(
+        usePersonalConnection
+          ? "Conexao Meta pessoal do consultor nao encontrada."
+          : "Conexao Meta nao encontrada para esta organizacao."
+      );
     }
 
-    const accessToken = await resolveMetaAccessTokenForOrganization(input.organizationId);
+    const accessToken = usePersonalConnection
+      ? await resolveMetaAccessTokenForProfile(campaign.created_by_profile_id)
+      : await resolveMetaAccessTokenForOrganization(input.organizationId);
     if (!accessToken) {
       throw new Error("A conexao Meta nao possui um access token valido.");
     }

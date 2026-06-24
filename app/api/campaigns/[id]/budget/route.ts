@@ -4,6 +4,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolveCurrentIdentity } from "@/lib/integrations/repository.server";
 import { MetaMarketingPermissionError } from "@/lib/meta/campaign-publication.server";
 import { updateMetaCampaignBudget } from "@/lib/meta/campaign-controls.server";
+import { canManageOwnMetaConnection } from "@/lib/workspaces/permissions";
 import {
   ApiRouteError,
   assertRouteRateLimit,
@@ -41,9 +42,14 @@ export async function POST(
     return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
   }
 
-  if (!identity.canManageConnections) {
+  const canManagePersonal = canManageOwnMetaConnection(
+    identity.profile.role,
+    identity.profile.ad_creation_enabled
+  );
+
+  if (!identity.canManageConnections && !canManagePersonal) {
     return NextResponse.json(
-      { error: "Apenas owner ou admin podem alterar o orcamento de campanhas." },
+      { error: "Voce nao tem permissao para alterar o orcamento de campanhas." },
       { status: 403 }
     );
   }
@@ -55,7 +61,8 @@ export async function POST(
     const campaign = await updateMetaCampaignBudget({
       organizationId: identity.organization.id,
       campaignId,
-      dailyBudget: body.dailyBudget
+      dailyBudget: body.dailyBudget,
+      restrictToCreatorProfileId: identity.canManageConnections ? null : identity.profile.id
     });
 
     return NextResponse.json({ campaign });

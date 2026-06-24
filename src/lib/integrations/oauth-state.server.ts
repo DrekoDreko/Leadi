@@ -5,9 +5,12 @@ import { getIntegrationSecretKey } from "./crypto.server";
 
 const META_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
+export type MetaOAuthScope = "organization" | "personal";
+
 export type MetaOAuthStatePayload = {
   organizationId: string;
   profileId: string;
+  scope: MetaOAuthScope;
   returnTo: string;
   nonce: string;
   issuedAt: number;
@@ -16,11 +19,13 @@ export type MetaOAuthStatePayload = {
 export function createMetaOAuthState(input: {
   organizationId: string;
   profileId: string;
+  scope?: MetaOAuthScope;
   returnTo: string;
 }) {
   const payload: MetaOAuthStatePayload = {
     organizationId: input.organizationId,
     profileId: input.profileId,
+    scope: input.scope ?? "organization",
     returnTo: sanitizeReturnTo(input.returnTo),
     nonce: randomUUID(),
     issuedAt: Date.now()
@@ -68,6 +73,7 @@ export function parseMetaOAuthState(state: string) {
   return {
     organizationId: parsed.organizationId,
     profileId: parsed.profileId,
+    scope: parsed.scope === "personal" ? "personal" : "organization",
     returnTo: sanitizeReturnTo(parsed.returnTo),
     nonce: parsed.nonce,
     issuedAt: parsed.issuedAt

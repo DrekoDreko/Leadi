@@ -9,7 +9,8 @@ import {
   type CampaignTextInput
 } from "@/lib/openai";
 import {
-  getMetaConnectionForOrganization
+  getMetaConnectionForOrganization,
+  getMetaConnectionForProfile
 } from "@/lib/integrations/repository.server";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import {
@@ -98,7 +99,12 @@ export async function POST(request: Request) {
     await assertOrganizationAiFeatureEnabled(billingContext.organizationId);
 
     const body = await parseJsonBody(request, campaignRequestSchema);
-    const metaConnection = await getMetaConnectionForOrganization(billingContext.organizationId);
+    // Consultor liberado usa a própria conexão Meta; demais usam a da corretora.
+    const usesPersonalConnection =
+      billingContext.role === "seller" && billingContext.adCreationEnabled;
+    const metaConnection = usesPersonalConnection
+      ? await getMetaConnectionForProfile(billingContext.profileId)
+      : await getMetaConnectionForOrganization(billingContext.organizationId);
     const input = parseCampaignRequest(body, metaConnection?.id ?? null);
     const { differentiator, objections, contractType, ...campaignInput } = input;
     const localNotes = getLocalComplianceNotes([
@@ -163,7 +169,12 @@ export async function POST(request: Request) {
           metaLeadFormId: input.metaLeadFormId,
           publishMode: input.publishMode,
           publicationStatus: input.publicationStatus,
-          approvalStatus: billingContext.role === "seller" ? "pending" : "not_required",
+          // Liberação blanket: consultor liberado pelo owner publica sozinho na própria
+          // conta, sem aprovação por anúncio. Seller sem liberação continua em revisão.
+          approvalStatus:
+            billingContext.role === "seller" && !billingContext.adCreationEnabled
+              ? "pending"
+              : "not_required",
           metaCampaignId: input.metaCampaignId,
           metaAdSetId: input.metaAdSetId,
           metaAdId: input.metaAdId,

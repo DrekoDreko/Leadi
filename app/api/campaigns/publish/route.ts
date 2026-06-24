@@ -7,6 +7,7 @@ import {
   publishPausedMetaCampaign
 } from "@/lib/meta/campaign-publication.server";
 import type { CampaignPublishMode } from "@/lib/campaigns/types";
+import { canManageOwnMetaConnection } from "@/lib/workspaces/permissions";
 import {
   ApiRouteError,
   assertRouteRateLimit,
@@ -44,9 +45,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Usuario nao autenticado." }, { status: 401 });
   }
 
-  if (!identity.canManageConnections) {
+  const canManagePersonal = canManageOwnMetaConnection(
+    identity.profile.role,
+    identity.profile.ad_creation_enabled
+  );
+
+  if (!identity.canManageConnections && !canManagePersonal) {
     return NextResponse.json(
-      { error: "Apenas owner ou admin podem publicar campanhas na Meta." },
+      { error: "Voce nao tem permissao para publicar campanhas na Meta." },
       { status: 403 }
     );
   }
@@ -60,6 +66,8 @@ export async function POST(request: Request) {
       organizationId: identity.organization.id,
       campaignId,
       createdByProfileId: identity.profile.id,
+      // Consultor só publica a própria campanha; owner/admin sem restrição.
+      restrictToCreatorProfileId: identity.canManageConnections ? null : identity.profile.id,
       publishMode,
       dailyBudget: body.dailyBudget
     });

@@ -12,7 +12,8 @@ export default async function AnunciosPage({
   searchParams: Promise<{ filtro?: string }>;
 }) {
   const context = await requireCompletedProfile();
-  if (!context.isOwner) {
+  // Owner vê os anúncios da corretora; consultor liberado vê os próprios anúncios.
+  if (!context.isOwner && !context.canCreateAd) {
     redirect("/dashboard/criacoes");
   }
   const params = await searchParams;

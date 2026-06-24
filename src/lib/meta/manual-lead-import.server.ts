@@ -499,10 +499,13 @@ async function fetchMetaGraphList<T>(
 
 async function loadOrganizationMetaForms(organizationId: string) {
   const supabase = createSupabaseAdminClient();
+  // Importação manual do owner usa o token da corretora, então lista só formulários
+  // org-level (owner_profile_id IS NULL). Formulários de consultores entram via webhook.
   const { data, error } = await supabase
     .from("meta_forms")
     .select("*")
     .eq("organization_id", organizationId)
+    .is("owner_profile_id", null)
     .order("created_at", { ascending: false });
 
   if (error) {

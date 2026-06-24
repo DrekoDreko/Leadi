@@ -11,11 +11,12 @@ type AuthMode = "login" | "signup";
 
 type AuthCardProps = {
   error: string | null;
+  notice?: string | null;
   initialMode: AuthMode;
   next: string;
 };
 
-export function AuthCard({ error, initialMode, next }: AuthCardProps) {
+export function AuthCard({ error, notice, initialMode, next }: AuthCardProps) {
   const router = useRouter();
   const [mode, setActiveMode] = useState<AuthMode>(initialMode);
   const isSignUp = mode === "signup";
@@ -95,6 +96,11 @@ export function AuthCard({ error, initialMode, next }: AuthCardProps) {
                 Criar conta
               </button>
             </div>
+            {notice && (
+              <p className="surface-alert-success mt-5 rounded-[22px] px-4 py-3 text-sm font-medium">
+                {notice}
+              </p>
+            )}
             {error && (
               <p className="surface-alert-warning mt-5 rounded-[22px] px-4 py-3 text-sm font-medium">
                 {error}

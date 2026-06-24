@@ -58,25 +58,61 @@ export async function getNotificationsForCurrentUser(limit = 30): Promise<Notifi
   let rows = ((data as NotificationRow[] | null) ?? []).map(mapRow);
 
   if (identity.profile.role === "owner") {
+    // So notificamos quando ha um convidado que reivindicou o convite (criou a
+    // conta a partir do link) e aguarda aprovacao — antes disso nao ha o que aprovar.
     const { data: pendingInvites } = await supabase
       .from("invites")
       .select("*")
       .eq("workspace_id", identity.organization.id)
       .eq("approval_status", "pending")
       .eq("status", "active")
-      .eq("requires_approval", true);
+      .eq("requires_approval", true)
+      .not("requested_by_user_id", "is", null);
 
     if (pendingInvites && pendingInvites.length > 0) {
-      const inviteNotifications: NotificationItem[] = pendingInvites.map((invite) => ({
-        id: `invite-${invite.id}`,
-        type: "invite_pending",
-        title: "Convite pendente de aprovacao",
-        body: "O gestor ainda precisa aprovar este convite antes de liberar seu acesso.",
-        linkUrl: "/dashboard/equipe",
-        campaignId: null,
-        readAt: null,
-        createdAt: invite.created_at
-      }));
+      const claimantIds = [
+        ...new Set(
+          pendingInvites
+            .map((invite) => invite.requested_by_user_id as string | null)
+            .filter((value): value is string => Boolean(value))
+        )
+      ];
+
+      const claimantNamesById = new Map<string, string>();
+      if (claimantIds.length > 0) {
+        // O reivindicante ainda nao e membro da org (convite pendente), entao o
+        // RLS do owner nao enxerga o perfil dele. Resolvemos o nome pelo client
+        // admin. Escopo seguro: os convites ja sao filtrados por workspace_id.
+        const { data: claimantRows } = hasSupabaseServiceRole()
+          ? await createSupabaseAdminClient()
+              .from("profiles")
+              .select("id, full_name, email")
+              .in("id", claimantIds)
+          : await supabase.from("profiles").select("id, full_name, email").in("id", claimantIds);
+
+        for (const claimant of claimantRows ?? []) {
+          claimantNamesById.set(
+            claimant.id,
+            claimant.full_name ?? claimant.email?.split("@")[0] ?? "Um convidado"
+          );
+        }
+      }
+
+      const inviteNotifications: NotificationItem[] = pendingInvites.map((invite) => {
+        const claimantName =
+          claimantNamesById.get(invite.requested_by_user_id as string) ?? "Um convidado";
+
+        return {
+          id: `invite-${invite.id}`,
+          type: "invite_pending",
+          title: "Convite aguardando aprovacao",
+          body: `${claimantName} solicitou acesso a equipe. Aprove para liberar.`,
+          linkUrl: "/dashboard/equipes",
+          campaignId: null,
+          readAt: null,
+          createdAt: invite.created_at
+        };
+      });
 
       rows = [...inviteNotifications, ...rows];
     }
@@ -148,6 +184,64 @@ export async function createCampaignReviewNotification(input: {
 
   if (error) {
     // Notificacao e best-effort: nao deve quebrar a reconciliacao de status.
+    throw new Error(error.message);
+  }
+}
+
+// Avisa o consultor que o owner liberou (ou revogou) a criação de anúncios com IA.
+// Best-effort: não deve quebrar a ação do owner.
+export async function createAdCreationGrantNotification(input: {
+  organizationId: string;
+  recipientProfileId: string;
+  enabled: boolean;
+}): Promise<void> {
+  if (!hasSupabaseServiceRole()) {
+    return;
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.from("notifications").insert({
+    organization_id: input.organizationId,
+    recipient_profile_id: input.recipientProfileId,
+    type: "ad_creation_enabled",
+    title: input.enabled
+      ? "Você foi liberado para criar anúncios"
+      : "Sua liberação para criar anúncios foi removida",
+    body: input.enabled
+      ? "Conecte sua conta Meta em Perfil > Minha conexão Meta e comece a criar anúncios com IA."
+      : "O gestor removeu sua permissão de criar anúncios com IA.",
+    link_url: input.enabled ? "/dashboard/perfil/meta" : null
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Avisa o supervisor que um consultor entrou (ou foi transferido para) a equipe
+// dele. Best-effort: e tolerante a falha para nao quebrar a reatribuicao.
+export async function createTeamMemberAddedNotification(input: {
+  organizationId: string;
+  recipientProfileId: string;
+  memberName: string;
+  teamName: string;
+}): Promise<void> {
+  if (!hasSupabaseServiceRole()) {
+    return;
+  }
+
+  const supabase = createSupabaseAdminClient();
+  // Notificacao informativa: sem link (o supervisor nao tem pagina de equipe
+  // dedicada e o texto ja e auto-explicativo).
+  const { error } = await supabase.from("notifications").insert({
+    organization_id: input.organizationId,
+    recipient_profile_id: input.recipientProfileId,
+    type: "team_member_added",
+    title: "Novo membro na sua equipe",
+    body: `${input.memberName} entrou na equipe ${input.teamName}.`
+  });
+
+  if (error) {
     throw new Error(error.message);
   }
 }

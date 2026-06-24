@@ -57,17 +57,22 @@ export async function GET(request: Request) {
   try {
     const identity = await resolveMetaOAuthStateIdentity({
       profileId: state.profileId,
-      organizationId: state.organizationId
+      organizationId: state.organizationId,
+      scope: state.scope
     });
 
     if (!identity) {
       return redirectBack(requestUrl, returnTo, "meta=forbidden");
     }
 
+    // Conexão pessoal do consultor é vinculada ao perfil dele; a da corretora fica org-level.
+    const ownerProfileId = state.scope === "personal" ? identity.profile.id : null;
+
     const exchange = await exchangeMetaOAuthCode({ code, state });
     const syncResult = await syncMetaOrganizationAssets({
       organizationId: identity.organization.id,
       connectedByProfileId: identity.profile.id,
+      ownerProfileId,
       accessToken: exchange.accessToken,
       metaUserId: exchange.metaUserId,
       metaUserName: exchange.metaUserName

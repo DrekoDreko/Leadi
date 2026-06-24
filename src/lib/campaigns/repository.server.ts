@@ -3,6 +3,7 @@ import type { Database, Json } from "@/lib/supabase/database.types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
+import { normalizeWorkspaceRole } from "@/lib/workspaces/permissions";
 import { deleteMetaCampaignForOrganization } from "@/lib/meta/campaign-controls.server";
 import {
   buildCampaignInputPayload,
@@ -73,10 +74,17 @@ export async function getCampaignsForCurrentUser(limit = 4): Promise<CampaignLis
     };
   }
 
-  const { data, error } = await supabase
+  // Consultor (seller) só enxerga as próprias campanhas; owner/admin veem as da corretora.
+  let campaignsQuery = supabase
     .from("campaigns")
     .select("*")
-    .eq("organization_id", profile.organization_id)
+    .eq("organization_id", profile.organization_id);
+
+  if (normalizeWorkspaceRole(profile.role) === "seller") {
+    campaignsQuery = campaignsQuery.eq("created_by_profile_id", profile.id);
+  }
+
+  const { data, error } = await campaignsQuery
     .order("created_at", { ascending: false })
     .limit(safeLimit);
 

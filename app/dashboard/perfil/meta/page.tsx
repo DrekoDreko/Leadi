@@ -1,9 +1,13 @@
+import { redirect } from "next/navigation";
 import { IntegrationNotice } from "@/components/dashboard/integration-notice";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { getCurrentSubscriptionNotice } from "@/lib/billing/subscription-limits.server";
 import { getMissingEnvForIntegration } from "@/lib/env/server";
-import { getManagedConnectedAccountsForCurrentUser } from "@/lib/integrations/repository.server";
-import { requireWorkspaceOwner } from "@/lib/workspaces/context";
+import {
+  getManagedConnectedAccountsForCurrentUser,
+  getOwnMetaConnectedAccountsForCurrentUser
+} from "@/lib/integrations/repository.server";
+import { requireCompletedProfile } from "@/lib/workspaces/context";
 import {
   MetaConnectedAccountsSection,
   MetaHeaderActions,
@@ -41,10 +45,18 @@ export default async function PerfilMetaPage({
     sync?: string;
   }>;
 }) {
-  const [context, params, connectedAccounts, billingNotice] = await Promise.all([
-    requireWorkspaceOwner(),
+  const context = await requireCompletedProfile();
+  // Owner gerencia a conexão da corretora; consultor liberado gerencia a própria conexão Meta.
+  const isPersonalView = !context.isOwner && context.canManageOwnMetaConnection;
+  if (!context.isOwner && !context.canManageOwnMetaConnection) {
+    redirect("/dashboard");
+  }
+
+  const [params, connectedAccounts, billingNotice] = await Promise.all([
     searchParams,
-    getManagedConnectedAccountsForCurrentUser(),
+    isPersonalView
+      ? getOwnMetaConnectedAccountsForCurrentUser()
+      : getManagedConnectedAccountsForCurrentUser(),
     getCurrentSubscriptionNotice()
   ]);
   const missingMetaOAuthEnvKeys = getMissingEnvForIntegration("meta_oauth");
@@ -62,9 +74,13 @@ export default async function PerfilMetaPage({
   return (
     <div className="space-y-4">
       <PageHeading
-        eyebrow="Empresa e contas conectadas"
-        title="Meta e contas conectadas"
-        description="Gerencie o perfil Meta, páginas, formulários, contas de anúncio e permissões da operação."
+        eyebrow={isPersonalView ? "Minha conta Meta" : "Empresa e contas conectadas"}
+        title={isPersonalView ? "Minha conexão Meta" : "Meta e contas conectadas"}
+        description={
+          isPersonalView
+            ? "Conecte sua própria conta Meta (página, perfil e conta de anúncios) para criar anúncios com IA. Os leads caem no CRM da corretora atribuídos a você."
+            : "Gerencie o perfil Meta, páginas, formulários, contas de anúncio e permissões da operação."
+        }
       >
         <span className="surface-pill-strong inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-ink">
           {context.workspaceName}

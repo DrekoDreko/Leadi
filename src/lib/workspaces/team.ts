@@ -1,6 +1,10 @@
 import "server-only";
 
 import { recordAuditLog } from "@/lib/audit/audit-log.server";
+import {
+  createTeamMemberAddedNotification,
+  createAdCreationGrantNotification
+} from "@/lib/notifications/repository.server";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -31,6 +35,7 @@ export type TeamMember = {
   createdAt: string;
   teamId: string | null;
   teamName: string | null;
+  adCreationEnabled: boolean;
 };
 
 export type TeamInvite = {
@@ -45,6 +50,9 @@ export type TeamInvite = {
   approvalStatus: InviteApprovalStatus;
   approvedByUserId: string | null;
   invitedEmail: string | null;
+  requestedByUserId: string | null;
+  requestedByName: string | null;
+  requestedByEmail: string | null;
   createdAt: string;
   expiresAt: string;
 };
@@ -313,7 +321,8 @@ export async function getTeamSetupData(context: WorkspaceContext): Promise<TeamS
           status: "active",
           createdAt: new Date().toISOString(),
           teamId: demoTeams[0]?.id ?? null,
-          teamName: demoTeams[0]?.name ?? null
+          teamName: demoTeams[0]?.name ?? null,
+          adCreationEnabled: false
         }
       ],
       deactivatedMembers: [],
@@ -336,12 +345,21 @@ export async function getTeamSetupData(context: WorkspaceContext): Promise<TeamS
   const teams = buildTeamSetupTeams(scopedTeamRows, scopedMembershipRows);
   const activeRows = scopedMembershipRows.filter((member) => member.status !== "inactive");
   const inactiveRows = scopedMembershipRows.filter((member) => member.status === "inactive");
-  const members = await mapTeamMembers(
+  const assignedMembers = await mapTeamMembers(
     supabase,
     context.workspace.id,
     activeRows,
     scopedTeamRows
   );
+  // Convidados recem-aprovados entram em workspace_members mas ainda nao tem
+  // equipe (sem linha em team_members). So o gestor distribui essas pessoas,
+  // entao listamos os "sem equipe" apenas para owner — eles aparecem na coluna
+  // "Sem Equipe" do organizador.
+  const unassignedMembers =
+    context.role === "owner"
+      ? await listUnassignedWorkspaceMembers(supabase, context.workspace.id, assignedMembers)
+      : [];
+  const members = [...assignedMembers, ...unassignedMembers];
   const deactivatedMembers = await mapTeamMembers(
     supabase,
     context.workspace.id,
@@ -416,8 +434,15 @@ export async function reviewInviteForCurrentUser(
     throw new TeamAccessError(400, "Este convite ja foi revisado.");
   }
 
+  if (!invite.requested_by_user_id) {
+    throw new TeamAccessError(
+      400,
+      "Aguarde o convidado criar a conta antes de aprovar este convite."
+    );
+  }
+
   const admin = createSupabaseAdminClient();
-  const { data: updatedInvite, error } = await admin
+  const { data: approvedInvite, error } = await admin
     .from("invites")
     .update({
       approval_status: normalizedDecision,
@@ -428,8 +453,32 @@ export async function reviewInviteForCurrentUser(
     .select("*")
     .single();
 
-  if (error || !updatedInvite) {
+  if (error || !approvedInvite) {
     throw error ?? new Error("Nao foi possivel revisar o convite agora.");
+  }
+
+  // Aprovar ja matricula o convidado na organizacao (entra sem equipe, para o
+  // gestor distribuir). Antes, o convidado precisava revisitar o link para
+  // aceitar — se nao voltasse, ficava aprovado mas fora da org, invisivel aqui.
+  let updatedInvite = approvedInvite;
+  if (normalizedDecision === "approved") {
+    const { error: enrollError } = await admin.rpc("enroll_invited_member", {
+      p_invite_id: approvedInvite.id
+    });
+
+    if (enrollError) {
+      throw enrollError;
+    }
+
+    const { data: enrolledInvite } = await admin
+      .from("invites")
+      .select("*")
+      .eq("id", approvedInvite.id)
+      .single();
+
+    if (enrolledInvite) {
+      updatedInvite = enrolledInvite;
+    }
   }
 
   await recordAuditLog({
@@ -444,12 +493,27 @@ export async function reviewInviteForCurrentUser(
     metadata: {
       previousApprovalStatus: invite.approval_status,
       nextApprovalStatus: updatedInvite.approval_status,
+      enrolled: normalizedDecision === "approved" && updatedInvite.status === "used",
       roleToAssign: updatedInvite.role_to_assign,
       tokenSuffix: updatedInvite.token.slice(-6)
     }
   });
 
-  return mapInvite(updatedInvite);
+  // Mantem nome/email do convidado no retorno para a UI continuar exibindo.
+  let claimant: { name: string | null; email: string | null } | null = null;
+  if (updatedInvite.requested_by_user_id) {
+    const { data: claimantRow } = await admin
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", updatedInvite.requested_by_user_id)
+      .maybeSingle();
+
+    if (claimantRow) {
+      claimant = { name: claimantRow.full_name, email: claimantRow.email };
+    }
+  }
+
+  return mapInvite(updatedInvite, null, claimant);
 }
 
 export async function startMemberDeactivationForCurrentUser(
@@ -741,7 +805,7 @@ async function mapTeamMembers(
   const profileIds = [...new Set(memberRows.map((member) => member.profile_id))];
   const { data: profileRows } = await supabase
     .from("profiles")
-    .select("id, full_name, email")
+    .select("id, full_name, email, ad_creation_enabled")
     .in("id", profileIds);
   let workspaceMembersQuery = supabase
     .from("workspace_members")
@@ -808,9 +872,64 @@ async function mapTeamMembers(
         status: member.status,
         createdAt: member.created_at,
         teamId: member.team_id,
-        teamName: teamsById.get(member.team_id)?.name ?? null
+        teamName: teamsById.get(member.team_id)?.name ?? null,
+        adCreationEnabled: Boolean(profile?.ad_creation_enabled)
       };
     });
+}
+
+// Membros que ja entraram na organizacao (workspace_members ativo) mas ainda
+// nao foram alocados em nenhuma equipe — tipicamente convidados recem-aprovados.
+// Sao expostos com teamId null para cair na coluna "Sem Equipe" do organizador.
+async function listUnassignedWorkspaceMembers(
+  supabase: ServerClient,
+  organizationId: string,
+  assignedMembers: TeamMember[]
+): Promise<TeamMember[]> {
+  const assignedProfileIds = new Set(assignedMembers.map((member) => member.profileId));
+
+  const { data: workspaceMemberRows, error } = await supabase
+    .from("workspace_members")
+    .select("*")
+    .eq("workspace_id", organizationId)
+    .eq("status", "active");
+
+  if (error) {
+    throw error;
+  }
+
+  const candidates = (workspaceMemberRows ?? []).filter(
+    (member) =>
+      !assignedProfileIds.has(member.user_id) && normalizeWorkspaceRole(member.role) !== "owner"
+  );
+
+  if (candidates.length === 0) {
+    return [];
+  }
+
+  const profileIds = candidates.map((member) => member.user_id);
+  const { data: profileRows } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, ad_creation_enabled")
+    .in("id", profileIds);
+  const profilesById = new Map((profileRows ?? []).map((profile) => [profile.id, profile]));
+
+  return candidates.map((member) => {
+    const profile = profilesById.get(member.user_id);
+
+    return {
+      id: `unassigned-${member.user_id}`,
+      profileId: member.user_id,
+      name: getProfileName(profile),
+      email: profile?.email ?? "sem-email@leadi.example",
+      role: normalizeWorkspaceRole(member.role),
+      status: "active",
+      createdAt: member.created_at,
+      teamId: null,
+      teamName: null,
+      adCreationEnabled: Boolean(profile?.ad_creation_enabled)
+    };
+  });
 }
 
 function getProfileName(profile?: Pick<ProfileRow, "full_name" | "email"> | null) {
@@ -821,7 +940,11 @@ function getProfileName(profile?: Pick<ProfileRow, "full_name" | "email"> | null
   return profile.full_name ?? profile.email.split("@")[0] ?? "Vendedor";
 }
 
-function mapInvite(invite: InviteRow, teamName: string | null = null): TeamInvite {
+function mapInvite(
+  invite: InviteRow,
+  teamName: string | null = null,
+  claimant: { name: string | null; email: string | null } | null = null
+): TeamInvite {
   return {
     id: invite.id,
     token: invite.token,
@@ -834,6 +957,9 @@ function mapInvite(invite: InviteRow, teamName: string | null = null): TeamInvit
     approvalStatus: invite.approval_status,
     approvedByUserId: invite.approved_by_user_id,
     invitedEmail: invite.invited_email ?? null,
+    requestedByUserId: invite.requested_by_user_id ?? null,
+    requestedByName: claimant?.name ?? null,
+    requestedByEmail: claimant?.email ?? null,
     createdAt: invite.created_at,
     expiresAt: invite.expires_at
   };
@@ -1320,7 +1446,40 @@ async function listTeamInvitesForCurrentUser(
     throw error;
   }
 
-  return (data ?? []).map((invite) => mapInvite(invite, teamsById.get(invite.team_id ?? "") ?? null));
+  const inviteRows = data ?? [];
+  const claimantIds = [
+    ...new Set(
+      inviteRows
+        .map((invite) => invite.requested_by_user_id)
+        .filter((value): value is string => Boolean(value))
+    )
+  ];
+
+  let claimantsById = new Map<string, Pick<ProfileRow, "id" | "full_name" | "email">>();
+  if (claimantIds.length > 0) {
+    // O reivindicante ainda nao e membro da org (convite pendente), entao o RLS
+    // do owner nao enxerga o perfil dele. Resolvemos nome/email pelo client admin.
+    // Escopo seguro: claimantIds vem apenas de convites desta workspace.
+    const { data: claimantRows } = hasSupabaseServiceRole()
+      ? await createSupabaseAdminClient()
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", claimantIds)
+      : await supabase.from("profiles").select("id, full_name, email").in("id", claimantIds);
+    claimantsById = new Map((claimantRows ?? []).map((profile) => [profile.id, profile]));
+  }
+
+  return inviteRows.map((invite) => {
+    const claimant = invite.requested_by_user_id
+      ? claimantsById.get(invite.requested_by_user_id) ?? null
+      : null;
+
+    return mapInvite(
+      invite,
+      teamsById.get(invite.team_id ?? "") ?? null,
+      claimant ? { name: claimant.full_name, email: claimant.email } : null
+    );
+  });
 }
 
 function buildTeamSetupTeams(teamRows: TeamRow[], membershipRows: TeamMemberRow[]): TeamSetupTeam[] {
@@ -1683,6 +1842,14 @@ export async function reassignTeamMember(input: {
     if (error) {
       throw new TeamAccessError(500, "Nao foi possivel reatribuir o membro.");
     }
+
+    // Avisa o supervisor da equipe-destino que o consultor entrou na equipe.
+    await notifyTeamSupervisorOfNewMember(
+      actor.supabase,
+      organizationId,
+      toTeamId,
+      profileId
+    );
   }
 
   await recordAuditLog({
@@ -1699,6 +1866,48 @@ export async function reassignTeamMember(input: {
       toTeamId
     }
   });
+}
+
+// Notifica o supervisor ativo da equipe-destino sobre o novo consultor. E
+// best-effort: qualquer falha aqui nao deve reverter a reatribuicao ja feita.
+async function notifyTeamSupervisorOfNewMember(
+  supabase: ServerClient,
+  organizationId: string,
+  teamId: string,
+  memberProfileId: string
+): Promise<void> {
+  try {
+    const { data: supervisorMembership } = await supabase
+      .from("team_members")
+      .select("profile_id")
+      .eq("organization_id", organizationId)
+      .eq("team_id", teamId)
+      .eq("role", "supervisor")
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+
+    const supervisorProfileId = supervisorMembership?.profile_id;
+
+    // Sem supervisor, ou o proprio supervisor sendo movido: nada a notificar.
+    if (!supervisorProfileId || supervisorProfileId === memberProfileId) {
+      return;
+    }
+
+    const [{ data: memberProfile }, { data: team }] = await Promise.all([
+      supabase.from("profiles").select("full_name, email").eq("id", memberProfileId).maybeSingle(),
+      supabase.from("teams").select("name").eq("id", teamId).maybeSingle()
+    ]);
+
+    await createTeamMemberAddedNotification({
+      organizationId,
+      recipientProfileId: supervisorProfileId,
+      memberName: getProfileName(memberProfile),
+      teamName: team?.name ?? "sua equipe"
+    });
+  } catch {
+    // Notificacao e best-effort: ignora falhas silenciosamente.
+  }
 }
 
 export async function promoteToSupervisorForCurrentUser(
@@ -1804,6 +2013,82 @@ export async function demoteSupervisorForCurrentUser(
     status: "success",
     metadata: { previousRole: "supervisor", newRole: "consultant" }
   });
+}
+
+/**
+ * Liga/desliga a permissão do consultor (seller) criar anúncios com IA na própria conta Meta.
+ * Apenas o owner pode alterar. Valida que o alvo é um consultor da mesma corretora.
+ */
+export async function setMemberAdCreationGrantForCurrentUser(input: {
+  targetProfileId: string;
+  enabled: boolean;
+}): Promise<void> {
+  const actor = await getCurrentTeamActor();
+  assertOwnerTeamAccess(actor.role);
+  const normalizedId = normalizeTargetProfileId(input.targetProfileId);
+
+  if (actor.mode === "not-configured") {
+    return;
+  }
+
+  // Validação de ownership/escopo via cliente do usuário (RLS). A escrita usa o admin
+  // porque o owner não pode atualizar a row de outro perfil pela RLS padrão.
+  const { data: target, error: targetError } = await actor.supabase
+    .from("profiles")
+    .select("id, role, organization_id")
+    .eq("id", normalizedId)
+    .eq("organization_id", actor.profile.organization_id)
+    .maybeSingle();
+
+  if (targetError) {
+    throw new TeamAccessError(500, "Nao foi possivel carregar o consultor.");
+  }
+
+  if (!target) {
+    throw new TeamAccessError(404, "Consultor nao encontrado nesta corretora.");
+  }
+
+  if (normalizeWorkspaceRole(target.role) !== "seller") {
+    throw new TeamAccessError(400, "Apenas consultores podem ser liberados para criar anuncios.");
+  }
+
+  if (!hasSupabaseServiceRole()) {
+    throw new TeamAccessError(503, "Operacao indisponivel: configuracao do servidor ausente.");
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { error: updateError } = await admin
+    .from("profiles")
+    .update({ ad_creation_enabled: input.enabled, updated_at: new Date().toISOString() })
+    .eq("id", normalizedId)
+    .eq("organization_id", actor.profile.organization_id);
+
+  if (updateError) {
+    throw new TeamAccessError(500, updateError.message);
+  }
+
+  await recordAuditLog({
+    organizationId: actor.profile.organization_id,
+    actorProfileId: actor.profile.id,
+    actorRole: actor.profile.role,
+    teamId: null,
+    action: input.enabled ? "member.ad_creation_grant" : "member.ad_creation_revoke",
+    targetType: "profile",
+    targetId: normalizedId,
+    status: "success",
+    metadata: { adCreationEnabled: input.enabled }
+  });
+
+  try {
+    await createAdCreationGrantNotification({
+      organizationId: actor.profile.organization_id,
+      recipientProfileId: normalizedId,
+      enabled: input.enabled
+    });
+  } catch (notifyError) {
+    // Notificação é best-effort; não falhar a liberação por causa dela.
+    console.error("Nao foi possivel notificar a liberacao de anuncios.", notifyError);
+  }
 }
 
 export async function changeTeamSupervisorForCurrentUser(

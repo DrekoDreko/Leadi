@@ -4,7 +4,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database, Json, MetaConnectionStatus } from "@/lib/supabase/database.types";
-import { normalizeWorkspaceRole } from "@/lib/workspaces/permissions";
+import { normalizeWorkspaceRole, canManageOwnMetaConnection } from "@/lib/workspaces/permissions";
 import { getDemoConnectedAccountsState } from "./demo";
 import {
   decryptIntegrationSecret,
@@ -43,6 +43,9 @@ type MutationIdentity = {
 type ConnectedAccountsLoadOptions = {
   includeOpenAIConnection: boolean;
   includeSyncLogs: boolean;
+  // null/undefined = visão da corretora (apenas conexões org-level, owner_profile_id IS NULL).
+  // string = visão do consultor (apenas a conexão pessoal dele).
+  ownerProfileId?: string | null;
 };
 
 const DEMO_STATE = getDemoConnectedAccountsState();
@@ -89,10 +92,19 @@ export async function getConnectedAccountsForCurrentUser(): Promise<ConnectedAcc
     return buildUnauthenticatedConnectedAccountsState();
   }
 
-  return loadConnectedAccountsState(identity, {
+  // Consultor liberado opera com a própria conexão Meta; demais usam a da corretora.
+  const canManageOwn = canManageOwnMetaConnection(
+    identity.profile.role,
+    identity.profile.ad_creation_enabled
+  );
+
+  const state = await loadConnectedAccountsState(identity, {
     includeOpenAIConnection: false,
-    includeSyncLogs: false
+    includeSyncLogs: false,
+    ownerProfileId: canManageOwn ? identity.profile.id : null
   });
+
+  return canManageOwn ? { ...state, canManageConnections: true } : state;
 }
 
 export async function getManagedConnectedAccountsForCurrentUser(): Promise<ConnectedAccountsState> {
@@ -110,6 +122,36 @@ export async function getManagedConnectedAccountsForCurrentUser(): Promise<Conne
     includeOpenAIConnection: true,
     includeSyncLogs: true
   });
+}
+
+/**
+ * Estado das contas conectadas do CONSULTOR (conexão Meta pessoal dele).
+ * Usado na página /dashboard/perfil/meta quando o consultor foi liberado pelo owner.
+ */
+export async function getOwnMetaConnectedAccountsForCurrentUser(): Promise<ConnectedAccountsState> {
+  if (!isSupabaseConfigured()) {
+    return DEMO_STATE;
+  }
+
+  const identity = await resolveCurrentIdentity();
+
+  if (!identity) {
+    return buildUnauthenticatedConnectedAccountsState();
+  }
+
+  const canManageOwn = canManageOwnMetaConnection(
+    identity.profile.role,
+    identity.profile.ad_creation_enabled
+  );
+
+  const state = await loadConnectedAccountsState(identity, {
+    includeOpenAIConnection: false,
+    includeSyncLogs: true,
+    ownerProfileId: identity.profile.id
+  });
+
+  // Na visão pessoal, "gerenciar" significa gerenciar a própria conexão.
+  return { ...state, canManageConnections: canManageOwn };
 }
 
 async function loadConnectedAccountsState(
@@ -177,15 +219,33 @@ async function loadConnectedAccountsState(
       );
     }
 
+    // Escopo: visão da corretora (owner_profile_id IS NULL) ou visão do consultor (== profileId).
+    const ownerProfileId = options.ownerProfileId ?? null;
+    const inScope = (row: { owner_profile_id?: string | null }) =>
+      ownerProfileId ? row.owner_profile_id === ownerProfileId : !row.owner_profile_id;
+
+    const scopedMetaConnections = (metaConnections.data ?? []).filter((row) =>
+      inScope(row as { owner_profile_id?: string | null })
+    );
+    const scopedMetaPages = (metaPages.data ?? []).filter((row) =>
+      inScope(row as { owner_profile_id?: string | null })
+    );
+    const scopedMetaAdAccounts = (metaAdAccounts.data ?? []).filter((row) =>
+      inScope(row as { owner_profile_id?: string | null })
+    );
+    const scopedMetaForms = (metaLeadForms.data ?? []).filter((row) =>
+      inScope(row as { owner_profile_id?: string | null })
+    );
+
     const metaConnection = mapMetaConnectionRow(
-      (metaConnections.data?.[0] ?? null) as unknown as MetaConnectionRow | null
+      (scopedMetaConnections[0] ?? null) as unknown as MetaConnectionRow | null
     );
     const openAiConnection = mapOpenAIConnectionRow(
       (openAIConnection.data ?? null) as unknown as OpenAIConnectionRow | null
     );
-    const mappedMetaPages = mapMetaPageRows(metaPages.data ?? []);
-    const mappedMetaAdAccounts = mapMetaAdAccountRows(metaAdAccounts.data ?? []);
-    const mappedMetaLeadForms = mapMetaLeadFormRows(metaLeadForms.data ?? [], mappedMetaPages);
+    const mappedMetaPages = mapMetaPageRows(scopedMetaPages);
+    const mappedMetaAdAccounts = mapMetaAdAccountRows(scopedMetaAdAccounts);
+    const mappedMetaLeadForms = mapMetaLeadFormRows(scopedMetaForms, mappedMetaPages);
     const mappedSyncLogs = mapSyncLogRows(syncLogs.data ?? []);
     const connectedAccounts = buildConnectedAccountSummaries(metaConnection, openAiConnection);
 
@@ -267,6 +327,7 @@ export async function resolveCurrentIdentity(): Promise<MutationIdentity | null>
 export async function resolveMetaOAuthStateIdentity(input: {
   profileId: string;
   organizationId: string;
+  scope?: "organization" | "personal";
 }): Promise<MutationIdentity | null> {
   if (!isSupabaseConfigured() || !hasSupabaseServiceRole()) {
     return null;
@@ -293,6 +354,12 @@ export async function resolveMetaOAuthStateIdentity(input: {
     canManageConnections: canManageConnections(profile, organization)
   };
 
+  // Conexão pessoal: consultor liberado conecta a própria conta Meta.
+  if (input.scope === "personal") {
+    return canManageOwnMetaConnection(profile.role, profile.ad_creation_enabled) ? identity : null;
+  }
+
+  // Conexão da corretora: somente owner/admin (canManageConnections).
   return identity.canManageConnections ? identity : null;
 }
 
@@ -306,6 +373,31 @@ export async function getMetaConnectionForOrganization(organizationId: string) {
     .from("meta_integrations")
     .select(PUBLIC_META_CONNECTION_COLUMNS)
     .eq("organization_id", organizationId)
+    .is("owner_profile_id", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return mapMetaConnectionRow(data as unknown as MetaConnectionRow);
+}
+
+/**
+ * Conexão Meta PESSOAL do consultor (owner_profile_id = profileId). Colunas públicas (sem token).
+ */
+export async function getMetaConnectionForProfile(profileId: string) {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("meta_integrations")
+    .select(PUBLIC_META_CONNECTION_COLUMNS)
+    .eq("owner_profile_id", profileId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -346,6 +438,28 @@ async function getMetaConnectionSecretForOrganization(organizationId: string) {
     .from("meta_integrations")
     .select("*")
     .eq("organization_id", organizationId)
+    .is("owner_profile_id", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
+}
+
+async function getMetaConnectionSecretForProfile(profileId: string) {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("meta_integrations")
+    .select("*")
+    .eq("owner_profile_id", profileId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -376,9 +490,9 @@ async function getOpenAIConnectionSecretForOrganization(organizationId: string) 
   return data;
 }
 
-export async function resolveMetaAccessTokenForOrganization(organizationId: string) {
-  const connection = await getMetaConnectionSecretForOrganization(organizationId);
-
+function decryptMetaConnectionToken(
+  connection: Database["public"]["Tables"]["meta_integrations"]["Row"] | null
+) {
   if (!connection) {
     return null;
   }
@@ -398,6 +512,17 @@ export async function resolveMetaAccessTokenForOrganization(organizationId: stri
   }
 
   return null;
+}
+
+export async function resolveMetaAccessTokenForOrganization(organizationId: string) {
+  return decryptMetaConnectionToken(await getMetaConnectionSecretForOrganization(organizationId));
+}
+
+/**
+ * Token de acesso da conexão Meta PESSOAL do consultor.
+ */
+export async function resolveMetaAccessTokenForProfile(profileId: string) {
+  return decryptMetaConnectionToken(await getMetaConnectionSecretForProfile(profileId));
 }
 
 export async function resolveOpenAIKeyForOrganization(organizationId: string) {
@@ -427,6 +552,7 @@ export async function resolveOpenAIKeyForOrganization(organizationId: string) {
 export async function saveMetaConnectionSnapshot(input: {
   organizationId: string;
   connectedByProfileId: string;
+  ownerProfileId?: string | null;
   accessToken: string;
   tokenExpiresAt?: string | null;
   metaUserId?: string | null;
@@ -451,6 +577,7 @@ export async function saveMetaConnectionSnapshot(input: {
     .upsert(
       {
         organization_id: input.organizationId,
+        owner_profile_id: input.ownerProfileId ?? null,
         connected_by_profile_id: input.connectedByProfileId,
         connected_at: connectedAt,
         expires_at: input.tokenExpiresAt ?? null,
@@ -469,7 +596,7 @@ export async function saveMetaConnectionSnapshot(input: {
         last_error: null
       },
       {
-        onConflict: "organization_id,meta_account_id"
+        onConflict: "organization_id,owner_profile_id,meta_account_id"
       }
     )
     .select("*")
@@ -489,6 +616,7 @@ export async function saveMetaConnectionSnapshot(input: {
 
 export async function markMetaConnectionDisconnected(input: {
   organizationId: string;
+  ownerProfileId?: string | null;
   lastError?: string | null;
 }) {
   if (!hasSupabaseServiceRole()) {
@@ -496,7 +624,7 @@ export async function markMetaConnectionDisconnected(input: {
   }
 
   const admin = createSupabaseAdminClient();
-  const { data, error } = await admin
+  let query = admin
     .from("meta_integrations")
     .update({
       connection_status: "disconnected",
@@ -504,7 +632,14 @@ export async function markMetaConnectionDisconnected(input: {
       last_error: input.lastError ?? null,
       expires_at: new Date().toISOString()
     })
-    .eq("organization_id", input.organizationId)
+    .eq("organization_id", input.organizationId);
+
+  // Conexão pessoal do consultor (owner_profile_id = profileId) vs. da corretora (NULL).
+  query = input.ownerProfileId
+    ? query.eq("owner_profile_id", input.ownerProfileId)
+    : query.is("owner_profile_id", null);
+
+  const { data, error } = await query
     .select("*")
     .order("created_at", { ascending: false })
     .limit(1)
@@ -545,6 +680,7 @@ export async function saveMetaAssetsSnapshot(input: {
     lastSyncAt?: string | null;
   }>;
   connectedByProfileId?: string | null;
+  ownerProfileId?: string | null;
 }) {
   if (!hasSupabaseServiceRole()) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY nao configurada.");
@@ -552,9 +688,11 @@ export async function saveMetaAssetsSnapshot(input: {
 
   const admin = createSupabaseAdminClient();
   const now = new Date().toISOString();
+  const ownerProfileId = input.ownerProfileId ?? null;
 
   const metaPageRows = input.pages.map((page) => ({
     organization_id: input.organizationId,
+    owner_profile_id: ownerProfileId,
     integration_id: input.connectedAccountId,
     connected_account_id: input.connectedAccountId,
     page_id: page.metaPageId,
@@ -566,6 +704,7 @@ export async function saveMetaAssetsSnapshot(input: {
 
   const adAccountRows = input.adAccounts.map((account) => ({
     organization_id: input.organizationId,
+    owner_profile_id: ownerProfileId,
     connected_account_id: input.connectedAccountId,
     meta_ad_account_id: account.metaAdAccountId,
     name: account.name,
@@ -577,7 +716,10 @@ export async function saveMetaAssetsSnapshot(input: {
 
   const pageConnectionMap = new Map<string, string>();
   const { data: insertedPages, error: pagesError } = metaPageRows.length
-    ? await admin.from("meta_pages").upsert(metaPageRows, { onConflict: "organization_id,page_id" }).select("*")
+    ? await admin
+        .from("meta_pages")
+        .upsert(metaPageRows, { onConflict: "organization_id,owner_profile_id,page_id" })
+        .select("*")
     : { data: [], error: null };
 
   if (pagesError) {
@@ -602,6 +744,7 @@ export async function saveMetaAssetsSnapshot(input: {
 
       return {
         organization_id: input.organizationId,
+        owner_profile_id: ownerProfileId,
         page_connection_id: pageConnectionId,
         connected_account_id: input.connectedAccountId,
         page_id: form.pageId,
@@ -615,7 +758,9 @@ export async function saveMetaAssetsSnapshot(input: {
   );
 
   const { error: adAccountsError } = adAccountRows.length
-    ? await admin.from("meta_ad_accounts").upsert(adAccountRows, { onConflict: "organization_id,meta_ad_account_id" })
+    ? await admin
+        .from("meta_ad_accounts")
+        .upsert(adAccountRows, { onConflict: "organization_id,owner_profile_id,meta_ad_account_id" })
     : { error: null };
 
   if (adAccountsError) {
@@ -623,7 +768,9 @@ export async function saveMetaAssetsSnapshot(input: {
   }
 
   const { error: formsError } = formsToUpsert.length
-    ? await admin.from("meta_forms").upsert(formsToUpsert, { onConflict: "organization_id,form_id" })
+    ? await admin
+        .from("meta_forms")
+        .upsert(formsToUpsert, { onConflict: "organization_id,owner_profile_id,form_id" })
     : { error: null };
 
   if (formsError) {

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, Link2 } from "lucide-react";
+import { CheckCircle2, Clock, Link2, Loader2 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { discardRejectedInviteAccountForCurrentUser } from "@/lib/workspaces/invite-rejection.server";
+import { PendingApprovalRefresh } from "./pending-refresh";
 
 type InvitePageProps = {
   params: Promise<{
@@ -27,25 +29,41 @@ export default async function InvitePage({ params }: InvitePageProps) {
     redirect(`/login?next=/invite/${encodeURIComponent(token)}&mode=signup`);
   }
 
-  // Se a conta foi recem-criada (nos ultimos 5 minutos) a partir do fluxo de convite,
-  // marcamos o perfil como configurado para que o consultor/supervisor pule direto para o dashboard
-  // em vez de cair na tela de escolha de plano (onboarding), mesmo se o convite estiver pendente.
-  const isNewAccount = new Date(user.created_at).getTime() > Date.now() - 5 * 60 * 1000;
-  if (isNewAccount) {
-    await supabase.from("profiles").update({ profile_setup_completed: true }).eq("auth_user_id", user.id);
-  }
-
   const { error } = await supabase
     .rpc("accept_workspace_invite", { invite_token: token })
     .single();
 
   if (error) {
+    const isPending = error.message.includes("pendente de aprovacao");
+    const isRejected = error.message.includes("Convite rejeitado");
+
+    // Convite pendente de aprovacao: registramos o convidado como reivindicante
+    // (para o gestor saber quem aprovar) e marcamos o perfil como configurado,
+    // de modo que ele pule o onboarding de planos enquanto aguarda a liberacao.
+    // Isso fica restrito a contas que de fato reivindicam um convite real.
+    if (isPending) {
+      await supabase.rpc("claim_workspace_invite", { invite_token: token });
+    }
+
+    // Convite rejeitado: apaga a conta avulsa que o convidado criou so para
+    // entrar na equipe (libera o email para um novo convite) e o devolve ao
+    // fluxo de criar uma conta sem equipe. Contas reais nao sao apagadas.
+    if (isRejected) {
+      const { deleted } = await discardRejectedInviteAccountForCurrentUser(token);
+
+      if (deleted) {
+        await supabase.auth.signOut().catch(() => undefined);
+        redirect("/login?mode=signup&notice=invite-rejected");
+      }
+    }
+
     const errorCopy = getInviteErrorCopy(error.message);
 
     return (
       <InviteMessage
         title={errorCopy.title}
         message={errorCopy.message}
+        pending={isPending}
       />
     );
   }
@@ -63,23 +81,41 @@ export default async function InvitePage({ params }: InvitePageProps) {
   redirect("/dashboard");
 }
 
-function InviteMessage({ title, message }: { title: string; message: string }) {
+function InviteMessage({
+  title,
+  message,
+  pending = false
+}: {
+  title: string;
+  message: string;
+  pending?: boolean;
+}) {
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="glass-strong w-full max-w-xl rounded-[34px] p-6 sm:p-8">
         <BrandMark />
         <div className="mt-10 flex h-12 w-12 items-center justify-center rounded-full bg-lagoon text-white">
-          <Link2 size={21} aria-hidden="true" />
+          {pending ? <Clock size={21} aria-hidden="true" /> : <Link2 size={21} aria-hidden="true" />}
         </div>
         <h1 className="mt-6 text-3xl font-semibold">{title}</h1>
         <p className="mt-4 leading-7 text-ink/62">{message}</p>
-        <Link
-          className="mt-8 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
-          href="/dashboard"
-        >
-          <CheckCircle2 size={17} aria-hidden="true" />
-          Ir para o dashboard
-        </Link>
+        {pending ? (
+          <>
+            <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-ink/8 px-5 py-3 text-sm font-semibold text-ink/70">
+              <Loader2 size={17} className="animate-spin" aria-hidden="true" />
+              Aguardando aprovacao do gestor
+            </div>
+            <PendingApprovalRefresh />
+          </>
+        ) : (
+          <Link
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-cloud"
+            href="/dashboard"
+          >
+            <CheckCircle2 size={17} aria-hidden="true" />
+            Ir para o dashboard
+          </Link>
+        )}
       </section>
     </main>
   );

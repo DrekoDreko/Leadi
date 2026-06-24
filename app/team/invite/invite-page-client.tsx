@@ -193,6 +193,9 @@ export function InvitePageClient({
           approvalStatus: result.approvalStatus,
           approvedByUserId: null,
           invitedEmail: result.invitedEmail,
+          requestedByUserId: null,
+          requestedByName: null,
+          requestedByEmail: null,
           createdAt: new Date().toISOString(),
           expiresAt: result.expiresAt
         };
@@ -751,8 +754,24 @@ export function InvitePageClient({
                 {invite.teamName ? (
                   <p className="mt-2 text-xs text-ink/54">Equipe: {invite.teamName}</p>
                 ) : null}
+                {currentRole === "owner" && isAwaitingClaim(invite) ? (
+                  <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
+                    Aguardando o convidado criar a conta.
+                  </p>
+                ) : null}
                 {currentRole === "owner" && isPendingInviteReview(invite) ? (
                   <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
+                    {invite.requestedByName || invite.requestedByEmail ? (
+                      <p className="w-full text-xs text-muted-foreground">
+                        Solicitado por{" "}
+                        <span className="font-semibold text-foreground">
+                          {invite.requestedByName ?? invite.requestedByEmail}
+                        </span>
+                        {invite.requestedByName && invite.requestedByEmail ? (
+                          <span> · {invite.requestedByEmail}</span>
+                        ) : null}
+                      </p>
+                    ) : null}
                     <button
                       className="inline-flex items-center gap-2 rounded-full bg-cobalt px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
                       disabled={reviewingInviteId === invite.id}
@@ -807,8 +826,19 @@ function getStatusBadgeClass(invite: TeamInvite) {
   return "bg-surface-elevated text-ink/72";
 }
 
-function isPendingInviteReview(invite: TeamInvite) {
+function isAwaitingApproval(invite: TeamInvite) {
   return invite.requiresApproval && invite.approvalStatus === "pending" && invite.status === "active";
+}
+
+// So e revisavel (Aprovar/Rejeitar) depois que alguem reivindicou o convite,
+// ou seja, criou a conta a partir do link.
+function isPendingInviteReview(invite: TeamInvite) {
+  return isAwaitingApproval(invite) && Boolean(invite.requestedByUserId);
+}
+
+// Pendente, mas ainda sem ninguem que tenha criado a conta a partir do link.
+function isAwaitingClaim(invite: TeamInvite) {
+  return isAwaitingApproval(invite) && !invite.requestedByUserId;
 }
 
 function useAbsoluteInviteUrl(invitePath: string) {

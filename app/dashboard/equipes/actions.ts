@@ -10,7 +10,8 @@ import {
   updateTeamForCurrentUser,
   promoteToSupervisorForCurrentUser,
   demoteSupervisorForCurrentUser,
-  changeTeamSupervisorForCurrentUser
+  changeTeamSupervisorForCurrentUser,
+  setMemberAdCreationGrantForCurrentUser
 } from "@/lib/workspaces/team";
 import { getCurrentWorkspaceContext } from "@/lib/workspaces/context";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -170,6 +171,33 @@ export async function promoteMemberAction(formData: FormData) {
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro ao promover membro.";
+    return { error: message };
+  }
+}
+
+export async function setMemberAdCreationGrantAction(formData: FormData) {
+  const context = await getCurrentWorkspaceContext();
+
+  if (!context.isOwner || !context.workspace?.id) {
+    return { error: "Apenas o gestor pode liberar a criação de anúncios." };
+  }
+
+  const parsedProfile = parseUuid(formData.get("profileId"));
+  if (!parsedProfile.success) {
+    return { error: "Membro não informado." };
+  }
+
+  const enabled = formData.get("enabled") === "true";
+
+  try {
+    await setMemberAdCreationGrantForCurrentUser({
+      targetProfileId: parsedProfile.data,
+      enabled
+    });
+    revalidatePath("/dashboard/equipes");
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro ao atualizar a liberação.";
     return { error: message };
   }
 }

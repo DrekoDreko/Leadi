@@ -50,9 +50,12 @@ export default async function CriacoesPage() {
   const aiAllowed = context.canUseAi;
   const availablePrimary = primaryCreations.filter((item) => aiAllowed || !item.ai);
 
-  // Consultor só acessa a solicitação de criativo (sem IA Gerador nem validadores).
+  // Consultor liberado pelo owner cria anúncios na própria conta Meta, então vê o gerador
+  // de campanha + seus anúncios. Consultor sem liberação só acessa a solicitação de criativo.
   const visiblePrimary = isConsultant
-    ? availablePrimary.filter((item) => item.title === "IA Gerador de Criativo")
+    ? context.canCreateAd
+      ? availablePrimary
+      : availablePrimary.filter((item) => item.title === "IA Gerador de Criativo")
     : context.isOwner
       ? availablePrimary
       : availablePrimary.filter((item) => item.title !== "Anúncios criados");
@@ -64,7 +67,9 @@ export default async function CriacoesPage() {
         title="Novas Criações"
         description={
           isConsultant
-            ? "Abra aqui a sua solicitacao de criativo para a equipe de operacao."
+            ? context.canCreateAd
+              ? "Crie anúncios com IA na sua própria conta Meta e acompanhe seus resultados."
+              : "Abra aqui a sua solicitacao de criativo para a equipe de operacao."
             : context.isOwner
               ? "Este e o hub de criação do Leadi: Crie campanhas, criativos e obtenha suporte."
               : "Crie campanhas e solicite criativos para a operacao."

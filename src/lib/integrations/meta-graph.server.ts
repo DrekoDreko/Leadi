@@ -166,6 +166,7 @@ export async function exchangeMetaOAuthCode(input: {
 export async function syncMetaOrganizationAssets(input: {
   organizationId: string;
   connectedByProfileId: string;
+  ownerProfileId?: string | null;
   accessToken: string;
   metaUserId?: string | null;
   metaUserName?: string | null;
@@ -181,6 +182,7 @@ export async function syncMetaOrganizationAssets(input: {
   const connection = await saveMetaConnectionSnapshot({
     organizationId: input.organizationId,
     connectedByProfileId: input.connectedByProfileId,
+    ownerProfileId: input.ownerProfileId ?? null,
     accessToken: input.accessToken,
     metaUserId: input.metaUserId ?? null,
     metaUserName: input.metaUserName ?? null,
@@ -200,7 +202,8 @@ export async function syncMetaOrganizationAssets(input: {
     pages,
     adAccounts,
     leadForms,
-    connectedByProfileId: input.connectedByProfileId
+    connectedByProfileId: input.connectedByProfileId,
+    ownerProfileId: input.ownerProfileId ?? null
   });
 
   await recordIntegrationSyncLog({

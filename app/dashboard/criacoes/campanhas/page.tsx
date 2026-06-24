@@ -14,7 +14,8 @@ import { CampaignGenerator } from "../../campanhas/campaign-generator";
 export default async function CriacoesCampanhasPage() {
   // requireAiFeature redireciona planos sem IA (ex.: Essencial) para o dashboard.
   const context = await requireAiFeature();
-  if (context.isTeamSeller) {
+  // Consultor sem liberação não cria campanha; o liberado pelo owner cria na própria conta.
+  if (context.isTeamSeller && !context.canCreateAd) {
     redirect("/dashboard/criacoes");
   }
   const [
