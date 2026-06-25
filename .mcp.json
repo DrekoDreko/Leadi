@@ -3,6 +3,13 @@
     "vercel": {
       "type": "http",
       "url": "https://mcp.vercel.com"
+    },
+    "abacatepay": {
+      "type": "http",
+      "url": "https://mcp.abacatepay.com/mcp",
+      "headers": {
+        "X-API-Key": "${ABACATE_PAY_API_KEY}"
+      }
     }
   }
 }

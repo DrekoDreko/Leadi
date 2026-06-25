@@ -89,7 +89,12 @@ export type BillingSnapshot = {
 };
 
 export function createBillingAdminClient() {
-  requireIntegrationEnv("billing");
+  // Este cliente apenas fala com o Supabase (URL + service role). A chave do
+  // gateway de pagamento NAO e usada aqui — ela e validada em
+  // `abacatePayRequest` e nas rotas que de fato cobram. Exigir a integracao
+  // "billing" inteira aqui quebrava o modo de simulacao (BILLING_DISABLED),
+  // que precisa criar a assinatura no banco sem nenhuma chave do AbacatePay.
+  requireIntegrationEnv("supabase_admin");
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
