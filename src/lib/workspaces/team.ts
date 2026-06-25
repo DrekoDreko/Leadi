@@ -2035,7 +2035,7 @@ export async function setMemberAdCreationGrantForCurrentUser(input: {
   // porque o owner não pode atualizar a row de outro perfil pela RLS padrão.
   const { data: target, error: targetError } = await actor.supabase
     .from("profiles")
-    .select("id, role, organization_id")
+    .select("id, role, organization_id, ad_creation_enabled")
     .eq("id", normalizedId)
     .eq("organization_id", actor.profile.organization_id)
     .maybeSingle();
@@ -2050,6 +2050,12 @@ export async function setMemberAdCreationGrantForCurrentUser(input: {
 
   if (normalizeWorkspaceRole(target.role) !== "seller") {
     throw new TeamAccessError(400, "Apenas consultores podem ser liberados para criar anuncios.");
+  }
+
+  // Idempotente: se ja esta no estado desejado, nao reescreve nem notifica de novo.
+  // Sem isso, clicar "liberar" duas vezes gera notificacoes duplicadas no sino do consultor.
+  if (Boolean(target.ad_creation_enabled) === input.enabled) {
+    return;
   }
 
   if (!hasSupabaseServiceRole()) {

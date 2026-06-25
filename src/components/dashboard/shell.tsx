@@ -599,6 +599,7 @@ export function DashboardShell({
                           const approved = notification.type === "campaign_approved";
                           const isInvitePending = notification.type === "invite_pending";
                           const isTeamMemberAdded = notification.type === "team_member_added";
+                          const isAdCreation = notification.type === "ad_creation_enabled";
                           return (
                             <li key={notification.id}>
                               <div
@@ -611,13 +612,15 @@ export function DashboardShell({
                                     className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                                       approved
                                         ? "bg-emerald-500/12 text-emerald-700"
-                                        : isInvitePending || isTeamMemberAdded
+                                        : isInvitePending || isTeamMemberAdded || isAdCreation
                                           ? "bg-cobalt/12 text-cobalt"
                                           : "bg-red-500/12 text-red-600"
                                     }`}
                                   >
                                     {approved ? (
                                       <CheckCircle2 size={11} aria-hidden="true" />
+                                    ) : isAdCreation ? (
+                                      <Megaphone size={11} aria-hidden="true" />
                                     ) : isTeamMemberAdded ? (
                                       <UserPlus size={11} aria-hidden="true" />
                                     ) : isInvitePending ? (
@@ -627,11 +630,13 @@ export function DashboardShell({
                                     )}
                                     {approved
                                       ? "Aprovado"
-                                      : isTeamMemberAdded
-                                        ? "Equipe"
-                                        : isInvitePending
-                                          ? "Pendente"
-                                          : "Reprovado"}
+                                      : isAdCreation
+                                        ? "Anúncios"
+                                        : isTeamMemberAdded
+                                          ? "Equipe"
+                                          : isInvitePending
+                                            ? "Pendente"
+                                            : "Reprovado"}
                                   </span>
                                   {notification.readAt || notification.type === "invite_pending" ? null : (
                                     <button
@@ -668,6 +673,11 @@ export function DashboardShell({
                                       <>
                                         <LinkIcon size={12} aria-hidden="true" />
                                         Ver equipe
+                                      </>
+                                    ) : isAdCreation ? (
+                                      <>
+                                        <LinkIcon size={12} aria-hidden="true" />
+                                        Conectar Meta
                                       </>
                                     ) : (
                                       <>
