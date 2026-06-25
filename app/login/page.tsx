@@ -22,6 +22,10 @@ function getNoticeMessage(notice?: string) {
     return "Seu convite foi rejeitado pelo gestor e a conta de acesso foi removida. Crie uma nova conta para continuar.";
   }
 
+  if (notice === "password-updated") {
+    return "Senha redefinida com sucesso. Faça login com a sua nova senha.";
+  }
+
   return null;
 }
 

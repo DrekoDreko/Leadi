@@ -28,6 +28,10 @@ export const ENV_VARIABLES = {
     description: "Chave anonima do Supabase usada por auth e client SDK.",
     public: true
   },
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: {
+    description: "Site key publica do Cloudflare Turnstile (captcha) no login, cadastro e redefinicao de senha.",
+    public: true
+  },
   SUPABASE_SERVICE_ROLE_KEY: {
     description: "Chave administrativa do Supabase para operacoes server-side e MCP local.",
     public: false

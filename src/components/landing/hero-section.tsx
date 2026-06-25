@@ -6,7 +6,7 @@ import { WHATSAPP_DEMO_URL } from "@/data/site-links";
 
 export function HeroSection() {
   return (
-    <section className="relative px-4 pb-16 pt-28 md:pt-36" id="inicio">
+    <section className="relative px-4 pb-24 pt-28 md:pt-36" id="inicio">
       <div className="section-shell">
         <div className="mx-auto max-w-4xl text-center">
           <p className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-white/52 dark:bg-white/10 px-4 py-2 text-xs font-semibold text-cobalt shadow-soft backdrop-blur-xl">

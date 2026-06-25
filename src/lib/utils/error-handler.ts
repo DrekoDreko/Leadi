@@ -22,7 +22,15 @@ const ERROR_MAP: Record<string, string> = {
   "supabase-not-configured": "O sistema está em modo de demonstração. Algumas funções de banco de dados podem estar limitadas.",
   "too-many-requests": "Muitas tentativas em pouco tempo. Aguarde um instante e tente novamente.",
   "User already registered": "Este e-mail já está cadastrado. Tente fazer login ou recupere sua senha.",
+  "email-already-registered": "Este e-mail já está cadastrado. Tente fazer login ou recupere sua senha.",
   "Invalid login credentials": "E-mail ou senha incorretos.",
+  "disposable-email": "Use um e-mail permanente. Endereços temporários ou descartáveis não são aceitos no cadastro.",
+  "invalid-email-domain": "Não conseguimos validar o domínio do seu e-mail. Confira se digitou corretamente.",
+  "weak-password": "Senha fraca. Use ao menos 8 caracteres com letras e números e evite senhas comuns ou que já vazaram.",
+  "captcha-failed": "Não foi possível validar o desafio de segurança. Recarregue a página e tente novamente.",
+  "reset-link-invalid": "Seu link de redefinição expirou ou é inválido. Solicite um novo abaixo.",
+  "password-mismatch": "As senhas não coincidem. Digite a mesma senha nos dois campos.",
+  "reset-update-failed": "Não foi possível redefinir sua senha agora. Tente novamente em instantes.",
   
   // Database / Supabase Errors
   "PGRST116": "O registro solicitado não foi encontrado.",

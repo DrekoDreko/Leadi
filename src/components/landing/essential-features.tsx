@@ -63,7 +63,7 @@ const features: FeatureCard[] = [
 export function EssentialFeatures() {
   return (
     <section className="section-shell pb-24" id="recursos">
-      <div className="mb-12 max-w-3xl text-center md:text-left">
+      <div className="mb-12 max-w-3xl mx-auto text-center">
         <p className="mb-3 text-sm font-semibold text-cobalt uppercase tracking-wider">Recursos essenciais</p>
         <h2 className="text-3xl font-semibold leading-[1.1] tracking-tight text-ink dark:text-cloud md:text-5xl">
           Tudo em um único fluxo comercial

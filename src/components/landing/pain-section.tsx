@@ -17,7 +17,7 @@ const withLeadi = [
 export function PainSection() {
   return (
     <section className="section-shell px-4 pb-24" id="problema">
-      <div className="mb-12 max-w-3xl">
+      <div className="mb-12 max-w-3xl mx-auto text-center">
         <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-cobalt">O problema real</p>
         <h2 className="text-3xl font-semibold leading-[1.1] tracking-tight text-ink dark:text-cloud md:text-5xl">
           Seu anúncio pode até gerar leads. O problema começa depois.

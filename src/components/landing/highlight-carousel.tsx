@@ -486,10 +486,10 @@ export function HighlightCarousel() {
   };
 
   return (
-    <section className="relative overflow-hidden py-24" id="como-funciona">
+    <section className="relative overflow-hidden pb-24" id="como-funciona">
       {/* Header aligned with section-shell */}
       <div className="section-shell">
-        <div className="max-w-4xl px-4">
+        <div className="mx-auto max-w-4xl px-4 text-center">
           <h2 className="mb-12 text-3.5xl sm:text-4xl md:text-5.5xl font-bold tracking-tight text-ink dark:text-cloud leading-[1.06]">
             Crie, capture e acompanhe.
           </h2>

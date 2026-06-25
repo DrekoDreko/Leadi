@@ -65,7 +65,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 export function FAQSection() {
   return (
     <section className="section-shell pb-24" id="faq">
-      <div className="mb-12 max-w-2xl">
+      <div className="mb-12 max-w-2xl mx-auto text-center">
         <p className="mb-3 text-sm font-medium text-cobalt uppercase tracking-wider">Dúvidas frequentes</p>
         <h2 className="text-3xl font-semibold leading-tight text-ink md:text-4xl">
           Perguntas sobre o Leadi
