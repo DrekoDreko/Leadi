@@ -72,7 +72,7 @@ export function TeamOrganizerWorkspace({
 }: TeamOrganizerWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>("organizar");
   const [members, setMembers] = useState(initialMembers);
-  const [deactivatedMembers, setDeactivatedMembers] = useState(initialDeactivatedMembers);
+  const [deactivatedMembers] = useState(initialDeactivatedMembers);
   const [wallets, setWallets] = useState(initialWallets);
   const [draggedProfileId, setDraggedProfileId] = useState<string | null>(null);
   const [activeDropTeamId, setActiveDropTeamId] = useState<string | null>(null);
@@ -719,7 +719,6 @@ function KanbanBoard({
 function KanbanColumn({
   title,
   subtitle,
-  teamId,
   team,
   supervisor,
   members,

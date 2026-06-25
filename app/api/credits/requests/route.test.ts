@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "./route";
 import { createCreditRequest, listCreditRequests } from "@/lib/ai/credit-requests.server";
 import { parseJsonBody } from "@/lib/api/route-security";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 vi.mock("@/lib/api/route-security", () => ({
   assertRouteRateLimit: vi.fn(),
@@ -65,7 +64,7 @@ describe("Credit Requests API - /api/credits/requests", () => {
 
       const request = new Request("http://localhost:3000/api/credits/requests");
       const response = await GET(request);
-      const data = await response.json();
+      await response.json();
 
       // Ajuste para 403 se a rota mapear corretamente ou 500 se fallback
       expect(response.status).toBe(403);

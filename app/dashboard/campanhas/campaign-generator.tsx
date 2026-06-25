@@ -16,7 +16,6 @@ import {
   FileImage,
   FileText,
   ImagePlus,
-  Info,
   Loader2,
   Paperclip,
   Rocket,

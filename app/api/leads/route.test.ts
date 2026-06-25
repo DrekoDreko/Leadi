@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GET, PATCH, POST } from './route';
+import { GET, POST } from './route';
 import {
-  assignLeadOwnersInBulkForCurrentUser,
   createLeadForCurrentUser,
   getLeadsForCurrentUser
 } from '@/lib/leads/repository.server';

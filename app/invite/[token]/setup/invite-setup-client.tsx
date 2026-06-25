@@ -10,7 +10,7 @@ type InviteSetupClientProps = {
   token: string;
 };
 
-export function InviteSetupClient({ role, token }: InviteSetupClientProps) {
+export function InviteSetupClient({ role }: InviteSetupClientProps) {
   const [fullName, setFullName] = useState("");
   const [teamName, setTeamName] = useState("");
   const [error, setError] = useState<string | null>(null);

@@ -47,7 +47,6 @@ export function InvitePageClient({
   currentRole,
   inviteAccess,
   invites: initialInvites,
-  teams,
   workspaceType,
   billingDisabled
 }: InvitePageClientProps) {

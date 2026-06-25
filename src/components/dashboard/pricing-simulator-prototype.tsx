@@ -3,12 +3,10 @@
 import { useState } from "react";
 import { 
   Calculator, 
-  Plus, 
-  Minus, 
-  Check, 
+  Plus,
+  Minus,
   CheckCircle2,
-  Info, 
-  Sparkles, 
+  Sparkles,
   ArrowRight,
   ShieldCheck,
   Zap,
@@ -66,7 +64,7 @@ export function PricingSimulatorPrototype({
 
   // Estado do modal/toast de "Em breve"
   const [showNotification, setShowNotification] = useState(false);
-  const [interestedCount, setInterestedCount] = useState(0);
+  const [, setInterestedCount] = useState(0);
   const [voted, setVoted] = useState(false);
 
   // Manipuladores de quantidade de beneficiários
