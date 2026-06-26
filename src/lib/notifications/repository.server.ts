@@ -2,7 +2,10 @@ import "server-only";
 
 import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCurrentIdentity } from "@/lib/integrations/repository.server";
+import {
+  getMetaConnectionForOrganization,
+  resolveCurrentIdentity
+} from "@/lib/integrations/repository.server";
 import type { NotificationItem, NotificationListState, NotificationType } from "./types";
 
 type NotificationRow = {
@@ -56,6 +59,31 @@ export async function getNotificationsForCurrentUser(limit = 30): Promise<Notifi
   }
 
   let rows = ((data as NotificationRow[] | null) ?? []).map(mapRow);
+
+  // Convite para conectar a Meta: quem gerencia a conexao da corretora (owner/solo)
+  // ainda nao consegue criar anuncios sem uma conta Meta conectada. Geramos uma
+  // notificacao sintetica (sem linha no banco) que some sozinha apos conectar.
+  if (identity.canManageConnections) {
+    const metaConnection = await getMetaConnectionForOrganization(identity.organization.id).catch(
+      () => null
+    );
+
+    if (!metaConnection || metaConnection.status !== "connected") {
+      rows = [
+        {
+          id: "meta-connection-required",
+          type: "meta_connection_required",
+          title: "Conecte sua conta Meta ao Leadi",
+          body: "Configure sua conta Meta para começar a criar anúncios e captar leads automaticamente.",
+          linkUrl: "/dashboard/perfil/meta",
+          campaignId: null,
+          readAt: null,
+          createdAt: new Date().toISOString()
+        },
+        ...rows
+      ];
+    }
+  }
 
   if (identity.profile.role === "owner") {
     // So notificamos quando ha um convidado que reivindicou o convite (criou a

@@ -1567,7 +1567,7 @@ function CampaignPublishModeStep({
             <div>
               <p className="font-semibold text-foreground">Categoria Especial de Anuncio</p>
               <p className="mt-1">
-                Anuncios de planos de saude sao classificados como <strong>Categoria Especial (Credito/Seguros)</strong> pela Meta.
+                Anuncios de planos de saude sao classificados como <strong>Categoria Especial (Produtos e servicos financeiros)</strong> pela Meta.
                 Restricoes de targeting serao aplicadas automaticamente: sem filtro por idade, genero ou CEP; raio minimo de 25 km.
               </p>
             </div>

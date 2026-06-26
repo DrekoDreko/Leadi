@@ -139,15 +139,18 @@ export function OnboardingInvites() {
         </div>
       )}
 
+      {/* O cliente ainda nao conectou a conta Meta, entao seguimos para o dashboard
+          (e nao para a criacao de anuncio). La uma notificacao no sino convida a
+          conectar a Meta antes de criar anuncios. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/dashboard/criacoes/campanhas" className="text-sm font-semibold text-muted-soft hover:text-foreground">
+        <Link href="/dashboard" className="text-sm font-semibold text-muted-soft hover:text-foreground">
           Pular por agora
         </Link>
         <Link
-          href="/dashboard/criacoes/campanhas"
+          href="/dashboard"
           className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition hover:-translate-y-0.5"
         >
-          Continuar para criar anuncio
+          Ir para o painel
           <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </div>

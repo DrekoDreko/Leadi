@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Ban, Bell, Check, CheckCircle2, Clock, Loader2, LogOut, Megaphone, Plus, Search, UserPlus, X, Link as LinkIcon } from "lucide-react";
+import { Ban, Bell, Check, CheckCircle2, Clock, Loader2, LogOut, Megaphone, Plug, Plus, Search, UserPlus, X, Link as LinkIcon } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
 import { DashboardBillingNoticeProvider } from "@/components/billing/billing-notice-context";
 import { BrandMark } from "@/components/brand-mark";
@@ -600,6 +600,9 @@ export function DashboardShell({
                           const isInvitePending = notification.type === "invite_pending";
                           const isTeamMemberAdded = notification.type === "team_member_added";
                           const isAdCreation = notification.type === "ad_creation_enabled";
+                          const isMetaConnection = notification.type === "meta_connection_required";
+                          // Sinteticas (sem linha no banco) nao podem ser marcadas como lidas.
+                          const isSynthetic = isInvitePending || isMetaConnection;
                           return (
                             <li key={notification.id}>
                               <div
@@ -612,13 +615,15 @@ export function DashboardShell({
                                     className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                                       approved
                                         ? "bg-emerald-500/12 text-emerald-700"
-                                        : isInvitePending || isTeamMemberAdded || isAdCreation
+                                        : isInvitePending || isTeamMemberAdded || isAdCreation || isMetaConnection
                                           ? "bg-cobalt/12 text-cobalt"
                                           : "bg-red-500/12 text-red-600"
                                     }`}
                                   >
                                     {approved ? (
                                       <CheckCircle2 size={11} aria-hidden="true" />
+                                    ) : isMetaConnection ? (
+                                      <Plug size={11} aria-hidden="true" />
                                     ) : isAdCreation ? (
                                       <Megaphone size={11} aria-hidden="true" />
                                     ) : isTeamMemberAdded ? (
@@ -630,15 +635,17 @@ export function DashboardShell({
                                     )}
                                     {approved
                                       ? "Aprovado"
-                                      : isAdCreation
-                                        ? "Anúncios"
-                                        : isTeamMemberAdded
-                                          ? "Equipe"
-                                          : isInvitePending
-                                            ? "Pendente"
-                                            : "Reprovado"}
+                                      : isMetaConnection
+                                        ? "Conexão"
+                                        : isAdCreation
+                                          ? "Anúncios"
+                                          : isTeamMemberAdded
+                                            ? "Equipe"
+                                            : isInvitePending
+                                              ? "Pendente"
+                                              : "Reprovado"}
                                   </span>
-                                  {notification.readAt || notification.type === "invite_pending" ? null : (
+                                  {notification.readAt || isSynthetic ? null : (
                                     <button
                                       onClick={() => handleMarkNotificationRead(notification.id)}
                                       className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-muted-foreground transition hover:bg-surface-elevated"
@@ -663,16 +670,21 @@ export function DashboardShell({
                                     href={getHref(notification.linkUrl)}
                                     onClick={() => {
                                       setIsNotificationsOpen(false);
-                                      if (!notification.readAt && notification.type !== "invite_pending") {
+                                      if (!notification.readAt && !isSynthetic) {
                                         void handleMarkNotificationRead(notification.id);
                                       }
                                     }}
                                     className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-cobalt hover:underline"
                                   >
-                                    {notification.type === "invite_pending" ? (
+                                    {isInvitePending ? (
                                       <>
                                         <LinkIcon size={12} aria-hidden="true" />
                                         Ver equipe
+                                      </>
+                                    ) : isMetaConnection ? (
+                                      <>
+                                        <Plug size={12} aria-hidden="true" />
+                                        Conectar Meta
                                       </>
                                     ) : isAdCreation ? (
                                       <>

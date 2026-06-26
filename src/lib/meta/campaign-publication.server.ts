@@ -107,12 +107,14 @@ type MetaMarketingPublicationResult = {
 
 const REQUIRED_MARKETING_PERMISSION = "ads_management";
 
-// Planos de saude sao Categoria Especial de Anuncio na Meta (Credito/Seguros).
-// Declarar a categoria e obrigatorio para nao haver rejeicao/ma-classificacao e
-// impoe restricoes de targeting: sem filtro de idade/genero/CEP e raio minimo de
-// 25 km por cidade (ver buildTargeting/resolveGeoLocations). Se a Meta recusar
-// este valor, o erro retornado lista os validos para a conta.
-const META_SPECIAL_AD_CATEGORY = "CREDIT";
+// Planos de saude sao Categoria Especial de Anuncio na Meta (Produtos e servicos
+// financeiros). Declarar a categoria e obrigatorio para nao haver rejeicao/
+// ma-classificacao e impoe restricoes de targeting: sem filtro de idade/genero/CEP
+// e raio minimo de 25 km por cidade (ver buildTargeting/resolveGeoLocations).
+// A Meta descontinuou a categoria "CREDIT" (subcode 2909060) e agora exige
+// "FINANCIAL_PRODUCTS_SERVICES". Se a Meta recusar este valor, o erro retornado
+// lista os validos para a conta.
+const META_SPECIAL_AD_CATEGORY = "FINANCIAL_PRODUCTS_SERVICES";
 
 // Raio minimo (km) exigido pela Categoria Especial ao segmentar por cidade.
 const SPECIAL_CATEGORY_MIN_RADIUS_KM = 25;

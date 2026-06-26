@@ -3,7 +3,8 @@ export const notificationTypes = [
   "campaign_rejected",
   "invite_pending",
   "team_member_added",
-  "ad_creation_enabled"
+  "ad_creation_enabled",
+  "meta_connection_required"
 ] as const;
 
 export type NotificationType = (typeof notificationTypes)[number];
