@@ -16,11 +16,12 @@ O sistema já está no ar e funcionando no domínio oficial:
 - Site: [https://useleadi.com](https://useleadi.com)
 - Login: [https://useleadi.com/login](https://useleadi.com/login)
 
-> **Nota:** o app está em fase de testes para o lançamento público. O domínio `useleadi.com` já é o endereço definitivo (registrado e verificado).
+> **Nota:** o app está em fase de testes para o lançamento público.
 
 ## Para quem é
 
-Corretores que trabalham sozinhos, corretoras pequenas e equipes comerciais que vendem planos de saúde e precisam de uma forma simples de captar e acompanhar clientes.
+Consultores de Plano de Saúde;
+Corretoras de Plano de Saúde pequenas e grandes em quantidade de colaboradores/consultores.
 
 ## Como funciona, em resumo
 
@@ -29,7 +30,23 @@ Corretores que trabalham sozinhos, corretoras pequenas e equipes comerciais que 
 3. Cada lead entra no funil e a equipe acompanha as etapas até o fechamento.
 4. O gestor distribui os leads entre os vendedores e acompanha os resultados.
 
-## O que já está pronto
+## O que já está pronto:
+
+### Inteligência artificial
+- Gerador de campanhas de marketing sem usar o Gerenciador de Anúncios da Meta.
+- Gerador de imagens para criativos de anúncio.
+- Gerador de mensagens de WhatsApp personalizadas para cada lead.
+- Validador de conformidade, que aponta riscos jurídicos em anúncios e mensagens.
+- Biblioteca de modelos prontos (planos PME, adesão, etc.).
+
+### Anúncios e integração Meta
+- Conexão OAuth com a Meta (Facebook/Instagram) com permissões modulares.
+- Sincronização de páginas, contas de anúncio e formulários de lead.
+- Publicação de campanhas pausadas na Meta (campanha, adset, anúncio e criativo).
+- Upload de imagens para a biblioteca de anúncios.
+- Recebimento de leads em tempo real via webhook do leadgen.
+- Importação manual de leads por formulário, campanha ou anúncio.
+- Webhook de exclusão de dados para conformidade com a LGPD.
 
 ### Captação e organização de leads
 - Cadastro de leads em quadro (Kanban) ou lista, com filtros e busca.
@@ -44,35 +61,11 @@ Corretores que trabalham sozinhos, corretoras pequenas e equipes comerciais que 
 - Acompanhamento das etapas da venda, do primeiro contato ao fechamento.
 - Distribuição e atribuição de leads entre os vendedores.
 
-### Anúncios e integração Meta
-- Conexão OAuth com a Meta (Facebook/Instagram) com permissões modulares.
-- Sincronização de páginas, contas de anúncio e formulários de lead.
-- Publicação de campanhas pausadas na Meta (campanha, adset, anúncio e criativo).
-- Upload de imagens para a biblioteca de anúncios.
-- Recebimento de leads em tempo real via webhook do leadgen.
-- Importação manual de leads por formulário, campanha ou anúncio.
-- Webhook de exclusão de dados para conformidade com a LGPD.
-
-### Inteligência artificial
-- Gerador de campanhas de marketing.
-- Gerador de mensagens de WhatsApp personalizadas para cada lead.
-- Validador de conformidade, que aponta riscos jurídicos em anúncios e mensagens.
-- Gerador de imagens para criativos de anúncio.
-- Biblioteca de modelos prontos (planos PME, adesão, etc.).
-
-### WhatsApp
-- Envio de mensagens via API oficial da Meta (WhatsApp Business).
-- Suporte a provedor externo de WhatsApp como alternativa.
-- Histórico de mensagens e acompanhamento de entrega.
-
 ### Equipe e permissões
 - Criação de organização, equipes e convite de membros.
 - Perfis diferentes: gestor, supervisor e consultor, cada um com sua tela.
 - Distribuição e atribuição de leads entre os vendedores.
 - Fluxos de aprovação para campanhas e peças criativas.
-
-### Pedidos de criação (artes)
-- Solicitação de artes e peças com anexos e comentários, e aprovação pelo responsável.
 
 ### Integrações
 - Conexão com a Meta (Facebook/Instagram) para anúncios e captação de leads.
@@ -83,35 +76,21 @@ Corretores que trabalham sozinhos, corretoras pequenas e equipes comerciais que 
 ### Pagamentos e créditos
 - Assinatura de planos pelo AbacatePay (Pix).
 - Sistema de créditos para usar a inteligência artificial, com saldo, extrato e compra de pacotes.
-- Pedidos de crédito para aprovação interna.
+- Pedidos de crédito para aprovação interna ou compra avulsa por consultor.
 
 ### Relatórios e início
 - Página de relatórios com os números do negócio.
 - Checklist de boas-vindas e indicadores de uso para novos usuários.
 - Tema claro e escuro.
 
-### Conta, login e segurança
-- Login com e-mail/senha e **login com Google** em destaque.
-- **Recuperação de senha** ("Esqueci minha senha") com link seguro, token de uso único e expiração curta.
-- **Captcha (Cloudflare Turnstile)** em login, cadastro e recuperação de senha, contra bots e ataques automatizados.
-- **Política de senha forte** (mínimo de 8 caracteres com letras e números) e campo de senha mascarado.
-- **Bloqueio de e-mail descartável** e checagem de domínio (MX) no cadastro.
-- **Limite de tentativas** (rate limit) por IP e por e-mail no login, cadastro e reset, com mensagens que não revelam se um e-mail existe.
-- **Isolamento por organização** (multi-tenant) com permissões por papel e proteção de dados no banco (RLS).
-- Detalhes técnicos e o checklist de segurança até o lançamento estão em [SECURITY.md](SECURITY.md).
 
 ## O que ainda falta
 
 ### Em desenvolvimento
 - **Simulador de preços**: ferramenta para o corretor fazer cotações de planos dentro do próprio sistema. Já existe uma versão de protótipo; falta finalizar.
 - **Relatórios mais completos**: retorno por campanha, por origem do lead e por vendedor.
+- **WhatsApp API**: Automatização e preparação dos leads num esquema de atendimento automatizado, para qualificação de cada lead antes do primeiro contato com o Consultor.
 
-### Decisões de negócio (fora do código)
-- Nome e domínio já definidos: **Leadi** (`useleadi.com`). Falta fechar a proposta principal de comunicação do produto.
-- Definir o público-alvo prioritário.
-- Montar a lista dos primeiros usuários de teste (beta).
-- Definir a oferta e o preço de entrada.
-- Acompanhar um dia real de uso por um vendedor para listar melhorias.
 
 ## Como o sistema é construído
 
@@ -137,4 +116,4 @@ npm run test   # rodar os testes
 ```
 
 ---
-Desenvolvido por **DrekoDreko / Leadi**.
+Desenvolvido por **codeellow / Leadi**.
