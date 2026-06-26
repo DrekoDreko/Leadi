@@ -173,13 +173,13 @@ export const pricingPlans: PricingPlan[] = [
     },
     features: [
       "Tudo do Profissional",
-      "Até 3 usuários",
+      "Até 3 usuários inclusos",
       "150 créditos de IA por mês",
       "Distribuição de leads",
       "Painel de equipe",
       "Relatórios por responsável",
       "Funis compartilhados",
-      "Usuário extra por R$ 59/mês"
+      "A partir do 4º usuário: R$ 59/mês cada"
     ]
   }
 ];

@@ -14,10 +14,12 @@ import {
   PauseCircle,
   Play,
   Radio,
+  ShieldCheck,
   Wallet,
   XCircle
 } from "lucide-react";
 import type { CampaignPublicationStatus } from "@/lib/campaigns/types";
+import type { MetaAccountSpendState } from "@/lib/meta/campaign-controls.server";
 
 type CampaignDeliveryControlsProps = {
   campaignId: string;
@@ -26,6 +28,7 @@ type CampaignDeliveryControlsProps = {
   effectiveStatus?: string | null;
   hasAdSet: boolean;
   billingUrl: string | null;
+  accountSpend?: MetaAccountSpendState | null;
 };
 
 // Descritor visual de cada estado real de veiculacao lido da Meta.
@@ -106,13 +109,18 @@ export function CampaignDeliveryControls({
   deliveryMessage,
   effectiveStatus,
   hasAdSet,
-  billingUrl
+  billingUrl,
+  accountSpend
 }: CampaignDeliveryControlsProps) {
   const router = useRouter();
   const [status, setStatus] = useState<CampaignPublicationStatus>(initialStatus);
   const [effective, setEffective] = useState<string | null>(effectiveStatus ?? null);
   const [budget, setBudget] = useState("");
-  const [pendingAction, setPendingAction] = useState<"toggle" | "budget" | null>(null);
+  const [spendCapInput, setSpendCapInput] = useState("");
+  const [spend, setSpend] = useState<MetaAccountSpendState | null>(accountSpend ?? null);
+  const [pendingAction, setPendingAction] = useState<
+    "toggle" | "budget" | "spendCap" | "spendCapRemove" | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -187,6 +195,50 @@ export function CampaignDeliveryControls({
     }
   }
 
+  // Envia o teto rigido da conta. spendCap=null remove o limite.
+  async function submitSpendCap(spendCap: number | null) {
+    setError(null);
+    setSuccess(null);
+    setPendingAction(spendCap === null ? "spendCapRemove" : "spendCap");
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/spend-cap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spendCap })
+      });
+      const data = (await response.json()) as {
+        account?: MetaAccountSpendState;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data.error ?? "Nao foi possivel atualizar o limite de gastos.");
+      }
+      if (data.account) {
+        setSpend(data.account);
+      }
+      setSuccess(
+        spendCap === null
+          ? "Limite de gastos da conta removido."
+          : `Limite de gastos da conta definido em R$ ${spendCap.toFixed(2)}. A conta pausa ao atingir esse valor.`
+      );
+      setSpendCapInput("");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro desconhecido.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  function handleSpendCap() {
+    const value = Number(spendCapInput.replace(",", "."));
+    if (!Number.isFinite(value) || value < 1) {
+      setError("Informe um limite de gastos valido (minimo R$ 1).");
+      return;
+    }
+    void submitSpendCap(value);
+  }
+
   return (
     <section className="surface-card-strong rounded-[30px] p-5 md:p-6">
       <div className="flex items-center justify-between gap-3">
@@ -211,8 +263,8 @@ export function CampaignDeliveryControls({
         </p>
       ) : null}
 
-      {/* Tres blocos de controle lado a lado dentro do card maior. */}
-      <div className={`mt-5 grid gap-4 sm:grid-cols-2 ${hasAdSet ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
+      {/* Blocos de controle lado a lado dentro do card maior. */}
+      <div className={`mt-5 grid gap-4 sm:grid-cols-2 ${hasAdSet ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
         {/* Bloco 1 — acao principal */}
         <ControlSubCard
           icon={
@@ -339,6 +391,80 @@ export function CampaignDeliveryControls({
               Vincule uma conta de anúncio para gerenciar a cobrança.
             </p>
           )}
+        </ControlSubCard>
+
+        {/* Bloco 4 — trava rigida de gasto da conta (account spending limit). */}
+        <ControlSubCard
+          icon={<ShieldCheck size={16} aria-hidden="true" />}
+          title="Limite de gastos da conta"
+          description="Trava de segurança: teto máximo que TODA a conta de anúncio pode gastar. Ao atingir, a Meta pausa a veiculação. Diferente do orçamento diário — é o que impede cobranças além do previsto."
+        >
+          <div className="flex flex-col gap-2">
+            {spend ? (
+              <p className="text-xs text-muted-foreground">
+                {spend.spendCap !== null ? (
+                  <>
+                    Limite atual:{" "}
+                    <span className="font-semibold text-foreground">
+                      R$ {spend.spendCap.toFixed(2)}
+                    </span>{" "}
+                    · Gasto histórico: R$ {spend.amountSpent.toFixed(2)}
+                  </>
+                ) : (
+                  <>
+                    Sem limite definido · Gasto histórico:{" "}
+                    <span className="font-semibold text-foreground">
+                      R$ {spend.amountSpent.toFixed(2)}
+                    </span>
+                  </>
+                )}
+              </p>
+            ) : null}
+            <div className="relative">
+              <ShieldCheck
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70"
+                aria-hidden="true"
+              />
+              <input
+                id="account-spend-cap"
+                type="number"
+                min={1}
+                step="0.01"
+                inputMode="decimal"
+                value={spendCapInput}
+                onChange={(event) => setSpendCapInput(event.target.value)}
+                placeholder="Ex: 50,00"
+                className="h-11 w-full rounded-full border border-cobalt/20 bg-surface-elevated pl-9 pr-4 text-sm focus:border-cobalt/45 focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleSpendCap}
+              disabled={pendingAction !== null}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white transition hover:bg-cobalt/92 disabled:opacity-60"
+            >
+              {pendingAction === "spendCap" ? (
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <ShieldCheck size={16} aria-hidden="true" />
+              )}
+              Definir limite
+            </button>
+            {spend?.spendCap !== null && spend !== null ? (
+              <button
+                type="button"
+                onClick={() => void submitSpendCap(null)}
+                disabled={pendingAction !== null}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-surface-elevated px-5 py-2.5 text-xs font-semibold text-muted-foreground transition hover:bg-surface-elevated disabled:opacity-60"
+              >
+                {pendingAction === "spendCapRemove" ? (
+                  <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                ) : null}
+                Remover limite
+              </button>
+            ) : null}
+          </div>
         </ControlSubCard>
       </div>
 

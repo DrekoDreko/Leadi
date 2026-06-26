@@ -58,7 +58,10 @@ export const PLAN_PERMISSIONS: Record<PublicPlanSlug, PlanPermissions> = {
     includedCredits: 75
   },
   equipe: {
-    limits: { leads: 10000, users: 3, campaigns: 180 },
+    // users: null = sem teto rigido. O plano inclui 3 usuarios gratuitos (alem do
+    // gestor/dono) e cobra R$ 59/mes por usuario a partir do 4o; a distincao
+    // gratis/pago e aplicada no fluxo de convites, nao por um limite que bloqueia.
+    limits: { leads: 10000, users: null, campaigns: 180 },
     features: {
       ai: true,
       creativeRequests: false,

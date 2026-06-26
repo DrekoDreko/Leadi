@@ -338,6 +338,186 @@ export async function updateMetaCampaignBudget(input: {
   return mapRowToHistoryItem(updated.data as CampaignControlRow);
 }
 
+function sanitizeAdAccountId(value: string) {
+  return value.replace(/^act_/i, "").trim();
+}
+
+export type MetaAccountSpendState = {
+  currency: string | null;
+  // Total ja gasto pela conta (em reais) acumulado contra o limite atual.
+  amountSpent: number;
+  // Teto rigido configurado (em reais) ou null quando nao ha limite.
+  spendCap: number | null;
+};
+
+// Le o estado de gasto da conta de anuncio: total gasto, moeda e o teto rigido
+// (account spending limit) atual. Best-effort — qualquer falha retorna null para
+// a UI seguir renderizando sem o valor atual. O spend_cap da Meta vem em centavos
+// e "0" (ou ausente) significa "sem limite".
+export async function getMetaAccountSpendState(input: {
+  organizationId: string;
+  campaignId: string;
+}): Promise<MetaAccountSpendState | null> {
+  requireServiceRole();
+
+  const supabase = createSupabaseAdminClient();
+  const campaign = await loadCampaign(supabase, input.organizationId, input.campaignId);
+  if (!campaign?.meta_ad_account_id) {
+    return null;
+  }
+
+  const accessToken = await resolveAccessTokenForCampaign(campaign, input.organizationId);
+  if (!accessToken) {
+    return null;
+  }
+
+  try {
+    const url = new URL(
+      `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${sanitizeAdAccountId(
+        campaign.meta_ad_account_id
+      )}`
+    );
+    url.searchParams.set("fields", "currency,amount_spent,spend_cap");
+
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = (await response.json().catch(() => null)) as {
+      currency?: string;
+      amount_spent?: string;
+      spend_cap?: string;
+    } | null;
+
+    if (!payload) {
+      return null;
+    }
+
+    const capCents = Number(payload.spend_cap ?? "0");
+    return {
+      currency: payload.currency ?? null,
+      amountSpent: Number(payload.amount_spent ?? "0") / 100,
+      // spend_cap "0" = sem limite na Meta.
+      spendCap: Number.isFinite(capCents) && capCents > 0 ? capCents / 100 : null
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Define (ou remove) o teto rigido de gasto da CONTA de anuncio — o "account
+// spending limit" da Meta. Diferente do orcamento diario (media de gasto por dia
+// que NAO controla a cobranca), este e um teto absoluto: ao atingi-lo a Meta
+// PAUSA toda a veiculacao da conta. E a unica trava real contra cobranca alem do
+// previsto.
+//
+// O limite e cumulativo contra o `amount_spent` historico da conta. Por isso, ao
+// definir "no maximo R$ N a partir de agora", enviamos `spend_cap_action=reset`
+// junto: zera o contador de gasto-contra-o-teto para que gasto passado nao estoure
+// o novo limite na hora. `spendCap=null` remove o limite (spend_cap=0 na Meta).
+//
+// Atencao: a Meta limita a 10 alteracoes de limite por dia (erro code 17 /
+// subcode 1885172); tratamos com mensagem amigavel.
+export async function updateMetaAccountSpendCap(input: {
+  organizationId: string;
+  campaignId: string;
+  spendCap: number | null;
+  restrictToCreatorProfileId?: string | null;
+}): Promise<MetaAccountSpendState> {
+  requireServiceRole();
+
+  const supabase = createSupabaseAdminClient();
+  const campaign = await loadCampaign(supabase, input.organizationId, input.campaignId);
+
+  if (!campaign) {
+    throw new Error("Campanha nao encontrada para esta organizacao.");
+  }
+
+  if (
+    input.restrictToCreatorProfileId &&
+    campaign.created_by_profile_id !== input.restrictToCreatorProfileId
+  ) {
+    throw new Error("Voce so pode gerenciar campanhas que voce mesmo criou.");
+  }
+
+  if (!campaign.meta_ad_account_id) {
+    throw new Error("Selecione uma conta de anuncio antes de definir o limite de gastos.");
+  }
+
+  const accessToken = await resolveAccessTokenForCampaign(campaign, input.organizationId);
+  if (!accessToken) {
+    throw new Error("A conexao Meta nao possui um access token valido.");
+  }
+
+  await ensureMetaMarketingPermission(accessToken);
+
+  const url = new URL(
+    `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${sanitizeAdAccountId(
+      campaign.meta_ad_account_id
+    )}`
+  );
+  const body = new URLSearchParams();
+
+  if (input.spendCap === null) {
+    // Remove o limite de gastos da conta.
+    body.set("spend_cap", "0");
+  } else {
+    body.set("spend_cap", String(Math.round(input.spendCap * 100)));
+    // Zera o gasto-contra-o-teto para que o novo limite valha "a partir de agora".
+    body.set("spend_cap_action", "reset");
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body,
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { message?: string; error_user_msg?: string; code?: number; error_subcode?: number };
+    } | null;
+    const metaError = payload?.error;
+
+    if (metaError?.code === 17 && metaError?.error_subcode === 1885172) {
+      throw new Error(
+        "A Meta so permite alterar o limite de gastos da conta 10 vezes por dia. Tente novamente mais tarde."
+      );
+    }
+
+    const detail = metaError?.error_user_msg || metaError?.message;
+    const suffix = metaError?.error_subcode ? ` (subcode: ${metaError.error_subcode})` : "";
+    throw new Error(
+      detail
+        ? `Falha ao atualizar o limite de gastos na Meta: ${detail}${suffix}`
+        : `Falha ao atualizar o limite de gastos na Meta: status ${response.status}.`
+    );
+  }
+
+  // Le de volta o estado para a UI refletir o valor real confirmado pela Meta.
+  const state = await getMetaAccountSpendState({
+    organizationId: input.organizationId,
+    campaignId: input.campaignId
+  });
+
+  return (
+    state ?? {
+      currency: null,
+      amountSpent: 0,
+      spendCap: input.spendCap
+    }
+  );
+}
+
 // Exclui a campanha na Meta via DELETE /{id}. Apagar a campanha remove em
 // cascata o conjunto de anúncios e o anúncio, então basta o meta_campaign_id.
 // Best-effort: se o objeto já não existir (HTTP 404 ou code 100), tratamos como

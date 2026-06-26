@@ -27,7 +27,13 @@ type InvitePageClientProps = {
   teams: TeamSetupTeam[];
   workspaceType: "solo" | "team";
   billingDisabled: boolean;
+  /** Convites inclusos no plano (gratuitos) alem do gestor/dono. */
+  freeInviteTotal: number;
+  /** Vagas ja consumidas (membros convidados + convites ativos). */
+  seatsConsumed: number;
 };
+
+const USER_SLOT_PRICE_LABEL = "R$ 59,00/mes por usuario";
 
 type PixData = {
   transparentId: string;
@@ -48,11 +54,19 @@ export function InvitePageClient({
   inviteAccess,
   invites: initialInvites,
   workspaceType,
-  billingDisabled
+  billingDisabled,
+  freeInviteTotal,
+  seatsConsumed: initialSeatsConsumed
 }: InvitePageClientProps) {
   const [invites, setInvites] = useState(initialInvites);
   const [feedback, setFeedback] = useState<string | null>(null);
   const canInviteAdmins = currentRole === "owner";
+
+  // Vagas gratuitas ja usadas. Sobe a cada convite criado para que, dentro da
+  // mesma sessao, o convite seguinte ja reflita a cobranca quando a cota acabar.
+  const [seatsConsumed, setSeatsConsumed] = useState(initialSeatsConsumed);
+  const freeInvitesLeft = Math.max(0, freeInviteTotal - seatsConsumed);
+  const nextInviteIsFree = billingDisabled || freeInvitesLeft > 0;
 
   // Email invite state
   const [emailInviteEmail, setEmailInviteEmail] = useState("");
@@ -75,6 +89,8 @@ export function InvitePageClient({
   const [isGeneratingPix, setIsGeneratingPix] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string>("PENDING");
   const [isCreatingInvite, setIsCreatingInvite] = useState(false);
+  // Marca se o convite em criacao passou por pagamento (ajusta o texto da tela).
+  const [creatingPaid, setCreatingPaid] = useState(false);
   const [pixTimeLeft, setPixTimeLeft] = useState("");
   const [pixCopied, setPixCopied] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -158,9 +174,10 @@ export function InvitePageClient({
   // Cria o convite de fato. Usado tanto apos a confirmacao de pagamento quanto
   // no bypass de testes (billingDisabled), sem passar pelo PIX.
   const finalizeInvite = useCallback(
-    async (pending: PendingInvite) => {
+    async (pending: PendingInvite, paid: boolean) => {
       setIsCreatingInvite(true);
-      const prefix = billingDisabled ? "" : "Pagamento confirmado! ";
+      setCreatingPaid(paid);
+      const prefix = paid ? "Pagamento confirmado! " : "";
 
       try {
         const formData = new FormData();
@@ -200,6 +217,8 @@ export function InvitePageClient({
         };
 
         setInvites((current) => [nextInvite, ...current]);
+        // Consome uma vaga: o proximo convite ja reflete a cota atualizada.
+        setSeatsConsumed((current) => current + 1);
 
         if (pending.method === "email") {
           setEmailInvitePath(result.invitePath);
@@ -217,9 +236,9 @@ export function InvitePageClient({
         }
       } catch {
         setFeedback(
-          billingDisabled
-            ? "Ocorreu um erro ao gerar o convite. Tente novamente."
-            : "Pagamento confirmado, mas ocorreu um erro ao gerar o convite. Tente novamente."
+          paid
+            ? "Pagamento confirmado, mas ocorreu um erro ao gerar o convite. Tente novamente."
+            : "Ocorreu um erro ao gerar o convite. Tente novamente."
         );
       } finally {
         setIsCreatingInvite(false);
@@ -228,14 +247,14 @@ export function InvitePageClient({
         setPaymentStatus("PENDING");
       }
     },
-    [billingDisabled]
+    []
   );
 
   // Auto-create invite after payment confirms
   useEffect(() => {
     if (!isPaid || !pendingInvite || isCreatingInvite) return;
 
-    finalizeInvite(pendingInvite);
+    finalizeInvite(pendingInvite, true);
   }, [isPaid, pendingInvite, isCreatingInvite, finalizeInvite]);
 
   async function startPayment(method: "email" | "link", role: InviteRole, email: string | null) {
@@ -244,10 +263,11 @@ export function InvitePageClient({
       return;
     }
 
-    // Bypass de testes: cria o convite direto, sem gerar PIX nem cobrar.
-    if (billingDisabled) {
+    // Convite gratuito: dentro da cota inclusa no plano (ou bypass de testes).
+    // Cria direto, sem gerar PIX nem cobrar.
+    if (nextInviteIsFree) {
       setFeedback(null);
-      await finalizeInvite({ method, role, email });
+      await finalizeInvite({ method, role, email }, false);
       return;
     }
 
@@ -499,9 +519,9 @@ export function InvitePageClient({
           eyebrow="Equipe"
           title="Gerando convite..."
           description={
-            billingDisabled
-              ? "Criando o convite agora."
-              : "Pagamento confirmado! Criando o convite agora."
+            creatingPaid
+              ? "Pagamento confirmado! Criando o convite agora."
+              : "Criando o convite agora."
           }
         />
         <section className="glass-strong rounded-[34px] p-8">
@@ -599,11 +619,12 @@ export function InvitePageClient({
               <option value="seller">Consultor</option>
             </select>
 
-            <div className="mt-4 rounded-[18px] bg-ink/5 px-4 py-3">
-              <p className="text-sm font-semibold text-ink/72">
-                Valor: R$ 59,00/mes por usuario
-              </p>
-            </div>
+            <InvitePriceNotice
+              isFree={nextInviteIsFree}
+              billingDisabled={billingDisabled}
+              freeInvitesLeft={freeInvitesLeft}
+              freeInviteTotal={freeInviteTotal}
+            />
 
             <button
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
@@ -613,10 +634,12 @@ export function InvitePageClient({
             >
               {isGeneratingPix ? (
                 <Loader2 className="animate-spin" size={18} aria-hidden="true" />
+              ) : nextInviteIsFree ? (
+                <Mail size={18} aria-hidden="true" />
               ) : (
                 <QrCode size={18} aria-hidden="true" />
               )}
-              Pagar e gerar convite
+              {nextInviteIsFree ? "Gerar convite" : "Pagar e gerar convite"}
             </button>
 
             {emailInviteUrl ? (
@@ -674,11 +697,12 @@ export function InvitePageClient({
               <option value="seller">Consultor</option>
             </select>
 
-            <div className="mt-4 rounded-[18px] bg-ink/5 px-4 py-3">
-              <p className="text-sm font-semibold text-ink/72">
-                Valor: R$ 59,00/mes por usuario
-              </p>
-            </div>
+            <InvitePriceNotice
+              isFree={nextInviteIsFree}
+              billingDisabled={billingDisabled}
+              freeInvitesLeft={freeInvitesLeft}
+              freeInviteTotal={freeInviteTotal}
+            />
 
             <button
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
@@ -688,10 +712,12 @@ export function InvitePageClient({
             >
               {isGeneratingPix ? (
                 <Loader2 className="animate-spin" size={18} aria-hidden="true" />
+              ) : nextInviteIsFree ? (
+                <Link2 size={18} aria-hidden="true" />
               ) : (
                 <QrCode size={18} aria-hidden="true" />
               )}
-              Pagar e gerar link
+              {nextInviteIsFree ? "Gerar link" : "Pagar e gerar link"}
             </button>
 
             {linkInviteUrl ? (
@@ -799,6 +825,36 @@ export function InvitePageClient({
           </div>
         </section>
       ) : null}
+    </div>
+  );
+}
+
+function InvitePriceNotice({
+  isFree,
+  billingDisabled,
+  freeInvitesLeft,
+  freeInviteTotal
+}: {
+  isFree: boolean;
+  billingDisabled: boolean;
+  freeInvitesLeft: number;
+  freeInviteTotal: number;
+}) {
+  if (isFree) {
+    return (
+      <div className="mt-4 rounded-[18px] bg-lagoon/10 px-4 py-3">
+        <p className="text-sm font-semibold text-foreground">
+          {billingDisabled
+            ? "Gratuito neste ambiente de teste"
+            : `Gratuito · incluso no plano (${freeInvitesLeft} de ${freeInviteTotal} convites restantes)`}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-[18px] bg-ink/5 px-4 py-3">
+      <p className="text-sm font-semibold text-ink/72">Valor: {USER_SLOT_PRICE_LABEL}</p>
     </div>
   );
 }

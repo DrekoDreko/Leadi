@@ -1,4 +1,7 @@
-import { buildMetaBillingUrl } from "@/lib/meta/campaign-controls.server";
+import {
+  buildMetaBillingUrl,
+  getMetaAccountSpendState
+} from "@/lib/meta/campaign-controls.server";
 import { reconcileCampaignDeliveryStatus } from "@/lib/meta/delivery-status.server";
 import type { CampaignHistoryItem } from "@/lib/campaigns/types";
 import { CampaignDeliveryControls, CampaignStatusCard } from "./campaign-delivery-controls";
@@ -32,6 +35,13 @@ export async function CampaignControlsSection({ campaign }: { campaign: Campaign
     // Reconciliacao e nao-critica para renderizar a tela.
   }
 
+  // Estado de gasto da conta (teto rigido + total gasto) para a trava de seguranca.
+  // Best-effort: falha de leitura apenas omite o valor atual no card.
+  const accountSpend = await getMetaAccountSpendState({
+    organizationId: campaign.organizationId,
+    campaignId: campaign.id
+  }).catch(() => null);
+
   return (
     <>
       <CampaignStatusCard status={publicationStatus} effectiveStatus={effectiveStatus} />
@@ -42,6 +52,7 @@ export async function CampaignControlsSection({ campaign }: { campaign: Campaign
         effectiveStatus={effectiveStatus}
         hasAdSet={Boolean(campaign.metaAdSetId)}
         billingUrl={buildMetaBillingUrl(campaign.metaAdAccountId)}
+        accountSpend={accountSpend}
       />
     </>
   );
