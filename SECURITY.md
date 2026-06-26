@@ -8,21 +8,24 @@ Relatório do estado de segurança do SaaS (CRM + Meta Ads) e checklist prioriza
 
 ## Como reportar uma vulnerabilidade
 
-Encontrou uma falha de segurança? **Não** abra uma issue pública. Envie um e-mail para o contato legal/operacional do produto (`LEGAL_CONTACT_EMAIL`) com a descrição, passos de reprodução e impacto. Responderemos o mais rápido possível.
+Encontrou uma falha de segurança? **Não** abra uma issue pública. Envie um e-mail para o contato legal/operacional do produto (`adm@codeellow.com`) com a descrição, passos de reprodução e impacto. Responderemos o mais rápido possível.
 
 ---
 
 ## ✅ O que já está implementado
 
 ### Autenticação e entrada
-- **Login com Google em destaque** — o Google verifica o e-mail (prova de posse), reduzindo contas falsas sem precisar de confirmação por e-mail.
-- **Captcha (Cloudflare Turnstile)** em login, cadastro e recuperação de senha — barra bots e brute-force automatizado.
-- **Bloqueio de e-mail descartável + checagem de domínio (MX)** no cadastro (`src/lib/auth/email-validation.ts`).
-- **Política de senha forte** — mínimo de 8 caracteres + letras e números (`supabase/config.toml`).
-- **Recuperação de senha** ("Esqueci minha senha") com link seguro, token de uso único e expiração curta.
-- **Rate limit no login/cadastro/reset** — por IP e por e-mail (`app/login/actions.ts`, `src/lib/api/action-security.ts`).
-- **Mensagens genéricas** no login e no reset — não revelam se um e-mail existe (anti-enumeração).
-- **Senha nunca visível por padrão** — campos mascarados com botão "mostrar" por pressão.
+- **Login com Google em destaque**
+- **Captcha (Cloudflare Turnstile)** 
+- **Bloqueio de e-mail descartável + checagem de domínio (MX)** 
+- **Política de senha forte** 
+- **Recuperação de senha** 
+- **Rate limit no login/cadastro/reset** 
+- **Mensagens genéricas** 
+- **Senha nunca visível por padrão** 
+- **Domínio de produção no Supabase** 
+- **Captcha em produção** 
+- **SMTP de produção (e-mail de reset)** 
 
 ### Plataforma
 - **RLS (Row Level Security)** por organização em todas as tabelas, com funções `SECURITY DEFINER` (`supabase/migrations/*rls*`).
@@ -34,46 +37,11 @@ Encontrou uma falha de segurança? **Não** abra uma issue pública. Envie um e-
 - **Rate limit distribuído** via Supabase RPC com fallback local (`src/lib/rate-limit.ts`).
 - **Gestão de segredos** — hook anti-segredos no commit (`.githooks/pre-commit`); nenhum `.env` com segredo real versionado; segredos sensíveis sem prefixo `NEXT_PUBLIC_`.
 
----
 
-## ⬜ Pendências (priorizadas)
-
-### 🔴 P0 — Bloqueadores de lançamento (configuração de produção)
-- [x] **Domínio de produção no Supabase** — ✅ feito em 25/06/2026 via Management API: `site_url = https://useleadi.com` e `uri_allow_list` agora inclui `https://useleadi.com/auth/callback`, `/` e `/**` (URLs de preview da Vercel preservadas). Domínio verificado no ar (HTTP 200, servido pela Vercel).
-- [x] **Captcha em produção** — ✅ feito em 25/06/2026 e validado end-to-end. Site key real (widget `Leadi`, hostname `useleadi.com`, Managed) na Vercel produção (confirmada no bundle `app/login/page-*.js`); secret real no Supabase com `security_captcha_provider=turnstile` e `security_captcha_enabled=true`. Enforcement comprovado: `POST /auth/v1/signup` sem `captcha_token` → `400 captcha_failed`.
-- [x] **SMTP de produção (e-mail de reset)** — configurar um provedor (ex.: Resend) em Auth > SMTP no Supabase. Sem isso, o reset usa o e-mail padrão do Supabase (limite baixíssimo, cai em spam).
-- [x] **`ABACATE_PAY_WEBHOOK_SECRET` em produção** — ✅ concluído e validado em 25/06/2026. Definido na Vercel (`production`), espelhado no `.env.local` e no painel do AbacatePay (webhook v2, URL `https://useleadi.com/api/billing/webhooks/abacatepay`). Também corrigido um bug (PR #2): a rota do webhook passava pelo gate de sessão do `middleware.ts` e retornava `401 Usuario nao autenticado` antes do handler — agora é rota pública autenticada por assinatura HMAC. **Validação ponta a ponta:** assinatura correta → `200`; assinatura inválida → `401 Assinatura do webhook invalida`. (Atenção: chave AbacatePay em uso ainda é sandbox `abc_dev_`; recriar o webhook na conta de produção ao migrar.)
-- [x] **`SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` em produção** — ✅ confirmados na Vercel (`production`) em 25/06/2026 via `vercel env ls production` (`SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` presentes).
-- [ ] **Rotação de chaves** — rotacionar chaves sensíveis (✅ Supabase, OpenAI, ✅ Meta, AbacatePay) antes do lançamento (pendência de hardening jun/2026). Ação manual em cada provedor + atualizar Vercel/`.env.local`.
-- [x] **Remover/validar `BILLING_DISABLED`** — ⚠️ parcial: default do `.env.example` mudado para `false` e adicionado guard de visibilidade em [src/lib/billing/config.ts](src/lib/billing/config.ts) (loga `BILLING_DISABLED_ACTIVE_IN_PRODUCTION` 1x por cold start quando `VERCEL_ENV=production` e a flag está ligada). **Ainda `true` na Vercel de propósito** durante a fase de testes (simula pagamento). **Antes do lançamento comercial:** `vercel env rm BILLING_DISABLED production` (ou setar `false`) e redeployar.
-
-### 🟡 P1 — Importante para o lançamento
-- [ ] **Proteção contra senha vazada (HIBP)** — ⚠️ **bloqueado pelo plano**: a Management API recusou (`"Configuring leaked password protection via HaveIBeenPwned.org is available on Pro Plans and up"`). O projeto Supabase `leadhealth` está no **Free**. Habilitar `password_hibp_enabled = true` após o upgrade para Pro (mesma janela do upgrade da Vercel antes do lançamento comercial).
-- [x] **Testar captcha real** — ✅ validado em produção em 25/06/2026 via Management API + curl. Os três fluxos rejeitam requisições sem `captcha_token`: `POST /auth/v1/signup`, `POST /auth/v1/token?grant_type=password` e `POST /auth/v1/recover` → todos `400 captcha_failed` ("request disallowed (no captcha_token found)"). Captcha confirmado ligado (`security_captcha_enabled=true`, `provider=turnstile`).
-- [x] **Verificar redirect allowlist** — ✅ verificado em 25/06/2026 via `GET /config/auth`: `site_url = https://useleadi.com` e `uri_allow_list` contém `https://useleadi.com/auth/callback` (além de `https://useleadi.com`, `https://www.useleadi.com/auth/callback` e os localhost de dev). **Atenção/drift:** os curingas `/` e `/**` e as URLs de preview da Vercel citados na nota do P0 **não** estão mais na allowlist atual — reavaliar se preview deploys/OAuth precisam deles.
-- [x] **Política de senha no painel** — ✅ aplicado em produção em 25/06/2026 via `PATCH /config/auth`: `password_min_length = 8` e `password_required_characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789"` (letras + dígitos), espelhando o `minimum_password_length = 8` + `letters_digits` do `config.toml`.
-
-### 🟢 P2 — Pós-lançamento / roadmap
+### 🟢 Para implementar no Pós-lançamento / roadmap
 - [ ] **Confirmação de e-mail (código/link)** — pausada por ora; a base do Supabase (`enable_confirmations`, OTP de 6 dígitos) está pronta para reativar.
 - [ ] **MFA / 2FA** para contas de gestores (owner/admin).
 - [ ] **CSP com nonce dinâmico** — remover `script-src 'unsafe-inline' 'unsafe-eval'` em produção.
 - [ ] **Lista de e-mails descartáveis ampliada** — trocar a lista curada de `src/lib/auth/email-validation.ts` pelo pacote `disposable-email-domains`.
 - [ ] **Rate limit por usuário** (além de por IP) em ações críticas autenticadas.
 - [ ] **Auditoria/monitoramento** — revisar `audit_logs` e alertas de atividade suspeita.
-
----
-
-## Notas de configuração
-
-### Captcha (Cloudflare Turnstile)
-- **Local/dev:** funciona out-of-the-box. O `config.toml` usa a *secret* de teste da Cloudflare (sempre passa) e o app usa a *site key* de teste quando `NEXT_PUBLIC_TURNSTILE_SITE_KEY` está vazia.
-- **Produção:** crie um site no Turnstile (dashboard da Cloudflare), coloque a **site key** em `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (Vercel) e a **secret** no painel do Supabase (Auth > Settings).
-
-### Fluxo de recuperação de senha
-1. `/login/recuperar` → envia e-mail via `resetPasswordForEmail` (com captcha + rate limit).
-2. O link cai em `/auth/callback?next=/redefinir-senha`, que troca o `code` por uma sessão de recuperação.
-3. `/redefinir-senha` aplica a nova senha (`updateUser`) e encerra a sessão de recuperação, exigindo novo login.
-
-### Variáveis de ambiente relevantes
-- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (pública) — site key do captcha.
-- Secret do Turnstile e SMTP de e-mail → **painel do Supabase**, não no `.env` do app.
