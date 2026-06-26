@@ -11,12 +11,12 @@ Em vez de espalhar o trabalho entre planilhas, grupos de WhatsApp e o Gerenciado
 
 ## Acesso
 
-O sistema já está no ar e funcionando:
+O sistema já está no ar e funcionando no domínio oficial:
 
-- Site: [https://leadhealth.vercel.app](https://leadhealth.vercel.app)
-- Login: [https://leadhealth.vercel.app/login](https://leadhealth.vercel.app/login)
+- Site: [https://useleadi.com](https://useleadi.com)
+- Login: [https://useleadi.com/login](https://useleadi.com/login)
 
-> **Nota:** o endereço acima é o link do período de testes.
+> **Nota:** o app está em fase de testes para o lançamento público. O domínio `useleadi.com` já é o endereço definitivo (registrado e verificado).
 
 ## Para quem é
 
@@ -90,6 +90,16 @@ Corretores que trabalham sozinhos, corretoras pequenas e equipes comerciais que 
 - Checklist de boas-vindas e indicadores de uso para novos usuários.
 - Tema claro e escuro.
 
+### Conta, login e segurança
+- Login com e-mail/senha e **login com Google** em destaque.
+- **Recuperação de senha** ("Esqueci minha senha") com link seguro, token de uso único e expiração curta.
+- **Captcha (Cloudflare Turnstile)** em login, cadastro e recuperação de senha, contra bots e ataques automatizados.
+- **Política de senha forte** (mínimo de 8 caracteres com letras e números) e campo de senha mascarado.
+- **Bloqueio de e-mail descartável** e checagem de domínio (MX) no cadastro.
+- **Limite de tentativas** (rate limit) por IP e por e-mail no login, cadastro e reset, com mensagens que não revelam se um e-mail existe.
+- **Isolamento por organização** (multi-tenant) com permissões por papel e proteção de dados no banco (RLS).
+- Detalhes técnicos e o checklist de segurança até o lançamento estão em [SECURITY.md](SECURITY.md).
+
 ## O que ainda falta
 
 ### Em desenvolvimento
@@ -97,7 +107,7 @@ Corretores que trabalham sozinhos, corretoras pequenas e equipes comerciais que 
 - **Relatórios mais completos**: retorno por campanha, por origem do lead e por vendedor.
 
 ### Decisões de negócio (fora do código)
-- Definir nome final, domínio e a proposta principal do produto.
+- Nome e domínio já definidos: **Leadi** (`useleadi.com`). Falta fechar a proposta principal de comunicação do produto.
 - Definir o público-alvo prioritário.
 - Montar a lista dos primeiros usuários de teste (beta).
 - Definir a oferta e o preço de entrada.
@@ -105,8 +115,9 @@ Corretores que trabalham sozinhos, corretoras pequenas e equipes comerciais que 
 
 ## Como o sistema é construído
 
-- **Site e sistema**: Next.js (React), hospedado na Vercel.
-- **Banco de dados e login**: Supabase.
+- **Site e sistema**: Next.js (React), hospedado na Vercel (domínio `useleadi.com`).
+- **Banco de dados e login**: Supabase (com login por Google e recuperação de senha).
+- **Proteção contra bots**: Cloudflare Turnstile (captcha).
 - **Inteligência artificial**: OpenAI.
 - **Anúncios e leads**: Meta (Facebook/Instagram).
 - **WhatsApp**: API oficial da Meta + provedor externo opcional.
