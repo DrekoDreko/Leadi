@@ -15,6 +15,9 @@ export async function middleware(request: NextRequest) {
   const isApiRoute = pathname === "/api" || pathname.startsWith("/api/");
   const isLeadWebhookRoute = pathname === "/api/webhooks/leads";
   const isMetaWebhookRoute = pathname === "/api/meta/webhook";
+  // Webhook do AbacatePay: autentica-se por assinatura HMAC (header
+  // x-webhook-signature), nao por sessao de usuario. Nao passa pelo gate.
+  const isAbacatePayWebhookRoute = pathname === "/api/billing/webhooks/abacatepay";
   const isMetaDataDeletionRoute = pathname === "/api/meta/data-deletion";
   const isMetaCallbackRoute = pathname === "/api/integrations/meta/callback";
   // Rotas internas chamadas por agendadores (cron) sem sessao de usuario. Elas
@@ -34,11 +37,18 @@ export async function middleware(request: NextRequest) {
     (isApiRoute &&
       !isLeadWebhookRoute &&
       !isMetaWebhookRoute &&
+      !isAbacatePayWebhookRoute &&
       !isMetaDataDeletionRoute &&
       !isMetaCallbackRoute &&
       !isInternalCronRoute);
 
-  if (isLeadWebhookRoute || isMetaWebhookRoute || isMetaDataDeletionRoute || isInternalCronRoute) {
+  if (
+    isLeadWebhookRoute ||
+    isMetaWebhookRoute ||
+    isAbacatePayWebhookRoute ||
+    isMetaDataDeletionRoute ||
+    isInternalCronRoute
+  ) {
     const response = NextResponse.next({ request });
     applySecurityHeaders(request, response);
     return response;
