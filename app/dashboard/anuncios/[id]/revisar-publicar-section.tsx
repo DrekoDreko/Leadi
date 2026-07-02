@@ -5,9 +5,9 @@ import { createSupabaseAdminClient, hasSupabaseServiceRole } from "@/lib/supabas
 import type { CampaignHistoryItem } from "@/lib/campaigns/types";
 import { RevisarPublicarClient } from "./revisar-publicar-client";
 
-// Bloco "Revisar e publicar" reutilizado na página do anúncio e no desempenho por
-// anúncio. Concentra o carregamento dos ativos vinculados (página, conta, formulário),
-// a revisão de copy e os criativos para os dois lugares mostrarem o mesmo conteúdo.
+// Bloco "Revisar e publicar" da página do anúncio. Concentra o carregamento dos
+// ativos vinculados (página, conta, formulário), a revisão de copy e os criativos.
+// A página de desempenho por anúncio só linka para cá.
 export async function RevisarPublicarSection({
   campaign
 }: {
