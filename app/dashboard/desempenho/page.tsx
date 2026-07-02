@@ -151,7 +151,7 @@ export default async function CampanhasPage({
                   {summary ? (
                     <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
                       {/* Card 1 — Gasto + Custo por lead */}
-                      <ChartCard label="Gasto" value={formatBRL(summary.spend)}>
+                      <ChartCard label="Gasto" value={formatBRL(summary.spend)} tone="cobalt">
                         <TrendArea
                           values={series.map((point) => point.spend)}
                           tone="cobalt"
@@ -168,44 +168,50 @@ export default async function CampanhasPage({
                       </ChartCard>
 
                       {/* Card 2 — Leads */}
-                      <ChartCard label="Leads" value={formatInteger(summary.leads)}>
-                        <TrendBars values={series.map((point) => point.leads)} tone="cobalt" />
+                      <ChartCard label="Leads" value={formatInteger(summary.leads)} tone="success">
+                        <TrendBars values={series.map((point) => point.leads)} tone="success" />
                       </ChartCard>
 
                       {/* Card 3 — Cliques */}
-                      <ChartCard label="Cliques" value={formatInteger(summary.clicks)}>
+                      <ChartCard label="Cliques" value={formatInteger(summary.clicks)} tone="lagoon">
                         <TrendBars values={series.map((point) => point.clicks)} tone="lagoon" />
                       </ChartCard>
 
                       {/* Card 4 — Alcance + Impressões */}
-                      <div className="surface-card-muted rounded-[26px] p-5">
-                        <div className="flex flex-wrap gap-x-8 gap-y-2">
-                          <div>
-                            <p className="text-muted-soft text-xs font-semibold uppercase tracking-wide">
-                              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-cobalt align-middle" />
-                              Alcance
-                            </p>
-                            <strong className="mt-1 block text-3xl font-semibold">
-                              {formatInteger(summary.reach)}
-                            </strong>
+                      <div className="surface-card-muted relative overflow-hidden rounded-[26px] p-5">
+                        <div
+                          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cobalt/[0.08] via-transparent to-transparent"
+                          aria-hidden="true"
+                        />
+                        <div className="relative">
+                          <div className="flex flex-wrap gap-x-8 gap-y-2">
+                            <div>
+                              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cobalt">
+                                <span className="inline-block h-2 w-2 rounded-full bg-cobalt" />
+                                Alcance
+                              </p>
+                              <strong className="mt-2 block text-3xl font-semibold">
+                                {formatInteger(summary.reach)}
+                              </strong>
+                            </div>
+                            <div>
+                              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-lagoon">
+                                <span className="inline-block h-2 w-2 rounded-full bg-lagoon" />
+                                Impressões
+                              </p>
+                              <strong className="mt-2 block text-3xl font-semibold">
+                                {formatInteger(summary.impressions)}
+                              </strong>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-muted-soft text-xs font-semibold uppercase tracking-wide">
-                              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-lagoon align-middle" />
-                              Impressões
-                            </p>
-                            <strong className="mt-1 block text-3xl font-semibold">
-                              {formatInteger(summary.impressions)}
-                            </strong>
+                          <div className="mt-4">
+                            <DualTrend
+                              series={[
+                                { values: series.map((point) => point.reach), tone: "cobalt" },
+                                { values: series.map((point) => point.impressions), tone: "lagoon" }
+                              ]}
+                            />
                           </div>
-                        </div>
-                        <div className="mt-4">
-                          <DualTrend
-                            series={[
-                              { values: series.map((point) => point.reach), tone: "cobalt" },
-                              { values: series.map((point) => point.impressions), tone: "lagoon" }
-                            ]}
-                          />
                         </div>
                       </div>
                     </div>
@@ -282,20 +288,43 @@ function TabLink({
   );
 }
 
+const CARD_TONE: Record<
+  "cobalt" | "lagoon" | "success",
+  { tint: string; label: string; dot: string }
+> = {
+  cobalt: { tint: "from-cobalt/[0.08]", label: "text-cobalt", dot: "bg-cobalt" },
+  lagoon: { tint: "from-lagoon/[0.1]", label: "text-lagoon", dot: "bg-lagoon" },
+  success: { tint: "from-success/[0.1]", label: "text-success", dot: "bg-success" }
+};
+
 function ChartCard({
   label,
   value,
+  tone,
   children
 }: {
   label: string;
   value: string;
+  tone: "cobalt" | "lagoon" | "success";
   children: ReactNode;
 }) {
+  const toneClasses = CARD_TONE[tone];
   return (
-    <div className="surface-card-muted rounded-[26px] p-5">
-      <p className="text-muted-soft text-xs font-semibold uppercase tracking-wide">{label}</p>
-      <strong className="mt-1 block text-3xl font-semibold">{value}</strong>
-      <div className="mt-4">{children}</div>
+    <div className="surface-card-muted relative overflow-hidden rounded-[26px] p-5">
+      <div
+        className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${toneClasses.tint} via-transparent to-transparent`}
+        aria-hidden="true"
+      />
+      <div className="relative">
+        <p
+          className={`text-xs font-semibold uppercase tracking-wide ${toneClasses.label} flex items-center gap-1.5`}
+        >
+          <span className={`inline-block h-2 w-2 rounded-full ${toneClasses.dot}`} />
+          {label}
+        </p>
+        <strong className="mt-2 block text-3xl font-semibold">{value}</strong>
+        <div className="mt-4">{children}</div>
+      </div>
     </div>
   );
 }

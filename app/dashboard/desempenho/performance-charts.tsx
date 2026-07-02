@@ -1,35 +1,37 @@
-// Gráficos de tendência desenhados à mão em SVG — leves, sem dependência
-// externa e 100% adaptáveis ao tema (usam `currentColor`, definido por uma
-// classe de texto tokenizada). Renderizados no server component da página.
+// Gráficos de tendência desenhados à mão — leves, sem dependência externa e
+// 100% adaptáveis ao tema (usam `currentColor`, definido por uma classe de
+// texto tokenizada). Renderizados no server component da página.
+//
+// Linhas/áreas são SVG (traço uniforme via vector-effect); as barras e os
+// pontos de destaque são HTML para não distorcerem com o esticamento do SVG.
 
 const VIEW_W = 100;
 const VIEW_H = 36;
 const PAD_Y = 3;
+const USABLE_H = VIEW_H - PAD_Y * 2;
 
-type Tone = "cobalt" | "lagoon";
+export type Tone = "cobalt" | "lagoon" | "success";
 
 const TONE_TEXT: Record<Tone, string> = {
   cobalt: "text-cobalt",
-  lagoon: "text-lagoon"
+  lagoon: "text-lagoon",
+  success: "text-success"
 };
 
-// Normaliza os valores no viewBox. Trata série vazia, 1 ponto e série constante
-// (todos iguais) sem quebrar — nesses casos desenha uma linha central chata.
-function toPoints(values: number[]): { x: number; y: number }[] {
-  if (values.length === 0) {
-    return [];
-  }
+function allZero(values: number[]): boolean {
+  return values.every((value) => value === 0);
+}
 
+// Normaliza os valores no viewBox. Trata 1 ponto e série constante sem quebrar.
+function toPoints(values: number[]): { x: number; y: number }[] {
   const max = Math.max(...values);
   const min = Math.min(...values);
   const span = max - min;
-  const usableH = VIEW_H - PAD_Y * 2;
 
   return values.map((value, index) => {
-    const x =
-      values.length === 1 ? VIEW_W / 2 : (index / (values.length - 1)) * VIEW_W;
+    const x = values.length === 1 ? VIEW_W / 2 : (index / (values.length - 1)) * VIEW_W;
     const ratio = span === 0 ? 0.5 : (value - min) / span;
-    const y = VIEW_H - PAD_Y - ratio * usableH;
+    const y = VIEW_H - PAD_Y - ratio * USABLE_H;
     return { x, y };
   });
 }
@@ -40,24 +42,28 @@ function linePath(points: { x: number; y: number }[]): string {
     .join(" ");
 }
 
-function EmptyBaseline() {
+// Posição (em %) do último ponto — usada para o marcador HTML de destaque.
+function lastPointPercent(values: number[]): { left: number; top: number } {
+  const last = values[values.length - 1];
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const span = max - min;
+  const ratio = span === 0 ? 0.5 : (last - min) / span;
+  const left = values.length === 1 ? 50 : 100;
+  const top = ((PAD_Y + (1 - ratio) * USABLE_H) / VIEW_H) * 100;
+  return { left, top };
+}
+
+function Baseline({ tone }: { tone: Tone }) {
   return (
-    <line
-      x1="0"
-      y1={VIEW_H / 2}
-      x2={VIEW_W}
-      y2={VIEW_H / 2}
-      stroke="currentColor"
-      strokeOpacity={0.25}
-      strokeWidth={1}
-      strokeDasharray="3 3"
-      vectorEffect="non-scaling-stroke"
-    />
+    <div className={`flex h-24 items-center ${TONE_TEXT[tone]}`}>
+      <div className="h-px w-full border-t border-dashed border-current opacity-30" />
+    </div>
   );
 }
 
-// Linha + área com gradiente. `id` deve ser único por instância (colisão de
-// gradientes no DOM). Usado para gasto, alcance, etc.
+// Linha + área com gradiente e marcador no ponto final. `id` deve ser único por
+// instância (evita colisão de gradientes no DOM). Usado para gasto e alcance.
 export function TrendArea({
   values,
   tone = "cobalt",
@@ -67,52 +73,49 @@ export function TrendArea({
   tone?: Tone;
   id: string;
 }) {
+  if (values.length === 0 || allZero(values)) {
+    return <Baseline tone={tone} />;
+  }
+
   const points = toPoints(values);
   const gradientId = `trend-area-${id}`;
+  const marker = lastPointPercent(values);
 
   return (
-    <svg
-      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-      preserveAspectRatio="none"
-      className={`h-20 w-full ${TONE_TEXT[tone]}`}
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="currentColor" stopOpacity={0.24} />
-          <stop offset="100%" stopColor="currentColor" stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      {points.length === 0 ? (
-        <EmptyBaseline />
-      ) : (
-        <>
-          <path
-            d={`${linePath(points)} L${VIEW_W} ${VIEW_H} L0 ${VIEW_H} Z`}
-            fill={`url(#${gradientId})`}
-          />
-          <path
-            d={linePath(points)}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
-          <circle
-            cx={points[points.length - 1].x}
-            cy={points[points.length - 1].y}
-            r={2.4}
-            fill="currentColor"
-          />
-        </>
-      )}
-    </svg>
+    <div className={`relative h-24 w-full ${TONE_TEXT[tone]}`}>
+      <svg
+        viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity={0.32} />
+            <stop offset="100%" stopColor="currentColor" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <path d={`${linePath(points)} L${VIEW_W} ${VIEW_H} L0 ${VIEW_H} Z`} fill={`url(#${gradientId})`} />
+        <path
+          d={linePath(points)}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <span
+        className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-current ring-4 ring-card"
+        style={{ left: `${marker.left}%`, top: `${marker.top}%` }}
+      />
+    </div>
   );
 }
 
-// Mini-barras. Usado para leads e cliques.
+// Barras em HTML (flex) — cantos superiores arredondados, largura limitada e
+// centralizadas quando há poucos pontos. Usado para leads e cliques.
 export function TrendBars({
   values,
   tone = "cobalt"
@@ -121,83 +124,75 @@ export function TrendBars({
   tone?: Tone;
 }) {
   const max = values.length > 0 ? Math.max(...values) : 0;
-  const usableH = VIEW_H - PAD_Y * 2;
-  const count = Math.max(values.length, 1);
-  const gap = count > 40 ? 0.4 : 1.2;
-  const barW = Math.max((VIEW_W - gap * (count - 1)) / count, 0.6);
+
+  if (values.length === 0 || max === 0) {
+    return <Baseline tone={tone} />;
+  }
 
   return (
-    <svg
-      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-      preserveAspectRatio="none"
-      className={`h-20 w-full ${TONE_TEXT[tone]}`}
-      aria-hidden="true"
-    >
-      {values.length === 0 ? (
-        <EmptyBaseline />
-      ) : (
-        values.map((value, index) => {
-          const ratio = max === 0 ? 0 : value / max;
-          const barH = Math.max(ratio * usableH, value > 0 ? 1.5 : 0);
-          const x = index * (barW + gap);
-          const y = VIEW_H - PAD_Y - barH;
-          return (
-            <rect
-              key={index}
-              x={x.toFixed(2)}
-              y={y.toFixed(2)}
-              width={barW.toFixed(2)}
-              height={barH.toFixed(2)}
-              rx={0.8}
-              fill="currentColor"
-              fillOpacity={index === values.length - 1 ? 1 : 0.55}
-            />
-          );
-        })
-      )}
-    </svg>
+    <div className={`flex h-24 items-end justify-center gap-[3px] ${TONE_TEXT[tone]}`}>
+      {values.map((value, index) => {
+        const pct = value > 0 ? Math.max((value / max) * 100, 8) : 0;
+        const isLast = index === values.length - 1;
+        return (
+          <div
+            key={index}
+            className={`min-w-0 max-w-[30px] flex-1 rounded-t-[5px] bg-current ${
+              isLast ? "opacity-100" : "opacity-45"
+            }`}
+            style={{ height: `${pct}%` }}
+          />
+        );
+      })}
+    </div>
   );
 }
 
 // Duas linhas sobrepostas com escalas independentes (cada série normalizada no
-// próprio min/max). Usado para alcance vs impressões.
+// próprio min/max) e marcadores nos pontos finais. Usado p/ alcance vs impressões.
 export function DualTrend({
   series
 }: {
   series: { values: number[]; tone: Tone }[];
 }) {
-  const hasData = series.some((entry) => entry.values.length > 0);
+  const drawable = series.filter((entry) => entry.values.length > 0 && !allZero(entry.values));
+
+  if (drawable.length === 0) {
+    return <Baseline tone={series[0]?.tone ?? "cobalt"} />;
+  }
 
   return (
-    <svg
-      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-      preserveAspectRatio="none"
-      className="h-20 w-full text-cobalt"
-      aria-hidden="true"
-    >
-      {!hasData ? (
-        <EmptyBaseline />
-      ) : (
-        series.map((entry, index) => {
-          const points = toPoints(entry.values);
-          if (points.length === 0) {
-            return null;
-          }
-          return (
-            <path
-              key={index}
-              d={linePath(points)}
-              fill="none"
-              stroke="currentColor"
-              className={TONE_TEXT[entry.tone]}
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          );
-        })
-      )}
-    </svg>
+    <div className="relative h-24 w-full">
+      <svg
+        viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full"
+        aria-hidden="true"
+      >
+        {drawable.map((entry, index) => (
+          <path
+            key={index}
+            d={linePath(toPoints(entry.values))}
+            fill="none"
+            stroke="currentColor"
+            className={TONE_TEXT[entry.tone]}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
+      {drawable.map((entry, index) => {
+        const marker = lastPointPercent(entry.values);
+        return (
+          <span
+            key={index}
+            className={`absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-current ring-4 ring-card ${TONE_TEXT[entry.tone]}`}
+            style={{ left: `${marker.left}%`, top: `${marker.top}%` }}
+          />
+        );
+      })}
+    </div>
   );
 }
