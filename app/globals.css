@@ -32,6 +32,11 @@
   --surface: 250 251 253;
   --surface-elevated: 255 255 255;
 
+  /* Cores de gráfico — validadas p/ contraste e daltonismo nos dois temas */
+  --chart-blue: 52 98 238;
+  --chart-teal: 8 145 178;
+  --chart-green: 22 163 74;
+
   --bg-color: #d7dde2;
   --bg-gradient: linear-gradient(120deg, rgba(217, 229, 244, 0.92), rgba(234, 240, 220, 0.9) 48%, rgba(248, 248, 244, 0.96)), #d7dde2;
 
@@ -97,6 +102,10 @@
   --dashboard-card-muted: 29 37 51;
   --surface: 16 22 34;
   --surface-elevated: 28 36 52;
+
+  --chart-blue: 75 116 240;
+  --chart-teal: 23 166 194;
+  --chart-green: 14 169 104;
 
   --bg-color: #0c1017;
   --bg-gradient: linear-gradient(120deg, rgba(14, 19, 31, 0.92), rgba(20, 27, 43, 0.9) 48%, rgba(10, 14, 22, 0.96)), #0c1017;

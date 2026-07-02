@@ -37,7 +37,10 @@ const config: Config = {
         signal: "rgb(var(--color-signal) / <alpha-value>)",
         lagoon: "rgb(var(--color-lagoon) / <alpha-value>)",
         mist: "rgb(var(--color-mist) / <alpha-value>)",
-        cloud: "rgb(var(--color-cloud) / <alpha-value>)"
+        cloud: "rgb(var(--color-cloud) / <alpha-value>)",
+        "chart-blue": "rgb(var(--chart-blue) / <alpha-value>)",
+        "chart-teal": "rgb(var(--chart-teal) / <alpha-value>)",
+        "chart-green": "rgb(var(--chart-green) / <alpha-value>)"
       },
       boxShadow: {
         glass: "var(--glass-shadow-custom)",

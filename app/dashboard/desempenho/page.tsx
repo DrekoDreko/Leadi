@@ -1,7 +1,15 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, Megaphone, TrendingUp } from "lucide-react";
+import {
+  ArrowUpRight,
+  CircleDollarSign,
+  Eye,
+  Megaphone,
+  MousePointerClick,
+  TrendingUp,
+  Users
+} from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import {
@@ -149,67 +157,122 @@ export default async function CampanhasPage({
                   </div>
 
                   {summary ? (
-                    <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-                      {/* Card 1 — Gasto + Custo por lead */}
-                      <ChartCard label="Gasto" value={formatBRL(summary.spend)} tone="cobalt">
+                    <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
+                      {/* Card 1 (maior) — Gasto + Custo por lead */}
+                      <MetricCard
+                        className="xl:col-span-7"
+                        label="Gasto"
+                        sublabel="Quanto você investiu no período"
+                        value={formatBRL(summary.spend)}
+                        tone="blue"
+                        icon={CircleDollarSign}
+                        hero
+                        footer={
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-muted-soft text-xs font-semibold uppercase tracking-wide">
+                              Custo por lead
+                              <span className="ml-1.5 font-normal normal-case tracking-normal opacity-80">
+                                (gasto ÷ leads)
+                              </span>
+                            </span>
+                            <strong className="text-lg font-semibold">
+                              {formatCostPerLead(summary.costPerLead)}
+                            </strong>
+                          </div>
+                        }
+                      >
                         <TrendArea
-                          values={series.map((point) => point.spend)}
-                          tone="cobalt"
-                          id={campaign.id}
+                          points={series.map((point) => ({ date: point.date, value: point.spend }))}
+                          tone="blue"
+                          label="Gasto"
+                          kind="currency"
+                          emptyMessage="Sem gasto registrado neste período."
                         />
-                        <div className="mt-4 flex items-baseline justify-between border-t border-border pt-3">
-                          <span className="text-muted-soft text-xs font-semibold uppercase tracking-wide">
-                            Custo por lead
-                          </span>
-                          <strong className="text-lg font-semibold">
-                            {formatCostPerLead(summary.costPerLead)}
-                          </strong>
-                        </div>
-                      </ChartCard>
+                      </MetricCard>
 
                       {/* Card 2 — Leads */}
-                      <ChartCard label="Leads" value={formatInteger(summary.leads)} tone="success">
-                        <TrendBars values={series.map((point) => point.leads)} tone="success" />
-                      </ChartCard>
+                      <MetricCard
+                        className="xl:col-span-5"
+                        label="Leads"
+                        sublabel="Pessoas que preencheram o formulário"
+                        value={formatInteger(summary.leads)}
+                        tone="green"
+                        icon={Users}
+                      >
+                        <TrendBars
+                          points={series.map((point) => ({ date: point.date, value: point.leads }))}
+                          tone="green"
+                          label="Leads"
+                          emptyMessage="Nenhum lead neste período ainda — eles aparecem aqui assim que alguém preencher o formulário."
+                        />
+                      </MetricCard>
 
                       {/* Card 3 — Cliques */}
-                      <ChartCard label="Cliques" value={formatInteger(summary.clicks)} tone="lagoon">
-                        <TrendBars values={series.map((point) => point.clicks)} tone="lagoon" />
-                      </ChartCard>
+                      <MetricCard
+                        className="xl:col-span-5"
+                        label="Cliques"
+                        sublabel="Vezes que clicaram no anúncio"
+                        value={formatInteger(summary.clicks)}
+                        tone="teal"
+                        icon={MousePointerClick}
+                      >
+                        <TrendBars
+                          points={series.map((point) => ({ date: point.date, value: point.clicks }))}
+                          tone="teal"
+                          label="Cliques"
+                          emptyMessage="Nenhum clique registrado neste período."
+                        />
+                      </MetricCard>
 
-                      {/* Card 4 — Alcance + Impressões */}
-                      <div className="surface-card-muted relative overflow-hidden rounded-[26px] p-5">
+                      {/* Card 4 (maior) — Alcance + Impressões na mesma escala */}
+                      <div className="surface-card-muted relative overflow-hidden rounded-[26px] p-5 xl:col-span-7">
                         <div
-                          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cobalt/[0.08] via-transparent to-transparent"
+                          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-chart-blue/[0.1] via-transparent to-transparent"
                           aria-hidden="true"
                         />
                         <div className="relative">
-                          <div className="flex flex-wrap gap-x-8 gap-y-2">
-                            <div>
-                              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cobalt">
-                                <span className="inline-block h-2 w-2 rounded-full bg-cobalt" />
-                                Alcance
-                              </p>
-                              <strong className="mt-2 block text-3xl font-semibold">
-                                {formatInteger(summary.reach)}
-                              </strong>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex flex-wrap gap-x-8 gap-y-2">
+                              <div>
+                                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  <span className="inline-block h-2 w-2 rounded-full bg-chart-blue" />
+                                  Alcance
+                                </p>
+                                <strong className="mt-1.5 block text-3xl font-semibold">
+                                  {formatInteger(summary.reach)}
+                                </strong>
+                                <p className="text-muted-soft mt-1 text-xs">Pessoas alcançadas</p>
+                              </div>
+                              <div>
+                                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  <span className="inline-block h-2 w-2 rounded-full bg-chart-teal" />
+                                  Impressões
+                                </p>
+                                <strong className="mt-1.5 block text-3xl font-semibold">
+                                  {formatInteger(summary.impressions)}
+                                </strong>
+                                <p className="text-muted-soft mt-1 text-xs">Vezes que o anúncio apareceu</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-lagoon">
-                                <span className="inline-block h-2 w-2 rounded-full bg-lagoon" />
-                                Impressões
-                              </p>
-                              <strong className="mt-2 block text-3xl font-semibold">
-                                {formatInteger(summary.impressions)}
-                              </strong>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-chart-blue/12 text-chart-blue">
+                              <Eye size={18} aria-hidden="true" />
                             </div>
                           </div>
                           <div className="mt-4">
                             <DualTrend
                               series={[
-                                { values: series.map((point) => point.reach), tone: "cobalt" },
-                                { values: series.map((point) => point.impressions), tone: "lagoon" }
+                                {
+                                  label: "Alcance",
+                                  points: series.map((point) => ({ date: point.date, value: point.reach })),
+                                  tone: "blue"
+                                },
+                                {
+                                  label: "Impressões",
+                                  points: series.map((point) => ({ date: point.date, value: point.impressions })),
+                                  tone: "teal"
+                                }
                               ]}
+                              emptyMessage="Sem dados de alcance neste período."
                             />
                           </div>
                         </div>
@@ -288,42 +351,79 @@ function TabLink({
   );
 }
 
+// Tints por métrica: cor mais presente que antes (referência bento), mas sempre
+// via tokens --chart-* que adaptam ao tema.
 const CARD_TONE: Record<
-  "cobalt" | "lagoon" | "success",
-  { tint: string; label: string; dot: string }
+  "blue" | "teal" | "green",
+  { tint: string; dot: string; chip: string }
 > = {
-  cobalt: { tint: "from-cobalt/[0.08]", label: "text-cobalt", dot: "bg-cobalt" },
-  lagoon: { tint: "from-lagoon/[0.1]", label: "text-lagoon", dot: "bg-lagoon" },
-  success: { tint: "from-success/[0.1]", label: "text-success", dot: "bg-success" }
+  blue: {
+    tint: "from-chart-blue/[0.14]",
+    dot: "bg-chart-blue",
+    chip: "bg-chart-blue/12 text-chart-blue"
+  },
+  teal: {
+    tint: "from-chart-teal/[0.14]",
+    dot: "bg-chart-teal",
+    chip: "bg-chart-teal/12 text-chart-teal"
+  },
+  green: {
+    tint: "from-chart-green/[0.16]",
+    dot: "bg-chart-green",
+    chip: "bg-chart-green/12 text-chart-green"
+  }
 };
 
-function ChartCard({
+function MetricCard({
   label,
+  sublabel,
   value,
   tone,
+  icon: Icon,
+  hero = false,
+  footer,
+  className = "",
   children
 }: {
   label: string;
+  sublabel: string;
   value: string;
-  tone: "cobalt" | "lagoon" | "success";
+  tone: "blue" | "teal" | "green";
+  icon: ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
+  hero?: boolean;
+  footer?: ReactNode;
+  className?: string;
   children: ReactNode;
 }) {
   const toneClasses = CARD_TONE[tone];
   return (
-    <div className="surface-card-muted relative overflow-hidden rounded-[26px] p-5">
+    <div className={`surface-card-muted relative overflow-hidden rounded-[26px] p-5 ${className}`}>
       <div
         className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${toneClasses.tint} via-transparent to-transparent`}
         aria-hidden="true"
       />
-      <div className="relative">
-        <p
-          className={`text-xs font-semibold uppercase tracking-wide ${toneClasses.label} flex items-center gap-1.5`}
-        >
-          <span className={`inline-block h-2 w-2 rounded-full ${toneClasses.dot}`} />
-          {label}
-        </p>
-        <strong className="mt-2 block text-3xl font-semibold">{value}</strong>
-        <div className="mt-4">{children}</div>
+      <div className="relative flex h-full flex-col">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className={`inline-block h-2 w-2 rounded-full ${toneClasses.dot}`} />
+              {label}
+            </p>
+            <strong
+              className={`mt-1.5 block font-semibold ${hero ? "text-3xl md:text-4xl" : "text-3xl"}`}
+            >
+              {value}
+            </strong>
+            <p className="text-muted-soft mt-1 text-xs">{sublabel}</p>
+          </div>
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${toneClasses.chip}`}
+          >
+            <Icon size={18} aria-hidden={true} />
+          </div>
+        </div>
+        <div className="mt-4 flex-1">{children}</div>
+        {footer ? <div className="mt-4 border-t border-border pt-3">{footer}</div> : null}
       </div>
     </div>
   );
