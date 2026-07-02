@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Megaphone, TrendingUp } from "lucide-react";
@@ -7,7 +8,11 @@ import {
   getCampaignsForCurrentUser,
   getPendingCampaignsForCurrentUser
 } from "@/lib/campaigns/repository.server";
-import { fetchCampaignInsights, normalizeInsightDatePreset } from "@/lib/meta/insights.server";
+import {
+  fetchCampaignInsights,
+  fetchCampaignInsightsSeries,
+  normalizeInsightDatePreset
+} from "@/lib/meta/insights.server";
 import {
   DATE_PRESET_LABELS,
   DATE_PRESET_ORDER,
@@ -16,6 +21,7 @@ import {
   formatInteger
 } from "@/lib/meta/insights-format";
 import { AdApprovalWorkspace } from "../campanhas/aprovacoes/ad-approval-workspace";
+import { DualTrend, TrendArea, TrendBars } from "./performance-charts";
 
 type Aba = "aprovacoes" | "desempenho";
 
@@ -30,7 +36,9 @@ export default async function CampanhasPage({
   }
 
   const params = await searchParams;
-  const datePreset = normalizeInsightDatePreset(params.periodo);
+  // Sem `periodo` na URL a aba abre no período máximo ("Tudo"); os botões
+  // continuam trocáveis pois cada um passa o preset explícito.
+  const datePreset = normalizeInsightDatePreset(params.periodo ?? "maximum");
 
   // Aprovações pendentes: consulta barata no banco, usada também para o badge da aba.
   const pendingState = await getPendingCampaignsForCurrentUser();
@@ -117,7 +125,7 @@ export default async function CampanhasPage({
 
           {desempenhoData && desempenhoData.length > 0 ? (
             <div className="space-y-4">
-              {desempenhoData.map(({ campaign, summary }) => (
+              {desempenhoData.map(({ campaign, summary, series }) => (
                 <article key={campaign.id} className="surface-card-muted rounded-[30px] p-5 md:p-6">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
@@ -141,13 +149,65 @@ export default async function CampanhasPage({
                   </div>
 
                   {summary ? (
-                    <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-                      <InsightStat label="Gasto" value={formatBRL(summary.spend)} highlight />
-                      <InsightStat label="Leads" value={formatInteger(summary.leads)} highlight />
-                      <InsightStat label="Custo por lead" value={formatCostPerLead(summary.costPerLead)} />
-                      <InsightStat label="Alcance" value={formatInteger(summary.reach)} />
-                      <InsightStat label="Impressões" value={formatInteger(summary.impressions)} />
-                      <InsightStat label="Cliques" value={formatInteger(summary.clicks)} />
+                    <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {/* Card 1 — Gasto + Custo por lead */}
+                      <ChartCard label="Gasto" value={formatBRL(summary.spend)}>
+                        <TrendArea
+                          values={series.map((point) => point.spend)}
+                          tone="cobalt"
+                          id={campaign.id}
+                        />
+                        <div className="mt-4 flex items-baseline justify-between border-t border-border pt-3">
+                          <span className="text-muted-soft text-xs font-semibold uppercase tracking-wide">
+                            Custo por lead
+                          </span>
+                          <strong className="text-lg font-semibold">
+                            {formatCostPerLead(summary.costPerLead)}
+                          </strong>
+                        </div>
+                      </ChartCard>
+
+                      {/* Card 2 — Leads */}
+                      <ChartCard label="Leads" value={formatInteger(summary.leads)}>
+                        <TrendBars values={series.map((point) => point.leads)} tone="cobalt" />
+                      </ChartCard>
+
+                      {/* Card 3 — Cliques */}
+                      <ChartCard label="Cliques" value={formatInteger(summary.clicks)}>
+                        <TrendBars values={series.map((point) => point.clicks)} tone="lagoon" />
+                      </ChartCard>
+
+                      {/* Card 4 — Alcance + Impressões */}
+                      <div className="surface-card-muted rounded-[26px] p-5">
+                        <div className="flex flex-wrap gap-x-8 gap-y-2">
+                          <div>
+                            <p className="text-muted-soft text-xs font-semibold uppercase tracking-wide">
+                              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-cobalt align-middle" />
+                              Alcance
+                            </p>
+                            <strong className="mt-1 block text-3xl font-semibold">
+                              {formatInteger(summary.reach)}
+                            </strong>
+                          </div>
+                          <div>
+                            <p className="text-muted-soft text-xs font-semibold uppercase tracking-wide">
+                              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-lagoon align-middle" />
+                              Impressões
+                            </p>
+                            <strong className="mt-1 block text-3xl font-semibold">
+                              {formatInteger(summary.impressions)}
+                            </strong>
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <DualTrend
+                            series={[
+                              { values: series.map((point) => point.reach), tone: "cobalt" },
+                              { values: series.map((point) => point.impressions), tone: "lagoon" }
+                            ]}
+                          />
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-muted-soft mt-5 rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm">
@@ -172,14 +232,21 @@ async function loadDesempenho(datePreset: ReturnType<typeof normalizeInsightDate
   );
 
   return Promise.all(
-    publishedCampaigns.map(async (campaign) => ({
-      campaign,
-      summary: await fetchCampaignInsights({
-        organizationId: campaign.organizationId,
-        metaCampaignId: campaign.metaCampaignId,
-        datePreset
-      })
-    }))
+    publishedCampaigns.map(async (campaign) => {
+      const [summary, series] = await Promise.all([
+        fetchCampaignInsights({
+          organizationId: campaign.organizationId,
+          metaCampaignId: campaign.metaCampaignId,
+          datePreset
+        }),
+        fetchCampaignInsightsSeries({
+          organizationId: campaign.organizationId,
+          metaCampaignId: campaign.metaCampaignId,
+          datePreset
+        })
+      ]);
+      return { campaign, summary, series };
+    })
   );
 }
 
@@ -215,23 +282,20 @@ function TabLink({
   );
 }
 
-function InsightStat({
+function ChartCard({
   label,
   value,
-  highlight = false
+  children
 }: {
   label: string;
   value: string;
-  highlight?: boolean;
+  children: ReactNode;
 }) {
   return (
-    <div
-      className={`rounded-[22px] px-4 py-3 ${
-        highlight ? "bg-cobalt/8 border border-cobalt/16" : "surface-card-muted"
-      }`}
-    >
+    <div className="surface-card-muted rounded-[26px] p-5">
       <p className="text-muted-soft text-xs font-semibold uppercase tracking-wide">{label}</p>
-      <strong className="mt-1 block text-2xl font-semibold">{value}</strong>
+      <strong className="mt-1 block text-3xl font-semibold">{value}</strong>
+      <div className="mt-4">{children}</div>
     </div>
   );
 }

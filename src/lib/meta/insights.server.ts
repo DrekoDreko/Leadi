@@ -33,6 +33,8 @@ type MetaInsightAction = {
 type MetaInsightRow = {
   ad_id?: string;
   ad_name?: string;
+  date_start?: string;
+  date_stop?: string;
   spend?: string;
   impressions?: string;
   clicks?: string;
@@ -50,6 +52,19 @@ export type CampaignInsightSummary = {
   impressions: number;
   clicks: number;
   ctr: number;
+};
+
+// Ponto diário da série de desempenho da campanha (time_increment=1). Usado
+// apenas para desenhar os gráficos de tendência; os totais do cabeçalho vêm do
+// resumo agregado, pois o alcance (reach) é deduplicado e não pode ser somado.
+export type CampaignInsightPoint = {
+  date: string;
+  spend: number;
+  leads: number;
+  costPerLead: number | null;
+  reach: number;
+  impressions: number;
+  clicks: number;
 };
 
 export type AdInsightSummary = {
@@ -169,6 +184,52 @@ export async function fetchCampaignInsights(input: {
   } catch (error) {
     console.error("Erro ao carregar insights da campanha Meta.", error);
     return null;
+  }
+}
+
+// Série diária da campanha no período (time_increment=1). Retorna lista vazia
+// quando não há token, id de campanha, ou entrega — a UI trata como estado
+// neutro. Ordenada por data crescente para desenhar os gráficos.
+export async function fetchCampaignInsightsSeries(input: {
+  organizationId: string;
+  metaCampaignId: string | null;
+  datePreset?: InsightDatePreset;
+}): Promise<CampaignInsightPoint[]> {
+  if (!input.metaCampaignId) {
+    return [];
+  }
+
+  const accessToken = await resolveMetaAccessTokenForOrganization(input.organizationId);
+  if (!accessToken) {
+    return [];
+  }
+
+  try {
+    const rows = await fetchInsights(accessToken, input.metaCampaignId, {
+      fields: CAMPAIGN_INSIGHT_FIELDS,
+      date_preset: input.datePreset ?? "last_30d",
+      time_increment: "1"
+    });
+
+    return rows
+      .map((row) => {
+        const spend = toNumber(row.spend);
+        const leads = extractLeads(row.actions);
+
+        return {
+          date: row.date_start ?? "",
+          spend,
+          leads,
+          costPerLead: computeCostPerLead(spend, leads),
+          reach: toNumber(row.reach),
+          impressions: toNumber(row.impressions),
+          clicks: toNumber(row.clicks)
+        };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  } catch (error) {
+    console.error("Erro ao carregar série de insights da campanha Meta.", error);
+    return [];
   }
 }
 
