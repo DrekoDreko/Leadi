@@ -59,4 +59,9 @@ export type ComposeAdInput = {
   logo?: Buffer | null;
   /** Foto/fundo gerado pela IA (medico/familia). Oferta nao usa. */
   background?: Buffer | null;
+  /**
+   * Recorte da pessoa em PNG com fundo TRANSPARENTE (estilo recorte). Nao e
+   * redimensionado em "cover": e aparado no alfa e ancorado na base da arte.
+   */
+  cutout?: Buffer | null;
 };

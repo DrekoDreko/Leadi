@@ -19,7 +19,7 @@ import {
   type AdImageStylePreset
 } from "../src/lib/creatives/ad-image-presets";
 import { getOperator } from "../src/lib/creatives/operator-config";
-import { composeAdImage, COMPOSITOR_FORMATS } from "../src/lib/creatives/compositor";
+import { composeAdImage, COMPOSITOR_FORMATS, usesCutout } from "../src/lib/creatives/compositor";
 
 const OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations";
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
@@ -87,21 +87,33 @@ async function resolveBackground(preset: AdImageStylePreset): Promise<Buffer | n
   }
 
   const apiKey = await getApiKey();
-  const buffer = await generateBackground(apiKey, preset.backgroundPrompt, preset.id);
+  const buffer = await generateBackground(apiKey, preset.backgroundPrompt, preset.id, usesCutout(preset.id));
   await mkdir(PHOTO_CACHE_DIR, { recursive: true });
   await writeFile(cacheFile, buffer);
   return buffer;
 }
 
 /** Gera apenas a foto/fundo (sem texto/logo) via gpt-image-1. */
-async function generateBackground(apiKey: string, prompt: string, presetId: string): Promise<Buffer> {
+async function generateBackground(
+  apiKey: string,
+  prompt: string,
+  presetId: string,
+  transparent = false
+): Promise<Buffer> {
   const response = await fetch(OPENAI_IMAGES_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ model: IMAGE_MODEL, prompt, size: "1024x1024", n: 1 })
+    body: JSON.stringify({
+      model: IMAGE_MODEL,
+      prompt,
+      // Recorte: retrato transparente, com espaco para a pessoa vir inteira.
+      size: transparent ? "1024x1536" : "1024x1024",
+      n: 1,
+      ...(transparent ? { background: "transparent", output_format: "png", quality: "high" } : {})
+    })
   });
 
   const payload = (await response.json().catch(() => null)) as
@@ -133,7 +145,8 @@ async function buildPreview(preset: AdImageStylePreset): Promise<Buffer> {
   const carrierColor = operator?.primaryColor ?? "#1F4ED8";
   const logo = operator ? await loadLogo(operator.logoPath) : null;
 
-  const background = await resolveBackground(preset);
+  const photo = await resolveBackground(preset);
+  const isCutout = usesCutout(preset.id);
 
   return composeAdImage({
     styleId: preset.id,
@@ -141,7 +154,8 @@ async function buildPreview(preset: AdImageStylePreset): Promise<Buffer> {
     content: preset.layout,
     carrierColor,
     logo,
-    background
+    background: isCutout ? null : photo,
+    cutout: isCutout ? photo : null
   });
 }
 

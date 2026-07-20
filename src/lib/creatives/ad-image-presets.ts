@@ -34,6 +34,54 @@ export type AdImageStylePreset = {
 
 export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
   {
+    id: "recorte-impacto",
+    label: "Estilo Recorte / Impacto",
+    description:
+      "Pergunta de impacto em caixa alta, fundo cheio na cor da operadora com ondas e a pessoa recortada. O padrão mais usado por corretores.",
+    previewImage: "/creatives/presets/recorte-impacto.png",
+    promptSpec: [
+      "Fundo inteiro na cor primaria da operadora, com ondas/curvas organicas em tons mais claros e escuros da mesma cor.",
+      "Pessoa RECORTADA (sem fundo, sem moldura) ancorada na base a direita, ocupando cerca de metade da largura da arte.",
+      "Manchete curta em caixa alta, tipografia sans-serif pesadissima, alinhada a esquerda, ocupando a maior area de texto da arte.",
+      "Ao lado da manchete, coluna de termos curtos (ex: MEI, LTDA, ME, EPP, EIRELI) separada por uma barra vertical.",
+      "Barras solidas de destaque com a condicao comercial e a oferta, em caixa alta e alto contraste.",
+      "Logo oficial da operadora em destaque no topo da arte.",
+      "CTA em pilula clara no rodape esquerdo, com assinatura do corretor e WhatsApp.",
+      "Clima: direto, comercial, alto contraste, leitura instantanea no feed."
+    ],
+    sample: {
+      title: "Possui CNPJ?",
+      subtitle: "O melhor plano de saúde para você!",
+      briefing:
+        "Arte de impacto perguntando se o lead possui CNPJ, listando os tipos aceitos (MEI, LTDA, ME, EPP, EIRELI) e destacando que o plano empresarial sai a partir de 3 vidas.",
+      carrier: "Bradesco Saúde",
+      contractType: "A partir de 3 vidas",
+      offer: "O melhor plano de saúde para você!",
+      phone: "(00) 00000-0000",
+      brandName: "Sua Corretora",
+      style: "comercial, impactante, alto contraste"
+    },
+    carrierSlug: "bradesco-saude",
+    // Recorte: a IA devolve a pessoa em PNG transparente (background: transparent).
+    backgroundPrompt:
+      "Retrato fotografico realista de estudio, corpo 3/4 (da cabeca ate um pouco abaixo da cintura), de um medico brasileiro sorridente, jaleco branco e estetoscopio no pescoco, bracos cruzados, olhando para a camera, postura confiante e acolhedora. SUJEITO TOTALMENTE ISOLADO: fundo 100% transparente, sem cenario, sem parede, sem chao, SEM SOMBRA projetada. ENQUADRAMENTO OBRIGATORIO: a pessoa ocupa no maximo 70% da altura da imagem e fica centralizada, com MARGEM VAZIA generosa acima da cabeca e nas laterais; o topo da cabeca e do cabelo NUNCA encosta na borda superior; nada e cortado pelas bordas. Iluminacao de estudio suave e uniforme, alta definicao. SEM texto, SEM letras, SEM numeros, SEM logotipo, SEM marca d'agua, SEM moldura.",
+    layout: {
+      title: "Possui CNPJ?",
+      contractType: "A partir de 3 vidas",
+      offer: "O melhor plano de saúde para você!",
+      benefits: [
+        { title: "MEI" },
+        { title: "LTDA" },
+        { title: "ME" },
+        { title: "EPP" },
+        { title: "EIRELI" }
+      ],
+      cta: "Receba uma cotação",
+      phone: "(00) 00000-0000",
+      brandName: "Sua Corretora"
+    }
+  },
+  {
     id: "medico-hospital",
     label: "Estilo Médico / Hospital",
     description:

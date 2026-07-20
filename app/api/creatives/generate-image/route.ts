@@ -6,7 +6,7 @@ import { EnvValidationError } from "@/lib/env/server";
 import { AiCreditsError, runAiActionWithCredits } from "@/lib/ai/credits";
 import { LeadHealthOpenAIError } from "@/lib/openai";
 import { generateAdImageSet } from "@/lib/creatives/ad-image-set.server";
-import type { AdBenefit, AdLayoutContent } from "@/lib/creatives/compositor";
+import { usesCutout, type AdBenefit, type AdLayoutContent } from "@/lib/creatives/compositor";
 import { getBillingAuthContext } from "@/lib/billing/auth.server";
 import {
   assertOrganizationAiFeatureEnabled,
@@ -84,11 +84,15 @@ export async function POST(request: Request) {
     // Estilo/template: preset escolhido, ou inferido (tem desconto => oferta).
     const styleId = preset?.id ?? (fields.discount ? "oferta-desconto" : "medico-hospital");
 
-    // Oferta usa fundo em gradiente (sem foto). Demais usam foto da IA.
+    // Oferta usa fundo em gradiente (sem foto). Recorte pede a pessoa isolada
+    // em PNG transparente; os demais, uma foto de cena.
     const backgroundPrompt =
       styleId === "oferta-desconto"
         ? null
-        : preset?.backgroundPrompt ?? buildGenericBackgroundPrompt(fields.briefing);
+        : preset?.backgroundPrompt ??
+          (usesCutout(styleId)
+            ? buildCutoutPrompt(fields.briefing)
+            : buildGenericBackgroundPrompt(fields.briefing));
 
     const benefits = parseBenefits(fields.benefits);
     const content: AdLayoutContent = {
@@ -181,6 +185,14 @@ function parseBenefits(raw?: string): AdBenefit[] {
 
 function defaultCta(): string {
   return "Solicite sua cotação";
+}
+
+/**
+ * Prompt do estilo recorte: a IA entrega SO a pessoa, em PNG transparente. O
+ * enquadramento e obrigatorio — sem folga em volta, o trim corta a cabeca.
+ */
+function buildCutoutPrompt(briefing: string): string {
+  return `Retrato fotografico realista de estudio de uma pessoa brasileira relacionada a plano de saude (${briefing}): corpo 3/4 (da cabeca ate um pouco abaixo da cintura), sorrindo, olhando para a camera, postura confiante e acolhedora. SUJEITO TOTALMENTE ISOLADO: fundo 100% transparente, sem cenario, sem parede, sem chao, SEM SOMBRA projetada. ENQUADRAMENTO OBRIGATORIO: a pessoa ocupa no maximo 70% da altura da imagem e fica centralizada, com MARGEM VAZIA generosa acima da cabeca e nas laterais; o topo da cabeca e do cabelo NUNCA encosta na borda superior; nada e cortado pelas bordas. Iluminacao de estudio suave e uniforme, alta definicao. SEM texto, SEM letras, SEM numeros, SEM logotipo, SEM marca d'agua, SEM moldura.`;
 }
 
 function buildGenericBackgroundPrompt(briefing: string): string {

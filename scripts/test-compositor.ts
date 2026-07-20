@@ -19,13 +19,38 @@ async function readOptional(rel: string): Promise<Buffer | null> {
 
 type Case = {
   id: string;
+  /** Template a usar (padrao: o proprio id). */
+  styleId?: string;
   carrierColor: string;
   logo: string;
   background?: string;
+  /** PNG transparente da pessoa (estilo recorte). */
+  cutout?: string;
   content: AdLayoutContent;
 };
 
 const CASES: Case[] = [
+  {
+    id: "recorte-impacto",
+    carrierColor: "#CC092F",
+    logo: "public/creatives/logos/operadoras/bradesco-saude.png",
+    cutout: ".tmp/preset-photos/recorte-impacto.png",
+    content: {
+      title: "Possui CNPJ?",
+      contractType: "A partir de 3 vidas",
+      offer: "O melhor plano de saúde para você!",
+      benefits: [
+        { title: "MEI" },
+        { title: "LTDA" },
+        { title: "ME" },
+        { title: "EPP" },
+        { title: "EIRELI" }
+      ],
+      cta: "Receba uma cotação",
+      phone: "(00) 00000-0000",
+      brandName: "Sua Corretora"
+    }
+  },
   {
     id: "oferta-desconto",
     carrierColor: "#003366",
@@ -39,6 +64,20 @@ const CASES: Case[] = [
       cta: "Solicite sua cotação",
       phone: "(00) 00000-0000",
       brandName: "Sua Corretora"
+    }
+  },
+  {
+    // Regressao do bug: conteudo minimo nao pode gerar bloco de cor vazio.
+    id: "medico-minimo",
+    styleId: "medico-hospital",
+    carrierColor: "#CC092F",
+    logo: "public/creatives/logos/operadoras/bradesco-saude.png",
+    background: ".tmp/preset-photos/medico-hospital.png",
+    content: {
+      title: "Possui CNPJ?",
+      contractType: "PME",
+      cta: "Receba uma Cotação",
+      brandName: "Royals Seguros"
     }
   },
   {
@@ -94,15 +133,17 @@ async function main() {
   for (const item of CASES) {
     const logo = await readOptional(item.logo);
     const background = item.background ? await readOptional(item.background) : null;
+    const cutout = item.cutout ? await readOptional(item.cutout) : null;
 
     for (const format of FORMATS) {
       const png = await composeAdImage({
-        styleId: item.id,
+        styleId: item.styleId ?? item.id,
         format,
         content: item.content,
         carrierColor: item.carrierColor,
         logo,
-        background
+        background,
+        cutout
       });
 
       const out = path.join(ROOT, "public", "creatives", "presets", `_test_${item.id}_${format.id}.png`);

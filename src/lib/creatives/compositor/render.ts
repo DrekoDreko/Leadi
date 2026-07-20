@@ -39,6 +39,44 @@ export type PreparedLogo = {
 };
 
 /**
+ * Prepara o recorte da pessoa: apara o transparente em volta (trim no alfa) e
+ * encaixa dentro da caixa alvo mantendo proporcao. Sem o trim, a margem vazia
+ * que a IA deixa em volta do sujeito empurraria a pessoa para fora da arte.
+ */
+export async function prepareCutout(
+  buffer: Buffer,
+  box: { maxWidth: number; maxHeight: number }
+): Promise<PreparedLogo> {
+  let base = sharp(buffer).ensureAlpha();
+
+  try {
+    // threshold alto: ignora o "halo" semitransparente das bordas do recorte.
+    base = sharp(await base.trim({ threshold: 12 }).png().toBuffer());
+  } catch {
+    // imagem sem area aparavel (fundo opaco): segue com a original.
+    base = sharp(buffer).ensureAlpha();
+  }
+
+  const resized = await base
+    .resize({
+      width: Math.round(box.maxWidth),
+      height: Math.round(box.maxHeight),
+      fit: "inside",
+      withoutEnlargement: false,
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    })
+    .png()
+    .toBuffer();
+
+  const meta = await sharp(resized).metadata();
+  return {
+    src: `data:image/png;base64,${resized.toString("base64")}`,
+    width: meta.width ?? Math.round(box.maxWidth),
+    height: meta.height ?? Math.round(box.maxHeight)
+  };
+}
+
+/**
  * Redimensiona o logo para uma altura alvo (mantendo proporcao) e devolve o
  * data URI + dimensoes reais (satori exige width/height em <img>).
  */

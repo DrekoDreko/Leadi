@@ -4,6 +4,7 @@ import { generateBackgroundPhoto, type OpenAIRequestOptions } from "@/lib/openai
 import {
   composeAdImage,
   COMPOSITOR_FORMATS,
+  usesCutout,
   type AdLayoutContent,
   type CompositorFormat
 } from "@/lib/creatives/compositor";
@@ -46,10 +47,16 @@ export async function generateAdImageSet(
 ): Promise<AdImageSet> {
   let background: Buffer | null = null;
   let photoSkipped = false;
+  const cutoutStyle = usesCutout(input.styleId);
 
   if (input.backgroundPrompt) {
     try {
-      background = await generateBackgroundPhoto(input.backgroundPrompt, "1024x1536", options);
+      background = await generateBackgroundPhoto(
+        input.backgroundPrompt,
+        // Recorte: quadrado da IA, para a pessoa vir inteira e centralizada.
+        cutoutStyle ? "1024x1024" : "1024x1536",
+        { ...options, transparent: cutoutStyle }
+      );
     } catch (error) {
       // Plano B: sem credito/cota de IA (ou falha na foto) a arte ainda e
       // gerada com o fundo em gradiente da operadora — texto/logo nao usam IA.
@@ -73,13 +80,15 @@ async function composePlacement(
   placement: AdPlacementAsset["placement"],
   background: Buffer | null
 ): Promise<AdPlacementAsset> {
+  const isCutout = usesCutout(input.styleId);
   const png = await composeAdImage({
     styleId: input.styleId,
     format,
     content: input.content,
     carrierColor: input.carrierColor,
     logo: input.logo ?? null,
-    background
+    background: isCutout ? null : background,
+    cutout: isCutout ? background : null
   });
 
   return {

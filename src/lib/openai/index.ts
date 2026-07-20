@@ -236,7 +236,7 @@ export async function generateAdImage(
 export async function generateBackgroundPhoto(
   prompt: string,
   size: AdImageSize,
-  options?: OpenAIRequestOptions
+  options?: OpenAIRequestOptions & { transparent?: boolean }
 ): Promise<Buffer> {
   const resolvedApiKey = getOpenAIApiKey(options?.apiKey);
   const model = getOpenAIImageModel();
@@ -247,7 +247,16 @@ export async function generateBackgroundPhoto(
       Authorization: `Bearer ${resolvedApiKey}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ model, prompt, size, n: 1 })
+    body: JSON.stringify({
+      model,
+      prompt,
+      size,
+      n: 1,
+      // Recorte da pessoa: PNG com canal alfa, sem fundo nenhum.
+      ...(options?.transparent
+        ? { background: "transparent", output_format: "png", quality: "high" }
+        : {})
+    })
   });
 
   const payload = (await response.json().catch(() => null)) as OpenAIImagePayload | null;
