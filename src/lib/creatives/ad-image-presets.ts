@@ -82,51 +82,6 @@ export const AD_IMAGE_STYLE_PRESETS: AdImageStylePreset[] = [
     }
   },
   {
-    id: "medico-hospital",
-    label: "Estilo Médico / Hospital",
-    description:
-      "Médico atendendo paciente ou ambiente hospitalar. Transmite profissionalismo, confiança e excelência médica.",
-    previewImage: "/creatives/presets/medico-hospital.png",
-    promptSpec: [
-      "Composicao profissional de saude: foto realista de medico(a) brasileiro(a) de jaleco branco atendendo ou interagindo com paciente/casal sorridente, em ambiente hospitalar moderno e acolhedor.",
-      "Bloco de informacao lateral ou inferior com icones de check/shield listando beneficios (ex: rede credenciada de qualidade, cobertura completa, opcao enfermaria ou apartamento, programas de prevencao).",
-      "Chamada principal em tipografia sans-serif pesada e bem legivel, posicionada no topo ou sobre bloco de cor solida derivado da cor primaria da operadora.",
-      "Subtitulo ou frase de apoio abaixo do titulo em tamanho menor, complementando a mensagem.",
-      "Logo oficial da operadora posicionado com destaque no topo ou canto superior da arte.",
-      "Rodape com assinatura do corretor/marca e selo de WhatsApp (verde) com telefone em destaque.",
-      "Paleta profissional e confiavel derivada da cor primaria da operadora; cantos arredondados; sombras suaves; alto contraste texto/fundo.",
-      "Clima: confianca, excelencia medica, cuidado profissional, rede hospitalar de qualidade. Visual de anuncio profissional pronto para feed/story."
-    ],
-    sample: {
-      title: "Bradesco Saúde — Qualidade para sua empresa",
-      subtitle: "PME a partir de 3 vidas",
-      briefing:
-        "Arte destacando plano de saúde empresarial com rede credenciada de qualidade, cobertura completa (consultas, exames e internações), opção de enfermaria ou apartamento e programas de saúde e prevenção.",
-      carrier: "Bradesco Saúde",
-      contractType: "PME",
-      offer: "Solicite uma cotação agora",
-      phone: "(00) 00000-0000",
-      brandName: "Sua Corretora",
-      style: "profissional, hospitalar, confiável"
-    },
-    carrierSlug: "bradesco-saude",
-    backgroundPrompt:
-      "Foto realista e profissional de banco de imagens de saude, PLANO ABERTO / wide shot: medica brasileira de jaleco branco com estetoscopio, sorrindo e conversando com um casal (cliente) em consultorio ou hospital moderno, claro e acolhedor. As pessoas aparecem em tamanho MENOR, ocupando a faixa central, com BASTANTE espaco livre acima das cabecas e abaixo. Rostos e cabecas COMPLETOS, com folga, nunca cortados nas bordas. Iluminacao natural suave, tons claros. SEM nenhum texto, SEM letras, SEM logotipo, SEM numeros, SEM marca d'agua, SEM bordas.",
-    layout: {
-      title: "Qualidade para sua empresa",
-      contractType: "PME a partir de 3 vidas",
-      benefits: [
-        { title: "Rede credenciada de qualidade" },
-        { title: "Cobertura completa", detail: "Consultas, exames e internações" },
-        { title: "Opção de enfermaria ou apartamento" },
-        { title: "Programas de saúde e prevenção" }
-      ],
-      cta: "Solicite uma cotação agora",
-      phone: "(00) 00000-0000",
-      brandName: "Sua Corretora"
-    }
-  },
-  {
     id: "familia",
     label: "Estilo Família",
     description:
