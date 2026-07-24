@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -70,7 +71,11 @@ const demoWorkspaceContext: WorkspaceContext = {
   supervisorName: undefined
 };
 
-export async function getCurrentWorkspaceContext(): Promise<WorkspaceContext> {
+// Memoizado por request com React.cache: layout, page e todos os helpers
+// `require*` compartilham o mesmo resultado, eliminando a busca repetida de
+// perfil + organizacao (antes 2-3x por navegacao). O cache e escopado ao
+// render do servidor, entao nao vaza entre usuarios/requests.
+export const getCurrentWorkspaceContext = cache(async (): Promise<WorkspaceContext> => {
   if (!isSupabaseConfigured()) {
     return demoWorkspaceContext;
   }
@@ -137,7 +142,7 @@ export async function getCurrentWorkspaceContext(): Promise<WorkspaceContext> {
     teamName: undefined,
     supervisorName: undefined
   };
-}
+});
 
 export async function requireCompletedProfile() {
   const context = await getCurrentWorkspaceContext();

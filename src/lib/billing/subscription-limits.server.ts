@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createBillingAdminClient } from "@/lib/billing/admin";
 import { isBillingConfigured, isBillingDisabledForTests } from "@/lib/billing/config";
 import { getPlanPermissions, planAllowsAi } from "@/lib/billing/plan-permissions";
@@ -363,7 +364,10 @@ export async function assertOrganizationResourceAccess(
   return access;
 }
 
-async function getCurrentOrganizationId() {
+// Memoizado por request: varios helpers de billing (notice, overview, resource
+// access) chamam isto no mesmo render. React.cache evita repetir getUser +
+// profile a cada um.
+const getCurrentOrganizationId = cache(async () => {
   if (!isSupabaseConfigured()) {
     return null;
   }
@@ -384,9 +388,9 @@ async function getCurrentOrganizationId() {
     .maybeSingle();
 
   return profile?.organization_id ?? null;
-}
+});
 
-async function getOrganizationPlanCode(organizationId: string): Promise<string | null> {
+const getOrganizationPlanCode = cache(async (organizationId: string): Promise<string | null> => {
   if (!isSupabaseConfigured()) {
     return null;
   }
@@ -399,7 +403,7 @@ async function getOrganizationPlanCode(organizationId: string): Promise<string |
     .maybeSingle();
 
   return data?.plan_type ?? null;
-}
+});
 
 /**
  * Gate de IA dirigido pelo PLANO escolhido (organizations.plan_type), valido
@@ -440,9 +444,12 @@ export async function assertCurrentAiFeatureEnabled() {
   await assertOrganizationAiFeatureEnabled(organizationId);
 }
 
-async function getOrganizationBillingState(
+// Memoizado por request: notice + overview + resource access leem o mesmo
+// estado de billing da organizacao. Evita refazer as queries de subscription /
+// usage varias vezes na mesma navegacao.
+const getOrganizationBillingState = cache(async (
   organizationId: string
-): Promise<OrganizationBillingState> {
+): Promise<OrganizationBillingState> => {
   if (isBillingDisabledForTests() || !isBillingConfigured()) {
     // Com cobranca desativada nao impomos limites de quantidade, mas ainda
     // respeitamos as FEATURES do plano escolhido (ex.: Essencial sem IA),
@@ -522,7 +529,7 @@ async function getOrganizationBillingState(
     },
     usage
   };
-}
+});
 
 async function getPlanById(
   supabase: ReturnType<typeof createBillingAdminClient>,

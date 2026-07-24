@@ -1,7 +1,25 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import type { AnchorHTMLAttributes, ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { AnchorHTMLAttributes, ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardShell } from "./shell";
+
+// O shell usa React Query (badge de notificacoes). Envolvemos os renders num
+// QueryClientProvider dedicado, sem retry/cache, para manter os testes isolados.
+function renderShell(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } }
+  });
+
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
+
+// O badge de notificacoes dispara um fetch("/api/notifications") no mount (via
+// React Query). Ao asserir a busca de leads, filtramos so as chamadas a
+// /api/leads para nao contar essa requisicao de fundo.
+function leadsCalls(fetchMock: ReturnType<typeof vi.fn>) {
+  return fetchMock.mock.calls.filter((call) => String(call[0]).includes("/api/leads"));
+}
 
 const pushMock = vi.hoisted(() => vi.fn());
 
@@ -78,7 +96,7 @@ describe("DashboardShell", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    render(
+    renderShell(
       <DashboardShell>
         <div>Conteudo</div>
       </DashboardShell>
@@ -91,7 +109,7 @@ describe("DashboardShell", () => {
       vi.advanceTimersByTime(260);
     });
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(leadsCalls(fetchMock)).toHaveLength(0);
 
     fireEvent.change(searchInput, { target: { value: "kle" } });
     await act(async () => {
@@ -100,8 +118,8 @@ describe("DashboardShell", () => {
       await Promise.resolve();
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toContain("/api/leads?search=kle&limit=6");
+    expect(leadsCalls(fetchMock)).toHaveLength(1);
+    expect(leadsCalls(fetchMock)[0][0]).toContain("/api/leads?search=kle&limit=6");
     expect(screen.getByRole("button", { name: "Abrir lead Kleber Martins" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Abrir lead Kleber Martins" }));
@@ -126,7 +144,7 @@ describe("DashboardShell", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    render(
+    renderShell(
       <DashboardShell notificationCount={2}>
         <div>Conteudo</div>
       </DashboardShell>
@@ -168,7 +186,7 @@ describe("DashboardShell", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    render(
+    renderShell(
       <DashboardShell notificationCount={1}>
         <div>Conteudo</div>
       </DashboardShell>
@@ -228,7 +246,7 @@ describe("DashboardShell", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    render(
+    renderShell(
       <DashboardShell notificationCount={1}>
         <div>Conteudo</div>
       </DashboardShell>
@@ -259,6 +277,9 @@ describe("DashboardShell", () => {
     // Verify that PATCH api call is made
     const patchCall = fetchMock.mock.calls.find(([url, init]) => url === "/api/dashboard-reminders" && init?.method === "PATCH");
     expect(patchCall).toBeDefined();
+    if (!patchCall) {
+      throw new Error("Chamada PATCH de /api/dashboard-reminders nao encontrada.");
+    }
     const payload = JSON.parse(patchCall[1].body);
     expect(payload.id).toBe("reminder-snooze-test");
     expect(payload.action).toBe("snooze");
@@ -268,7 +289,7 @@ describe("DashboardShell", () => {
 
 describe("DashboardShell permissions", () => {
   it("não exibe link de Configurações para supervisor", () => {
-    render(
+    renderShell(
       <DashboardShell navVariant="supervisor-team">
         <div>Conteudo</div>
       </DashboardShell>
@@ -278,7 +299,7 @@ describe("DashboardShell permissions", () => {
   });
 
   it("exibe todos os links para o gestor", () => {
-    render(
+    renderShell(
       <DashboardShell navVariant="owner-team">
         <div>Conteudo</div>
       </DashboardShell>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { Ban, Bell, Check, CheckCircle2, Clock, Loader2, LogOut, Megaphone, Plug, Plus, Search, UserPlus, X, Link as LinkIcon } from "lucide-react";
 import { SubscriptionAccessBanner } from "@/components/billing/subscription-access-banner";
@@ -22,6 +23,12 @@ import type { NotificationItem } from "@/lib/notifications/types";
 const MIN_LEAD_SEARCH_LENGTH = 3;
 const HEADER_LEAD_SEARCH_LIMIT = 6;
 const DASHBOARD_REMINDERS_UPDATED_EVENT = "dashboard-reminders:updated";
+const APP_NOTIFICATIONS_QUERY_KEY = ["app-notifications"] as const;
+
+type AppNotificationsData = {
+  notifications: NotificationItem[];
+  unreadCount: number;
+};
 
 export function DashboardShell({
   children,
@@ -46,6 +53,7 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const primaryNavItems = getDashboardNavItems(navVariant, canCreateAd);
   const currentPath = pathname ?? "";
   const isFunnelPage = currentPath === "/dashboard/funil";
@@ -62,8 +70,29 @@ export function DashboardShell({
   const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [openSnoozeId, setOpenSnoozeId] = useState<string | null>(null);
-  const [appNotifications, setAppNotifications] = useState<NotificationItem[]>([]);
-  const [appUnreadCount, setAppUnreadCount] = useState(0);
+  // Notificacoes do app (badge do sino): buscadas via React Query. O cache com
+  // idade maxima evita refazer a requisicao a cada montagem/navegacao; ao
+  // expirar, revalida em background sem loading visivel.
+  const appNotificationsQuery = useQuery<AppNotificationsData>({
+    queryKey: APP_NOTIFICATIONS_QUERY_KEY,
+    queryFn: async () => {
+      const response = await fetch("/api/notifications");
+      if (!response.ok) {
+        throw new Error("Erro ao carregar notificacoes.");
+      }
+      const data = (await response.json()) as {
+        notifications?: NotificationItem[];
+        unreadCount?: number;
+      };
+      return {
+        notifications: data.notifications ?? [],
+        unreadCount: data.unreadCount ?? 0
+      };
+    },
+    enabled: !preview
+  });
+  const appNotifications = appNotificationsQuery.data?.notifications ?? [];
+  const appUnreadCount = appNotificationsQuery.data?.unreadCount ?? 0;
   const searchWrapperRef = useRef<HTMLDivElement | null>(null);
   const notificationsWrapperRef = useRef<HTMLDivElement | null>(null);
 
@@ -81,31 +110,19 @@ export function DashboardShell({
   const totalBadgeCount = reminderCount + appUnreadCount;
   const displayNotificationCount = totalBadgeCount > 99 ? "99+" : String(totalBadgeCount);
 
-  const fetchAppNotifications = async () => {
-    if (preview) {
-      return;
-    }
-    try {
-      const response = await fetch("/api/notifications");
-      if (!response.ok) {
-        return;
-      }
-      const data = (await response.json()) as {
-        notifications?: NotificationItem[];
-        unreadCount?: number;
-      };
-      setAppNotifications(data.notifications ?? []);
-      setAppUnreadCount(data.unreadCount ?? 0);
-    } catch {
-      // Notificacoes sao best-effort; falha de rede nao deve travar o sino.
-    }
-  };
-
   const handleMarkNotificationRead = async (id: string) => {
-    setAppNotifications((items) =>
-      items.map((item) => (item.id === id ? { ...item, readAt: new Date().toISOString() } : item))
+    // Atualizacao otimista direto no cache do React Query: o badge e a lista
+    // refletem a leitura na hora, sem esperar a resposta.
+    queryClient.setQueryData<AppNotificationsData>(APP_NOTIFICATIONS_QUERY_KEY, (prev) =>
+      prev
+        ? {
+            notifications: prev.notifications.map((item) =>
+              item.id === id ? { ...item, readAt: new Date().toISOString() } : item
+            ),
+            unreadCount: Math.max(0, prev.unreadCount - 1)
+          }
+        : prev
     );
-    setAppUnreadCount((count) => Math.max(0, count - 1));
     if (preview) {
       return;
     }
@@ -116,7 +133,7 @@ export function DashboardShell({
         body: JSON.stringify({ id })
       });
     } catch {
-      // Otimista: o estado local ja reflete a leitura.
+      // Otimista: o cache ja reflete a leitura.
     }
   };
 
@@ -269,17 +286,9 @@ export function DashboardShell({
   useEffect(() => {
     if (isNotificationsOpen) {
       void fetchNotifications();
-      void fetchAppNotifications();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNotificationsOpen]);
-
-  // Carrega a contagem de notificacoes nao lidas no mount para o badge refletir
-  // avisos (ex.: anuncio aprovado) sem o usuario precisar abrir o sino.
-  useEffect(() => {
-    void fetchAppNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (preview) {
@@ -398,6 +407,7 @@ export function DashboardShell({
         <aside className="glass-dark sticky top-4 hidden h-[calc(100vh-32px)] rounded-[38px] px-4 py-5 text-white lg:flex lg:flex-col lg:items-center lg:justify-between">
           <Link
             href={preview ? "/login" : profileHref}
+            prefetch={false}
             className="surface-card relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-foreground"
             aria-label={`Perfil de ${displayName}`}
             title={`${displayName} - ${workspaceName}`}
@@ -424,6 +434,7 @@ export function DashboardShell({
                 <Link
                   aria-current={active ? "page" : undefined}
                   aria-label={item.label}
+                  prefetch={false}
                   className={`group relative flex h-12 w-12 items-center justify-center rounded-full transition ${
                     active
                       ? "bg-surface-elevated text-foreground shadow-soft ring-1 ring-white/8"
@@ -441,6 +452,7 @@ export function DashboardShell({
           <Link
             aria-current={creationActive ? "page" : undefined}
             aria-label="Novas criações"
+            prefetch={false}
             className={`group relative flex h-12 w-12 items-center justify-center rounded-full transition ${
               creationActive
                 ? "bg-signal text-accent-foreground shadow-soft"
@@ -668,6 +680,7 @@ export function DashboardShell({
                                 {notification.linkUrl ? (
                                   <Link
                                     href={getHref(notification.linkUrl)}
+                                    prefetch={false}
                                     onClick={() => {
                                       setIsNotificationsOpen(false);
                                       if (!notification.readAt && !isSynthetic) {
@@ -832,6 +845,7 @@ export function DashboardShell({
                 <Link
                   aria-current={active ? "page" : undefined}
                   aria-label={item.label}
+                  prefetch={false}
                   className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition ${
                     active
                       ? "bg-surface-elevated text-foreground shadow-soft"
@@ -848,6 +862,7 @@ export function DashboardShell({
             <Link
               aria-current={creationActive ? "page" : undefined}
               aria-label="Novas criações"
+              prefetch={false}
               className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition ${
                 creationActive
                   ? "bg-surface-elevated text-foreground shadow-soft"

@@ -20,7 +20,14 @@ const nextConfig: NextConfig = {
     ]
   },
   experimental: {
-    devtoolSegmentExplorer: false
+    devtoolSegmentExplorer: false,
+    // Router Cache do cliente: mantem paginas ja visitadas por 5 min. Revisitar
+    // uma tela dentro dessa janela e instantaneo (sem round-trip ao servidor e
+    // sem flash de loading.tsx); ao expirar, o Next recarrega em background.
+    staleTimes: {
+      dynamic: 300,
+      static: 300
+    }
   },
   async redirects() {
     return [

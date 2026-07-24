@@ -58,7 +58,8 @@ export default async function DashboardPage() {
     subscriptionNotice,
     whatsappDeliverySummary,
     aiBalanceDetails,
-    aiUsageSummary
+    aiUsageSummary,
+    aiBalance
   ] = await Promise.all([
     getLeadsForCurrentUser(),
     getCampaignsForCurrentUser(4),
@@ -76,9 +77,11 @@ export default async function DashboardPage() {
     getCurrentSubscriptionNotice(),
     getWhatsAppDeliverySummaryForCurrentUser(),
     getCurrentAiBalanceDetails(),
-    getAiUsageThisPeriod()
+    getAiUsageThisPeriod(),
+    // Movido para o batch paralelo: nao depende dos demais e antes rodava em
+    // serie (uma ida extra ao banco antes de montar a home).
+    getCurrentAiBalance()
   ]);
-  const aiBalance = await getCurrentAiBalance();
   const contactedLeadIds = new Set(
     await listLeadIdsWithRecordedContactForCurrentUser(leadState.leads.map((lead) => lead.id))
   );
