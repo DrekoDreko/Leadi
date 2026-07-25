@@ -28,6 +28,7 @@ import {
   stringOrNull
 } from "./normalization";
 import { getLeadStageLabel, getLeadStageValue } from "./stages";
+import type { LeadCover } from "@/lib/pipeline/types";
 import {
   buildLeadPaginationMeta,
   normalizeLeadPaginationOptions,
@@ -3098,7 +3099,18 @@ function mapLeadRowToLead(
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
     archiveReason: row.archive_reason,
-    duplicateOfLeadId: row.duplicate_of_lead_id
+    duplicateOfLeadId: row.duplicate_of_lead_id,
+    stageId: row.stage_id ?? null,
+    boardPosition:
+      row.board_position == null || Number.isNaN(Number(row.board_position))
+        ? null
+        : Number(row.board_position),
+    dueAt: row.due_at ?? null,
+    cover: (row.cover as LeadCover | null) ?? null,
+    labels: [],
+    members: [],
+    checklistTotal: 0,
+    checklistDone: 0
   };
 }
 

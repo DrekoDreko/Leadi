@@ -8,6 +8,7 @@ import {
   WalletCards
 } from "lucide-react";
 import type { LeadQualityValue } from "@/lib/leads/quality";
+import type { BoardLabel, BoardMember, LeadCover } from "@/lib/pipeline/types";
 
 export const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -60,6 +61,15 @@ export type Lead = {
   archivedAt?: string | null;
   archiveReason?: string | null;
   duplicateOfLeadId?: string | null;
+  // Campos do board estilo Trello (funil de vendas).
+  stageId?: string | null;
+  boardPosition?: number | null;
+  dueAt?: string | null;
+  cover?: LeadCover | null;
+  labels?: BoardLabel[];
+  members?: BoardMember[];
+  checklistTotal?: number;
+  checklistDone?: number;
 };
 
 export const mockLeadOwnerOptions = [

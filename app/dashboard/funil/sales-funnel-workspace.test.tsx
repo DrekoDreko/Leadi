@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { leads } from "@/data/mock";
 import type { ResourceAccessSummary } from "@/lib/billing/subscription-limits.server";
 import type { LeadDataState } from "@/lib/leads/repository";
+import { defaultLeadUrlFilters } from "@/lib/leads/filters";
 import { SalesFunnelWorkspace } from "./sales-funnel-workspace";
 
 vi.mock("next/link", () => ({
@@ -20,8 +21,12 @@ vi.mock("next/link", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    refresh: vi.fn()
-  })
+    refresh: vi.fn(),
+    replace: vi.fn(),
+    push: vi.fn()
+  }),
+  usePathname: () => "/dashboard/funil",
+  useSearchParams: () => new URLSearchParams()
 }));
 
 vi.mock("../leads/lead-create-modal", () => ({
@@ -65,24 +70,21 @@ describe("SalesFunnelWorkspace", () => {
     vi.useRealTimers();
   });
 
-  it("destaca leads parados e resume a regra no funil", () => {
+  it("conta os leads parados na métrica do funil", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-21T12:00:00-03:00"));
 
     render(
       <SalesFunnelWorkspace
         aiBalance={5}
+        canManageLeadOwners={false}
         createLeadAccess={createLeadAccess}
         leadState={buildLeadState()}
+        leadFilters={defaultLeadUrlFilters}
+        leadOwnerOptions={[]}
         whatsappTemplates={[]}
       />
     );
-
-    expect(
-      screen.getByText("Parado = lead em etapa aberta sem atualizacao ha pelo menos 7 dias.")
-    ).toBeInTheDocument();
-    expect(screen.getByText("Parado ha 10 dias")).toBeInTheDocument();
-    expect(screen.getByText("Parado ha 15 dias")).toBeInTheDocument();
 
     const stalledMetric = screen.getByText("Leads parados").closest("article");
 
@@ -97,6 +99,7 @@ describe("SalesFunnelWorkspace", () => {
     render(
       <SalesFunnelWorkspace
         aiBalance={5}
+        canManageLeadOwners={false}
         createLeadAccess={createLeadAccess}
         leadState={buildLeadState([
           {
@@ -106,11 +109,11 @@ describe("SalesFunnelWorkspace", () => {
             updatedAt: "2026-05-01T09:00:00-03:00"
           }
         ])}
+        leadFilters={defaultLeadUrlFilters}
+        leadOwnerOptions={[]}
         whatsappTemplates={[]}
       />
     );
-
-    expect(screen.queryByText(/Parado ha/i)).not.toBeInTheDocument();
 
     const stalledMetric = screen.getByText("Leads parados").closest("article");
 

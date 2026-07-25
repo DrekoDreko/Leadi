@@ -2117,6 +2117,10 @@ export type Database = {
           received_at: string;
           created_at: string;
           updated_at: string;
+          stage_id: string | null;
+          board_position: number | null;
+          due_at: string | null;
+          cover: Json | null;
         };
         Insert: {
           id?: string;
@@ -2163,6 +2167,10 @@ export type Database = {
           received_at?: string;
           created_at?: string;
           updated_at?: string;
+          stage_id?: string | null;
+          board_position?: number | null;
+          due_at?: string | null;
+          cover?: Json | null;
         };
         Update: {
           id?: string;
@@ -2209,6 +2217,190 @@ export type Database = {
           received_at?: string;
           created_at?: string;
           updated_at?: string;
+          stage_id?: string | null;
+          board_position?: number | null;
+          due_at?: string | null;
+          cover?: Json | null;
+        };
+        Relationships: [];
+      };
+      pipeline_stages: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          slug: string | null;
+          position: number;
+          color: string;
+          type: "open" | "won" | "lost";
+          is_system: boolean;
+          wip_limit: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          slug?: string | null;
+          position?: number;
+          color?: string;
+          type?: "open" | "won" | "lost";
+          is_system?: boolean;
+          wip_limit?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          slug?: string | null;
+          position?: number;
+          color?: string;
+          type?: "open" | "won" | "lost";
+          is_system?: boolean;
+          wip_limit?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      lead_labels: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          color: string;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name?: string;
+          color?: string;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          color?: string;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      lead_label_assignments: {
+        Row: {
+          lead_id: string;
+          label_id: string;
+          organization_id: string;
+          created_at: string;
+        };
+        Insert: {
+          lead_id: string;
+          label_id: string;
+          organization_id: string;
+          created_at?: string;
+        };
+        Update: {
+          lead_id?: string;
+          label_id?: string;
+          organization_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      lead_checklists: {
+        Row: {
+          id: string;
+          organization_id: string;
+          lead_id: string;
+          title: string;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          lead_id: string;
+          title?: string;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          lead_id?: string;
+          title?: string;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      lead_checklist_items: {
+        Row: {
+          id: string;
+          organization_id: string;
+          checklist_id: string;
+          lead_id: string;
+          text: string;
+          done: boolean;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          checklist_id: string;
+          lead_id: string;
+          text?: string;
+          done?: boolean;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          checklist_id?: string;
+          lead_id?: string;
+          text?: string;
+          done?: boolean;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      lead_members: {
+        Row: {
+          lead_id: string;
+          profile_id: string;
+          organization_id: string;
+          created_at: string;
+        };
+        Insert: {
+          lead_id: string;
+          profile_id: string;
+          organization_id: string;
+          created_at?: string;
+        };
+        Update: {
+          lead_id?: string;
+          profile_id?: string;
+          organization_id?: string;
+          created_at?: string;
         };
         Relationships: [];
       };
