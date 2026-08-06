@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Megaphone, Palette, Sparkles } from "lucide-react";
+import { ArrowRight, Megaphone, Palette, Sparkles, Users } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { SupportCard } from "./support-card";
@@ -34,6 +34,12 @@ const primaryCreations = [
 ];
 
 const secondaryCreations = [
+  {
+    title: "Públicos personalizados",
+    description: "Suba sua carteira de clientes para criar um público e um Semelhante (Lookalike) na Meta.",
+    href: "/dashboard/anuncios/publicos",
+    icon: Users
+  },
   {
     title: "Solicitar criativo à equipe de design",
     description: "Abra um briefing para a nossa equipe de design criar o material (sem IA).",

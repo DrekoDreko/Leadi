@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowUpRight, Users } from "lucide-react";
 import { IntegrationNotice } from "@/components/dashboard/integration-notice";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { getCurrentSubscriptionNotice } from "@/lib/billing/subscription-limits.server";
@@ -113,6 +115,30 @@ export default async function PerfilMetaPage({
             workspaceName={context.workspaceName}
           />
           <MetaConnectedAccountsSection connectedAccounts={connectedAccounts} />
+          {connectedAccounts.canManageConnections ? (
+            <Link
+              href="/dashboard/anuncios/publicos"
+              className="group surface-card flex items-center justify-between gap-4 rounded-[24px] p-5 transition hover:border-cobalt/24 hover:bg-surface-elevated"
+            >
+              <div className="flex items-start gap-4">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
+                  <Users size={20} aria-hidden="true" />
+                </span>
+                <div>
+                  <h3 className="font-semibold text-foreground">Públicos personalizados</h3>
+                  <p className="mt-1 text-sm text-muted-soft">
+                    Suba sua carteira de clientes para criar um público e um Semelhante (Lookalike) na
+                    Meta — o alvo mais forte para plano de saúde.
+                  </p>
+                </div>
+              </div>
+              <ArrowUpRight
+                className="shrink-0 text-muted-foreground transition group-hover:text-cobalt"
+                size={20}
+                aria-hidden="true"
+              />
+            </Link>
+          ) : null}
         </section>
       ) : (
         <MetaOnboardingCard
