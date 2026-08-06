@@ -736,6 +736,8 @@ export type Database = {
           meta_adset_id: string | null;
           meta_ad_id: string | null;
           meta_effective_status: string | null;
+          meta_geo_signature: string | null;
+          meta_optimization_goal: string | null;
           delivery_status_synced_at: string | null;
           publication_message: string | null;
           prepared_at: string | null;
@@ -778,6 +780,8 @@ export type Database = {
           meta_adset_id?: string | null;
           meta_ad_id?: string | null;
           meta_effective_status?: string | null;
+          meta_geo_signature?: string | null;
+          meta_optimization_goal?: string | null;
           delivery_status_synced_at?: string | null;
           publication_message?: string | null;
           prepared_at?: string | null;
@@ -820,6 +824,8 @@ export type Database = {
           meta_adset_id?: string | null;
           meta_ad_id?: string | null;
           meta_effective_status?: string | null;
+          meta_geo_signature?: string | null;
+          meta_optimization_goal?: string | null;
           delivery_status_synced_at?: string | null;
           publication_message?: string | null;
           prepared_at?: string | null;
@@ -842,6 +848,84 @@ export type Database = {
           compliance_notes?: Json;
           input_payload?: Json;
           result_payload?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      meta_delivery_health: {
+        Row: {
+          id: string;
+          organization_id: string;
+          campaign_id: string;
+          snapshot_date: string;
+          spend_cents: number;
+          daily_budget_cents: number;
+          delivery_ratio: number;
+          leads: number;
+          frequency: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          campaign_id: string;
+          snapshot_date: string;
+          spend_cents?: number;
+          daily_budget_cents?: number;
+          delivery_ratio?: number;
+          leads?: number;
+          frequency?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          campaign_id?: string;
+          snapshot_date?: string;
+          spend_cents?: number;
+          daily_budget_cents?: number;
+          delivery_ratio?: number;
+          leads?: number;
+          frequency?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      meta_custom_audiences: {
+        Row: {
+          id: string;
+          organization_id: string;
+          created_by_profile_id: string | null;
+          meta_ad_account_id: string;
+          custom_audience_id: string;
+          lookalike_id: string | null;
+          source_count: number;
+          status: "ready" | "lookalike_unavailable" | "processing" | "failed";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          created_by_profile_id?: string | null;
+          meta_ad_account_id: string;
+          custom_audience_id: string;
+          lookalike_id?: string | null;
+          source_count?: number;
+          status?: "ready" | "lookalike_unavailable" | "processing" | "failed";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          created_by_profile_id?: string | null;
+          meta_ad_account_id?: string;
+          custom_audience_id?: string;
+          lookalike_id?: string | null;
+          source_count?: number;
+          status?: "ready" | "lookalike_unavailable" | "processing" | "failed";
           created_at?: string;
           updated_at?: string;
         };
@@ -993,7 +1077,7 @@ export type Database = {
           id: string;
           organization_id: string;
           recipient_profile_id: string | null;
-          type: "campaign_approved" | "campaign_rejected" | "team_member_added" | "ad_creation_enabled";
+          type: "campaign_approved" | "campaign_rejected" | "team_member_added" | "ad_creation_enabled" | "campaign_underdelivery" | "campaign_no_leads" | "campaign_frequency_saturation" | "campaign_optimization_upgrade";
           title: string;
           body: string | null;
           link_url: string | null;
@@ -1007,7 +1091,7 @@ export type Database = {
           id?: string;
           organization_id: string;
           recipient_profile_id?: string | null;
-          type: "campaign_approved" | "campaign_rejected" | "team_member_added" | "ad_creation_enabled";
+          type: "campaign_approved" | "campaign_rejected" | "team_member_added" | "ad_creation_enabled" | "campaign_underdelivery" | "campaign_no_leads" | "campaign_frequency_saturation" | "campaign_optimization_upgrade";
           title: string;
           body?: string | null;
           link_url?: string | null;
@@ -1021,7 +1105,7 @@ export type Database = {
           id?: string;
           organization_id?: string;
           recipient_profile_id?: string | null;
-          type?: "campaign_approved" | "campaign_rejected" | "team_member_added" | "ad_creation_enabled";
+          type?: "campaign_approved" | "campaign_rejected" | "team_member_added" | "ad_creation_enabled" | "campaign_underdelivery" | "campaign_no_leads" | "campaign_frequency_saturation" | "campaign_optimization_upgrade";
           title?: string;
           body?: string | null;
           link_url?: string | null;
@@ -1291,6 +1375,7 @@ export type Database = {
           address_state: string | null;
           plan_type: string | null;
           plan_status: string | null;
+          dataset_onboarding_dismissed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1299,6 +1384,7 @@ export type Database = {
           name: string;
           type?: WorkspaceType;
           owner_profile_id?: string | null;
+          dataset_onboarding_dismissed_at?: string | null;
           slug?: string | null;
           logo_url?: string | null;
           email?: string | null;
@@ -1343,6 +1429,7 @@ export type Database = {
           address_state?: string | null;
           plan_type?: string | null;
           plan_status?: string | null;
+          dataset_onboarding_dismissed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

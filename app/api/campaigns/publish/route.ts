@@ -3,6 +3,7 @@ import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolveCurrentIdentity } from "@/lib/integrations/repository.server";
 import {
+  DuplicateCampaignError,
   MetaMarketingPermissionError,
   publishPausedMetaCampaign
 } from "@/lib/meta/campaign-publication.server";
@@ -21,7 +22,14 @@ import {
 const publishCampaignSchema = z.object({
   campaignId: requiredTrimmedString("Informe o id da campanha.").max(120),
   publishMode: z.enum(["draft", "manual_review", "scheduled", "paused"]).optional(),
-  dailyBudget: z.number().min(1).max(100000).optional()
+  dailyBudget: z.number().min(1).max(100000).optional(),
+  // Quanto vale um lead para o corretor (R$). Define o piso de orcamento para
+  // sair do aprendizado e, com isso, o optimization_goal do conjunto (Mudanca 1).
+  cplTarget: z.number().min(1).max(100000).optional(),
+  // Mudanca 2: cria campanha nova mesmo existindo uma reaproveitavel (opt-out).
+  forceNewCampaign: z.boolean().optional(),
+  // Mudanca 3: "replace" pausa a(s) concorrente(s) ativa(s) antes de publicar.
+  conflictResolution: z.literal("replace").optional()
 });
 
 export async function POST(request: Request) {
@@ -69,7 +77,10 @@ export async function POST(request: Request) {
       // Consultor só publica a própria campanha; owner/admin sem restrição.
       restrictToCreatorProfileId: identity.canManageConnections ? null : identity.profile.id,
       publishMode,
-      dailyBudget: body.dailyBudget
+      dailyBudget: body.dailyBudget,
+      cplTarget: body.cplTarget,
+      forceNewCampaign: body.forceNewCampaign,
+      conflictResolution: body.conflictResolution
     });
 
     return NextResponse.json({
@@ -77,6 +88,14 @@ export async function POST(request: Request) {
       attempt: result.attempt
     });
   } catch (error) {
+    // Mudanca 3: bloqueio de duplicata concorrente — devolve as opcoes para a UI.
+    if (error instanceof DuplicateCampaignError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, competitors: error.competitors },
+        { status: error.status }
+      );
+    }
+
     const { message, status } = getCampaignPublishError(error);
 
     logApiError({

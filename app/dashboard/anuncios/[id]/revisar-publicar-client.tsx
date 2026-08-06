@@ -63,11 +63,20 @@ export function RevisarPublicarClient({
   const [review, setReview] = useState<ReviewLike>(initialReview);
   const [aiReview, setAiReview] = useState<ReviewLike | null>(null);
   const [dailyBudget, setDailyBudget] = useState("20");
+  const [cplTarget, setCplTarget] = useState("40");
+  // Mudança 2: por padrão reaproveitamos campanha/conjunto da mesma praça. O opt-out
+  // cria uma campanha separada (reinicia o aprendizado).
+  const [separateCampaign, setSeparateCampaign] = useState(false);
 
   const [isSavingCopy, setIsSavingCopy] = useState(false);
   const [isReviewingAi, setIsReviewingAi] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState("");
+  // Mudança 3: quando há campanha concorrente ativa na mesma praça, guardamos as
+  // concorrentes para oferecer as duas saídas ao corretor.
+  const [duplicateConflict, setDuplicateConflict] = useState<
+    Array<{ id: string; campaignName: string; metaCampaignId: string | null }>
+  >([]);
   const [publishResult, setPublishResult] = useState<{
     metaCampaignId: string | null;
     metaAdId: string | null;
@@ -92,6 +101,19 @@ export function RevisarPublicarClient({
   const complianceOk = review.riskLevel !== "high";
   const budgetValue = Number(dailyBudget);
   const budgetOk = Number.isFinite(budgetValue) && budgetValue >= 1;
+
+  // Mudança 1: piso diário de orçamento (cpl * 50 / 7) para o conjunto sair da
+  // fase de aprendizado. Abaixo dele, a publicação otimiza por um evento mais
+  // barato (não por lead) — avisamos o corretor antes de publicar, não depois.
+  const cplValue = Number(cplTarget);
+  const cplOk = Number.isFinite(cplValue) && cplValue >= 1;
+  const dailyBudgetFloor = cplOk ? (cplValue * 50) / 7 : 0;
+  const budgetBelowFloor = budgetOk && cplOk && budgetValue < dailyBudgetFloor;
+  const budgetFloorLabel = dailyBudgetFloor.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0
+  });
 
   const blockers = useMemo(() => {
     const items: string[] = [];
@@ -175,22 +197,41 @@ export function RevisarPublicarClient({
     }
   }
 
-  async function handlePublish() {
+  async function handlePublish(options?: {
+    forceNewCampaign?: boolean;
+    conflictResolution?: "replace";
+  }) {
     setError("");
+    setDuplicateConflict([]);
     setIsPublishing(true);
     try {
+      const forceNewCampaign = options?.forceNewCampaign ?? separateCampaign;
       const response = await fetch("/api/campaigns/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campaignId: campaign.id,
           publishMode: "paused",
-          dailyBudget: budgetValue
+          dailyBudget: budgetValue,
+          cplTarget: cplOk ? cplValue : undefined,
+          forceNewCampaign: forceNewCampaign || undefined,
+          conflictResolution: options?.conflictResolution
         })
       });
       const payload = (await response.json().catch(() => null)) as
-        | { campaign?: CampaignHistoryItem; error?: string }
+        | {
+            campaign?: CampaignHistoryItem;
+            error?: string;
+            code?: string;
+            competitors?: Array<{ id: string; campaignName: string; metaCampaignId: string | null }>;
+          }
         | null;
+
+      // Mudança 3: bloqueio de duplicata — oferece as duas saídas em vez de publicar.
+      if (response.status === 409 && payload?.code === "duplicate_campaign") {
+        setDuplicateConflict(payload.competitors ?? []);
+        return;
+      }
 
       if (!response.ok || !payload?.campaign) {
         setError(payload?.error ?? "Não foi possível publicar a campanha na Meta.");
@@ -453,7 +494,7 @@ export function RevisarPublicarClient({
               <ReadinessRow label="Compliance" ok={complianceOk} value={riskBadge[review.riskLevel].label} />
             </ul>
 
-            <div className="mt-5">
+            <div className="mt-5 space-y-4">
               <Field label="Orçamento diário (R$)">
                 <input
                   className="w-full rounded-[14px] border border-white/60 bg-white/70 p-3 text-sm text-ink outline-none focus:border-cobalt/40 dark:bg-white/10 dark:text-cloud"
@@ -462,7 +503,30 @@ export function RevisarPublicarClient({
                   value={dailyBudget}
                 />
               </Field>
+              <Field label="Quanto vale um lead para você? (R$)">
+                <input
+                  className="w-full rounded-[14px] border border-white/60 bg-white/70 p-3 text-sm text-ink outline-none focus:border-cobalt/40 dark:bg-white/10 dark:text-cloud"
+                  inputMode="decimal"
+                  onChange={(e) => setCplTarget(e.target.value)}
+                  value={cplTarget}
+                />
+                <span className="mt-1 block text-[11px] leading-4 text-ink/45">
+                  Usamos isso para calcular o orçamento mínimo que faz o Meta aprender seu público.
+                </span>
+              </Field>
             </div>
+
+            {budgetBelowFloor ? (
+              <div className="surface-alert-warning mt-4 rounded-[16px] p-3 text-xs leading-5">
+                <p className="font-semibold">Orçamento abaixo do ideal para otimizar por lead</p>
+                <p className="mt-1">
+                  Com {budgetValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/dia, o
+                  Meta não recebe conversões suficientes para aprender quem é seu público. Vamos otimizar
+                  por cliques qualificados em vez de leads — você continua recebendo os leads pelo
+                  formulário. Para otimizar direto por lead, o orçamento precisaria ser de ~{budgetFloorLabel}/dia.
+                </p>
+              </div>
+            ) : null}
 
             {!assetsOk ? (
               <p className="mt-4 rounded-[16px] border border-amber-200/70 bg-amber-50/70 p-3 text-xs leading-5 text-amber-800">
@@ -471,10 +535,27 @@ export function RevisarPublicarClient({
               </p>
             ) : null}
 
+            {!alreadyPublished ? (
+              <label className="mt-4 flex cursor-pointer items-start gap-2 text-xs leading-5 text-ink/60 dark:text-cloud/60">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 accent-cobalt"
+                  checked={separateCampaign}
+                  onChange={(e) => setSeparateCampaign(e.target.checked)}
+                />
+                <span>
+                  Criar campanha separada em vez de reaproveitar uma existente da mesma praça.
+                  <span className="block text-ink/45 dark:text-cloud/45">
+                    Reinicia a fase de aprendizado do Meta — deixe desmarcado na dúvida.
+                  </span>
+                </span>
+              </label>
+            ) : null}
+
             <button
               className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-cobalt px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!canPublish}
-              onClick={handlePublish}
+              onClick={() => handlePublish()}
               type="button"
             >
               {alreadyPublished ? (
@@ -489,6 +570,34 @@ export function RevisarPublicarClient({
                 </>
               )}
             </button>
+
+            {duplicateConflict.length > 0 && !publishResult ? (
+              <div className="surface-alert-warning mt-4 rounded-[16px] p-3 text-xs leading-5">
+                <p className="font-semibold">Já existe campanha ativa para esta praça</p>
+                <p className="mt-1">
+                  {duplicateConflict.map((c) => c.campaignName).join(", ")} já disputa o mesmo público. Duas
+                  campanhas concorrentes encarecem o CPM de ambas. Escolha:
+                </p>
+                <div className="mt-3 flex flex-col gap-2">
+                  <button
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-cobalt px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                    disabled={isPublishing}
+                    onClick={() => handlePublish({ forceNewCampaign: false })}
+                    type="button"
+                  >
+                    Adicionar este criativo à campanha existente
+                  </button>
+                  <button
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cobalt/30 bg-surface-elevated px-4 py-2 text-xs font-semibold text-cobalt disabled:opacity-50"
+                    disabled={isPublishing}
+                    onClick={() => handlePublish({ forceNewCampaign: true, conflictResolution: "replace" })}
+                    type="button"
+                  >
+                    Pausar a antiga e publicar esta como nova
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             {alreadyPublished && !publishResult ? (
               <div className="mt-3 space-y-3">

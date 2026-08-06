@@ -216,6 +216,54 @@ export async function createCampaignReviewNotification(input: {
   }
 }
 
+// Mudança 7: cria uma notificação de alerta de entrega (subentrega, 0 leads,
+// saturação de público ou sugestão de migrar o objetivo). Idempotente por
+// (campaign_id, type): o índice único garante "exatamente um alerta por condição",
+// não um por dia. Best-effort — roda com service role no job diário.
+export async function createCampaignAlertNotification(input: {
+  organizationId: string;
+  campaignId: string;
+  recipientProfileId: string | null;
+  type: Extract<
+    NotificationType,
+    | "campaign_underdelivery"
+    | "campaign_no_leads"
+    | "campaign_frequency_saturation"
+    | "campaign_optimization_upgrade"
+  >;
+  title: string;
+  body: string;
+  linkUrl: string;
+}): Promise<boolean> {
+  if (!hasSupabaseServiceRole()) {
+    return false;
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("notifications")
+    .upsert(
+      {
+        organization_id: input.organizationId,
+        recipient_profile_id: input.recipientProfileId,
+        campaign_id: input.campaignId,
+        type: input.type,
+        title: input.title,
+        body: input.body,
+        link_url: input.linkUrl
+      },
+      { onConflict: "campaign_id,type", ignoreDuplicates: true }
+    )
+    .select("id");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  // upsert com ignoreDuplicates retorna linha só quando de fato inseriu.
+  return (data?.length ?? 0) > 0;
+}
+
 // Avisa o consultor que o owner liberou (ou revogou) a criação de anúncios com IA.
 // Best-effort: não deve quebrar a ação do owner.
 export async function createAdCreationGrantNotification(input: {

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, FileText, TrendingUp } from "lucide-react";
+import { ArrowUpRight, FileText, TrendingUp, Users } from "lucide-react";
 import { PageHeading } from "@/components/dashboard/widgets";
 import { requireCompletedProfile } from "@/lib/workspaces/context";
 import { getCampaignsForCurrentUser } from "@/lib/campaigns/repository.server";
 import { CampaignListClient } from "./campaign-list-client";
+import { DatasetOnboardingCard } from "./dataset-onboarding-card";
 
 export default async function AnunciosPage({
   searchParams,
@@ -49,6 +50,13 @@ export default async function AnunciosPage({
             <TrendingUp size={16} aria-hidden="true" />
             Desempenho
           </Link>
+          <Link
+            className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-surface-elevated px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-surface-elevated"
+            href="/dashboard/anuncios/publicos"
+          >
+            <Users size={16} aria-hidden="true" />
+            Públicos
+          </Link>
           {filterDrafts ? (
             <Link
               className="inline-flex items-center gap-2 rounded-full border border-cobalt/20 bg-surface-elevated px-5 py-3 text-sm font-semibold text-cobalt transition-colors hover:bg-surface-elevated"
@@ -77,6 +85,8 @@ export default async function AnunciosPage({
           </Link>
         </div>
       </PageHeading>
+
+      <DatasetOnboardingCard />
 
       {campaignState.message ? (
         <div

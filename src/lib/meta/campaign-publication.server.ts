@@ -18,6 +18,7 @@ import {
   parseCampaignResultPayload
 } from "@/lib/campaigns/payload";
 import { isCampaignCopyBlocked, reviewCampaignCopyLocally } from "@/lib/campaigns/compliance";
+import { getBestAudienceIdForAccount } from "@/lib/meta/custom-audience.server";
 import { sanitizeCreativeRequestAttachmentName } from "@/lib/creative-requests/attachments";
 import type { CampaignHistoryItem, CampaignPublicationStatus, CampaignPublishMode, CampaignApprovalStatus } from "@/lib/campaigns/types";
 
@@ -98,7 +99,64 @@ type MetaMarketingPublicationInput = {
   restrictToCreatorProfileId?: string | null;
   publishMode?: CampaignPublishMode;
   dailyBudget?: number;
+  // Quanto o corretor considera que vale um lead (R$). Usado para calcular o piso
+  // diário de orçamento necessário para o conjunto sair da fase de aprendizado.
+  cplTarget?: number;
+  // Mudança 2: quando true, cria uma campanha nova mesmo existindo uma
+  // reaproveitável para a mesma praça (opt-out). Reinicia o aprendizado.
+  forceNewCampaign?: boolean;
+  // Mudança 3: como resolver o conflito quando forceNewCampaign encontra uma
+  // campanha concorrente ativa. "replace" pausa a(s) antiga(s) antes de publicar.
+  conflictResolution?: "replace";
 };
+
+// Resumo de uma campanha concorrente ativa (mesma praça), devolvido ao bloquear
+// uma publicação duplicada (Mudança 3).
+export type CompetingCampaignSummary = {
+  id: string;
+  metaCampaignId: string | null;
+  campaignName: string;
+  metaAdSetId: string | null;
+  optimizationGoal: string | null;
+};
+
+// Erro de bloqueio: já existe campanha ativa concorrente na mesma praça. Carrega as
+// concorrentes para a UI oferecer as duas saídas (adicionar à existente / pausar a
+// antiga e publicar a nova).
+export class DuplicateCampaignError extends Error {
+  public readonly status = 409;
+  public readonly code = "duplicate_campaign";
+  public readonly competitors: CompetingCampaignSummary[];
+
+  constructor(competitors: CompetingCampaignSummary[]) {
+    super(
+      "Já existe uma campanha ativa para a mesma praça. Adicione o criativo a ela ou pause a antiga antes de publicar uma nova."
+    );
+    this.name = "DuplicateCampaignError";
+    this.competitors = competitors;
+  }
+}
+
+// CPL padrão (R$) para plano de saúde empresarial quando o corretor não informa.
+const DEFAULT_CPL_TARGET_REAIS = 40;
+
+// A Meta exige ~50 conversões por conjunto por semana para sair do aprendizado.
+const LEARNING_CONVERSIONS_PER_WEEK = 50;
+
+// Objetivo de conversão "cheio". Só é sustentável quando o orçamento diário cobre
+// o piso (cpl * 50 / 7). Abaixo disso, degradamos para um evento mais barato.
+const FULL_OPTIMIZATION_GOAL = "LEAD_GENERATION";
+
+// Cadeia de fallback para o modo degradado (orçamento abaixo do piso). Como o
+// destino é formulário instantâneo (destination_type ON_AD), LINK_CLICKS pode ser
+// recusado pela Meta; nesse caso caímos para QUALITY_LEAD e, por fim, para o
+// objetivo cheio — a própria API arbitra o que é compatível com a estrutura.
+const DEGRADED_OPTIMIZATION_GOALS = ["LINK_CLICKS", "QUALITY_LEAD", FULL_OPTIMIZATION_GOAL] as const;
+
+// Calcula o piso de orçamento diário (R$) para sair do aprendizado dado o CPL alvo.
+function computeDailyBudgetFloorReais(cplTargetReais: number): number {
+  return (cplTargetReais * LEARNING_CONVERSIONS_PER_WEEK) / 7;
+}
 
 type MetaMarketingPublicationResult = {
   campaign: CampaignHistoryItem;
@@ -240,18 +298,77 @@ export async function publishPausedMetaCampaign(
       ? Math.round(input.dailyBudget * 100)
       : 2000;
 
-    const metaCampaign = await createPausedMetaCampaign({
-      accessToken,
-      adAccountId: campaign.meta_ad_account_id,
-      campaignName: campaign.campaign_name,
-      dailyBudgetCents
-    });
+    // Mudanca 1: o objetivo de otimizacao do conjunto passa a depender do
+    // orcamento. Com orcamento abaixo do piso de aprendizado (cpl * 50 / 7), o
+    // objetivo cheio (LEAD_GENERATION) nunca acumula as ~50 conversoes/semana e a
+    // entrega estrangula. Nesse caso degradamos para um evento mais barato para o
+    // algoritmo acumular volume e sair do aprendizado — o formulario continua sendo
+    // o destino e os leads continuam sendo capturados.
+    const cplTargetReais =
+      input.cplTarget && input.cplTarget > 0 ? input.cplTarget : DEFAULT_CPL_TARGET_REAIS;
+    const dailyBudgetReais = dailyBudgetCents / 100;
+    const isBudgetBelowLearningFloor =
+      dailyBudgetReais < computeDailyBudgetFloorReais(cplTargetReais);
+    const optimizationGoalCandidates = isBudgetBelowLearningFloor
+      ? DEGRADED_OPTIMIZATION_GOALS
+      : [FULL_OPTIMIZATION_GOAL];
 
-    if (!metaCampaign.id) {
-      throw new Error("A Meta nao retornou o ID da campanha criada.");
+    // Segmentacao real por localizacao, resolvida ANTES de criar a campanha para
+    // decidir reaproveitamento (Mudanca 2) e detectar duplicatas (Mudanca 3).
+    const geoLocations = await resolveGeoLocations(accessToken, campaign.region);
+    const geoSignature = buildGeoSignature(geoLocations);
+
+    // Mudanca 3: se o corretor forcou campanha nova mas ja ha uma concorrente ativa
+    // na mesma praca, bloquear (e devolver as opcoes) — a menos que ele ja tenha
+    // escolhido pausar a antiga. Nunca publicar duas em paralelo silenciosamente.
+    if (input.forceNewCampaign) {
+      const competitors = await findCompetingActiveCampaigns(
+        supabase,
+        input.organizationId,
+        geoSignature,
+        campaign.id
+      );
+      if (competitors.length > 0) {
+        if (input.conflictResolution === "replace") {
+          for (const competitor of competitors) {
+            if (competitor.metaCampaignId) {
+              await pauseMetaObject(accessToken, competitor.metaCampaignId);
+              await markCampaignPausedLocally(supabase, competitor.id);
+            }
+          }
+        } else {
+          throw new DuplicateCampaignError(competitors);
+        }
+      }
     }
 
-    let metaAdSetId: string | null = null;
+    // Mudanca 2: reaproveitar campanha+conjunto ativos da mesma praca em vez de
+    // criar estrutura nova a cada publicacao (o que zerava o aprendizado e
+    // fragmentava o orcamento). Opt-out via forceNewCampaign.
+    const reusable = input.forceNewCampaign
+      ? null
+      : await findReusableCampaign(supabase, input.organizationId, geoSignature, campaign.id);
+
+    let metaCampaignId: string;
+    let resolvedOptimizationGoal: string | null = reusable?.optimizationGoal ?? null;
+
+    if (reusable) {
+      metaCampaignId = reusable.metaCampaignId;
+    } else {
+      const metaCampaign = await createPausedMetaCampaign({
+        accessToken,
+        adAccountId: campaign.meta_ad_account_id,
+        campaignName: campaign.campaign_name,
+        dailyBudgetCents
+      });
+
+      if (!metaCampaign.id) {
+        throw new Error("A Meta nao retornou o ID da campanha criada.");
+      }
+      metaCampaignId = metaCampaign.id;
+    }
+
+    let metaAdSetId: string | null = reusable?.metaAdSetId ?? null;
     let metaAdCreativeId: string | null = null;
     let metaAdId: string | null = null;
 
@@ -272,21 +389,54 @@ export async function publishPausedMetaCampaign(
       includeCarousel: isCarousel
     });
 
-    // Segmentacao real por localizacao + pixel da conta (best-effort, sem UI).
-    const geoLocations = await resolveGeoLocations(accessToken, campaign.region);
     const pixelId = await resolveAdAccountPixel(accessToken, campaign.meta_ad_account_id);
 
     if (campaign.meta_page_id && campaign.meta_lead_form_id) {
-      const adSet = await createPausedAdSet({
-        accessToken,
-        adAccountId: campaign.meta_ad_account_id,
-        campaignId: metaCampaign.id,
-        name: `${campaign.campaign_name} - Conjunto`,
-        pageId: campaign.meta_page_id,
-        leadFormId: campaign.meta_lead_form_id,
-        geoLocations
-      });
-      metaAdSetId = adSet.id ?? null;
+      // Conjunto novo apenas quando NAO ha reaproveitamento; caso contrario
+      // reutiliza o conjunto existente e cria so o anuncio novo dentro dele.
+      if (!reusable) {
+        // Mudanca 6: usa o Lookalike/Custom Audience da carteira quando houver.
+        const audienceId = await getBestAudienceIdForAccount(
+          supabase,
+          input.organizationId,
+          campaign.meta_ad_account_id
+        );
+        const customAudienceIds = audienceId ? [audienceId] : [];
+
+        let adSet;
+        try {
+          adSet = await createPausedAdSet({
+            accessToken,
+            adAccountId: campaign.meta_ad_account_id,
+            campaignId: metaCampaignId,
+            name: `${campaign.campaign_name} - Conjunto`,
+            pageId: campaign.meta_page_id,
+            leadFormId: campaign.meta_lead_form_id,
+            geoLocations,
+            optimizationGoalCandidates,
+            customAudienceIds
+          });
+        } catch (adSetError) {
+          // Fallback Mudanca 6: publico personalizado recusado (ex.: Categoria
+          // Especial) → recria o conjunto com targeting aberto, sem quebrar.
+          if (customAudienceIds.length > 0) {
+            adSet = await createPausedAdSet({
+              accessToken,
+              adAccountId: campaign.meta_ad_account_id,
+              campaignId: metaCampaignId,
+              name: `${campaign.campaign_name} - Conjunto`,
+              pageId: campaign.meta_page_id,
+              leadFormId: campaign.meta_lead_form_id,
+              geoLocations,
+              optimizationGoalCandidates
+            });
+          } else {
+            throw adSetError;
+          }
+        }
+        metaAdSetId = adSet.id ?? null;
+        resolvedOptimizationGoal = adSet.optimizationGoal;
+      }
 
       if (metaAdSetId) {
         // Carrossel exige >= 2 imagens; caso contrario cai no fluxo de imagem unica.
@@ -327,15 +477,18 @@ export async function publishPausedMetaCampaign(
     }
 
     const updatedCampaign = await updateCampaignAfterPublication(supabase, campaign.id, {
-      metaCampaignId: metaCampaign.id,
+      metaCampaignId,
       metaAdSetId,
       metaAdId,
+      geoSignature,
+      optimizationGoal: resolvedOptimizationGoal,
+      reusedExisting: Boolean(reusable)
     });
 
     const updatedAttempt = await updateAttempt(supabase, attempt.id, {
       status: "success",
       response_payload: buildSanitizedResponsePayload({
-        metaCampaignId: metaCampaign.id,
+        metaCampaignId,
         metaAdSetId,
         metaAdCreativeId,
         metaAdId,
@@ -343,7 +496,7 @@ export async function publishPausedMetaCampaign(
         status: "PAUSED"
       }),
       error_message: null,
-      meta_campaign_id: metaCampaign.id,
+      meta_campaign_id: metaCampaignId,
       meta_adset_id: metaAdSetId,
       meta_ad_id: metaAdId
     });
@@ -491,19 +644,27 @@ async function updateCampaignAfterPublication(
     metaCampaignId: string | null;
     metaAdSetId?: string | null;
     metaAdId?: string | null;
+    geoSignature?: string | null;
+    optimizationGoal?: string | null;
+    reusedExisting?: boolean;
   }
 ) {
   const hasFullStack = Boolean(input.metaCampaignId && input.metaAdSetId && input.metaAdId);
+  const reusedMessage = input.reusedExisting
+    ? "Anuncio adicionado a uma campanha/conjunto ja existente para a mesma praca (reaproveitando o aprendizado)."
+    : hasFullStack
+      ? "Campanha completa (campanha + conjunto + anuncio) enviada para a Meta em modo pausado."
+      : "Campanha enviada para a Meta em modo pausado. A ativacao continua manual ate a equipe liberar a veiculacao.";
   const { data, error } = await supabase
     .from("campaigns")
     .update({
       publication_status: "paused",
-      publication_message: hasFullStack
-        ? "Campanha completa (campanha + conjunto + anuncio) enviada para a Meta em modo pausado."
-        : "Campanha enviada para a Meta em modo pausado. A ativacao continua manual ate a equipe liberar a veiculacao.",
+      publication_message: reusedMessage,
       meta_campaign_id: input.metaCampaignId,
       meta_adset_id: input.metaAdSetId ?? null,
       meta_ad_id: input.metaAdId ?? null,
+      meta_geo_signature: input.geoSignature ?? null,
+      meta_optimization_goal: input.optimizationGoal ?? null,
       published_at: new Date().toISOString(),
       last_publication_attempt_at: new Date().toISOString(),
       last_publication_error: null,
@@ -708,6 +869,197 @@ async function resolveGeoLocations(
   return geoLocations;
 }
 
+// Assinatura normalizada da segmentacao geo: conjunto ordenado das keys de
+// cities/regions/countries. Torna o casamento de praca deterministico (Mudanca 2/3),
+// independente do texto livre digitado pelo corretor.
+function buildGeoSignature(geo: MetaGeoLocations): string {
+  const keys: string[] = [];
+  for (const city of geo.cities ?? []) keys.push(`city:${city.key}`);
+  for (const region of geo.regions ?? []) keys.push(`region:${region.key}`);
+  for (const country of geo.countries ?? []) keys.push(`country:${country}`);
+  return Array.from(new Set(keys)).sort().join("|");
+}
+
+// Ha interseccao de praca entre duas assinaturas (alguma key em comum)?
+function geoSignaturesIntersect(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  const setB = new Set(b.split("|").filter(Boolean));
+  return a
+    .split("|")
+    .filter(Boolean)
+    .some((key) => setB.has(key));
+}
+
+type ReusableCampaignRow = {
+  id: string;
+  meta_campaign_id: string | null;
+  meta_adset_id: string | null;
+  campaign_name: string;
+  meta_optimization_goal: string | null;
+  meta_effective_status: string | null;
+  publication_status: string | null;
+};
+
+// Statuses da Meta que indicam campanha efetivamente disputando o leilao. Quando o
+// status ainda nao foi reconciliado (null), tratamos como NAO ativa para evitar
+// bloqueios falsos (Mudanca 3).
+const ACTIVE_EFFECTIVE_STATUSES = new Set([
+  "ACTIVE",
+  "IN_PROCESS",
+  "LEARNING",
+  "PENDING_REVIEW",
+  "PENDING_BILLING_INFO"
+]);
+
+// Mudanca 2: campanha reaproveitavel = mesma organizacao, MESMA praca (assinatura
+// identica), com campanha+conjunto ja criados na Meta e nao arquivada. Reutiliza a
+// mais recente para nao zerar o aprendizado.
+async function findReusableCampaign(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  organizationId: string,
+  geoSignature: string,
+  excludeCampaignId: string
+): Promise<{
+  id: string;
+  metaCampaignId: string;
+  metaAdSetId: string;
+  campaignName: string;
+  optimizationGoal: string | null;
+} | null> {
+  if (!geoSignature) return null;
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .select("id, meta_campaign_id, meta_adset_id, campaign_name, meta_optimization_goal")
+    .eq("organization_id", organizationId)
+    .eq("meta_geo_signature", geoSignature)
+    .eq("status", "generated")
+    .neq("id", excludeCampaignId)
+    .not("meta_campaign_id", "is", null)
+    .not("meta_adset_id", "is", null)
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .limit(1);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const row = (data?.[0] as ReusableCampaignRow | undefined) ?? null;
+  if (!row?.meta_campaign_id || !row.meta_adset_id) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    metaCampaignId: row.meta_campaign_id,
+    metaAdSetId: row.meta_adset_id,
+    campaignName: row.campaign_name,
+    optimizationGoal: row.meta_optimization_goal
+  };
+}
+
+// Mudanca 3: campanhas concorrentes = mesma organizacao, ATIVAS na Meta, com
+// interseccao de praca (mesmo objetivo — todas usam OUTCOME_LEADS). Idade/genero
+// nao entram na chave porque a Categoria Especial nunca os envia.
+async function findCompetingActiveCampaigns(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  organizationId: string,
+  geoSignature: string,
+  excludeCampaignId: string
+): Promise<CompetingCampaignSummary[]> {
+  if (!geoSignature) return [];
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .select(
+      "id, meta_campaign_id, meta_adset_id, campaign_name, meta_optimization_goal, meta_effective_status, meta_geo_signature"
+    )
+    .eq("organization_id", organizationId)
+    .eq("status", "generated")
+    .neq("id", excludeCampaignId)
+    .not("meta_campaign_id", "is", null)
+    .not("meta_geo_signature", "is", null);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data as Array<ReusableCampaignRow & { meta_geo_signature: string | null }>) ?? [];
+  return rows
+    .filter((row) => ACTIVE_EFFECTIVE_STATUSES.has(row.meta_effective_status ?? ""))
+    .filter((row) => geoSignaturesIntersect(geoSignature, row.meta_geo_signature ?? ""))
+    .map((row) => ({
+      id: row.id,
+      metaCampaignId: row.meta_campaign_id,
+      metaAdSetId: row.meta_adset_id,
+      campaignName: row.campaign_name,
+      optimizationGoal: row.meta_optimization_goal
+    }));
+}
+
+// Pausa um objeto da Meta (campanha) via POST /{id}. Inline para nao criar
+// dependencia circular com campaign-controls.server (que importa deste modulo).
+async function pauseMetaObject(accessToken: string, objectId: string): Promise<void> {
+  const url = new URL(`https://graph.facebook.com/${getMetaGraphApiVersion()}/${objectId}`);
+  const body = new URLSearchParams();
+  body.set("status", "PAUSED");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body,
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { message?: string; error_user_msg?: string };
+    } | null;
+    const detail = payload?.error?.error_user_msg || payload?.error?.message;
+    throw new Error(
+      detail
+        ? `Falha ao pausar a campanha concorrente na Meta: ${detail}`
+        : `Falha ao pausar a campanha concorrente na Meta: status ${response.status}.`
+    );
+  }
+}
+
+// Reflete localmente que a campanha concorrente foi pausada (Mudanca 3, opcao
+// "pausar a antiga").
+async function markCampaignPausedLocally(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  campaignId: string
+): Promise<void> {
+  await supabase
+    .from("campaigns")
+    .update({
+      meta_effective_status: "CAMPAIGN_PAUSED",
+      publication_message:
+        "Campanha pausada automaticamente ao publicar uma nova para a mesma praca (evita concorrencia no leilao).",
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", campaignId);
+}
+
+// Erros da Meta que indicam apenas incompatibilidade do optimization_goal com a
+// estrutura do conjunto (ex.: LINK_CLICKS x formulario instantaneo ON_AD). Nesses
+// casos vale tentar o proximo objetivo candidato; outros erros sao definitivos.
+const OPTIMIZATION_GOAL_INCOMPATIBILITY_SUBCODES = new Set([1487870, 1487390, 2446404]);
+
+function isOptimizationGoalIncompatibility(
+  metaError: { message?: string; error_user_msg?: string; error_subcode?: number } | undefined
+): boolean {
+  if (!metaError) return false;
+  if (metaError.error_subcode && OPTIMIZATION_GOAL_INCOMPATIBILITY_SUBCODES.has(metaError.error_subcode)) {
+    return true;
+  }
+  const text = `${metaError.message ?? ""} ${metaError.error_user_msg ?? ""}`.toLowerCase();
+  return text.includes("optimization") || text.includes("otimiza");
+}
+
 async function createPausedAdSet(input: {
   accessToken: string;
   adAccountId: string;
@@ -716,56 +1068,94 @@ async function createPausedAdSet(input: {
   pageId: string;
   leadFormId: string;
   geoLocations: MetaGeoLocations;
-}) {
+  // Objetivos de otimizacao a tentar em ordem (Mudanca 1). O primeiro compativel
+  // com a estrutura vence; a propria Meta arbitra via erro de incompatibilidade.
+  optimizationGoalCandidates: readonly string[];
+  // Mudanca 6: publico(s) personalizado(s) (Lookalike/Custom Audience) a incluir no
+  // targeting. Vazio = targeting aberto (fallback).
+  customAudienceIds?: readonly string[];
+}): Promise<MetaCampaignCreateResponse & { optimizationGoal: string }> {
   const url = new URL(
     `https://graph.facebook.com/${getMetaGraphApiVersion()}/act_${sanitizeAdAccountId(input.adAccountId)}/adsets`
   );
 
-  const body = new URLSearchParams();
-  body.set("campaign_id", input.campaignId);
-  body.set("name", input.name);
-  body.set("billing_event", "IMPRESSIONS");
-  body.set("optimization_goal", "LEAD_GENERATION");
-  // Orcamento e estrategia de lance ficam na CAMPANHA (CBO). O conjunto nao pode
-  // ter daily_budget/bid_strategy proprios — a Meta rejeitaria com erro.
-  body.set("status", "PAUSED");
-  body.set("destination_type", "ON_AD");
-  body.set("promoted_object", JSON.stringify({
-    page_id: input.pageId
-  }));
-  // Categoria Especial (Credito/Seguros): proibido filtrar por idade/genero/CEP.
-  // Por isso o targeting leva apenas a localizacao (cidades com raio >= 25 km
-  // e/ou estados), sem age_min/genders.
-  body.set("targeting", JSON.stringify({
-    geo_locations: input.geoLocations
-  }));
+  const candidates =
+    input.optimizationGoalCandidates.length > 0
+      ? input.optimizationGoalCandidates
+      : ["LEAD_GENERATION"];
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${input.accessToken}`,
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body,
-    cache: "no-store"
-  });
+  let lastError: Error | null = null;
 
-  const payload = (await response.json().catch(() => null)) as MetaCampaignCreateResponse | {
-    error?: { message?: string; error_user_msg?: string; error_subcode?: number };
-  } | null;
+  for (let index = 0; index < candidates.length; index += 1) {
+    const optimizationGoal = candidates[index];
+    const isLastCandidate = index === candidates.length - 1;
 
-  if (!response.ok) {
+    const body = new URLSearchParams();
+    body.set("campaign_id", input.campaignId);
+    body.set("name", input.name);
+    body.set("billing_event", "IMPRESSIONS");
+    body.set("optimization_goal", optimizationGoal);
+    // Orcamento e estrategia de lance ficam na CAMPANHA (CBO). O conjunto nao pode
+    // ter daily_budget/bid_strategy proprios — a Meta rejeitaria com erro.
+    body.set("status", "PAUSED");
+    body.set("destination_type", "ON_AD");
+    body.set("promoted_object", JSON.stringify({
+      page_id: input.pageId
+    }));
+    // Categoria Especial (Credito/Seguros): proibido filtrar por idade/genero/CEP.
+    // Por isso o targeting leva apenas a localizacao (cidades com raio >= 25 km
+    // e/ou estados), sem age_min/genders. Mudanca 4: restringimos os
+    // posicionamentos a Facebook + Instagram no nivel do conjunto (para todos os
+    // tipos de criativo), tirando a Audience Network do Advantage+ padrao — que
+    // costuma trazer trafego de baixa intencao (ex.: rewarded video) para B2B.
+    const targeting: Record<string, unknown> = {
+      geo_locations: input.geoLocations,
+      publisher_platforms: ["facebook", "instagram"]
+    };
+    // Mudanca 6: usa o publico personalizado quando disponivel. Sob Categoria
+    // Especial a Meta pode recusar — o chamador tem fallback para targeting aberto.
+    if (input.customAudienceIds && input.customAudienceIds.length > 0) {
+      targeting.custom_audiences = input.customAudienceIds.map((id) => ({ id }));
+    }
+    body.set("targeting", JSON.stringify(targeting));
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body,
+      cache: "no-store"
+    });
+
+    const payload = (await response.json().catch(() => null)) as MetaCampaignCreateResponse | {
+      error?: { message?: string; error_user_msg?: string; error_subcode?: number };
+    } | null;
+
+    if (response.ok) {
+      return { ...(payload as MetaCampaignCreateResponse), optimizationGoal };
+    }
+
     const metaError = (payload as { error?: { message?: string; error_user_msg?: string; error_subcode?: number } } | null)?.error;
     const detail = metaError?.error_user_msg || metaError?.message;
     const suffix = metaError?.error_subcode ? ` (subcode: ${metaError.error_subcode})` : "";
-    throw new Error(
+    lastError = new Error(
       detail
         ? `Falha ao criar conjunto de anuncios na Meta: ${detail}${suffix}`
         : `Falha ao criar conjunto de anuncios na Meta: status ${response.status}.`
     );
+
+    // Se foi so incompatibilidade do objetivo e ainda ha candidatos, tenta o proximo.
+    if (!isLastCandidate && isOptimizationGoalIncompatibility(metaError)) {
+      continue;
+    }
+
+    throw lastError;
   }
 
-  return payload as MetaCampaignCreateResponse;
+  // Inalcancavel (o loop sempre retorna ou lanca), mas satisfaz o type-checker.
+  throw lastError ?? new Error("Falha ao criar conjunto de anuncios na Meta.");
 }
 
 const FEED_ASSET_LABEL = "feed_asset";
@@ -1140,9 +1530,14 @@ function mapCallToActionType(callToAction: string): string {
     solicitar: "APPLY_NOW",
     apply_now: "APPLY_NOW",
     enviar_whatsapp: "WHATSAPP_MESSAGE",
-    whatsapp_message: "WHATSAPP_MESSAGE"
+    whatsapp_message: "WHATSAPP_MESSAGE",
+    // CTA fraco/desalinhado com captacao de lead — mapeado para o padrao forte.
+    saiba_detalhes: "GET_QUOTE",
+    see_details: "GET_QUOTE"
   };
-  return ctaMap[normalized] ?? "LEARN_MORE";
+  // Mudanca 5: para objetivo de lead, o CTA padrao passa a ser GET_QUOTE (alinhado
+  // a "cotacao de plano empresarial"), em vez de LEARN_MORE.
+  return ctaMap[normalized] ?? "GET_QUOTE";
 }
 
 function buildSanitizedRequestPayload(campaign: CampaignRow, publishMode: CampaignPublishMode): Json {
