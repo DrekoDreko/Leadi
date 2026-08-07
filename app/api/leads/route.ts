@@ -4,6 +4,7 @@ import { BillingResourceAccessError } from "@/lib/billing/subscription-limits.se
 import {
   createLeadForCurrentUser,
   getLeadsForCurrentUser,
+  LeadDuplicateError,
   type LeadCreateInput
 } from "@/lib/leads/repository.server";
 import { parseLeadPaginationParams } from "@/lib/leads/repository";
@@ -121,6 +122,10 @@ export async function POST(request: Request) {
 
 
 function getCreateLeadErrorMessage(error: unknown) {
+  if (error instanceof LeadDuplicateError) {
+    return error.message;
+  }
+
   if (error instanceof ApiRouteError) {
     return error.message;
   }
@@ -151,6 +156,10 @@ function getCreateLeadErrorMessage(error: unknown) {
 }
 
 function getCreateLeadErrorStatus(error: unknown) {
+  if (error instanceof LeadDuplicateError) {
+    return 409;
+  }
+
   if (error instanceof ApiRouteError) {
     return getErrorStatus(error);
   }

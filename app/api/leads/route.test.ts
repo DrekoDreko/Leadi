@@ -10,7 +10,19 @@ import { isSupabaseConfigured } from '@/lib/supabase/config';
 vi.mock('@/lib/leads/repository.server', () => ({
   assignLeadOwnersInBulkForCurrentUser: vi.fn(),
   createLeadForCurrentUser: vi.fn(),
-  getLeadsForCurrentUser: vi.fn()
+  getLeadsForCurrentUser: vi.fn(),
+  LeadDuplicateError: class extends Error {
+    constructor(public readonly reason: string) {
+      super(
+        reason === 'phone_e164'
+          ? 'Ja existe um lead com esse telefone. Abra o lead existente para atualiza-lo.'
+          : reason === 'email'
+            ? 'Ja existe um lead com esse e-mail. Abra o lead existente para atualiza-lo.'
+            : 'Ja existe um lead com esse contato. Abra o lead existente para atualiza-lo.'
+      );
+      this.name = 'LeadDuplicateError';
+    }
+  }
 }));
 
 vi.mock('@/lib/supabase/config', () => ({
@@ -119,6 +131,26 @@ describe('Leads API - /api/leads', () => {
 
       expect(response.status).toBe(400);
       expect(data.error).toBe('Informe o nome do lead antes de salvar.');
+    });
+
+    it('retorna 409 e preserva o lead existente quando ha telefone duplicado', async () => {
+      vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+      const { LeadDuplicateError } = await import('@/lib/leads/repository.server');
+      vi.mocked(createLeadForCurrentUser).mockRejectedValue(
+        new LeadDuplicateError('phone_e164')
+      );
+
+      const request = new Request('http://localhost:3000/api/leads', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Maria', phone: '11999999999' })
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(data.error).toBe('Ja existe um lead com esse telefone. Abra o lead existente para atualiza-lo.');
+      expect(data.lead).toBeUndefined();
     });
 
     it('retorna erro de duplicidade (Conecte uma conta Meta ativa)', async () => {

@@ -57,6 +57,27 @@ type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 type LeadDataClient = ServerClient | AdminClient;
 type LeadAccessProfile = Pick<ProfileRow, "id" | "organization_id" | "role">;
 export type LeadDuplicateReason = "meta_lead_id" | "phone_e164" | "email";
+
+/** Sinaliza que ja existe um lead com o mesmo contato ao cadastrar manualmente. */
+export class LeadDuplicateError extends Error {
+  constructor(public readonly reason: LeadDuplicateReason) {
+    super(duplicateLeadMessage(reason));
+    this.name = "LeadDuplicateError";
+  }
+}
+
+function duplicateLeadMessage(reason: LeadDuplicateReason): string {
+  switch (reason) {
+    case "phone_e164":
+      return "Ja existe um lead com esse telefone. Abra o lead existente para atualiza-lo.";
+    case "email":
+      return "Ja existe um lead com esse e-mail. Abra o lead existente para atualiza-lo.";
+    case "meta_lead_id":
+    default:
+      return "Ja existe um lead com esse contato. Abra o lead existente para atualiza-lo.";
+  }
+}
+
 export type LeadTaskStatusValue = Database["public"]["Enums"]["lead_task_status"];
 export type LeadTaskPriorityValue = Database["public"]["Enums"]["lead_task_priority"];
 
@@ -753,37 +774,10 @@ export async function createLeadForCurrentUser(input: LeadCreateInput): Promise<
   const duplicate = await findDuplicateLead(supabase, profile.organization_id, payload);
 
   if (duplicate) {
-    assertCanManageLead(profile, duplicate.lead, "editar", hasMetaConnection);
-    const updatePayload = { ...payload };
-    delete updatePayload.import_batch_id;
-    const duplicateOwnerProfileId = duplicate.lead.owner_profile_id ?? profile.id;
-    const duplicateOwnerTeamId = await resolveLeadTeamIdForProfile(
-      supabase,
-      profile.organization_id,
-      duplicateOwnerProfileId
-    );
-
-    const { data, error } = await supabase
-      .from("leads")
-      .update({
-        ...updatePayload,
-        organization_id: profile.organization_id,
-        owner_profile_id: duplicateOwnerProfileId,
-        team_id: duplicateOwnerTeamId
-      })
-      .eq("id", duplicate.lead.id)
-      .select("*")
-      .single();
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return {
-      lead: mapLeadRowToLead(data, profile),
-      status: "duplicate",
-      duplicateReason: duplicate.reason
-    };
+    // Cadastro manual NAO deve sobrescrever silenciosamente um lead existente:
+    // isso fazia o card anterior "sumir" ao criar um novo com o mesmo contato.
+    // Preservamos o lead existente e avisamos o usuario.
+    throw new LeadDuplicateError(duplicate.reason);
   }
 
   const { data, error } = await insertLeadWithSchemaFallback(supabase, payload);
@@ -2767,7 +2761,7 @@ function createMockLead(input: LeadCreateInput): Lead {
     mockLeadOwnerOptions[0];
 
   return {
-    id: `mock-${now.getTime()}`,
+    id: `mock-${now.getTime()}-${crypto.randomUUID()}`,
     name,
     owner: selectedOwner.name,
     ownerProfileId: selectedOwner.id,

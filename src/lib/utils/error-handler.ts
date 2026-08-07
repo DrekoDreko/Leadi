@@ -100,7 +100,12 @@ export function getFriendlyErrorMessage(error: unknown, fallback = "Ocorreu um e
 
 function findPartialMatch(message: string): string | null {
   const lowercaseMessage = message.toLowerCase();
-  
+
+  // Lead duplicado: a mensagem do servidor ja e amigavel e orienta o usuario.
+  if (lowercaseMessage.includes("ja existe um lead") || lowercaseMessage.includes("já existe um lead")) {
+    return message;
+  }
+
   if (lowercaseMessage.includes("supabase") && lowercaseMessage.includes("configured")) {
     return ERROR_MAP["supabase-not-configured"];
   }

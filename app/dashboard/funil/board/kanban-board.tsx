@@ -5,12 +5,16 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
+  MeasuringStrategy,
   PointerSensor,
   closestCorners,
+  defaultDropAnimationSideEffects,
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragStartEvent
+  type DragOverEvent,
+  type DragStartEvent,
+  type DropAnimation
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -60,6 +64,15 @@ type BoardColumnModel = {
 
 const NAME_FALLBACK = "Sem título";
 
+/** Animação de "aterrissagem": o card flutuante assenta suavemente na coluna de destino. */
+const DROP_ANIMATION: DropAnimation = {
+  duration: 260,
+  easing: "cubic-bezier(0.18, 0.67, 0.34, 1)",
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: { active: { opacity: "0.35" } }
+  })
+};
+
 function sortCards(cards: Lead[]): Lead[] {
   return [...cards].sort((a, b) => {
     const posA = typeof a.boardPosition === "number" ? a.boardPosition : Number.POSITIVE_INFINITY;
@@ -93,7 +106,16 @@ export function KanbanBoard({
   onFeedback
 }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Snapshot dos leads no início do arraste — usado para reverter se a persistência falhar,
+  // já que `onDragOver` muda o estado otimista várias vezes durante o movimento.
+  const dragSnapshot = useRef<Lead[] | null>(null);
   const stageIds = useMemo(() => new Set(stages.map((stage) => stage.id)), [stages]);
+
+  const resolveStageId = useCallback(
+    (lead: Lead | undefined): string =>
+      lead?.stageId ?? getLeadStageValue(lead?.stage ?? "") ?? "",
+    []
+  );
 
   const columns: BoardColumnModel[] = useMemo(() => {
     const orderedStages = [...stages].sort((a, b) => a.position - b.position);
@@ -165,6 +187,67 @@ export function KanbanBoard({
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(String(event.active.id));
+    dragSnapshot.current = leads;
+  }
+
+  /**
+   * Move o card entre colunas ao vivo, durante o arraste, para dar a sensação de
+   * "entregar o card na coluna". A reordenação dentro da mesma coluna fica a cargo
+   * da estratégia do SortableContext (transforms), então aqui só tratamos a troca
+   * de coluna. A posição definitiva e a persistência acontecem no `handleDragEnd`.
+   */
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+    const activeIdStr = String(active.id);
+    const overIdStr = String(over.id);
+    if (activeIdStr === overIdStr) return;
+    // Ignora o arraste de colunas — só cards trocam de container aqui.
+    if (stageIds.has(activeIdStr)) return;
+    if (!canReorderLeads) return;
+
+    const lead = leadById.get(activeIdStr);
+    if (!lead || !(lead.canEdit ?? true)) return;
+    const activeStageId = resolveStageId(lead);
+
+    let overStageId: string;
+    let overCardId: string | null = null;
+    if (stageIds.has(overIdStr)) {
+      overStageId = overIdStr;
+    } else {
+      const overLead = leadById.get(overIdStr);
+      if (!overLead) return;
+      overStageId = resolveStageId(overLead);
+      overCardId = overIdStr;
+    }
+    if (!overStageId || overStageId === activeStageId) return;
+
+    const targetStage = stages.find((stage) => stage.id === overStageId);
+    if (!targetStage) return;
+
+    const targetCards = (columns.find((column) => column.stage.id === overStageId)?.cards ?? []).filter(
+      (card) => card.id !== activeIdStr
+    );
+    let index = targetCards.length;
+    if (overCardId) {
+      const overIndex = targetCards.findIndex((card) => card.id === overCardId);
+      if (overIndex !== -1) index = overIndex;
+    }
+    const before = targetCards[index - 1]?.boardPosition ?? null;
+    const after = targetCards[index]?.boardPosition ?? null;
+    const nextPosition = positionBetween(
+      typeof before === "number" ? before : null,
+      typeof after === "number" ? after : null
+    );
+    const nextStageLabel = optimisticStageLabel(targetStage, lead.stage);
+
+    onLeadsChange((current) =>
+      current.map((item) =>
+        item.id === activeIdStr
+          ? { ...item, stageId: overStageId, boardPosition: nextPosition, stage: nextStageLabel }
+          : item
+      )
+    );
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -239,7 +322,8 @@ export function KanbanBoard({
       typeof after === "number" ? after : null
     );
 
-    const previousLeads = leads;
+    // Reverte para o estado anterior ao início do arraste (antes das mudanças de `onDragOver`).
+    const previousLeads = dragSnapshot.current ?? leads;
     const nextStageLabel = optimisticStageLabel(targetStage, lead.stage);
     onLeadsChange((current) =>
       current.map((item) =>
@@ -265,9 +349,19 @@ export function KanbanBoard({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => setActiveId(null)}
+      onDragCancel={() => {
+        setActiveId(null);
+        // Desfaz qualquer troca de coluna otimista feita durante o arraste.
+        if (dragSnapshot.current) {
+          const snapshot = dragSnapshot.current;
+          onLeadsChange(() => snapshot);
+        }
+        dragSnapshot.current = null;
+      }}
     >
       <div className="-mx-1 overflow-x-auto pb-2">
         <div className="flex min-w-max items-start gap-4 px-1">
@@ -295,7 +389,7 @@ export function KanbanBoard({
         </div>
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={DROP_ANIMATION}>
         {activeLead ? <BoardCard lead={activeLead} overlay onSelect={() => {}} /> : null}
       </DragOverlay>
     </DndContext>
@@ -720,7 +814,9 @@ function BoardCard({
   return (
     <article
       className={`group overflow-hidden rounded-xl border border-border/70 bg-white text-foreground shadow-sm transition dark:bg-surface-elevated ${
-        overlay ? "rotate-2 shadow-lg" : "cursor-pointer hover:-translate-y-0.5 hover:border-border hover:shadow-md"
+        overlay
+          ? "rotate-3 scale-[1.03] cursor-grabbing shadow-2xl ring-1 ring-cobalt/30"
+          : "cursor-pointer hover:-translate-y-0.5 hover:border-border hover:shadow-md"
       }`}
       onClick={overlay ? undefined : () => onSelect(lead)}
       role={overlay ? undefined : "button"}
